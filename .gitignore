@@ -1,0 +1,4 @@
+*.o
+*.pb.cc
+*.pb.h
+depend
