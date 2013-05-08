@@ -16,7 +16,7 @@
 #include <assert.h>
 
 #include "./vpx_decoder.h"
-#include "./test_vector_reader.h"
+#include "./test_vector_reader.hh"
 
 /* Reference to dixie algorithm interface in vp8_dixie_iface.c */
 extern vpx_codec_iface_t vpx_codec_vp8_dixie_algo;
