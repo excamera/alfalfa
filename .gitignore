@@ -2,3 +2,4 @@
 *.pb.cc
 *.pb.h
 depend
+tags
