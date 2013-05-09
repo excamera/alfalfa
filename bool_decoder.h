@@ -24,121 +24,21 @@ struct bool_decoder
 };
 
 
-static void
-init_bool_decoder(struct bool_decoder *d,
-                  const unsigned char *start_partition,
-                  size_t               sz)
-{
-    if (sz >= 2)
-    {
-        d->value = (start_partition[0] << 8) /* first 2 input bytes */
-                   | start_partition[1];
-        d->input = start_partition + 2;      /* ptr to next byte */
-        d->input_len = sz - 2;
-    }
-    else
-    {
-        d->value = 0;
-        d->input = NULL;
-        d->input_len = 0;
-    }
+void init_bool_decoder(struct bool_decoder *d,
+                       const unsigned char *start_partition,
+                       size_t               sz);
 
-    d->range = 255;    /* initial range is full */
-    d->bit_count = 0;  /* have not yet shifted out any bits */
-}
+int bool_get(struct bool_decoder *d, int probability);
 
+int bool_get_bit(struct bool_decoder *br);
 
-static int bool_get(struct bool_decoder *d, int probability)
-{
-    /* range and split are identical to the corresponding values
-       used by the encoder when this bool was written */
+int bool_get_uint(struct bool_decoder *br, int bits);
 
-    unsigned int  split = 1 + (((d->range - 1) * probability) >> 8);
-    unsigned int  SPLIT = split << 8;
-    int           retval;           /* will be 0 or 1 */
+int bool_get_int(struct bool_decoder *br, int bits);
 
-    if (d->value >= SPLIT)    /* encoded a one */
-    {
-        retval = 1;
-        d->range -= split;  /* reduce range */
-        d->value -= SPLIT;  /* subtract off left endpoint of interval */
-    }
-    else                  /* encoded a zero */
-    {
-        retval = 0;
-        d->range = split; /* reduce range, no change in left endpoint */
-    }
+int bool_maybe_get_int(struct bool_decoder *br, int bits);
 
-    while (d->range < 128)    /* shift out irrelevant value bits */
-    {
-        d->value <<= 1;
-        d->range <<= 1;
-
-        if (++d->bit_count == 8)    /* shift in new bits 8 at a time */
-        {
-            d->bit_count = 0;
-
-            if (d->input_len)
-            {
-                d->value |= *d->input++;
-                d->input_len--;
-            }
-        }
-    }
-
-    return retval;
-}
-
-
-static int bool_get_bit(struct bool_decoder *br)
-{
-    return bool_get(br, 128);
-}
-
-
-static int bool_get_uint(struct bool_decoder *br, int bits)
-{
-    int z = 0;
-    int bit;
-
-    for (bit = bits - 1; bit >= 0; bit--)
-    {
-        z |= (bool_get_bit(br) << bit);
-    }
-
-    return z;
-}
-
-
-static int bool_get_int(struct bool_decoder *br, int bits)
-{
-    int z = 0;
-    int bit;
-
-    for (bit = bits - 1; bit >= 0; bit--)
-    {
-        z |= (bool_get_bit(br) << bit);
-    }
-
-    return bool_get_bit(br) ? -z : z;
-}
-
-
-static int bool_maybe_get_int(struct bool_decoder *br, int bits)
-{
-    return bool_get_bit(br) ? bool_get_int(br, bits) : 0;
-}
-
-
-static int
-bool_read_tree(struct bool_decoder *bool,
-               const int           *t,
-               const unsigned char *p)
-{
-    int i = 0;
-
-    while ((i = t[ i + bool_get(bool, p[i>>1])]) > 0) ;
-
-    return -i;
-}
+int bool_read_tree(struct bool_decoder *br,
+                   const int           *t,
+                   const unsigned char *p);
 #endif
