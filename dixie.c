@@ -28,7 +28,7 @@ enum
 
 #define ARRAY_COPY(a,b) {\
     assert(sizeof(a)==sizeof(b));memcpy(a,b,sizeof(a));}
-static void
+void
 decode_entropy_header(struct vp8_decoder_ctx    *ctx,
                       struct bool_decoder       *bool,
                       struct vp8_entropy_hdr    *hdr)
@@ -78,7 +78,7 @@ decode_entropy_header(struct vp8_decoder_ctx    *ctx,
 }
 
 
-static void
+void
 decode_reference_header(struct vp8_decoder_ctx    *ctx,
                         struct bool_decoder       *bool,
                         struct vp8_reference_hdr  *hdr)
@@ -98,7 +98,7 @@ decode_reference_header(struct vp8_decoder_ctx    *ctx,
 }
 
 
-static void
+void
 decode_quantizer_header(struct vp8_decoder_ctx    *ctx,
                         struct bool_decoder       *bool,
                         struct vp8_quant_hdr      *hdr)
@@ -117,7 +117,7 @@ decode_quantizer_header(struct vp8_decoder_ctx    *ctx,
 }
 
 
-static void
+void
 decode_and_init_token_partitions(struct vp8_decoder_ctx    *ctx,
                                  struct bool_decoder       *bool,
                                  const unsigned char       *data,
@@ -156,14 +156,14 @@ decode_and_init_token_partitions(struct vp8_decoder_ctx    *ctx,
 
     for (i = 0; i < ctx->token_hdr.partitions; i++)
     {
-        init_bool_decoder(&ctx->tokens[i].bool, data,
+        init_bool_decoder(&ctx->tokens[i].boolean_dec, data,
                           ctx->token_hdr.partition_sz[i]);
         data += ctx->token_hdr.partition_sz[i];
     }
 }
 
 
-static void
+void
 decode_loopfilter_header(struct vp8_decoder_ctx    *ctx,
                          struct bool_decoder       *bool,
                          struct vp8_loopfilter_hdr *hdr)
@@ -189,7 +189,7 @@ decode_loopfilter_header(struct vp8_decoder_ctx    *ctx,
 }
 
 
-static void
+void
 decode_segmentation_header(struct vp8_decoder_ctx *ctx,
                            struct bool_decoder    *bool,
                            struct vp8_segment_hdr *hdr)
@@ -311,7 +311,7 @@ dequant_init(struct dequant_factors        factors[MAX_MB_SEGMENTS],
 }
 
 
-static void
+void
 decode_frame(struct vp8_decoder_ctx *ctx,
              const unsigned char    *data,
              unsigned int            sz)

@@ -222,7 +222,7 @@ typedef int token_entropy_ctx_t[4 + 2 + 2 + 1];
 
 struct token_decoder
 {
-    struct bool_decoder  bool;
+    struct bool_decoder  boolean_dec;
     token_entropy_ctx_t  left_token_entropy_ctx;
     short               *coeffs;
 };
@@ -302,6 +302,49 @@ vp8_dixie_decode_frame(struct vp8_decoder_ctx *ctx,
                        const unsigned char    *data,
                        unsigned int            sz);
 
+/* Decode entropy header in frame */
+void
+decode_entropy_header(struct vp8_decoder_ctx    *ctx,
+                      struct bool_decoder       *br,
+                      struct vp8_entropy_hdr    *hdr);
+
+/* Decode reference header in frame */
+void
+decode_reference_header(struct vp8_decoder_ctx    *ctx,
+                        struct bool_decoder       *br,
+                        struct vp8_reference_hdr  *hdr);
+
+/* Decode quantizer header in frame */
+void
+decode_quantizer_header(struct vp8_decoder_ctx    *ctx,
+                        struct bool_decoder       *br,
+                        struct vp8_quant_hdr      *hdr);
+
+/* Decode token partitions */
+void
+decode_and_init_token_partitions(struct vp8_decoder_ctx    *ctx,
+                                 struct bool_decoder       *br,
+                                 const unsigned char       *data,
+                                 unsigned int               sz,
+                                 struct vp8_token_hdr      *hdr);
+
+/* Decode loop filter header */
+void
+decode_loopfilter_header(struct vp8_decoder_ctx    *ctx,
+                         struct bool_decoder       *br,
+                         struct vp8_loopfilter_hdr *hdr);
+
+/* Decode segmentation header */
+void
+decode_segmentation_header(struct vp8_decoder_ctx *ctx,
+                           struct bool_decoder    *br,
+                           struct vp8_segment_hdr *hdr);
+
+/* Decode entire frame */
+void
+decode_frame(struct vp8_decoder_ctx *ctx,
+             const unsigned char    *data,
+             unsigned int            sz);
 
 #define CLAMP_255(x) ((x)<0?0:((x)>255?255:(x)))
 

@@ -385,7 +385,7 @@ vp8_dixie_tokens_process_row(struct vp8_decoder_ctx *ctx,
 
             dqf = ctx->dequant_factors  + mbi->base.segment_id;
             mbi->base.eob_mask =
-                decode_mb_tokens(&tokens->bool,
+                decode_mb_tokens(&tokens->boolean_dec,
                                  *left, *above,
                                  coeffs,
                                  mbi->base.y_mode,
