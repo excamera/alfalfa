@@ -8,8 +8,8 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef TEST_VECTOR_READER_H_
-#define TEST_VECTOR_READER_H_
+#ifndef TEST_VECTOR_READER_HH_
+#define TEST_VECTOR_READER_HH_
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -47,4 +47,4 @@ class TestVectorReader {
   unsigned int is_ivf_;
 };
 
-#endif  // TEST_VECTOR_READER_H_
+#endif  // TEST_VECTOR_READER_HH_
