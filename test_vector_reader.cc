@@ -48,7 +48,7 @@ int TestVectorReader::read_frame(uint8_t  **buf,
    * of the frame header. We just need to special case on the header
    * size.
    */
-  if (fread(raw_hdr, is_ivf_ ? IVF_FRAME_HDR_SZ : RAW_FRAME_HDR_SZ, 1,
+  if (fread(raw_hdr, is_ivf_ ? static_cast<uint32_t>(IVF_FRAME_HDR_SZ) : static_cast<uint32_t>(RAW_FRAME_HDR_SZ), 1,
             infile_) != 1) {
     if (!feof(infile_))
         fprintf(stderr, "Failed to read frame size\n");
