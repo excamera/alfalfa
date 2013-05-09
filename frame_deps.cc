@@ -18,6 +18,7 @@
 #include "./vpx_decoder.h"
 #include "./test_vector_reader.hh"
 #include "./vp8_dixie_iface.h"
+#include "./dixie.h"
 
 int main(int argc, const char** argv) {
   /* Read IVF file name from command line */
@@ -38,6 +39,7 @@ int main(int argc, const char** argv) {
 
   /* Read frame by frame */
   while (!test_vector_reader.read_frame(&buf, &buf_sz, &buf_alloc_sz)) {
+    decode_frame(&(decoder.priv->alg_priv->decoder_ctx), static_cast<unsigned char*>(buf), buf_sz);
     printf("END OF ONE FRAME \n");
   }
 }

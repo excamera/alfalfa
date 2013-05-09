@@ -19,19 +19,6 @@
 #include "./dixie.h"
 #include "./vp8_dixie_iface.h"
 
-typedef vpx_codec_stream_info_t  vp8_stream_info_t;
-
-struct vpx_codec_alg_priv
-{
-    vpx_codec_priv_t        base;
-    vpx_codec_dec_cfg_t     cfg;
-    vp8_stream_info_t       si;
-    struct vp8_decoder_ctx  decoder_ctx;
-    vpx_image_t            *img;
-    int                     img_avail;
-};
-
-
 static vpx_codec_err_t
 update_error_state(vpx_codec_alg_priv_t                 *ctx,
                    const struct vpx_internal_error_info *error)
