@@ -17,9 +17,7 @@
 
 #include "./vpx_decoder.h"
 #include "./test_vector_reader.hh"
-
-/* Reference to dixie algorithm interface in vp8_dixie_iface.c */
-extern vpx_codec_iface_t vpx_codec_vp8_dixie_algo;
+#include "./vp8_dixie_iface.h"
 
 int main(int argc, const char** argv) {
   /* Read IVF file name from command line */
@@ -33,8 +31,7 @@ int main(int argc, const char** argv) {
 
   /* Intialize decoder */
   vpx_codec_ctx_t         decoder;
-  vpx_codec_dec_cfg_t     cfg;
-  if (vpx_codec_dec_init(&decoder, &vpx_codec_vp8_dixie_algo, &cfg, 0)) {
+  if (vp8_init(&decoder)) {
     fprintf(stderr, "Failed to initialize decoder:\n");
     return EXIT_FAILURE;
   }

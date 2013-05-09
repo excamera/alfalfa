@@ -17,6 +17,7 @@
 #include "./vpx_mem.h"
 #include "./vpx_version.h"
 #include "./dixie.h"
+#include "./vp8_dixie_iface.h"
 
 typedef vpx_codec_stream_info_t  vp8_stream_info_t;
 
@@ -46,7 +47,7 @@ update_error_state(vpx_codec_alg_priv_t                 *ctx,
 }
 
 
-static vpx_codec_err_t vp8_init(vpx_codec_ctx_t *ctx)
+vpx_codec_err_t vp8_init(vpx_codec_ctx_t *ctx)
 {
     vpx_codec_err_t        res = VPX_CODEC_OK;
 
