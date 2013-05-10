@@ -42,18 +42,19 @@ int main(int argc, const char** argv) {
   /* Read frame by frame */
   std::vector<FrameState> frame_states;
   int frame_in=0;
+  struct vp8_decoder_ctx* dixie_ctx = &(decoder.priv->alg_priv->decoder_ctx);
   while (!test_vector_reader.read_frame(&buf, &buf_sz, &buf_alloc_sz)) {
     ++frame_in;
-    decode_frame(&(decoder.priv->alg_priv->decoder_ctx), static_cast<unsigned char*>(buf), buf_sz);
+    decode_frame(dixie_ctx, static_cast<unsigned char*>(buf), buf_sz);
     printf("Decoded frame %d.\n", frame_in);
     printf("Pretty prining state: \n");
-    frame_states.push_back(FrameState((decoder.priv->alg_priv->decoder_ctx).frame_hdr,
-                                      (decoder.priv->alg_priv->decoder_ctx).segment_hdr,
-                                      (decoder.priv->alg_priv->decoder_ctx).loopfilter_hdr,
-                                      (decoder.priv->alg_priv->decoder_ctx).token_hdr,
-                                      (decoder.priv->alg_priv->decoder_ctx).quant_hdr,
-                                      (decoder.priv->alg_priv->decoder_ctx).reference_hdr,
-                                      (decoder.priv->alg_priv->decoder_ctx).entropy_hdr));
+    frame_states.push_back(FrameState(dixie_ctx->frame_hdr,
+                                      dixie_ctx->segment_hdr,
+                                      dixie_ctx->loopfilter_hdr,
+                                      dixie_ctx->token_hdr,
+                                      dixie_ctx->quant_hdr,
+                                      dixie_ctx->reference_hdr,
+                                      dixie_ctx->entropy_hdr));
     frame_states.back().pretty_print_frame_hdr();
     frame_states.back().pretty_print_segment_hdr();
     frame_states.back().pretty_print_loopfilter_hdr();
