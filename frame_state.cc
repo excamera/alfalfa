@@ -15,6 +15,8 @@
 #include "frame_state.hh"
 
 void FrameState::pretty_print_everything(void) const {
+  printf("Decoded headers of current frame %u\n", raster_num);
+  pretty_print_raster_numbers();
   pretty_print_frame_hdr();
   pretty_print_segment_hdr();
   pretty_print_loopfilter_hdr();
@@ -22,14 +24,16 @@ void FrameState::pretty_print_everything(void) const {
   pretty_print_quant_hdr();
   pretty_print_reference_hdr();
   pretty_print_frame_deps();
-  pretty_print_entropy_hdr();    
+  pretty_print_entropy_hdr();
 }
 
 void FrameState::pretty_print_inter_frame_state(void) const {
+  printf("Decoded headers of current frame %u\n", raster_num);
+  pretty_print_raster_numbers();
   pretty_print_frame_hdr();
   pretty_print_reference_hdr();
   pretty_print_frame_deps();
-  pretty_print_entropy_hdr();    
+  pretty_print_entropy_hdr();
 }
 
 void FrameState::pretty_print_frame_hdr(void) const {
@@ -137,9 +141,9 @@ void FrameState::pretty_print_reference_hdr(void) const {
 
 void FrameState::pretty_print_raster_numbers(void) const {
   printf("************** IDs of different rasters *************************\n");
-//  printf("Last frame   : %u \n", reference_hdr.current_lf_number);
-//  printf("Golden frame : %u \n", reference_hdr.current_gf_number);
-//  printf("Altref frame : %u \n", reference_hdr.current_ar_number);
+  printf("Last frame   : %u \n", raster_ids.lf_number);
+  printf("Golden frame : %u \n", raster_ids.gf_number);
+  printf("Altref frame : %u \n", raster_ids.ar_number);
   printf("\n\n");
 }
 
