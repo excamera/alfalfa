@@ -14,6 +14,24 @@
 
 #include "frame_state.hh"
 
+void FrameState::pretty_print_everything(void) const {
+  pretty_print_frame_hdr();
+  pretty_print_segment_hdr();
+  pretty_print_loopfilter_hdr();
+  pretty_print_token_hdr();
+  pretty_print_quant_hdr();
+  pretty_print_reference_hdr();
+  pretty_print_frame_deps();
+  pretty_print_entropy_hdr();    
+}
+
+void FrameState::pretty_print_inter_frame_state(void) const {
+  pretty_print_frame_hdr();
+  pretty_print_reference_hdr();
+  pretty_print_frame_deps();
+  pretty_print_entropy_hdr();    
+}
+
 void FrameState::pretty_print_frame_hdr(void) const {
   printf("********** Uncompressed data chunk (Sec 9.1) ********* \n");
   printf("Is it a keyframe      ? %u\n", frame_hdr.is_keyframe);
