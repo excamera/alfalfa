@@ -101,7 +101,7 @@ void FrameState::pretty_print_loopfilter_hdr(void) const {
 
 void FrameState::pretty_print_token_hdr(void) const {
   printf("*********** Token header (Sec 9.5) ********** \n");
-  printf("Number of paritions : %u\n", token_hdr.partitions);
+  printf("Number of partitions : %u\n", token_hdr.partitions);
   printf("Partition sizes     : \n");
   for (uint32_t i = 0; i < MAX_PARTITIONS; i++) {
     printf("%u %u,", i, token_hdr.partition_sz[i]);
