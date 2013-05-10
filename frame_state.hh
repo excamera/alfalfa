@@ -5,6 +5,7 @@
 
 class FrameState {
  public:
+  /* Constructor */
   FrameState(struct vp8_frame_hdr      t_frame_hdr,
              struct vp8_segment_hdr    t_segment_hdr,
              struct vp8_loopfilter_hdr t_loopfilter_hdr,
@@ -20,7 +21,6 @@ class FrameState {
         reference_hdr(t_reference_hdr),
         entropy_hdr(t_entropy_hdr) {}
 
- private:
   /* Pretty printing */
   void pretty_print_frame_hdr(void)      const;
   void pretty_print_segment_hdr(void)    const;
@@ -32,6 +32,8 @@ class FrameState {
   void pretty_print_frame_deps(void)     const;
   void pretty_print_entropy_hdr(void)    const;
 
+
+ private:
   /* Frame state */
   const struct vp8_frame_hdr      frame_hdr;         /* Frame scaling */
   const struct vp8_segment_hdr    segment_hdr;  /* Segmentation state */
