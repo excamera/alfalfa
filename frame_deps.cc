@@ -21,6 +21,7 @@
 #include "./vp8_dixie_iface.h"
 #include "./dixie.h"
 #include "./frame_state.hh"
+#include "./operator_parser.hh"
 
 int main(int argc, const char** argv) {
   /* Read IVF file name from command line */
@@ -28,41 +29,35 @@ int main(int argc, const char** argv) {
   std::string file_name(argv[1]);
   TestVectorReader test_vector_reader(file_name);
 
-  /* Set up buffers */
-  uint8_t  *buf = NULL;
-  uint32_t buf_sz = 0, buf_alloc_sz = 0;
+  /* Set up buffers for operators */
+  uint8_t  *operator_buffer = NULL;
+  uint32_t op_buf_sz = 0, op_buf_alloc_sz = 0;
 
   /* Intialize decoder */
-  vpx_codec_ctx_t         decoder;
+  vpx_codec_ctx_t         decoder = {nullptr, nullptr, VPX_CODEC_OK, nullptr, 0, nullptr, nullptr}; 
   if (vp8_init(&decoder)) {
     fprintf(stderr, "Failed to initialize decoder:\n");
     return EXIT_FAILURE;
   }
 
-  /* Read frame by frame */
+  /* Create vector of frame states */
   std::vector<FrameState> frame_states;
-  int frame_in=0;
+  int frame_in = 0;
   struct vp8_decoder_ctx* dixie_ctx = &(decoder.priv->alg_priv->decoder_ctx);
-  while (!test_vector_reader.read_frame(&buf, &buf_sz, &buf_alloc_sz)) {
+
+  /* Read frame by frame */
+  while (!test_vector_reader.read_frame(&operator_buffer, &op_buf_sz, &op_buf_alloc_sz)) {
     ++frame_in;
-    decode_frame(dixie_ctx, static_cast<unsigned char*>(buf), buf_sz);
+    /* Create OperatorParser */
+    OperatorParser op_parser(dixie_ctx, static_cast<unsigned char*>(operator_buffer), op_buf_sz);
+
+    /* Decode operator headers alone */
+    op_parser.decode_operator_headers();
+
     printf("Decoded frame %d.\n", frame_in);
     printf("Pretty prining state: \n");
-    frame_states.push_back(FrameState(dixie_ctx->frame_hdr,
-                                      dixie_ctx->segment_hdr,
-                                      dixie_ctx->loopfilter_hdr,
-                                      dixie_ctx->token_hdr,
-                                      dixie_ctx->quant_hdr,
-                                      dixie_ctx->reference_hdr,
-                                      dixie_ctx->entropy_hdr));
-    frame_states.back().pretty_print_frame_hdr();
-    frame_states.back().pretty_print_segment_hdr();
-    frame_states.back().pretty_print_loopfilter_hdr();
-    frame_states.back().pretty_print_token_hdr();
-    frame_states.back().pretty_print_quant_hdr();
-    frame_states.back().pretty_print_reference_hdr();
-    frame_states.back().pretty_print_frame_deps();
-    frame_states.back().pretty_print_entropy_hdr();    
+    frame_states.push_back(op_parser.get_frame_state());
+    frame_states.back().pretty_print_everything();
     printf("\n END OF ONE FRAME \n\n\n\n");
   }
 }
