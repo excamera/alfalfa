@@ -7,6 +7,10 @@
  *  in the file PATENTS.  All contributing project authors may
  *  be found in the AUTHORS file in the root of the source tree.
  */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef DIXIE_H
 #define DIXIE_H
 #include "./vpx_codec_internal.h"
@@ -346,6 +350,20 @@ decode_frame(struct vp8_decoder_ctx *ctx,
              const unsigned char    *data,
              unsigned int            sz);
 
+/* ARRAY COPY */
+#define ARRAY_COPY(a,b) {\
+    assert(sizeof(a)==sizeof(b));memcpy(a,b,sizeof(a));}
+
+/* FRAME HEADER enums */
+enum
+{
+    FRAME_HEADER_SZ = 3,
+    KEYFRAME_HEADER_SZ = 7
+};
 #define CLAMP_255(x) ((x)<0?0:((x)>255?255:(x)))
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif

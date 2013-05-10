@@ -19,15 +19,6 @@
 #include <string.h>
 #include <assert.h>
 
-enum
-{
-    FRAME_HEADER_SZ = 3,
-    KEYFRAME_HEADER_SZ = 7
-};
-
-
-#define ARRAY_COPY(a,b) {\
-    assert(sizeof(a)==sizeof(b));memcpy(a,b,sizeof(a));}
 void
 decode_entropy_header(struct vp8_decoder_ctx    *ctx,
                       struct bool_decoder       *bool,
