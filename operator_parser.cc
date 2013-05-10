@@ -25,7 +25,8 @@ OperatorParser::OperatorParser(struct vp8_decoder_ctx* t_ctx,
     : ctx(t_ctx),
       data(t_data),
       sz(t_size),
-      raster_buffer_ids_({0, 0, 0, 0}) {}
+      raster_ref_ids_({0, 0, 0}),
+      raster_num(0) {}
 
 void OperatorParser::decode_operator_headers(void) {
   vpx_codec_err_t  res;
@@ -97,42 +98,43 @@ void OperatorParser::decode_operator_headers(void) {
       ctx->entropy_hdr = ctx->saved_entropy;
       ctx->saved_entropy_valid = 0;
   }
+
+  /* forcibly update the current raster num */
+  raster_num = ctx->frame_cnt;
+  assert(raster_num > 0);
 }
 
 void OperatorParser::update_ref_rasters(void) {
-  /* Set it equal to the current vp8_raster_buffer_ids state */
-  struct vp8_raster_buffer_ids new_raster_buffers = raster_buffer_ids_;
-  const struct vp8_raster_buffer_ids current = raster_buffer_ids_;
-
-  /* forcibly update the current_raster_num */
-  new_raster_buffers.raster_num = ctx->frame_cnt;
+  /* Set it equal to the current vp8_raster_ref_ids state */
+  struct vp8_raster_ref_ids new_raster_refs = raster_ref_ids_;
+  const struct vp8_raster_ref_ids current = raster_ref_ids_;
 
   /* Handle reference raster updates */
   if (ctx->reference_hdr.copy_arf == 1) {
-      new_raster_buffers.ar_number = current.lf_number;
+      new_raster_refs.ar_number = current.lf_number;
   } else if (ctx->reference_hdr.copy_arf == 2) {
-      new_raster_buffers.ar_number = current.gf_number;
+      new_raster_refs.ar_number = current.gf_number;
   }
 
   if (ctx->reference_hdr.copy_gf == 1) {
-      new_raster_buffers.gf_number = current.lf_number;
+      new_raster_refs.gf_number = current.lf_number;
   } else if (ctx->reference_hdr.copy_gf == 2) {
-      new_raster_buffers.gf_number = current.ar_number;
+      new_raster_refs.gf_number = current.ar_number;
   }
 
   if (ctx->reference_hdr.refresh_gf) {
-      new_raster_buffers.gf_number = ctx->frame_cnt;
+      new_raster_refs.gf_number = ctx->frame_cnt;
   }
 
   if (ctx->reference_hdr.refresh_arf) {
-      new_raster_buffers.ar_number = ctx->frame_cnt;
+      new_raster_refs.ar_number = ctx->frame_cnt;
   }
 
   if (ctx->reference_hdr.refresh_last) {
-      new_raster_buffers.lf_number = ctx->frame_cnt;
+      new_raster_refs.lf_number = ctx->frame_cnt;
   }
 
-  raster_buffer_ids_ = new_raster_buffers;
+  raster_ref_ids_ = new_raster_refs;
 }
 
 FrameState OperatorParser::get_frame_state(void) {
@@ -143,6 +145,7 @@ FrameState OperatorParser::get_frame_state(void) {
                  ctx->quant_hdr,
                  ctx->reference_hdr,
                  ctx->entropy_hdr,
-                 raster_buffer_ids_);
+                 raster_ref_ids_,
+                 raster_num);
   return ret;
 }

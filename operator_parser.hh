@@ -43,8 +43,11 @@ class OperatorParser {
   /* decoder_ctx object */
   struct vp8_decoder_ctx* ctx;
 
-  /* frame_buffer ids of golden, altref, current and last rasters */
-  struct vp8_raster_buffer_ids raster_buffer_ids_;
+  /* frame_buffer ids of golden, altref, and last rasters */
+  struct vp8_raster_ref_ids raster_ref_ids_;
+
+  /* Current raster number */
+  unsigned int raster_num;
 
   /* Pointer to data in current coded frame */
   const unsigned char* data;
