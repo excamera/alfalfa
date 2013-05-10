@@ -19,13 +19,14 @@
 #include "./vp8_prob_data.h"
 #include "./operator_parser.hh"
 
-OperatorParser::OperatorParser(struct vp8_decoder_ctx* t_ctx,
-                               const unsigned char*    t_data,
-                               unsigned int            t_size)
+OperatorParser::OperatorParser(struct vp8_decoder_ctx*   t_ctx,
+                               const unsigned char*      t_data,
+                               unsigned int              t_size,
+                               struct vp8_raster_ref_ids t_raster_ref_ids)
     : ctx(t_ctx),
       data(t_data),
       sz(t_size),
-      raster_ref_ids_({0, 0, 0}),
+      raster_ref_ids_(t_raster_ref_ids),
       raster_num(0) {}
 
 void OperatorParser::decode_operator_headers(void) {
@@ -104,7 +105,7 @@ void OperatorParser::decode_operator_headers(void) {
   assert(raster_num > 0);
 }
 
-void OperatorParser::update_ref_rasters(void) {
+struct vp8_raster_ref_ids OperatorParser::update_ref_rasters(void) {
   /* Set it equal to the current vp8_raster_ref_ids state */
   struct vp8_raster_ref_ids new_raster_refs = raster_ref_ids_;
   const struct vp8_raster_ref_ids current = raster_ref_ids_;
@@ -135,6 +136,7 @@ void OperatorParser::update_ref_rasters(void) {
   }
 
   raster_ref_ids_ = new_raster_refs;
+  return raster_ref_ids_;
 }
 
 FrameState OperatorParser::get_frame_state(void) {

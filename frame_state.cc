@@ -15,8 +15,8 @@
 #include "frame_state.hh"
 
 void FrameState::pretty_print_everything(void) const {
-  printf("Decoded headers of current frame %u\n", raster_num);
   pretty_print_raster_numbers();
+  printf("Decoding headers of current frame %u\n", raster_num);
   pretty_print_frame_hdr();
   pretty_print_segment_hdr();
   pretty_print_loopfilter_hdr();

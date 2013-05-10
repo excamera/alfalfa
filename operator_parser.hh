@@ -22,9 +22,10 @@
 class OperatorParser {
  public:
   /* Constructor */
-  OperatorParser(struct vp8_decoder_ctx* t_ctx,
-                 const unsigned char*    t_data,
-                 unsigned int            t_size);
+  OperatorParser(struct vp8_decoder_ctx*   t_ctx,
+                 const unsigned char*      t_data,
+                 unsigned int              t_size,
+                 struct vp8_raster_ref_ids t_raster_ref_ids);
 
   /* Decode Operator headers alone */
   void decode_operator_headers(void);
@@ -33,7 +34,7 @@ class OperatorParser {
   void decode_frame(void);
 
   /* Update reference raster ids */
-  void update_ref_rasters(void);
+  struct vp8_raster_ref_ids update_ref_rasters(void);
 
   /* Create FrameState (full) out of ctx object
      after decoding operator header */
