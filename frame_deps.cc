@@ -14,11 +14,13 @@
  */
 
 #include <assert.h>
+#include <vector>
 
 #include "./vpx_decoder.h"
 #include "./test_vector_reader.hh"
 #include "./vp8_dixie_iface.h"
 #include "./dixie.h"
+#include "./frame_state.hh"
 
 int main(int argc, const char** argv) {
   /* Read IVF file name from command line */
@@ -38,8 +40,28 @@ int main(int argc, const char** argv) {
   }
 
   /* Read frame by frame */
+  std::vector<FrameState> frame_states;
+  int frame_in=0;
   while (!test_vector_reader.read_frame(&buf, &buf_sz, &buf_alloc_sz)) {
+    ++frame_in;
     decode_frame(&(decoder.priv->alg_priv->decoder_ctx), static_cast<unsigned char*>(buf), buf_sz);
-    printf("END OF ONE FRAME \n");
+    printf("Decoded frame %d.\n", frame_in);
+    printf("Pretty prining state: \n");
+    frame_states.push_back(FrameState((decoder.priv->alg_priv->decoder_ctx).frame_hdr,
+                                      (decoder.priv->alg_priv->decoder_ctx).segment_hdr,
+                                      (decoder.priv->alg_priv->decoder_ctx).loopfilter_hdr,
+                                      (decoder.priv->alg_priv->decoder_ctx).token_hdr,
+                                      (decoder.priv->alg_priv->decoder_ctx).quant_hdr,
+                                      (decoder.priv->alg_priv->decoder_ctx).reference_hdr,
+                                      (decoder.priv->alg_priv->decoder_ctx).entropy_hdr));
+    frame_states.back().pretty_print_frame_hdr();
+    frame_states.back().pretty_print_segment_hdr();
+    frame_states.back().pretty_print_loopfilter_hdr();
+    frame_states.back().pretty_print_token_hdr();
+    frame_states.back().pretty_print_quant_hdr();
+    frame_states.back().pretty_print_reference_hdr();
+    frame_states.back().pretty_print_frame_deps();
+    frame_states.back().pretty_print_entropy_hdr();    
+    printf("\n END OF ONE FRAME \n\n\n\n");
   }
 }
