@@ -34,7 +34,7 @@ int main(int argc, const char** argv) {
   uint32_t op_buf_sz = 0, op_buf_alloc_sz = 0;
 
   /* Intialize decoder */
-  vpx_codec_ctx_t         decoder = {nullptr, nullptr, VPX_CODEC_OK, nullptr, 0, nullptr, nullptr}; 
+  vpx_codec_ctx_t         decoder = {nullptr, nullptr, VPX_CODEC_OK, nullptr, 0, nullptr, nullptr};
   if (vp8_init(&decoder)) {
     fprintf(stderr, "Failed to initialize decoder:\n");
     return EXIT_FAILURE;
@@ -42,22 +42,30 @@ int main(int argc, const char** argv) {
 
   /* Create vector of frame states */
   std::vector<FrameState> frame_states;
-  int frame_in = 0;
   struct vp8_decoder_ctx* dixie_ctx = &(decoder.priv->alg_priv->decoder_ctx);
+
+  /* Set up current raster reference ids */
+  struct vp8_raster_ref_ids current_raster_ref_ids = {0,0,0};
 
   /* Read frame by frame */
   while (!test_vector_reader.read_frame(&operator_buffer, &op_buf_sz, &op_buf_alloc_sz)) {
-    ++frame_in;
-    /* Create OperatorParser */
-    OperatorParser op_parser(dixie_ctx, static_cast<unsigned char*>(operator_buffer), op_buf_sz);
+    /* Create op_parser with current raster references */
+    OperatorParser op_parser(dixie_ctx,
+                             static_cast<unsigned char*>(operator_buffer),
+                             op_buf_sz,
+                             current_raster_ref_ids);
 
     /* Decode operator headers alone */
     op_parser.decode_operator_headers();
 
-    printf("Decoded frame %d.\n", frame_in);
+    /* Pretty print */
     printf("Pretty prining state: \n");
     frame_states.push_back(op_parser.get_frame_state());
     frame_states.back().pretty_print_everything();
+
+    /* Update ids of different raster buffers for the next frame */
+    current_raster_ref_ids = op_parser.update_ref_rasters();
+
     printf("\n END OF ONE FRAME \n\n\n\n");
   }
 }
