@@ -148,6 +148,7 @@ FrameState OperatorParser::get_frame_state(void) {
                  ctx->reference_hdr,
                  ctx->entropy_hdr,
                  raster_ref_ids_,
+                 {0,0,0}, /* TODO: Fix this asap ! */
                  raster_num);
   return ret;
 }

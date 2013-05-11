@@ -66,7 +66,7 @@ class FrameState {
   const struct vp8_reference_hdr  reference_hdr; /* ref. frame */
   const struct vp8_entropy_hdr    entropy_hdr;   /* Probabilities */
   const struct vp8_raster_ref_ids raster_ids;    /* ids of last, golden, altref rasters */
-  const struct vp8_raster_ref_ids raster_deps;   /* Does the operator depend on the last, golden and altref rasters */
+  const struct vp8_mb_dependencies raster_deps;  /* Does the operator depend on the last, golden and altref rasters */
   unsigned int raster_num;                       /* Raster number of current frame */
 };
 
