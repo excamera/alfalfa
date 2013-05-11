@@ -9,6 +9,12 @@ struct vp8_raster_ref_ids {
   unsigned int ar_number;    /* Raster number of altref */
 };
 
+struct vp8_mb_dependencies {
+  unsigned int depends_lf;   /* Does any mb in current operator depend on last raster ? */
+  unsigned int depends_gf;   /* Does any mb in current operator depend on golden raster ? */
+  unsigned int depends_ar;   /* Does any mb in current operator depend on altref raster ? */
+};
+
 class FrameState {
  public:
   /* Constructor */
@@ -20,6 +26,7 @@ class FrameState {
              struct vp8_reference_hdr     t_reference_hdr,
              struct vp8_entropy_hdr       t_entropy_hdr,
              struct vp8_raster_ref_ids    t_raster_ids,
+             struct vp8_mb_dependencies   t_raster_deps,
              unsigned int                 t_raster_num)
       : frame_hdr(t_frame_hdr),
         segment_hdr(t_segment_hdr),
@@ -29,6 +36,7 @@ class FrameState {
         reference_hdr(t_reference_hdr),
         entropy_hdr(t_entropy_hdr),
         raster_ids(t_raster_ids),
+        raster_deps(t_raster_deps),
         raster_num(t_raster_num) {}
 
   /* Print all state (per frame and intra frame) */
@@ -58,6 +66,7 @@ class FrameState {
   const struct vp8_reference_hdr  reference_hdr; /* ref. frame */
   const struct vp8_entropy_hdr    entropy_hdr;   /* Probabilities */
   const struct vp8_raster_ref_ids raster_ids;    /* ids of last, golden, altref rasters */
+  const struct vp8_raster_ref_ids raster_deps;   /* Does the operator depend on the last, golden and altref rasters */
   unsigned int raster_num;                       /* Raster number of current frame */
 };
 

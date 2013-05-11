@@ -141,18 +141,18 @@ void FrameState::pretty_print_reference_hdr(void) const {
 
 void FrameState::pretty_print_raster_numbers(void) const {
   printf("************** IDs of different rasters *************************\n");
-  printf("Last frame   : %u \n", raster_ids.lf_number);
-  printf("Golden frame : %u \n", raster_ids.gf_number);
-  printf("Altref frame : %u \n", raster_ids.ar_number);
+  printf("Last raster   : %u \n", raster_ids.lf_number);
+  printf("Golden raster : %u \n", raster_ids.gf_number);
+  printf("Altref raster : %u \n", raster_ids.ar_number);
   printf("\n\n");
 }
 
 void FrameState::pretty_print_frame_deps(void) const {
-  /* Print out union of all macroblock dependencies for this frame */
-  printf("************** Frame dependency *************************\n");
-//  printf("Last frame   ? %u \n", reference_hdr.depends_lf);
-//  printf("Golden frame ? %u \n", reference_hdr.depends_gf);
-//  printf("Altref frame ? %u \n", reference_hdr.depends_ar);
+  /* Print out union of all macroblock dependencies for this operator */
+  printf("************** Raster dependency *************************\n");
+  printf("Last raster   ? %u \n", raster_deps.depends_lf);
+  printf("Golden raster ? %u \n", raster_deps.depends_gf);
+  printf("Altref raster ? %u \n", raster_deps.depends_ar);
   printf("\n\n");
 }
 
