@@ -25,4 +25,6 @@ vp8_dixie_modemv_process_row(struct vp8_decoder_ctx *ctx,
                              int                     start_col,
                              int                     num_cols);
 
+int read_segment_id(struct bool_decoder entropy_decoder, struct vp8_segment_hdr *seg);
+
 #endif

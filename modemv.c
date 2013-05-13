@@ -36,7 +36,7 @@ static union mv
 }
 
 
-static int
+int
 read_segment_id(struct bool_decoder *bool, struct vp8_segment_hdr *seg)
 {
     return bool_get(bool, seg->tree_probs[0])

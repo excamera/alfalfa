@@ -165,7 +165,7 @@ static const int small_mv_tree[14] =
   -4, -5,
   -6, -7
 };
-static const int mv_ref_tree[8] =
+const int mv_ref_tree[8] =
 {
   -ZEROMV, 2,
   -NEARESTMV, 4,
