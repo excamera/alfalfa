@@ -62,13 +62,11 @@ int main(int argc, const char** argv) {
     op_parser.decode_macroblock_data();
 
     /* Pretty print */
-    printf("Pretty prining state: \n");
     frame_states.push_back(op_parser.get_frame_state());
-    frame_states.back().pretty_print_everything();
+    frame_states.back().pretty_print_compact();
 
     /* Update ids of different raster buffers for the next frame */
     current_raster_ref_ids = op_parser.update_ref_rasters();
 
-    printf("\n END OF ONE FRAME \n\n\n\n");
   }
 }
