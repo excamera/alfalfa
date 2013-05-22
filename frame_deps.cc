@@ -58,6 +58,9 @@ int main(int argc, const char** argv) {
     /* Decode operator headers alone */
     op_parser.decode_operator_headers();
 
+    /* Decode macroblock prediction records */
+    op_parser.decode_macroblock_data();
+
     /* Pretty print */
     printf("Pretty prining state: \n");
     frame_states.push_back(op_parser.get_frame_state());
