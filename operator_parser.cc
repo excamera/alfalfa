@@ -94,7 +94,10 @@ void OperatorParser::decode_operator_headers(void) {
       ctx->saved_entropy_valid = 1;
   }
 
+  int current_len = entropy_decoder.input_len;
   decode_entropy_header(ctx, &entropy_decoder, &ctx->entropy_hdr);
+  prob_update_len_ = current_len - entropy_decoder.input_len;
+
   ctx->frame_cnt++;
 
   if (!ctx->reference_hdr.refresh_entropy) {
@@ -257,6 +260,7 @@ FrameState OperatorParser::get_frame_state(void) {
                  ctx->entropy_hdr,
                  raster_ref_ids_,
                  raster_deps_,
-                 raster_num);
+                 raster_num,
+                 prob_update_len_);
   return ret;
 }

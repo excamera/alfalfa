@@ -71,6 +71,9 @@ class OperatorParser {
 
   /* Current location in operator */
   unsigned int sz;
+
+  /* Length of probability update in current operator */
+  unsigned int prob_update_len_;
 };
 
 #endif  // OPERATOR_PARSER_HH_
