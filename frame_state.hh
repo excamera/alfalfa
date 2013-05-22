@@ -10,9 +10,14 @@ struct vp8_raster_ref_ids {
 };
 
 struct vp8_mb_dependencies {
-  unsigned int depends_lf;   /* Does any mb in current operator depend on last raster ? */
-  unsigned int depends_gf;   /* Does any mb in current operator depend on golden raster ? */
-  unsigned int depends_ar;   /* Does any mb in current operator depend on altref raster ? */
+  bool depends_lf;   /* Does any mb in current operator depend on last raster ? */
+  bool depends_gf;   /* Does any mb in current operator depend on golden raster ? */
+  bool depends_ar;   /* Does any mb in current operator depend on altref raster ? */
+  const struct vp8_mb_dependencies compute_union(const struct vp8_mb_dependencies & other) {
+    return {depends_lf or other.depends_lf,
+            depends_gf or other.depends_gf,
+            depends_ar or other.depends_ar};
+  }
 };
 
 class FrameState {
