@@ -32,7 +32,8 @@ class FrameState {
              struct vp8_entropy_hdr       t_entropy_hdr,
              struct vp8_raster_ref_ids    t_raster_ids,
              struct vp8_mb_dependencies   t_raster_deps,
-             unsigned int                 t_raster_num)
+             unsigned int                 t_raster_num,
+             unsigned int                 t_prob_update_len)
       : frame_hdr(t_frame_hdr),
         segment_hdr(t_segment_hdr),
         loopfilter_hdr(t_loopfilter_hdr),
@@ -42,7 +43,8 @@ class FrameState {
         entropy_hdr(t_entropy_hdr),
         raster_ids(t_raster_ids),
         raster_deps(t_raster_deps),
-        raster_num(t_raster_num) {}
+        raster_num(t_raster_num),
+        prob_update_len(t_prob_update_len) {}
 
   /* Print all state (per frame and intra frame) */
   void pretty_print_everything(void) const;
@@ -73,6 +75,7 @@ class FrameState {
   const struct vp8_raster_ref_ids raster_ids;    /* ids of last, golden, altref rasters */
   const struct vp8_mb_dependencies raster_deps;  /* Does the operator depend on the last, golden and altref rasters */
   unsigned int raster_num;                       /* Raster number of current frame */
+  unsigned int prob_update_len;                  /* Length of probability table update */
 };
 
 #endif  // FRAME_STATE_HH_
