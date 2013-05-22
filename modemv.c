@@ -11,13 +11,7 @@
 #include "modemv_data.h"
 #include <stdlib.h>
 #include <assert.h>
-
-
-struct mv_clamp_rect
-{
-    int to_left, to_right, to_top, to_bottom;
-};
-
+#include "modemv.h"
 
 static union mv
         clamp_mv(union mv raw, const struct mv_clamp_rect *bounds)
@@ -136,7 +130,7 @@ decode_kf_mb_mode(struct mb_info      *this,
 }
 
 
-static void
+void
 decode_intra_mb_mode(struct mb_info         *this,
                      struct vp8_entropy_hdr *hdr,
                      struct bool_decoder    *bool)
@@ -480,7 +474,7 @@ need_mc_border(union mv mv, int l, int t, int b_w, int w, int h)
     return (l >> 1 < 2 || r >> 1 < 3 || t >> 1 < 2 || b >> 1 < 3);
 }
 
-static void
+void
 decode_mvs(struct vp8_decoder_ctx       *ctx,
            struct mb_info               *this,
            const struct mb_info         *left,
