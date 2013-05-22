@@ -52,6 +52,9 @@ class FrameState {
   /* Print only inter frame state (probability tables) */
   void pretty_print_inter_frame_state(void) const;
 
+  /* Compact Pretty print (raster deps with probability update  length) */
+  void pretty_print_compact(void) const;
+
  private:
   /* Pretty printing */
   void pretty_print_frame_hdr(void)      const;

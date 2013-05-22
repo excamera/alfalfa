@@ -36,6 +36,22 @@ void FrameState::pretty_print_inter_frame_state(void) const {
   pretty_print_entropy_hdr();
 }
 
+void FrameState::pretty_print_compact(void) const {
+  printf("Decoded headers of current frame %u\n", raster_num);
+  printf("Frame width              : %u\n", frame_hdr.kf.w);
+  printf("Frame height             : %u\n", frame_hdr.kf.h);
+  printf("Width scaling  (pg 33)   : %u\n", frame_hdr.kf.scale_w);
+  printf("Height scaling (pg 33)   : %u\n", frame_hdr.kf.scale_h);
+  printf("Last raster#             : %u\n", raster_ids.lf_number);
+  printf("Golden raster#           : %u\n", raster_ids.gf_number);
+  printf("Altref raster#           : %u\n", raster_ids.ar_number);
+  printf("Depend on Last raster    ? %u\n", raster_deps.depends_lf);
+  printf("Depend on Golden raster  ? %u\n", raster_deps.depends_gf);
+  printf("Depend on Altref raster  ? %u\n", raster_deps.depends_ar);
+  printf("Prob table update size   : %u\n", prob_update_len);
+  printf("\n");
+}
+
 void FrameState::pretty_print_frame_hdr(void) const {
   printf("********** Uncompressed data chunk (Sec 9.1) ********* \n");
   printf("Is it a keyframe      ? %u\n", frame_hdr.is_keyframe);
