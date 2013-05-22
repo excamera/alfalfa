@@ -18,6 +18,7 @@
 
 #include "./frame_state.hh"
 #include "./dixie.h"
+#include "./modemv.h"
 
 class OperatorParser {
  public:
@@ -30,6 +31,9 @@ class OperatorParser {
   /* Decode Operator headers alone */
   void decode_operator_headers(void);
 
+  /* Decode macroblock prediction records */
+  struct vp8_mb_dependencies decode_macroblock_data(void);
+
   /* Decode Operator's frame itself */
   void decode_frame(void);
 
@@ -41,14 +45,26 @@ class OperatorParser {
   FrameState get_frame_state(void);
 
  private:
+  /* Get eighth-pel MV bounds */
+  struct mv_clamp_rect get_initial_bounds(int);
+
+  /* Return golden, altref, and last raster dependencies for current mb */
+  struct vp8_mb_dependencies mb_dependencies(const struct mb_info *current);
+
   /* decoder_ctx object */
   struct vp8_decoder_ctx* ctx;
 
   /* frame_buffer ids of golden, altref, and last rasters */
   struct vp8_raster_ref_ids raster_ref_ids_;
 
+  /* Operator dependencies on golden, altref and last rasters */
+  struct vp8_mb_dependencies raster_deps_;
+
   /* Current raster number */
   unsigned int raster_num;
+
+  /* Entropy Decoder for first partition */
+  struct bool_decoder entropy_decoder;
 
   /* Pointer to data in current coded frame */
   const unsigned char* data;

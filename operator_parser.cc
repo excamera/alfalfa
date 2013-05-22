@@ -18,6 +18,7 @@
 #include "./dixie.h"
 #include "./vp8_prob_data.h"
 #include "./operator_parser.hh"
+#include "./modemv_data.h"
 
 OperatorParser::OperatorParser(struct vp8_decoder_ctx*   t_ctx,
                                const unsigned char*      t_data,
@@ -27,11 +28,12 @@ OperatorParser::OperatorParser(struct vp8_decoder_ctx*   t_ctx,
       data(t_data),
       sz(t_size),
       raster_ref_ids_(t_raster_ref_ids),
-      raster_num(0) {}
+      raster_num(0),
+      entropy_decoder({nullptr,0,0,0,0}) {}
+
 
 void OperatorParser::decode_operator_headers(void) {
   vpx_codec_err_t  res;
-  struct bool_decoder  entropy_decoder;
   int                  i, row, partition;
 
   ctx->saved_entropy_valid = 0;
@@ -105,6 +107,112 @@ void OperatorParser::decode_operator_headers(void) {
   assert(raster_num > 0);
 }
 
+struct mv_clamp_rect OperatorParser::get_initial_bounds(int row) {
+  /* Calculate the initial eighth-pel MV bounds for this row using a 1 MB border. */
+  struct mv_clamp_rect  bounds;
+  bounds.to_left   = -(1 << 7);
+  bounds.to_right  = (ctx->mb_cols) << 7;
+  bounds.to_top    = -((row + 1) << 7);
+  bounds.to_bottom = (ctx->mb_rows - row) << 7;
+  return bounds;
+}
+
+/* Return golden, altref, and last frame dependencies for current mb */
+struct vp8_mb_dependencies OperatorParser::mb_dependencies(const struct mb_info *current) {
+  struct vp8_mb_dependencies deps = {false, false, false};
+  if (current->base.ref_frame == LAST_FRAME) {
+    deps.depends_lf = true;
+  } else if (current->base.ref_frame == GOLDEN_FRAME) {
+    deps.depends_gf = true;
+  } else if (current->base.ref_frame == ALTREF_FRAME) {
+    deps.depends_ar = true;
+  } else {
+    assert(false);
+  }
+  return deps;
+}
+
+/*
+  Page 9 of the spec says macroblock prediction data
+  can be decoded independent of residual data.
+  This function decodes macroblock prediction records
+  alone to discover raster dependencies
+ */
+
+struct vp8_mb_dependencies OperatorParser::decode_macroblock_data(void) {
+  /*
+     Allocate space to store macroblock records as
+     2D arrays (raster order) within ctx
+     This structure is freed up and reallocated on every
+     resolution update (on key frames).
+   */
+  vp8_dixie_modemv_init(ctx);
+
+  /*
+     If it's a keyframe, there are no dependencies, so
+     simply set all depends_* to 0 and return
+   */
+  if (ctx->frame_hdr.is_keyframe) {
+    return (raster_deps_ = {false, false, false});
+  }
+
+  /* Ensure it's not a keyframe */
+  assert (!ctx->frame_hdr.is_keyframe);
+
+  /* Track current mb, left mb and above mb */
+  struct mb_info *current,*left,*above;
+
+  /* Maintain row and column index */
+  int row = 0;
+  int col = 0;
+
+  /* Run through macroblocks in raster scan order (Page 10) */
+  struct vp8_mb_dependencies deps_union = {false, false, false};
+  for (row = 0; row < ctx->mb_rows; row++) {
+    /* Calculate the initial eighth-pel MV bounds for this row using a 1 MB border. */
+    struct mv_clamp_rect  bounds = get_initial_bounds(row);
+
+    /* Get pointer to first macroblock prediction record in this row */
+    current = ctx->mb_info_rows[row] + 0;
+    above   = ctx->mb_info_rows[row - 1] + 0;
+    left    = current - 1;
+
+    /* Now run through all columns */
+    for (col = 0; col < ctx->mb_cols; col++) {
+
+      /* Parse according to syntax in Page 130 */
+      if (ctx->segment_hdr.update_map) {
+        current->base.segment_id = read_segment_id(&entropy_decoder, &ctx->segment_hdr);
+      }
+
+      if (ctx->entropy_hdr.coeff_skip_enabled) {
+        current->base.skip_coeff = bool_get(&entropy_decoder, ctx->entropy_hdr.coeff_skip_prob);
+      }
+
+      if (bool_get(&entropy_decoder, ctx->entropy_hdr.prob_inter)) {
+        /* It's an inter macroblock => Get reference frame */
+        decode_mvs(ctx, current, left, above, &bounds, &entropy_decoder);
+
+        /* Accumulate union of all mb deps */
+        deps_union = mb_dependencies(current).compute_union(deps_union);
+      } else {
+        /* It's an intra macroblock, simply consume it, as usual */
+        decode_intra_mb_mode(current, &ctx->entropy_hdr, &entropy_decoder);
+      }
+
+      /* Correct bounds for the next set */
+      bounds.to_left -= 16 << 3;
+      bounds.to_right -= 16 << 3;
+
+      /* Advance to next mb */
+      current++;
+      above++;
+      left++;
+    }
+  }
+  return (raster_deps_ = deps_union);
+}
+
 struct vp8_raster_ref_ids OperatorParser::update_ref_rasters(void) {
   /* Set it equal to the current vp8_raster_ref_ids state */
   struct vp8_raster_ref_ids new_raster_refs = raster_ref_ids_;
@@ -148,7 +256,7 @@ FrameState OperatorParser::get_frame_state(void) {
                  ctx->reference_hdr,
                  ctx->entropy_hdr,
                  raster_ref_ids_,
-                 {0,0,0}, /* TODO: Fix this asap ! */
+                 raster_deps_,
                  raster_num);
   return ret;
 }
