@@ -29,7 +29,7 @@ OperatorParser::OperatorParser(struct vp8_decoder_ctx*   t_ctx,
       sz(t_size),
       raster_ref_ids_(t_raster_ref_ids),
       raster_num(0),
-      entropy_decoder({nullptr,0,0,0,0}) {}
+      entropy_decoder({nullptr, 0, 0, 0, 0}) {}
 
 
 void OperatorParser::decode_operator_headers(void) {
@@ -111,7 +111,8 @@ void OperatorParser::decode_operator_headers(void) {
 }
 
 struct mv_clamp_rect OperatorParser::get_initial_bounds(int row) {
-  /* Calculate the initial eighth-pel MV bounds for this row using a 1 MB border. */
+  /* Calculate the initial eighth-pel MV bounds
+     for this row using a 1 MB border. */
   struct mv_clamp_rect  bounds;
   bounds.to_left   = -(1 << 7);
   bounds.to_right  = (ctx->mb_cols) << 7;
@@ -160,10 +161,10 @@ struct vp8_mb_dependencies OperatorParser::decode_macroblock_data(void) {
   }
 
   /* Ensure it's not a keyframe */
-  assert (!ctx->frame_hdr.is_keyframe);
+  assert(!ctx->frame_hdr.is_keyframe);
 
   /* Track current mb, left mb and above mb */
-  struct mb_info *current,*left,*above;
+  struct mb_info *current, *left, *above;
 
   /* Maintain row and column index */
   int row = 0;
@@ -172,7 +173,8 @@ struct vp8_mb_dependencies OperatorParser::decode_macroblock_data(void) {
   /* Run through macroblocks in raster scan order (Page 10) */
   struct vp8_mb_dependencies deps_union = {false, false, false};
   for (row = 0; row < ctx->mb_rows; row++) {
-    /* Calculate the initial eighth-pel MV bounds for this row using a 1 MB border. */
+    /* Calculate the initial eighth-pel MV bounds
+       for this row using a 1 MB border. */
     struct mv_clamp_rect  bounds = get_initial_bounds(row);
 
     /* Get pointer to first macroblock prediction record in this row */
@@ -182,14 +184,15 @@ struct vp8_mb_dependencies OperatorParser::decode_macroblock_data(void) {
 
     /* Now run through all columns */
     for (col = 0; col < ctx->mb_cols; col++) {
-
       /* Parse according to syntax in Page 130 */
       if (ctx->segment_hdr.update_map) {
-        current->base.segment_id = read_segment_id(&entropy_decoder, &ctx->segment_hdr);
+        current->base.segment_id = read_segment_id(&entropy_decoder,
+                                                   &ctx->segment_hdr);
       }
 
       if (ctx->entropy_hdr.coeff_skip_enabled) {
-        current->base.skip_coeff = bool_get(&entropy_decoder, ctx->entropy_hdr.coeff_skip_prob);
+        current->base.skip_coeff = bool_get(&entropy_decoder,
+                                            ctx->entropy_hdr.coeff_skip_prob);
       }
 
       if (bool_get(&entropy_decoder, ctx->entropy_hdr.prob_inter)) {
