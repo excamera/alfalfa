@@ -30,7 +30,7 @@
  */
 #ifndef VP8_H
 #define VP8_H
-#include "vpx/vpx_codec_impl_top.h"
+#include "./vpx_codec_impl_top.h"
 
 /*!\brief Control functions
  *
@@ -113,5 +113,5 @@ VPX_CTRL_USE_TYPE(VP8_SET_POSTPROC,            vp8_postproc_cfg_t *)
 DECLSPEC_DEPRECATED extern vpx_codec_iface_t vpx_codec_vp8_algo DEPRECATED;
 #endif
 
-#include "vpx/vpx_codec_impl_bottom.h"
+#include "./vpx_codec_impl_bottom.h"
 #endif

@@ -22,7 +22,7 @@
  */
 #ifndef VP8DX_H
 #define VP8DX_H
-#include "vpx/vpx_codec_impl_top.h"
+#include "./vpx_codec_impl_top.h"
 
 /*!\brief Algorithm interface for VP8
  *
@@ -38,5 +38,5 @@ extern vpx_codec_iface_t vpx_codec_vp8_dx_algo;
 /*! @} - end defgroup vp8_decoder */
 
 
-#include "vpx/vpx_codec_impl_bottom.h"
+#include "./vpx_codec_impl_bottom.h"
 #endif
