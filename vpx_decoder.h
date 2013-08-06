@@ -24,10 +24,6 @@
  * video decoder algorithm.
  *
  */
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifndef VPX_DECODER_H
 #define VPX_DECODER_H
 #include "vpx_codec.h"
@@ -306,10 +302,6 @@ extern "C" {
 
     /*!@} - end defgroup decoder*/
 
-#endif
-
-#ifdef __cplusplus
-}
 #endif
 
 #if !defined(VPX_CODEC_DISABLE_COMPAT) || !VPX_CODEC_DISABLE_COMPAT

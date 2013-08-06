@@ -7,10 +7,6 @@
  *  in the file PATENTS.  All contributing project authors may
  *  be found in the AUTHORS file in the root of the source tree.
  */
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifndef DIXIE_H
 #define DIXIE_H
 #include "./vpx_codec_internal.h"
@@ -362,8 +358,4 @@ enum
 };
 #define CLAMP_255(x) ((x)<0?0:((x)>255?255:(x)))
 
-#endif
-
-#ifdef __cplusplus
-}
 #endif

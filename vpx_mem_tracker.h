@@ -37,11 +37,6 @@ struct mem_block
     // using vpx_mem_alloc to allocate cache memory.
     // 2005-01-11 tjf
 };
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
     /*
         vpx_memory_tracker_init(int padding_size, int pad_value)
           padding_size - the size of the padding before and after each mem addr.
@@ -172,9 +167,4 @@ extern "C" {
                                          , mem_track_memcpy_func g_memcpy_l
                                          , mem_track_memset_func g_memset_l
                                          , mem_track_memmove_func g_memmove_l);
-
-#if defined(__cplusplus)
-}
-#endif
-
 #endif //__VPX_MEM_TRACKER_H__

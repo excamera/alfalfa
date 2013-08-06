@@ -101,14 +101,14 @@ static const unsigned int zigzag[16] =
 };
 
 #define DECODE_AND_APPLYSIGN(value_to_sign) \
-    v = (bool_get_bit(bool) ? -value_to_sign \
+    v = (bool_get_bit(boolean_decoder) ? -value_to_sign \
                             : value_to_sign) * dqf[!!c];
 
 #define DECODE_AND_BRANCH_IF_ZERO(probability,branch) \
-    if (!bool_get(bool, probability)) goto branch;
+    if (!bool_get(boolean_decoder, probability)) goto branch;
 
 #define DECODE_AND_LOOP_IF_ZERO(probability,branch) \
-    if (!bool_get(bool, probability)) \
+    if (!bool_get(boolean_decoder, probability)) \
     { \
         prob = type_probs; \
         if(c<15) {\
@@ -132,11 +132,11 @@ static const unsigned int zigzag[16] =
 
 
 #define DECODE_EXTRABIT_AND_ADJUST_VAL(t,bits_count)\
-    val += bool_get(bool, extrabits[t].probs[bits_count]) << bits_count;
+    val += bool_get(boolean_decoder, extrabits[t].probs[bits_count]) << bits_count;
 
 
 static int
-decode_mb_tokens(struct bool_decoder  *bool,
+decode_mb_tokens(struct bool_decoder  *boolean_decoder,
                  token_entropy_ctx_t   left,
                  token_entropy_ctx_t   above,
                  short                *tokens,

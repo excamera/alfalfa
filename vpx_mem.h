@@ -40,10 +40,6 @@
 #include <stdlib.h>
 #include <stddef.h>
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
     /*
         vpx_mem_get_version()
         provided for runtime version checking. Returns an unsigned int of the form
@@ -170,10 +166,6 @@ extern "C" {
 
 #ifdef VPX_MEM_PLTFRM
 # include VPX_MEM_PLTFRM
-#endif
-
-#if defined(__cplusplus)
-}
 #endif
 
 #endif /* __VPX_MEM_H__ */

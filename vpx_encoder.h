@@ -24,10 +24,6 @@
  * video encoder algorithm.
  *
  */
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifndef VPX_ENCODER_H
 #define VPX_ENCODER_H
 #include "vpx_codec.h"
@@ -787,7 +783,4 @@ extern "C" {
 
     /*!@} - end defgroup encoder*/
 
-#endif
-#ifdef __cplusplus
-}
 #endif

@@ -3,9 +3,7 @@ objects = test_vector_reader.o vp8_dixie_iface.o dixie.o modemv.o predict.o toke
 executables = frame_deps
 
 CXX = g++
-CC  = gcc
-CXXFLAGS = -g -std=c++0x -ffast-math -pedantic -fno-default-inline -pipe -D_FILE_OFFSET_BITS=64 -D_XOPEN_SOURCE=500 -D_GNU_SOURCE
-CCFLAGS = -g -ffast-math -fno-default-inline -pipe -D_FILE_OFFSET_BITS=64 -D_XOPEN_SOURCE=500 -D_GNU_SOURCE
+CXXFLAGS = -g -std=c++0x -ffast-math -pedantic -fno-default-inline -pipe -D_FILE_OFFSET_BITS=64 -D_XOPEN_SOURCE=500 -D_GNU_SOURCE -fpermissive
 LIBS = -lm -lrt
 
 all: $(executables)
@@ -17,7 +15,7 @@ frame_deps: frame_deps.o $(objects)
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 %.o:%.c
-	$(CC)  $(CCFLAGS) -c -o $@ $<
+	$(CXX)  $(CXXFLAGS) -c -o $@ $<
 
 -include depend
 

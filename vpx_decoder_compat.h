@@ -23,10 +23,6 @@
  * of this interface, and therefore, it is only thinly documented. Existing
  * code should be ported to the vpx_codec_* API.
  */
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifndef VPX_DECODER_COMPAT_H
 #define VPX_DECODER_COMPAT_H
 
@@ -581,7 +577,4 @@ extern "C" {
     /*!@} - end defgroup decoder*/
 
 
-#endif
-#ifdef __cplusplus
-}
 #endif

@@ -7,10 +7,6 @@
  *  in the file PATENTS.  All contributing project authors may
  *  be found in the AUTHORS file in the root of the source tree.
  */
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifndef MODEMV_H
 #define MODEMV_H
 
@@ -47,8 +43,4 @@ void decode_intra_mb_mode(struct mb_info         *current,
                           struct vp8_entropy_hdr *hdr,
                           struct bool_decoder    *entropy_decoder);
 
-#endif
-
-#ifdef __cplusplus
-}
 #endif

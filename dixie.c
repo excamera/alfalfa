@@ -21,7 +21,7 @@
 
 void
 decode_entropy_header(struct vp8_decoder_ctx    *ctx,
-                      struct bool_decoder       *bool,
+                      struct bool_decoder       *boolean_decoder,
                       struct vp8_entropy_hdr    *hdr)
 {
     int i, j, k, l;
@@ -31,38 +31,38 @@ decode_entropy_header(struct vp8_decoder_ctx    *ctx,
         for (j = 0; j < COEF_BANDS; j++)
             for (k = 0; k < PREV_COEF_CONTEXTS; k++)
                 for (l = 0; l < ENTROPY_NODES; l++)
-                    if (bool_get(bool,
+                    if (bool_get(boolean_decoder,
                                  k_coeff_entropy_update_probs
                                      [i][j][k][l]))
                         hdr->coeff_probs[i][j][k][l] =
-                            bool_get_uint(bool, 8);
+                            bool_get_uint(boolean_decoder, 8);
 
     /* Read coefficient skip mode probability */
-    hdr->coeff_skip_enabled = bool_get_bit(bool);
+    hdr->coeff_skip_enabled = bool_get_bit(boolean_decoder);
 
     if (hdr->coeff_skip_enabled)
-        hdr->coeff_skip_prob = bool_get_uint(bool, 8);
+        hdr->coeff_skip_prob = bool_get_uint(boolean_decoder, 8);
 
     /* Parse interframe probability updates */
     if (!ctx->frame_hdr.is_keyframe)
     {
-        hdr->prob_inter = bool_get_uint(bool, 8);
-        hdr->prob_last  = bool_get_uint(bool, 8);
-        hdr->prob_gf    = bool_get_uint(bool, 8);
+        hdr->prob_inter = bool_get_uint(boolean_decoder, 8);
+        hdr->prob_last  = bool_get_uint(boolean_decoder, 8);
+        hdr->prob_gf    = bool_get_uint(boolean_decoder, 8);
 
-        if (bool_get_bit(bool))
+        if (bool_get_bit(boolean_decoder))
             for (i = 0; i < 4; i++)
-                hdr->y_mode_probs[i] = bool_get_uint(bool, 8);
+                hdr->y_mode_probs[i] = bool_get_uint(boolean_decoder, 8);
 
-        if (bool_get_bit(bool))
+        if (bool_get_bit(boolean_decoder))
             for (i = 0; i < 3; i++)
-                hdr->uv_mode_probs[i] = bool_get_uint(bool, 8);
+                hdr->uv_mode_probs[i] = bool_get_uint(boolean_decoder, 8);
 
         for (i = 0; i < 2; i++)
             for (j = 0; j < MV_PROB_CNT; j++)
-                if (bool_get(bool, k_mv_entropy_update_probs[i][j]))
+                if (bool_get(boolean_decoder, k_mv_entropy_update_probs[i][j]))
                 {
-                    int x = bool_get_uint(bool, 7);
+                    int x = bool_get_uint(boolean_decoder, 7);
                     hdr->mv_probs[i][j] = x ? x << 1 : 1;
                 }
     }
@@ -71,53 +71,53 @@ decode_entropy_header(struct vp8_decoder_ctx    *ctx,
 
 void
 decode_reference_header(struct vp8_decoder_ctx    *ctx,
-                        struct bool_decoder       *bool,
+                        struct bool_decoder       *boolean_decoder,
                         struct vp8_reference_hdr  *hdr)
 {
     unsigned int key = ctx->frame_hdr.is_keyframe;
 
-    hdr->refresh_gf    = key ? 1 : bool_get_bit(bool);
-    hdr->refresh_arf   = key ? 1 : bool_get_bit(bool);
+    hdr->refresh_gf    = key ? 1 : bool_get_bit(boolean_decoder);
+    hdr->refresh_arf   = key ? 1 : bool_get_bit(boolean_decoder);
     hdr->copy_gf       = key ? 0 : !hdr->refresh_gf
-                         ? bool_get_uint(bool, 2) : 0;
+                         ? bool_get_uint(boolean_decoder, 2) : 0;
     hdr->copy_arf      = key ? 0 : !hdr->refresh_arf
-                         ? bool_get_uint(bool, 2) : 0;
-    hdr->sign_bias[GOLDEN_FRAME] = key ? 0 : bool_get_bit(bool);
-    hdr->sign_bias[ALTREF_FRAME] = key ? 0 : bool_get_bit(bool);
-    hdr->refresh_entropy = bool_get_bit(bool);
-    hdr->refresh_last  = key ? 1 : bool_get_bit(bool);
+                         ? bool_get_uint(boolean_decoder, 2) : 0;
+    hdr->sign_bias[GOLDEN_FRAME] = key ? 0 : bool_get_bit(boolean_decoder);
+    hdr->sign_bias[ALTREF_FRAME] = key ? 0 : bool_get_bit(boolean_decoder);
+    hdr->refresh_entropy = bool_get_bit(boolean_decoder);
+    hdr->refresh_last  = key ? 1 : bool_get_bit(boolean_decoder);
 }
 
 
 void
 decode_quantizer_header(struct vp8_decoder_ctx    *ctx,
-                        struct bool_decoder       *bool,
+                        struct bool_decoder       *boolean_decoder,
                         struct vp8_quant_hdr      *hdr)
 {
     int update;
     int last_q = hdr->q_index;
 
-    hdr->q_index = bool_get_uint(bool, 7);
+    hdr->q_index = bool_get_uint(boolean_decoder, 7);
     update = last_q != hdr->q_index;
-    update |= (hdr->y1_dc_delta_q = bool_maybe_get_int(bool, 4));
-    update |= (hdr->y2_dc_delta_q = bool_maybe_get_int(bool, 4));
-    update |= (hdr->y2_ac_delta_q = bool_maybe_get_int(bool, 4));
-    update |= (hdr->uv_dc_delta_q = bool_maybe_get_int(bool, 4));
-    update |= (hdr->uv_ac_delta_q = bool_maybe_get_int(bool, 4));
+    update |= (hdr->y1_dc_delta_q = bool_maybe_get_int(boolean_decoder, 4));
+    update |= (hdr->y2_dc_delta_q = bool_maybe_get_int(boolean_decoder, 4));
+    update |= (hdr->y2_ac_delta_q = bool_maybe_get_int(boolean_decoder, 4));
+    update |= (hdr->uv_dc_delta_q = bool_maybe_get_int(boolean_decoder, 4));
+    update |= (hdr->uv_ac_delta_q = bool_maybe_get_int(boolean_decoder, 4));
     hdr->delta_update = update;
 }
 
 
 void
 decode_and_init_token_partitions(struct vp8_decoder_ctx    *ctx,
-                                 struct bool_decoder       *bool,
+                                 struct bool_decoder       *boolean_decoder,
                                  const unsigned char       *data,
                                  unsigned int               sz,
                                  struct vp8_token_hdr      *hdr)
 {
     int i;
 
-    hdr->partitions = 1 << bool_get_uint(bool, 2);
+    hdr->partitions = 1 << bool_get_uint(boolean_decoder, 2);
 
     if (sz < 3 *(hdr->partitions - 1))
         vpx_internal_error(&ctx->error, VPX_CODEC_CORRUPT_FRAME,
@@ -156,63 +156,63 @@ decode_and_init_token_partitions(struct vp8_decoder_ctx    *ctx,
 
 void
 decode_loopfilter_header(struct vp8_decoder_ctx    *ctx,
-                         struct bool_decoder       *bool,
+                         struct bool_decoder       *boolean_decoder,
                          struct vp8_loopfilter_hdr *hdr)
 {
     if (ctx->frame_hdr.is_keyframe)
         memset(hdr, 0, sizeof(*hdr));
 
-    hdr->use_simple    = bool_get_bit(bool);
-    hdr->level         = bool_get_uint(bool, 6);
-    hdr->sharpness     = bool_get_uint(bool, 3);
-    hdr->delta_enabled = bool_get_bit(bool);
+    hdr->use_simple    = bool_get_bit(boolean_decoder);
+    hdr->level         = bool_get_uint(boolean_decoder, 6);
+    hdr->sharpness     = bool_get_uint(boolean_decoder, 3);
+    hdr->delta_enabled = bool_get_bit(boolean_decoder);
 
-    if (hdr->delta_enabled && bool_get_bit(bool))
+    if (hdr->delta_enabled && bool_get_bit(boolean_decoder))
     {
         int i;
 
         for (i = 0; i < BLOCK_CONTEXTS; i++)
-            hdr->ref_delta[i] = bool_maybe_get_int(bool, 6);
+            hdr->ref_delta[i] = bool_maybe_get_int(boolean_decoder, 6);
 
         for (i = 0; i < BLOCK_CONTEXTS; i++)
-            hdr->mode_delta[i] = bool_maybe_get_int(bool, 6);
+            hdr->mode_delta[i] = bool_maybe_get_int(boolean_decoder, 6);
     }
 }
 
 
 void
 decode_segmentation_header(struct vp8_decoder_ctx *ctx,
-                           struct bool_decoder    *bool,
+                           struct bool_decoder    *boolean_decoder,
                            struct vp8_segment_hdr *hdr)
 {
     if (ctx->frame_hdr.is_keyframe)
         memset(hdr, 0, sizeof(*hdr));
 
-    hdr->enabled = bool_get_bit(bool);
+    hdr->enabled = bool_get_bit(boolean_decoder);
 
     if (hdr->enabled)
     {
         int i;
 
-        hdr->update_map = bool_get_bit(bool);
-        hdr->update_data = bool_get_bit(bool);
+        hdr->update_map = bool_get_bit(boolean_decoder);
+        hdr->update_data = bool_get_bit(boolean_decoder);
 
         if (hdr->update_data)
         {
-            hdr->abs = bool_get_bit(bool);
+            hdr->abs = bool_get_bit(boolean_decoder);
 
             for (i = 0; i < MAX_MB_SEGMENTS; i++)
-                hdr->quant_idx[i] = bool_maybe_get_int(bool, 7);
+                hdr->quant_idx[i] = bool_maybe_get_int(boolean_decoder, 7);
 
             for (i = 0; i < MAX_MB_SEGMENTS; i++)
-                hdr->lf_level[i] = bool_maybe_get_int(bool, 6);
+                hdr->lf_level[i] = bool_maybe_get_int(boolean_decoder, 6);
         }
 
         if (hdr->update_map)
         {
             for (i = 0; i < MB_FEATURE_TREE_PROBS; i++)
-                hdr->tree_probs[i] = bool_get_bit(bool)
-                                     ? bool_get_uint(bool, 8)
+                hdr->tree_probs[i] = bool_get_bit(boolean_decoder)
+                                     ? bool_get_uint(boolean_decoder, 8)
                                      : 255;
         }
     }
@@ -308,7 +308,7 @@ decode_frame(struct vp8_decoder_ctx *ctx,
              unsigned int            sz)
 {
     vpx_codec_err_t  res;
-    struct bool_decoder  bool;
+    struct bool_decoder  boolean_decoder;
     int                  i, row, partition;
 
     ctx->saved_entropy_valid = 0;
@@ -333,23 +333,23 @@ decode_frame(struct vp8_decoder_ctx *ctx,
     }
 
     /* Start the bitreader for the header/entropy partition */
-    init_bool_decoder(&bool, data, ctx->frame_hdr.part0_sz);
+    init_bool_decoder(&boolean_decoder, data, ctx->frame_hdr.part0_sz);
 
     /* Skip the colorspace and clamping bits */
     if (ctx->frame_hdr.is_keyframe)
-        if (bool_get_uint(&bool, 2))
+        if (bool_get_uint(&boolean_decoder, 2))
             vpx_internal_error(&ctx->error, VPX_CODEC_UNSUP_BITSTREAM,
                                "Reserved bits not supported.");
 
-    decode_segmentation_header(ctx, &bool, &ctx->segment_hdr);
-    decode_loopfilter_header(ctx, &bool, &ctx->loopfilter_hdr);
+    decode_segmentation_header(ctx, &boolean_decoder, &ctx->segment_hdr);
+    decode_loopfilter_header(ctx, &boolean_decoder, &ctx->loopfilter_hdr);
     decode_and_init_token_partitions(ctx,
-                                     &bool,
+                                     &boolean_decoder,
                                      data + ctx->frame_hdr.part0_sz,
                                      sz - ctx->frame_hdr.part0_sz,
                                      &ctx->token_hdr);
-    decode_quantizer_header(ctx, &bool, &ctx->quant_hdr);
-    decode_reference_header(ctx, &bool, &ctx->reference_hdr);
+    decode_quantizer_header(ctx, &boolean_decoder, &ctx->quant_hdr);
+    decode_reference_header(ctx, &boolean_decoder, &ctx->reference_hdr);
 
     /* Set keyframe entropy defaults. These get updated on keyframes
      * regardless of the refresh_entropy setting.
@@ -372,7 +372,7 @@ decode_frame(struct vp8_decoder_ctx *ctx,
         ctx->saved_entropy_valid = 1;
     }
 
-    decode_entropy_header(ctx, &bool, &ctx->entropy_hdr);
+    decode_entropy_header(ctx, &boolean_decoder, &ctx->entropy_hdr);
 
     vp8_dixie_modemv_init(ctx);
     vp8_dixie_tokens_init(ctx);
@@ -382,7 +382,7 @@ decode_frame(struct vp8_decoder_ctx *ctx,
 
     for (row = 0, partition = 0; row < ctx->mb_rows; row++)
     {
-        vp8_dixie_modemv_process_row(ctx, &bool, row, 0, ctx->mb_cols);
+        vp8_dixie_modemv_process_row(ctx, &boolean_decoder, row, 0, ctx->mb_cols);
         vp8_dixie_tokens_process_row(ctx, partition, row, 0,
                                      ctx->mb_cols);
         vp8_dixie_predict_process_row(ctx, row, 0, ctx->mb_cols);

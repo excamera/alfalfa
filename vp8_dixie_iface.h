@@ -1,7 +1,3 @@
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifndef VP8_DIXIE_IFACE_H_
 #define VP8_DIXIE_IFACE_H_
 
@@ -25,7 +21,3 @@ struct vpx_codec_alg_priv
 };
 
 #endif  // VP8_DIXIE_IFACE_H_
-
-#ifdef __cplusplus
-}
-#endif
