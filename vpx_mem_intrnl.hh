@@ -11,7 +11,7 @@
 
 #ifndef __VPX_MEM_INTRNL_H__
 #define __VPX_MEM_INTRNL_H__
-#include "./config.h"
+#include "./config.hh"
 
 #ifndef CONFIG_MEM_MANAGER
 # if defined(VXWORKS)
@@ -36,7 +36,7 @@
 #endif
 
 #if CONFIG_MEM_TRACKER
-# include "vpx_mem_tracker.h"
+# include "vpx_mem_tracker.hh"
 # if VPX_MEM_TRACKER_VERSION_CHIEF != 2 || VPX_MEM_TRACKER_VERSION_MAJOR != 5
 #  error "vpx_mem requires memory tracker version 2.5 to track memory usage"
 # endif

@@ -43,8 +43,8 @@
  */
 #ifndef VPX_CODEC_INTERNAL_H
 #define VPX_CODEC_INTERNAL_H
-#include "./vpx_decoder.h"
-#include "./vpx_encoder.h"
+#include "./vpx_decoder.hh"
+#include "./vpx_encoder.hh"
 #include <stdarg.h>
 
 

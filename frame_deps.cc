@@ -16,10 +16,10 @@
 #include <assert.h>
 #include <vector>
 
-#include "./vpx_decoder.h"
+#include "./vpx_decoder.hh"
 #include "./test_vector_reader.hh"
-#include "./vp8_dixie_iface.h"
-#include "./dixie.h"
+#include "./vp8_dixie_iface.hh"
+#include "./dixie.hh"
 #include "./frame_state.hh"
 #include "./operator_parser.hh"
 

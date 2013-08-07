@@ -7,8 +7,8 @@
  *  in the file PATENTS.  All contributing project authors may
  *  be found in the AUTHORS file in the root of the source tree.
  */
-#include "dixie.h"
-#include "dixie_loopfilter.h"
+#include "dixie.hh"
+#include "dixie_loopfilter.hh"
 
 #define ABS(x) ((x) >= 0 ? (x) : -(x))
 

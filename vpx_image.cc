@@ -11,7 +11,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "./vpx_image.h"
+#include "./vpx_image.hh"
 
 static vpx_image_t *img_alloc_helper(vpx_image_t  *img,
                                      vpx_img_fmt_t fmt,

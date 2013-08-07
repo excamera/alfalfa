@@ -26,7 +26,7 @@
  */
 #ifndef VPX_DECODER_H
 #define VPX_DECODER_H
-#include "vpx_codec.h"
+#include "vpx_codec.hh"
 
     /*!\brief Current ABI version number
      *
@@ -305,5 +305,5 @@
 #endif
 
 #if !defined(VPX_CODEC_DISABLE_COMPAT) || !VPX_CODEC_DISABLE_COMPAT
-#include "vpx_decoder_compat.h"
+#include "vpx_decoder_compat.hh"
 #endif

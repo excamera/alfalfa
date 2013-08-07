@@ -7,15 +7,15 @@
  *  in the file PATENTS.  All contributing project authors may
  *  be found in the AUTHORS file in the root of the source tree.
  */
-#include "./vpx_codec_internal.h"
-#include "bit_ops.h"
-#include "dixie.h"
-#include "vp8_prob_data.h"
-#include "dequant_data.h"
-#include "modemv.h"
-#include "tokens.h"
-#include "predict.h"
-#include "dixie_loopfilter.h"
+#include "./vpx_codec_internal.hh"
+#include "bit_ops.hh"
+#include "dixie.hh"
+#include "vp8_prob_data.hh"
+#include "dequant_data.hh"
+#include "modemv.hh"
+#include "tokens.hh"
+#include "predict.hh"
+#include "dixie_loopfilter.hh"
 #include <string.h>
 #include <assert.h>
 

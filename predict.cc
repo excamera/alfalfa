@@ -7,10 +7,10 @@
  *  in the file PATENTS.  All contributing project authors may
  *  be found in the AUTHORS file in the root of the source tree.
  */
-#include "dixie.h"
-#include "predict.h"
-#include "idct_add.h"
-#include "./mem.h"
+#include "dixie.hh"
+#include "predict.hh"
+#include "idct_add.hh"
+#include "./mem.hh"
 #include <assert.h>
 #include <string.h>
 

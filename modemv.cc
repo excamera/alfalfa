@@ -7,11 +7,11 @@
  *  in the file PATENTS.  All contributing project authors may
  *  be found in the AUTHORS file in the root of the source tree.
  */
-#include "dixie.h"
-#include "modemv_data.h"
+#include "dixie.hh"
+#include "modemv_data.hh"
 #include <stdlib.h>
 #include <assert.h>
-#include "modemv.h"
+#include "modemv.hh"
 
 static union mv
         clamp_mv(union mv raw, const struct mv_clamp_rect *bounds)

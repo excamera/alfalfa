@@ -1,10 +1,10 @@
 #ifndef VP8_DIXIE_IFACE_H_
 #define VP8_DIXIE_IFACE_H_
 
-#include "./vpx_codec.h"
-#include "./vpx_decoder.h"
-#include "./vpx_image.h"
-#include "./dixie.h"
+#include "./vpx_codec.hh"
+#include "./vpx_decoder.hh"
+#include "./vpx_image.hh"
+#include "./dixie.hh"
 
 vpx_codec_err_t vp8_init(vpx_codec_ctx_t *ctx);
 

@@ -26,7 +26,7 @@
  */
 #ifndef VPX_ENCODER_H
 #define VPX_ENCODER_H
-#include "vpx_codec.h"
+#include "vpx_codec.hh"
 
 
     /*!\brief Current ABI version number

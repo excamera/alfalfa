@@ -7,8 +7,8 @@
  *  in the file PATENTS.  All contributing project authors may
  *  be found in the AUTHORS file in the root of the source tree.
  */
-#include "dixie.h"
-#include "idct_add.h"
+#include "dixie.hh"
+#include "idct_add.hh"
 #include <assert.h>
 
 void

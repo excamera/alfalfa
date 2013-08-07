@@ -11,13 +11,13 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "./vpx_decoder.h"
-#include "./vp8dx.h"
-#include "./vpx_codec_internal.h"
-#include "./vpx_mem.h"
-#include "./vpx_version.h"
-#include "./dixie.h"
-#include "./vp8_dixie_iface.h"
+#include "./vpx_decoder.hh"
+#include "./vp8dx.hh"
+#include "./vpx_codec_internal.hh"
+#include "./vpx_mem.hh"
+#include "./vpx_version.hh"
+#include "./dixie.hh"
+#include "./vp8_dixie_iface.hh"
 
 static vpx_codec_err_t
 update_error_state(vpx_codec_alg_priv_t                 *ctx,

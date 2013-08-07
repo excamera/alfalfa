@@ -1,4 +1,4 @@
-source = frame_deps.cc  test_vector_reader.cc vp8_dixie_iface.c dixie.c modemv.c predict.c tokens.c dixie_loopfilter.c idct_add.c vpx_decoder.c vpx_image.c vpx_mem.c vpx_codec.c bool_decoder.c frame_state.cc operator_parser.cc
+source = frame_deps.cc  test_vector_reader.cc vp8_dixie_iface.cc dixie.cc modemv.cc predict.cc tokens.cc dixie_loopfilter.cc idct_add.cc vpx_decoder.cc vpx_image.cc vpx_mem.cc vpx_codec.cc bool_decoder.cc frame_state.cc operator_parser.cc
 objects = test_vector_reader.o vp8_dixie_iface.o dixie.o modemv.o predict.o tokens.o dixie_loopfilter.o idct_add.o vpx_decoder.o vpx_image.o vpx_mem.o vpx_codec.o bool_decoder.o frame_state.o operator_parser.o
 executables = frame_deps
 
@@ -13,9 +13,6 @@ frame_deps: frame_deps.o $(objects)
 
 %.o: %.cc
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
-
-%.o:%.c
-	$(CXX)  $(CXXFLAGS) -c -o $@ $<
 
 -include depend
 

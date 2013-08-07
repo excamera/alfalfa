@@ -11,11 +11,11 @@
 
 #define __VPX_MEM_C__
 
-#include "vpx_mem.h"
+#include "vpx_mem.hh"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "./vpx_mem_intrnl.h"
+#include "./vpx_mem_intrnl.hh"
 
 #if CONFIG_MEM_TRACKER
 #ifndef VPX_NO_GLOBALS
