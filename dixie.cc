@@ -94,8 +94,8 @@ decode_quantizer_header(struct vp8_decoder_ctx    *ctx,
                         struct bool_decoder       *boolean_decoder,
                         struct vp8_quant_hdr      *hdr)
 {
-    int update;
-    int last_q = hdr->q_index;
+    unsigned int update;
+    unsigned int last_q = hdr->q_index;
 
     hdr->q_index = bool_get_uint(boolean_decoder, 7);
     update = last_q != hdr->q_index;
@@ -115,8 +115,6 @@ decode_and_init_token_partitions(struct vp8_decoder_ctx    *ctx,
                                  unsigned int               sz,
                                  struct vp8_token_hdr      *hdr)
 {
-    int i;
-
     hdr->partitions = 1 << bool_get_uint(boolean_decoder, 2);
 
     if (sz < 3 *(hdr->partitions - 1))
@@ -126,7 +124,7 @@ decode_and_init_token_partitions(struct vp8_decoder_ctx    *ctx,
 
     sz -= 3 * (hdr->partitions - 1);
 
-    for (i = 0; i < hdr->partitions; i++)
+    for (unsigned int i = 0; i < hdr->partitions; i++)
     {
         if (i < hdr->partitions - 1)
         {
@@ -145,7 +143,7 @@ decode_and_init_token_partitions(struct vp8_decoder_ctx    *ctx,
     }
 
 
-    for (i = 0; i < ctx->token_hdr.partitions; i++)
+    for (unsigned int i = 0; i < ctx->token_hdr.partitions; i++)
     {
         init_bool_decoder(&ctx->tokens[i].boolean_dec, data,
                           ctx->token_hdr.partition_sz[i]);
@@ -309,7 +307,7 @@ decode_frame(struct vp8_decoder_ctx *ctx,
 {
     vpx_codec_err_t  res;
     struct bool_decoder  boolean_decoder;
-    int                  i, row, partition;
+    unsigned int                  row, partition;
 
     ctx->saved_entropy_valid = 0;
 

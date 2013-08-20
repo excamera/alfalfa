@@ -34,7 +34,7 @@ int main(int argc, const char** argv) {
   uint32_t op_buf_sz = 0, op_buf_alloc_sz = 0;
 
   /* Intialize decoder */
-  vpx_codec_ctx_t         decoder = {nullptr, nullptr, VPX_CODEC_OK, nullptr, 0, nullptr, nullptr};
+  vpx_codec_ctx_t         decoder = {"", nullptr, VPX_CODEC_OK, nullptr, 0, {nullptr}, nullptr};
   if (vp8_init(&decoder)) {
     fprintf(stderr, "Failed to initialize decoder:\n");
     return EXIT_FAILURE;

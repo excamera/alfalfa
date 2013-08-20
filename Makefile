@@ -4,7 +4,7 @@ executables = frame_deps
 
 CXX = g++
 LANGFLAGS = --std=c++11
-CXXFLAGS = -g -O3 $(LANGFLAGS) -ffast-math -pedantic -Wall -Wextra -Weffc++ -fno-default-inline -pipe -pthread -fpermissive
+CXXFLAGS = -g -O3 $(LANGFLAGS) -ffast-math -pedantic -Wall -Wextra -Weffc++ -fno-default-inline -pipe -pthread -Wno-unused-function -Wno-unused-parameter -Werror
 LIBS = -lm
 
 all: $(executables)

@@ -472,7 +472,7 @@ copy_down(unsigned char           *recon,
     /* Copy the four pixels above-right of subblock 3 to
      * above-right of subblocks 7, 11, and 15
      */
-    uint32_t tmp, *copy = (void *)(recon + 16 - stride);
+    uint32_t tmp, *copy = reinterpret_cast<uint32_t *>(recon + 16 - stride); /* XXX KJW */
 
     stride = stride / sizeof(unsigned int);
     tmp = *copy;

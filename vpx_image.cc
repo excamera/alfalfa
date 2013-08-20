@@ -119,7 +119,7 @@ static vpx_image_t *img_alloc_helper(vpx_image_t  *img,
 
     if (!img_data)
     {
-        img->img_data = malloc((fmt & VPX_IMG_FMT_PLANAR) ? h * w * bps / 8 : h * s);
+        img->img_data = static_cast<unsigned char *>( malloc((fmt & VPX_IMG_FMT_PLANAR) ? h * w * bps / 8 : h * s) );
         img->img_data_owner = 1;
     }
 

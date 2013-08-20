@@ -194,8 +194,8 @@ typedef union mv
 
 struct mb_base_info
 {
-    unsigned char y_mode     : 4;
-    unsigned char uv_mode    : 4;
+    prediction_mode y_mode     : 4;
+    prediction_mode uv_mode    : 4;
     unsigned char segment_id : 2;
     unsigned char ref_frame  : 2;
     unsigned char skip_coeff : 1;

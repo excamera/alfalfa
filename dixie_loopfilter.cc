@@ -318,7 +318,7 @@ calculate_filter_parameters(struct vp8_decoder_ctx *ctx,
     {
         interior_limit >>= ctx->loopfilter_hdr.sharpness > 4 ? 2 : 1;
 
-        if (interior_limit > 9 - ctx->loopfilter_hdr.sharpness)
+        if (interior_limit > static_cast<int>( 9 - ctx->loopfilter_hdr.sharpness ))
             interior_limit = 9 - ctx->loopfilter_hdr.sharpness;
     }
 

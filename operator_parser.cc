@@ -25,16 +25,17 @@ OperatorParser::OperatorParser(struct vp8_decoder_ctx*   t_ctx,
                                unsigned int              t_size,
                                struct vp8_raster_ref_ids t_raster_ref_ids)
     : ctx(t_ctx),
+      raster_ref_ids_(t_raster_ref_ids),
+      raster_deps_(),
+      raster_num(0),
+      entropy_decoder({nullptr, 0, 0, 0, 0}),
       data(t_data),
       sz(t_size),
-      raster_ref_ids_(t_raster_ref_ids),
-      raster_num(0),
-      entropy_decoder({nullptr, 0, 0, 0, 0}) {}
-
+      prob_update_len_()
+{}
 
 void OperatorParser::decode_operator_headers(void) {
   vpx_codec_err_t  res;
-  int                  i, row, partition;
 
   ctx->saved_entropy_valid = 0;
 
@@ -167,23 +168,20 @@ struct vp8_mb_dependencies OperatorParser::decode_macroblock_data(void) {
   struct mb_info *current, *left, *above;
 
   /* Maintain row and column index */
-  int row = 0;
-  int col = 0;
-
   /* Run through macroblocks in raster scan order (Page 10) */
   struct vp8_mb_dependencies deps_union = {false, false, false};
-  for (row = 0; row < ctx->mb_rows; row++) {
+  for (int row = 0; row < static_cast<int>( ctx->mb_rows ); row++) {
     /* Calculate the initial eighth-pel MV bounds
        for this row using a 1 MB border. */
     struct mv_clamp_rect  bounds = get_initial_bounds(row);
 
     /* Get pointer to first macroblock prediction record in this row */
     current = ctx->mb_info_rows[row] + 0;
-    above   = ctx->mb_info_rows[row - 1] + 0;
+    above   = ctx->mb_info_rows[row - 1] + 0; /* need row signed for this */
     left    = current - 1;
 
     /* Now run through all columns */
-    for (col = 0; col < ctx->mb_cols; col++) {
+    for (unsigned int col = 0; col < ctx->mb_cols; col++) {
       /* Parse according to syntax in Page 130 */
       if (ctx->segment_hdr.update_map) {
         current->base.segment_id = read_segment_id(&entropy_decoder,

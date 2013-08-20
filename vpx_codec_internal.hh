@@ -163,11 +163,13 @@ typedef vpx_codec_err_t (*vpx_codec_control_fn_t)(vpx_codec_alg_priv_t  *ctx,
  * mapping. This implies that ctrl_id values chosen by the algorithm
  * \ref MUST be non-zero.
  */
-typedef const struct
+typedef struct
 {
     int                    ctrl_id;
     vpx_codec_control_fn_t   fn;
-} vpx_codec_ctrl_fn_map_t;
+} vpx_codec_ctrl_fn_map_t_mutable;
+
+typedef const vpx_codec_ctrl_fn_map_t_mutable vpx_codec_ctrl_fn_map_t;
 
 /*!\brief decode data function pointer prototype
  *
@@ -274,11 +276,13 @@ typedef vpx_image_t *
  * one mapping must be present, in addition to the end-of-list.
  *
  */
-typedef const struct
+typedef struct
 {
     int                 usage;
     vpx_codec_enc_cfg_t cfg;
-} vpx_codec_enc_cfg_map_t;
+} vpx_codec_enc_cfg_map_t_mutable;
+
+typedef const vpx_codec_enc_cfg_map_t_mutable vpx_codec_enc_cfg_map_t;
 
 #define NOT_IMPLEMENTED 0
 

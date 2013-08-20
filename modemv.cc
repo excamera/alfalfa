@@ -101,9 +101,9 @@ decode_kf_mb_mode(struct mb_info      *current_mb,
                   struct mb_info      *above,
                   struct bool_decoder *boolean_decoder)
 {
-    int y_mode, uv_mode;
+    prediction_mode y_mode, uv_mode;
 
-    y_mode = bool_read_tree(boolean_decoder, kf_y_mode_tree, kf_y_mode_probs);
+    y_mode = static_cast<prediction_mode>( bool_read_tree(boolean_decoder, kf_y_mode_tree, kf_y_mode_probs) );
 
     if (y_mode == B_PRED)
     {
@@ -115,13 +115,13 @@ decode_kf_mb_mode(struct mb_info      *current_mb,
             enum prediction_mode l = left_block_mode(current_mb, left, i);
             enum prediction_mode b;
 
-            b = bool_read_tree(boolean_decoder, b_mode_tree,
-                               kf_b_mode_probs[a][l]);
+            b = static_cast<prediction_mode>( bool_read_tree(boolean_decoder, b_mode_tree,
+							     kf_b_mode_probs[a][l]) );
             current_mb->split.modes[i] = b;
         }
     }
 
-    uv_mode = bool_read_tree(boolean_decoder, uv_mode_tree, kf_uv_mode_probs);
+    uv_mode = static_cast<prediction_mode>( bool_read_tree(boolean_decoder, uv_mode_tree, kf_uv_mode_probs) );
 
     current_mb->base.y_mode = y_mode;
     current_mb->base.uv_mode = uv_mode;
@@ -138,9 +138,9 @@ decode_intra_mb_mode(struct mb_info         *current_mb,
     /* Like decode_kf_mb_mode, but with probabilities transmitted in the
      * bitstream and no context on the above/left block mode.
      */
-    int y_mode, uv_mode;
+    prediction_mode y_mode, uv_mode;
 
-    y_mode = bool_read_tree(boolean_decoder, y_mode_tree, hdr->y_mode_probs);
+    y_mode = static_cast<prediction_mode>( bool_read_tree(boolean_decoder, y_mode_tree, hdr->y_mode_probs) );
 
     if (y_mode == B_PRED)
     {
@@ -150,12 +150,12 @@ decode_intra_mb_mode(struct mb_info         *current_mb,
         {
             enum prediction_mode b;
 
-            b = bool_read_tree(boolean_decoder, b_mode_tree, default_b_mode_probs);
+            b = static_cast<prediction_mode>( bool_read_tree(boolean_decoder, b_mode_tree, default_b_mode_probs) );
             current_mb->split.modes[i] = b;
         }
     }
 
-    uv_mode = bool_read_tree(boolean_decoder, uv_mode_tree, hdr->uv_mode_probs);
+    uv_mode = static_cast<prediction_mode>( bool_read_tree(boolean_decoder, uv_mode_tree, hdr->uv_mode_probs) );
 
     current_mb->base.y_mode = y_mode;
     current_mb->base.uv_mode = uv_mode;
@@ -255,7 +255,7 @@ submv_ref(struct bool_decoder *boolean_decoder, union mv l, union mv a)
     else if (lez)
         ctx = SUBMVREF_LEFT_ZED;
 
-    return bool_read_tree(boolean_decoder, submv_ref_tree, submv_ref_probs2[ctx]);
+    return static_cast<prediction_mode>( bool_read_tree(boolean_decoder, submv_ref_tree, submv_ref_probs2[ctx]) );
 }
 
 
@@ -315,7 +315,7 @@ find_near_mvs(const struct mb_info   *current_mb,
         if (above->base.mv.raw)
         {
             (++mv)->raw = above->base.mv.raw;
-            mv_bias(above, sign_bias, current_mb->base.ref_frame, mv);
+            mv_bias(above, sign_bias, static_cast<reference_frame>( current_mb->base.ref_frame ), mv);
             ++cntx;
         }
 
@@ -330,7 +330,7 @@ find_near_mvs(const struct mb_info   *current_mb,
             union mv this_mv;
 
             this_mv.raw = left->base.mv.raw;
-            mv_bias(left, sign_bias, current_mb->base.ref_frame, &this_mv);
+            mv_bias(left, sign_bias, static_cast<reference_frame>( current_mb->base.ref_frame ), &this_mv);
 
             if (this_mv.raw != mv->raw)
             {
@@ -352,7 +352,7 @@ find_near_mvs(const struct mb_info   *current_mb,
             union mv this_mv;
 
             this_mv.raw = aboveleft->base.mv.raw;
-            mv_bias(aboveleft, sign_bias, current_mb->base.ref_frame,
+            mv_bias(aboveleft, sign_bias, static_cast<reference_frame>( current_mb->base.ref_frame ),
                     &this_mv);
 
             if (this_mv.raw != mv->raw)
@@ -408,9 +408,10 @@ decode_split_mv(struct mb_info         *current_mb,
                 struct bool_decoder    *boolean_decoder)
 {
     const int *partition;
-    int        j, k, mask, partition_id;
+    int        j, k, mask;
+    splitmv_partitioning partition_id;
 
-    partition_id = bool_read_tree(boolean_decoder, split_mv_tree, split_mv_probs);
+    partition_id = static_cast<splitmv_partitioning>( bool_read_tree(boolean_decoder, split_mv_tree, split_mv_probs) );
     partition = mv_partitions[partition_id];
     current_mb->base.partitioning = partition_id;
 
@@ -501,7 +502,7 @@ decode_mvs(struct vp8_decoder_ctx       *ctx,
     probs[2] = mv_counts_to_probs[mv_cnts[2]][2];
     probs[3] = mv_counts_to_probs[mv_cnts[3]][3];
 
-    current_mb->base.y_mode = bool_read_tree(boolean_decoder, mv_ref_tree, probs);
+    current_mb->base.y_mode = static_cast<prediction_mode>( bool_read_tree(boolean_decoder, mv_ref_tree, probs) );
     current_mb->base.uv_mode = current_mb->base.y_mode;
 
     current_mb->base.need_mc_border = 0;
@@ -529,7 +530,7 @@ decode_mvs(struct vp8_decoder_ctx       *ctx,
         break;
     case SPLITMV:
     {
-        union mv          chroma_mv[4] = {{{0}}};
+        union mv          chroma_mv[4] = {};
 
         clamped_best_mv = clamp_mv(near_mvs[BEST], bounds);
         decode_split_mv(current_mb, left, above, hdr, &clamped_best_mv, boolean_decoder);
@@ -581,8 +582,8 @@ void
 vp8_dixie_modemv_process_row(struct vp8_decoder_ctx *ctx,
 struct bool_decoder    *boolean_decoder,
 int                     row,
-int                     start_col,
-int                     num_cols)
+unsigned int            start_col,
+unsigned int            num_cols)
 {
     struct mb_info       *above, *current_mb;
     unsigned int          col;
@@ -650,12 +651,12 @@ vp8_dixie_modemv_init(struct vp8_decoder_ctx *ctx)
     }
 
     if (!ctx->mb_info_storage)
-        ctx->mb_info_storage = calloc(mbi_w * mbi_h,
-        sizeof(*ctx->mb_info_storage));
+      ctx->mb_info_storage = static_cast<mb_info *>( calloc(mbi_w * mbi_h,
+							    sizeof(*ctx->mb_info_storage)) );
 
     if (!ctx->mb_info_rows_storage)
-        ctx->mb_info_rows_storage = calloc(mbi_h,
-        sizeof(*ctx->mb_info_rows_storage));
+      ctx->mb_info_rows_storage = static_cast<mb_info **>( calloc(mbi_h,
+								  sizeof(*ctx->mb_info_rows_storage)) );
 
     /* Set up row pointers */
     mbi = ctx->mb_info_storage + 1;

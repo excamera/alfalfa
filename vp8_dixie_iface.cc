@@ -44,14 +44,14 @@ vpx_codec_err_t vp8_init(vpx_codec_ctx_t *ctx)
     {
         void *priv = calloc(1, sizeof(vpx_codec_alg_priv_t)); /* KJW changed from vpx_calloc */
 
-        ctx->priv = priv;
+        ctx->priv = static_cast<vpx_codec_priv_t *>( priv );
 
         if (!ctx->priv)
             return VPX_CODEC_MEM_ERROR;
 
         ctx->priv->sz = sizeof(vpx_codec_alg_priv_t);
         ctx->priv->iface = ctx->iface;
-        ctx->priv->alg_priv = priv;
+        ctx->priv->alg_priv = static_cast<vpx_codec_alg_priv_t *>( priv );
         ctx->priv->init_flags = ctx->init_flags;
 
         if (ctx->config.dec)
@@ -169,6 +169,7 @@ static vpx_codec_ctrl_fn_map_t ctf_maps[] =
 #ifndef VERSION_STRING
 #define VERSION_STRING
 #endif
+#if 0
 vpx_codec_iface_t vpx_codec_vp8_dixie_algo =
 {
     "VP8 \"Dixie\" Decoder" VERSION_STRING,
@@ -188,3 +189,4 @@ vpx_codec_iface_t vpx_codec_vp8_dixie_algo =
     },
     {NOT_IMPLEMENTED} /* encoder functions */
 };
+#endif

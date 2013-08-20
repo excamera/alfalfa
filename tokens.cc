@@ -414,7 +414,7 @@ vp8_dixie_tokens_init(struct vp8_decoder_ctx *ctx)
         for (i = 0; i < partitions; i++)
         {
             free(ctx->tokens[i].coeffs);
-            ctx->tokens[i].coeffs = memalign(16, coeff_row_sz);
+            ctx->tokens[i].coeffs = static_cast<short *>( memalign(16, coeff_row_sz) );
 
             if (!ctx->tokens[i].coeffs)
                 vpx_internal_error(&ctx->error, VPX_CODEC_MEM_ERROR,
@@ -423,7 +423,7 @@ vp8_dixie_tokens_init(struct vp8_decoder_ctx *ctx)
 
         free(ctx->above_token_entropy_ctx);
         ctx->above_token_entropy_ctx =
-            calloc(ctx->mb_cols, sizeof(*ctx->above_token_entropy_ctx));
+	  static_cast<int (*)[9]>( calloc(ctx->mb_cols, sizeof(*ctx->above_token_entropy_ctx)) );
 
         if (!ctx->above_token_entropy_ctx)
             vpx_internal_error(&ctx->error, VPX_CODEC_MEM_ERROR, NULL);

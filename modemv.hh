@@ -27,8 +27,8 @@ void
 vp8_dixie_modemv_process_row(struct vp8_decoder_ctx *ctx,
                              struct bool_decoder    *entropy_decoder,
                              int                     row,
-                             int                     start_col,
-                             int                     num_cols);
+                             unsigned int            start_col, /* KJW -- hope this doesn't go negative */
+                             unsigned int            num_cols);
 
 int read_segment_id(struct bool_decoder* entropy_decoder, struct vp8_segment_hdr *seg);
 
