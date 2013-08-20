@@ -13,7 +13,6 @@
 #include <string.h>
 #include "vpx_decoder.hh"
 #include "vpx_codec_internal.hh"
-#include "vpx_mem.hh"
 #include "vpx_version.hh"
 #include "dixie.hh"
 #include "vp8_dixie_iface.hh"
@@ -43,7 +42,7 @@ vpx_codec_err_t vp8_init(vpx_codec_ctx_t *ctx)
      */
     if (!ctx->priv)
     {
-        void *priv = vpx_calloc(1, sizeof(vpx_codec_alg_priv_t));
+        void *priv = calloc(1, sizeof(vpx_codec_alg_priv_t)); /* KJW changed from vpx_calloc */
 
         ctx->priv = priv;
 
@@ -70,7 +69,7 @@ vpx_codec_err_t vp8_init(vpx_codec_ctx_t *ctx)
 static vpx_codec_err_t vp8_destroy(vpx_codec_alg_priv_t *ctx)
 {
     vp8_dixie_decode_destroy(&ctx->decoder_ctx);
-    vpx_free(ctx->base.alg_priv);
+    free(ctx->base.alg_priv); /* KJW changed from vpx_free */
     return VPX_CODEC_OK;
 }
 
