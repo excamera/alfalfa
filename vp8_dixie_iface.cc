@@ -124,8 +124,8 @@ static vpx_codec_err_t vp8_get_si(vpx_codec_alg_priv_t    *ctx,
 static vpx_codec_err_t vp8_decode(vpx_codec_alg_priv_t  *ctx,
                                   const uint8_t         *data,
                                   unsigned int            data_sz,
-                                  void                    *user_priv,
-                                  long                    deadline)
+                                  void                    *user_priv __attribute((unused)),
+                                  long                    deadline __attribute((unused)))
 {
     vpx_codec_err_t res = VPX_CODEC_OK;
 

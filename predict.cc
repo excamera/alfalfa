@@ -547,7 +547,7 @@ b_pred(unsigned char  *predict,
 
 
 static void
-fixup_dc_coeffs(struct mb_info *mbi,
+fixup_dc_coeffs(struct mb_info *mbi __attribute((unused)),
                 short          *coeffs)
 {
     short y2[16];
@@ -797,7 +797,7 @@ recon_1_block(unsigned char        *output,
               const union mv       *mv,
               const filter_t        filters[8],
               short                *coeffs,
-              struct mb_info       *mbi,
+              struct mb_info       *mbi __attribute((unused)),
               int                   b
              )
 {
@@ -921,7 +921,7 @@ recon_1_edge_block(unsigned char        *output,
                    const union mv       *mv,
                    const filter_t        filters[8],
                    short                *coeffs,
-                   struct mb_info       *mbi,
+                   struct mb_info       *mbi __attribute((unused)),
                    int                   x,
                    int                   y,
                    int                   w,

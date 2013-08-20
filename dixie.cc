@@ -90,7 +90,7 @@ decode_reference_header(struct vp8_decoder_ctx    *ctx,
 
 
 void
-decode_quantizer_header(struct vp8_decoder_ctx    *ctx,
+decode_quantizer_header(struct vp8_decoder_ctx    *ctx __attribute((unused)),
                         struct bool_decoder       *boolean_decoder,
                         struct vp8_quant_hdr      *hdr)
 {
