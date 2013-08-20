@@ -9,7 +9,7 @@
  */
 
 
-#include "./vp8.hh"
+#include "vp8.hh"
 
 /*!\defgroup vp8_decoder WebM VP8 Decoder
  * \ingroup vp8

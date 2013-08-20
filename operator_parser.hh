@@ -16,9 +16,9 @@
 #ifndef OPERATOR_PARSER_HH_
 #define OPERATOR_PARSER_HH_
 
-#include "./frame_state.hh"
-#include "./dixie.hh"
-#include "./modemv.hh"
+#include "frame_state.hh"
+#include "dixie.hh"
+#include "modemv.hh"
 
 class OperatorParser {
  public:

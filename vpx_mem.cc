@@ -15,7 +15,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "./vpx_mem_intrnl.hh"
+#include "vpx_mem_intrnl.hh"
 
 #if CONFIG_MEM_TRACKER
 #ifndef VPX_NO_GLOBALS

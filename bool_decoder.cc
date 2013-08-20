@@ -9,7 +9,7 @@
 
 
 #include <stddef.h>
-#include "./bool_decoder.hh"
+#include "bool_decoder.hh"
 
 void
 init_bool_decoder(struct bool_decoder *d,

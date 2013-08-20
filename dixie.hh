@@ -9,7 +9,7 @@
  */
 #ifndef DIXIE_H
 #define DIXIE_H
-#include "./vpx_codec_internal.hh"
+#include "vpx_codec_internal.hh"
 #include "bool_decoder.hh"
 
 struct vp8_frame_hdr

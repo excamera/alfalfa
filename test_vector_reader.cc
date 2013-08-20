@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "./test_vector_reader.hh"
+#include "test_vector_reader.hh"
 
 /* Constructor */
 TestVectorReader::TestVectorReader(std::string file_name)

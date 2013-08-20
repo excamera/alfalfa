@@ -7,7 +7,7 @@
  *  in the file PATENTS.  All contributing project authors may
  *  be found in the AUTHORS file in the root of the source tree.
  */
-#include "./vpx_codec_internal.hh"
+#include "vpx_codec_internal.hh"
 #include "bit_ops.hh"
 #include "dixie.hh"
 #include "vp8_prob_data.hh"

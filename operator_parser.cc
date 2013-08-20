@@ -15,10 +15,10 @@
 #include <assert.h>
 #include <string.h>
 
-#include "./dixie.hh"
-#include "./vp8_prob_data.hh"
-#include "./operator_parser.hh"
-#include "./modemv_data.hh"
+#include "dixie.hh"
+#include "vp8_prob_data.hh"
+#include "operator_parser.hh"
+#include "modemv_data.hh"
 
 OperatorParser::OperatorParser(struct vp8_decoder_ctx*   t_ctx,
                                const unsigned char*      t_data,

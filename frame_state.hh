@@ -1,7 +1,7 @@
 #ifndef FRAME_STATE_HH_
 #define FRAME_STATE_HH_
 
-#include "./dixie.hh"
+#include "dixie.hh"
 
 struct vp8_raster_ref_ids {
   unsigned int lf_number;    /* Raster number of last_ref */

@@ -10,7 +10,7 @@
 #include "dixie.hh"
 #include "predict.hh"
 #include "idct_add.hh"
-#include "./mem.hh"
+#include "mem.hh"
 #include <assert.h>
 #include <string.h>
 
