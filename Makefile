@@ -3,8 +3,9 @@ objects = test_vector_reader.o vp8_dixie_iface.o dixie.o modemv.o predict.o toke
 executables = frame_deps
 
 CXX = g++
-CXXFLAGS = -g -std=c++0x -ffast-math -pedantic -fno-default-inline -pipe -D_FILE_OFFSET_BITS=64 -D_XOPEN_SOURCE=500 -D_GNU_SOURCE -fpermissive
-LIBS = -lm -lrt
+LANGFLAGS = --std=c++11
+CXXFLAGS = -g -O3 $(LANGFLAGS) -ffast-math -pedantic -Wall -Wextra -Weffc++ -fno-default-inline -pipe -pthread -fpermissive
+LIBS = -lm
 
 all: $(executables)
 
