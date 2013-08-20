@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "vpx_decoder.hh"
-#include "vp8dx.hh"
 #include "vpx_codec_internal.hh"
 #include "vpx_mem.hh"
 #include "vpx_version.hh"
