@@ -126,7 +126,7 @@ decode_kf_mb_mode(struct mb_info      *current_mb,
     current_mb->base.y_mode = y_mode;
     current_mb->base.uv_mode = uv_mode;
     current_mb->base.mv.raw = 0;
-    current_mb->base.ref_frame = 0;
+    current_mb->base.ref_frame = CURRENT_FRAME; /* KJW */
 }
 
 
@@ -491,9 +491,9 @@ decode_mvs(struct vp8_decoder_ctx       *ctx,
     enum {BEST, NEAREST, NEAR};
     int x, y, w, h, b;
 
-    current_mb->base.ref_frame = bool_get(boolean_decoder, hdr->prob_last)
-                           ? 2 + bool_get(boolean_decoder, hdr->prob_gf)
-                           : 1;
+    current_mb->base.ref_frame = static_cast<reference_frame>( bool_get(boolean_decoder, hdr->prob_last)
+							       ? 2 + bool_get(boolean_decoder, hdr->prob_gf)
+							       : 1 );
 
     find_near_mvs(current_mb, current_mb - 1, above, ctx->reference_hdr.sign_bias,
                   near_mvs, mv_cnts);

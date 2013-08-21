@@ -144,10 +144,10 @@ enum reference_frame
     CURRENT_FRAME,
     LAST_FRAME,
     GOLDEN_FRAME,
-    ALTREF_FRAME,
-    NUM_REF_FRAMES
+    ALTREF_FRAME
 };
 
+const int NUM_REF_FRAMES = reference_frame::ALTREF_FRAME + 1; /* KJW */
 
 enum prediction_mode
 {
@@ -197,7 +197,7 @@ struct mb_base_info
     prediction_mode y_mode     : 4;
     prediction_mode uv_mode    : 4;
     unsigned char segment_id : 2;
-    unsigned char ref_frame  : 2;
+    reference_frame ref_frame  : 2;
     unsigned char skip_coeff : 1;
     unsigned char need_mc_border : 1;
     enum splitmv_partitioning  partitioning : 2;
