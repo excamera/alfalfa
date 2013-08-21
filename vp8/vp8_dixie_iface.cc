@@ -13,7 +13,6 @@
 #include <string.h>
 #include "vpx_decoder.hh"
 #include "vpx_codec_internal.hh"
-#include "vpx_version.hh"
 #include "dixie.hh"
 #include "vp8_dixie_iface.hh"
 
