@@ -38,7 +38,6 @@
  */
 #ifndef VPX_CODEC_H
 #define VPX_CODEC_H
-#include "vpx_integer.hh"
 #include "vpx_image.hh"
 
     /*!\brief Decorator indicating a function is deprecated */

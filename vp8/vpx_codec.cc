@@ -14,7 +14,6 @@
  *
  */
 #include <stdarg.h>
-#include "vpx_integer.hh"
 #include "vpx_codec_internal.hh"
 #include "vpx_version.hh"
 

@@ -26,6 +26,7 @@
  */
 #ifndef VPX_DECODER_H
 #define VPX_DECODER_H
+#include <cstdint>
 #include "vpx_codec.hh"
 
     /*!\brief Current ABI version number

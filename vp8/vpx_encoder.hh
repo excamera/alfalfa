@@ -26,6 +26,7 @@
  */
 #ifndef VPX_ENCODER_H
 #define VPX_ENCODER_H
+#include <cstdlib>
 #include "vpx_codec.hh"
 
 
