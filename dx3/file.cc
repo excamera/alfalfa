@@ -1,5 +1,6 @@
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <stdexcept>
 
 #include "file.hh"
 #include "exception.hh"
@@ -23,10 +24,10 @@ File::~File()
   SystemCall( "munmap", munmap( buffer_, size_ ) );
 }
 
-Block File::block( const uint64_t & offset, const uint32_t & length )
+Block File::block( const uint64_t & offset, const uint32_t & length ) const
 {
   if ( offset + length > size() ) {
-    throw BoundsCheckException();
+    throw out_of_range( "attempted to read past end of file" );
   }
 
   return Block( buffer_ + offset, length );

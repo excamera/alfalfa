@@ -23,14 +23,11 @@ public:
 
   const char & operator[] ( const uint64_t & index ) const { return buffer_[ index ]; }
 
-  Block block( const uint64_t & offset, const uint32_t & length );
+  Block block( const uint64_t & offset, const uint32_t & length ) const;
 
   /* disallow assigning or copying */
   File( const File & other ) = delete;
   const File & operator=( const File & other ) = delete;
-
-  /* exception */
-  class BoundsCheckException {};
 };
 
 #endif /* FILE_HH */

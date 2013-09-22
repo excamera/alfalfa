@@ -22,7 +22,7 @@ public:
 
   uint8_t octet( const uint32_t & offset ) const
   {
-    return *(buffer_ + offset);
+    return *reinterpret_cast<const uint8_t *>(buffer_ + offset);
   }
 
   uint16_t le16( const uint32_t & offset ) const
