@@ -1,1 +1,1 @@
-SUBDIRS = vp8 src
+SUBDIRS = dx2 src

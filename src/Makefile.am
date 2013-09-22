@@ -1,6 +1,6 @@
-AM_CPPFLAGS = -I$(srcdir)/../vp8
+AM_CPPFLAGS = -I$(srcdir)/../dx2
 AM_CXXFLAGS = $(PICKY_CXXFLAGS)
-LDADD = ../vp8/libdixie.a
+LDADD = ../dx2/libdixie.a
 
 frame_deps_LDADD = $(LDADD)
 

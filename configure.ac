@@ -4,7 +4,7 @@
 AC_PREREQ([2.69])
 AC_INIT([alfalfa], [0.1], [alfalfa@mit.edu])
 AM_INIT_AUTOMAKE([foreign])
-AC_CONFIG_SRCDIR([vp8/modemv.hh])
+AC_CONFIG_SRCDIR([dx2/modemv.hh])
 AC_CONFIG_HEADERS([config.h])
 
 # Checks for programs.
@@ -38,5 +38,5 @@ AC_CHECK_FUNCS([memset])
 PICKY_CXXFLAGS="-std=c++11 -pedantic -Wall -Wextra -Weffc++ -fno-default-inline -pipe -pthread -Wno-unused-function -Werror"
 AC_SUBST([PICKY_CXXFLAGS])
 
-AC_CONFIG_FILES([Makefile src/Makefile vp8/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile dx2/Makefile])
 AC_OUTPUT
