@@ -12,22 +12,17 @@ class File
 {
 private:
   FileDescriptor fd_;
-  uint64_t size_;
-  char *buffer_;
+  Block block_;
 
 public:
   File( const std::string & filename );
   ~File();
 
-  uint64_t size( void ) const { return size_; }
-
-  const char & operator[] ( const uint64_t & index ) const { return buffer_[ index ]; }
-
-  Block block( const uint64_t & offset, const uint32_t & length ) const;
-
-  /* disallow assigning or copying */
-  File( const File & other ) = delete;
-  const File & operator=( const File & other ) = delete;
+  const Block & block( void ) const { return block_; }
+  const Block operator() ( const uint64_t & offset, const uint64_t & length ) const
+  {
+    return block_( offset, length );
+  }
 };
 
 #endif /* FILE_HH */

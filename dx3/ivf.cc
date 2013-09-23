@@ -8,24 +8,24 @@ using namespace std;
 IVF::IVF( const string & filename )
 try :
   file_( filename ),
-    header_( file_.block( 0, supported_header_len ) ),
-    fourcc_( header_.string( 8, 4 ) ),
-    width_( header_.le16( 12 ) ),
-    height_( header_.le16( 14 ) ),
-    frame_rate_( header_.le32( 16 ) ),
-    time_scale_( header_.le32( 20 ) ),
-    frame_count_( header_.le32( 24 ) ),
+    header_( file_( 0, supported_header_len ) ),
+    fourcc_( header_( 8, 4 ).string() ),
+    width_( header_( 12, 2 ).le16() ),
+    height_( header_( 14, 2 ).le16() ),
+    frame_rate_( header_( 16, 4 ).le32() ),
+    time_scale_( header_( 20, 4 ).le32() ),
+    frame_count_( header_( 24, 4 ).le32() ),
     frame_index_( 0 )
       {
-	if ( header_.string( 0, 4 ) != "DKIF" ) {
+	if ( header_( 0, 4 ).string() != "DKIF" ) {
 	  throw Exception( filename, "not an IVF file" );
 	}
 
-	if ( header_.le16( 4 ) != 0 ) {
+	if ( header_( 4, 2 ).le16() != 0 ) {
 	  throw Exception( filename, "not an IVF version 0 file" );
 	}
 
-	if ( header_.le16( 6 ) != supported_header_len ) {
+	if ( header_( 6, 2 ).le16() != supported_header_len ) {
 	  throw Exception( filename, "unsupported IVF header length" );
 	}
 
@@ -34,8 +34,8 @@ try :
 
 	uint64_t position = supported_header_len;
 	for ( uint32_t i = 0; i < frame_count_; i++ ) {
-	  Block frame_header = file_.block( position, frame_header_len );
-	  const uint32_t frame_len = frame_header.le32( 0 );
+	  Block frame_header = file_( position, frame_header_len );
+	  const uint32_t frame_len = frame_header.le32();
 
 	  frame_index_.emplace_back( position + frame_header_len, frame_len );
 	  position += frame_header_len + frame_len;
@@ -49,5 +49,5 @@ catch ( const out_of_range & e )
 Block IVF::frame( const uint32_t & index ) const
 {
   auto entry = frame_index_.at( index );
-  return file_.block( entry.first, entry.second );
+  return file_( entry.first, entry.second );
 }

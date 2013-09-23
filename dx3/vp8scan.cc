@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "ivf.hh"
+#include "bit_ops.hh"
 
 using namespace std;
 
@@ -23,7 +24,8 @@ int main( int argc, char *argv[] )
 
     for ( uint32_t i = 0; i < file.frame_count(); i++ ) {
       Block frame = file.frame( i );
-      printf( "%x %x %x\n", frame.octet( 0 ), frame.octet( 1 ), frame.octet( 2 ) );
+
+      printf( "frame %u, key: %x\n", i + 1, not BITS_GET( frame.octet(), 0, 1 ) );
     }
 
   } catch ( const Exception & e ) {
