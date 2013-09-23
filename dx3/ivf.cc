@@ -9,7 +9,7 @@ IVF::IVF( const string & filename )
 try :
   file_( filename ),
     header_( file_( 0, supported_header_len ) ),
-    fourcc_( header_( 8, 4 ).string() ),
+    fourcc_( header_( 8, 4 ).to_string() ),
     width_( header_( 12, 2 ).le16() ),
     height_( header_( 14, 2 ).le16() ),
     frame_rate_( header_( 16, 4 ).le32() ),
@@ -17,7 +17,7 @@ try :
     frame_count_( header_( 24, 4 ).le32() ),
     frame_index_( 0 )
       {
-	if ( header_( 0, 4 ).string() != "DKIF" ) {
+	if ( header_( 0, 4 ).to_string() != "DKIF" ) {
 	  throw Exception( filename, "not an IVF file" );
 	}
 

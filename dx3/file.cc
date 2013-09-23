@@ -11,7 +11,7 @@ File::File( const std::string & filename )
     block_( 0, 0 )
 {
   uint64_t size = fd_.size();
-  char *buffer = static_cast<char *>( mmap( nullptr, size, PROT_READ, MAP_SHARED, fd_.num(), 0 ) );
+  uint8_t *buffer = static_cast<uint8_t *>( mmap( nullptr, size, PROT_READ, MAP_SHARED, fd_.num(), 0 ) );
   if ( buffer == MAP_FAILED ) {
     throw Exception( "mmap" );
   }
