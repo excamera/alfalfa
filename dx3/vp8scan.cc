@@ -26,9 +26,12 @@ int main( int argc, char *argv[] )
       Block tag = frame( 0, 3 );
 
       printf( "frame %u: ", i + 1 );
-      printf( "interframe: %lu", tag.bits( 0, 1 ) );
-      printf( ", version: %lu\n", tag.bits( 1, 3 ) );
-      
+      printf( "size: %lu", frame.size() );
+      printf( ", interframe: %lu", tag.bits( 0, 1 ) );
+      printf( ", version: %lu", tag.bits( 1, 3 ) );
+      printf( ", show_frame: %lu", tag.bits( 4, 1 ) );
+      printf( ", first_partition: %lu", tag.bits( 5, 19 ) );
+      printf( "\n" );
    }
 
   } catch ( const Exception & e ) {
