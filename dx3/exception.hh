@@ -19,9 +19,9 @@ public:
     : Exception( s_attempt, strerror( errno ) )
   {}
 
-  void perror( void ) const
+  void perror( const std::string & prefix ) const
   {
-    std::cerr << attempt_ << ": " << error_ << std::endl;
+    std::cerr << prefix << ": " << attempt_ << ": " << error_ << std::endl;
   }
 };
 

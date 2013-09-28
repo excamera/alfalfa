@@ -20,7 +20,7 @@ private:
   uint16_t width_, height_;
   uint32_t frame_rate_, time_scale_, frame_count_;
 
-  std::vector< std::pair<uint64_t,uint32_t> > frame_index_;
+  std::vector< std::pair<uint64_t, uint32_t> > frame_index_;
 
 public:
   IVF( const std::string & filename );

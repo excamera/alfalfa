@@ -48,6 +48,6 @@ catch ( const out_of_range & e )
 
 Block IVF::frame( const uint32_t & index ) const
 {
-  auto entry = frame_index_.at( index );
+  const auto & entry = frame_index_.at( index );
   return file_( entry.first, entry.second );
 }
