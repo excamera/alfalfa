@@ -61,7 +61,7 @@ public:
   uint64_t le32( void ) const
   {
     bounds_check( sizeof( uint32_t ) );
-    return le32toh( *reinterpret_cast<const uint64_t *>( buffer_ ) );
+    return le32toh( *reinterpret_cast<const uint32_t *>( buffer_ ) );
   }
 
   uint64_t le64( void ) const
