@@ -1,3 +1,5 @@
+#include <cassert>
+
 #include "bool_decoder.hh"
 #include "exception.hh"
 
@@ -52,9 +54,7 @@ uint32_t BoolDecoder::get_uint( const unsigned int num_bits )
 {
   uint32_t ret = 0;
 
-  if ( num_bits > 32 ) {
-    throw Exception( "BoolDecoder", "num_bits must be <= 32" );
-  }
+  assert( num_bits < 32 );
 
   for ( int bit = num_bits - 1; bit >= 0; bit-- ) {
     ret |= (get_bit() << bit);

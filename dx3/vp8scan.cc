@@ -16,7 +16,7 @@ int main( int argc, char *argv[] )
     IVF file( argv[ 1 ] );
 
     if ( file.fourcc() != "VP80" ) {
-      throw Exception( argv[ 1 ], "not a VP80 file" );
+      throw Unsupported( "not a VP8 file" );
     }
 
     VP8Parser vp8( file.width(), file.height() );
@@ -24,7 +24,6 @@ int main( int argc, char *argv[] )
     for ( uint32_t i = 0; i < file.frame_count(); i++ ) {
       vp8.parse_frame( file.frame( i ) );
     }
-
   } catch ( const Exception & e ) {
     e.perror( argv[ 0 ] );
     return EXIT_FAILURE;

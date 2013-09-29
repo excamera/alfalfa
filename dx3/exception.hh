@@ -23,6 +23,24 @@ public:
   {
     std::cerr << prefix << ": " << attempt_ << ": " << error_ << std::endl;
   }
+
+  virtual ~Exception() {}
+};
+
+class Invalid : public Exception
+{
+public:
+  Invalid( const std::string & s_error )
+    : Exception( "invalid bitstream", s_error )
+  {}
+};
+
+class Unsupported : public Exception
+{
+public:
+  Unsupported( const std::string & s_error )
+    : Exception( "unsupported bitstream", s_error )
+  {}
 };
 
 static int SystemCall( const std::string & s_attempt, const int return_value )

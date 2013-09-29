@@ -18,15 +18,15 @@ try :
     frame_index_( 0 )
       {
 	if ( header_( 0, 4 ).to_string() != "DKIF" ) {
-	  throw Exception( filename, "not an IVF file" );
+	  throw Invalid( "missing IVF file header" );
 	}
 
 	if ( header_( 4, 2 ).le16() != 0 ) {
-	  throw Exception( filename, "not an IVF version 0 file" );
+	  throw Unsupported( "not an IVF version 0 file" );
 	}
 
 	if ( header_( 6, 2 ).le16() != supported_header_len ) {
-	  throw Exception( filename, "unsupported IVF header length" );
+	  throw Unsupported( "unsupported IVF header length" );
 	}
 
 	/* build the index */
@@ -43,7 +43,7 @@ try :
       }
 catch ( const out_of_range & e )
   {
-    throw Exception( filename, "IVF file truncated" );
+    throw Invalid( "IVF file truncated" );
   }
 
 Block IVF::frame( const uint32_t & index ) const
