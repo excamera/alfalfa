@@ -7,10 +7,6 @@ BoolDecoder::BoolDecoder( const Block & s_block )
     value_( 0 ),
     bit_count_( 0 )
 {
-  if ( block_.size() < 2 ) {
-    throw Exception( "BoolDecoder", "not enough bytes in block" );
-  }
-
   load_octet();
   value_ <<= 8;
   load_octet();
@@ -18,8 +14,10 @@ BoolDecoder::BoolDecoder( const Block & s_block )
 
 void BoolDecoder::load_octet( void )
 {
-  value_ |= block_.octet();
-  block_ = block_( 1 );
+  if ( block_.size() ) {
+    value_ |= block_.octet();
+    block_ = block_( 1 );
+  }
 }
 
 /* based on dixie bool_decoder.h */

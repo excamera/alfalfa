@@ -12,7 +12,7 @@ void VP8Parser::parse_frame( const Block & frame )
   /* decode uncompressed data chunk */
   Block tag = frame( 0, 3 );
   
-  const bool interframe = tag.bits( 0, 1 );
+  const bool key_frame = not tag.bits( 0, 1 );
   const uint8_t version = tag.bits( 1, 3 );
 
   const bool experimental = version > 3;
@@ -23,9 +23,16 @@ void VP8Parser::parse_frame( const Block & frame )
 
   const bool show_frame = tag.bits( 4, 1 );
   const uint32_t first_partition_length = tag.bits( 5, 19 );
-  const uint32_t first_partition_byte_offset = interframe ? 10 : 3;
+  const uint32_t first_partition_byte_offset = key_frame ? 10 : 3;
 
-  if ( not interframe ) {
+  printf( "size: %lu, key_frame: %u, version: %u, show_frame: %u, size0: %u\n",
+	  frame.size(), key_frame, version, show_frame, first_partition_length );
+
+  if ( frame.size() <= first_partition_byte_offset + first_partition_length ) {
+    throw Exception( "VP8", "invalid partition length" );
+  }
+
+  if ( key_frame ) {
     if ( frame( 3, 3 ).to_string() != "\x9d\x01\x2a" ) {
       throw Exception( "VP8", "invalid key frame header" );
     }
@@ -39,12 +46,17 @@ void VP8Parser::parse_frame( const Block & frame )
 	 or horizontal_scale or vertical_scale ) {
       throw Exception( "VP8", "upscaling not supported" );
     }
-
-    BoolDecoder partition1( frame( first_partition_byte_offset, first_partition_length ) );
-
-    partition1.get_bit();
   }
 
-  printf( "size: %lu, interframe: %u, version: %u, show_frame: %u, size0: %u\n",
-	  frame.size(), interframe, version, show_frame, first_partition_length );
+  BoolDecoder partition1( frame( first_partition_byte_offset, first_partition_length ) );
+
+  if ( key_frame ) {
+    if ( partition1.get_uint( 2 ) ) {
+      throw Exception( "VP8", "color_space and clamping_type bits not supported" );
+    }
+  }
+
+  if ( partition1.get_bit() ) {
+    printf( "segmentation enabled\n" );
+  }
 }

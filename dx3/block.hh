@@ -37,12 +37,12 @@ public:
 
   Block operator() ( const uint64_t & offset ) const
   {
-    bounds_check( offset );
     return operator() ( offset, size_ - offset );
   }
 
   Block operator() ( const uint64_t & offset, const uint64_t & length ) const
   {
+    bounds_check( offset );
     bounds_check( offset + length );
     return Block( buffer_ + offset, length );
   }
