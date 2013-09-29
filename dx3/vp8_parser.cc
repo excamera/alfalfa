@@ -1,22 +1,29 @@
-#include "vp8_decoder.hh"
+#include "vp8_parser.hh"
 #include "exception.hh"
+#include "bool_decoder.hh"
 
-VP8Decoder::VP8Decoder( uint16_t s_width, uint16_t s_height )
+VP8Parser::VP8Parser( uint16_t s_width, uint16_t s_height )
   : width( s_width ), height( s_height )
 {
 }
 
-void VP8Decoder::decode_frame( const Block & frame )
+void VP8Parser::parse_frame( const Block & frame )
 {
   /* decode uncompressed data chunk */
   Block tag = frame( 0, 3 );
   
   const bool interframe = tag.bits( 0, 1 );
   const uint8_t version = tag.bits( 1, 3 );
+
+  const bool experimental = version > 3;
+
+  if ( experimental ) {
+    throw Exception( "VP8", "experimental bitstreams not supported" );
+  }
+
   const bool show_frame = tag.bits( 4, 1 );
   const uint32_t first_partition_length = tag.bits( 5, 19 );
-
-  //  uint32_t first_partition_byte_offset = interframe ? 10 : 3;
+  const uint32_t first_partition_byte_offset = interframe ? 10 : 3;
 
   if ( not interframe ) {
     if ( frame( 3, 3 ).to_string() != "\x9d\x01\x2a" ) {
@@ -32,6 +39,10 @@ void VP8Decoder::decode_frame( const Block & frame )
 	 or horizontal_scale or vertical_scale ) {
       throw Exception( "VP8", "upscaling not supported" );
     }
+
+    BoolDecoder partition1( frame( first_partition_byte_offset, first_partition_length ) );
+
+    partition1.get_bit();
   }
 
   printf( "size: %lu, interframe: %u, version: %u, show_frame: %u, size0: %u\n",

@@ -35,6 +35,12 @@ public:
   uint8_t * mutable_buffer( void ) { return buffer_; }
   const uint64_t & size( void ) const { return size_; }
 
+  Block operator() ( const uint64_t & offset ) const
+  {
+    bounds_check( offset );
+    return operator() ( offset, size_ - offset );
+  }
+
   Block operator() ( const uint64_t & offset, const uint64_t & length ) const
   {
     bounds_check( offset + length );

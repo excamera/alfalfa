@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include "ivf.hh"
-#include "vp8_decoder.hh"
+#include "vp8_parser.hh"
 
 using namespace std;
 
@@ -19,10 +19,10 @@ int main( int argc, char *argv[] )
       throw Exception( argv[ 1 ], "not a VP80 file" );
     }
 
-    VP8Decoder vp8( file.width(), file.height() );
+    VP8Parser vp8( file.width(), file.height() );
 
     for ( uint32_t i = 0; i < file.frame_count(); i++ ) {
-      vp8.decode_frame( file.frame( i ) );
+      vp8.parse_frame( file.frame( i ) );
     }
 
   } catch ( const Exception & e ) {
