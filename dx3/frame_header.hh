@@ -16,12 +16,8 @@ struct QuantIndices
   FlagMagSign<4> uv_ac;
 
   QuantIndices( BoolDecoder & data )
-    : y_ac_qi( data ),
-      y_dc( data ),
-      y2_dc( data ),
-      y2_ac( data ),
-      uv_dc( data ),
-      uv_ac( data )
+    : y_ac_qi( data ), y_dc( data ), y2_dc( data ),
+      y2_ac( data ), uv_dc( data ), uv_ac( data )
   {}
 };
 
@@ -73,6 +69,8 @@ struct UpdateSegmentation
   {}
 };
 
+
+
 struct KeyFrameHeader
 {
   Bool color_space;
@@ -84,17 +82,16 @@ struct KeyFrameHeader
   FlaggedType<FlaggedType<ModeRefLFDeltaUpdate>> mode_lf_adjustments;
   Unsigned<2> log2_nbr_of_dct_partitions;
   QuantIndices quant_indices;
+  Bool refresh_entropy_probs;
 
   KeyFrameHeader( BoolDecoder & data )
-    : color_space( data ),
-      clamping_type( data ),
-      update_segmentation( data ),
-      filter_type( data ),
-      loop_filter_level( data ),
-      sharpness_level( data ),
+    : color_space( data ), clamping_type( data ),
+      update_segmentation( data ), filter_type( data ),
+      loop_filter_level( data ), sharpness_level( data ),
       mode_lf_adjustments( data ),
       log2_nbr_of_dct_partitions( data ),
-      quant_indices( data )
+      quant_indices( data ),
+      refresh_entropy_probs( data )
   {}
 };
 
