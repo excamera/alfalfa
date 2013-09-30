@@ -6,44 +6,63 @@
 
 #include <array>
 
-struct RefUpdate
+template <class MaybePresent>
+struct FlaggedType
 {
-  bool ref_frame_delta_update_flag;
-  Optional<uint8_t> delta_magnitude;
-  Optional<bool> delta_sign;
+  Optional<MaybePresent> object;
 
-  RefUpdate( BoolDecoder & data )
-    : ref_frame_delta_update_flag( data.bit() ),
-      delta_magnitude( ref_frame_delta_update_flag
-		       ? data.uint( 6 )
-		       : Optional<uint8_t>() ),
-      delta_sign( ref_frame_delta_update_flag
-		  ? data.bit()
-		  : Optional<bool>() )
+  FlaggedType( BoolDecoder & data )
+    : object( data.bit() ? MaybePresent( data ) : Optional<MaybePresent>() )
+  {}
+
+  virtual ~FlaggedType() {}
+};
+
+template <class T, int width>
+class UnsignedInteger
+{
+private:
+  T i;
+
+public:
+  UnsignedInteger( BoolDecoder & data ) : i( data.uint( width ) ) {}
+  explicit operator const T & () const { return i; }
+};
+
+template <int width>
+struct FlagMagSign : public FlaggedType< UnsignedInteger<uint8_t, width> >
+{
+  Optional<bool> sign;
+
+  FlagMagSign( BoolDecoder & data )
+    : FlaggedType< UnsignedInteger<uint8_t, width> >( data ),
+      sign( this->object.initialized() ? data.bit() : Optional<bool>() )
   {}
 };
 
-struct ModeUpdate
+struct QuantIndices
 {
-  bool mb_mode_delta_update_flag;
-  Optional<uint8_t> delta_magnitude;
-  Optional<bool> delta_sign;
+  uint8_t y_ac_qi;
+  FlagMagSign<4> y_dc;
+  FlagMagSign<4> y2_dc;
+  FlagMagSign<4> y2_ac;
+  FlagMagSign<4> uv_dc;
+  FlagMagSign<4> uv_ac;
 
-  ModeUpdate( BoolDecoder & data )
-    : mb_mode_delta_update_flag( data.bit() ),
-      delta_magnitude( mb_mode_delta_update_flag
-		       ? data.uint( 6 )
-		       : Optional<uint8_t>() ),
-      delta_sign( mb_mode_delta_update_flag
-		  ? data.bit()
-		  : Optional<bool>() )
+  QuantIndices( BoolDecoder & data )
+    : y_ac_qi( data.uint( 7 ) ),
+      y_dc( data ),
+      y2_dc( data ),
+      y2_ac( data ),
+      uv_dc( data ),
+      uv_ac( data )
   {}
 };
 
 struct ModeRefLFDeltaUpdate
 {
-  std::array< RefUpdate, 4 > ref_update;
-  std::array< ModeUpdate, 4 > mode_update;
+  std::array< FlagMagSign<6>, 4 > ref_update;
+  std::array< FlagMagSign<6>, 4 > mode_update;
 
   ModeRefLFDeltaUpdate( BoolDecoder & data )
     : ref_update{ { data, data, data, data } },
@@ -51,70 +70,20 @@ struct ModeRefLFDeltaUpdate
   {}
 };
 
-struct ModeLFAdjustments
-{
-  bool mode_ref_lf_delta_update_flag;
-  Optional<ModeRefLFDeltaUpdate> mode_ref_lf_delta_update;
-
-  ModeLFAdjustments( BoolDecoder & data )
-    : mode_ref_lf_delta_update_flag( data.bit() ),
-      mode_ref_lf_delta_update( mode_ref_lf_delta_update_flag
-				? ModeRefLFDeltaUpdate( data )
-				: Optional<ModeRefLFDeltaUpdate>() )
-  {}
-};
-
-struct SegmentProbUpdate
-{
-  bool segment_prob_update;
-  Optional<uint8_t> segment_prob;
-
-  SegmentProbUpdate( BoolDecoder & data )
-    : segment_prob_update( data.bit() ),
-      segment_prob( segment_prob_update ? data.uint( 8 ) : Optional<uint8_t>() )
-  {}
-};
-
 struct MBSegmentationMap
 {
-  std::array< SegmentProbUpdate, 3 > segment_prob_update;
+  std::array< FlaggedType<UnsignedInteger<uint8_t, 8> >, 3 > segment_prob_update;
 
   MBSegmentationMap( BoolDecoder & data )
     : segment_prob_update{ { data, data, data } }
   {}
 };
 
-struct QuantizerUpdate
-{
-  bool quantizer_update;
-  Optional<uint8_t> quantizer_update_value;
-  Optional<bool> quantizer_update_sign;
-
-  QuantizerUpdate( BoolDecoder & data )
-    : quantizer_update( data.bit() ),
-      quantizer_update_value( quantizer_update ? data.uint( 7 ) : Optional<uint8_t>() ),
-      quantizer_update_sign( quantizer_update ? data.bit() : Optional<bool>() )
-  {}
-};
-
-struct LoopFilterUpdate
-{
-  bool loop_filter_update;
-  Optional<uint8_t> lf_update_value;
-  Optional<bool> lf_update_sign;
-
-  LoopFilterUpdate( BoolDecoder & data )
-    : loop_filter_update( data.bit() ),
-      lf_update_value( loop_filter_update ? data.uint( 6 ) : Optional<uint8_t>() ),
-      lf_update_sign( loop_filter_update ? data.bit() : Optional<bool>() )
-  {}
-};
-
 struct SegmentFeatureData
 {
   bool segment_feature_mode;
-  std::array<QuantizerUpdate, 4> quantizer_update;
-  std::array<LoopFilterUpdate, 4> loop_filter_update;
+  std::array<FlagMagSign<7>, 4> quantizer_update;
+  std::array<FlagMagSign<6>, 4> loop_filter_update;
 
   SegmentFeatureData( BoolDecoder & data )
     : segment_feature_mode( data.bit() ),
@@ -151,8 +120,9 @@ struct KeyFrameHeader
   bool filter_type;
   uint8_t loop_filter_level;
   uint8_t sharpness_level;
-  bool loop_filter_adj_enable;
-  Optional<ModeLFAdjustments> mode_lf_adjustments;
+  FlaggedType<FlaggedType<ModeRefLFDeltaUpdate>> mode_lf_adjustments;
+  uint8_t log2_nbr_of_dct_partitions;
+  QuantIndices quant_indices;
 
   KeyFrameHeader( BoolDecoder & data )
     : color_space( data.bit() ),
@@ -164,10 +134,9 @@ struct KeyFrameHeader
       filter_type( data.bit() ),
       loop_filter_level( data.uint( 6 ) ),
       sharpness_level( data.uint( 3 ) ),
-      loop_filter_adj_enable( data.bit() ),
-      mode_lf_adjustments( loop_filter_adj_enable
-			   ? ModeLFAdjustments( data )
-			   : Optional<ModeLFAdjustments>() )
+      mode_lf_adjustments( data ),
+      log2_nbr_of_dct_partitions( data.uint( 2 ) ),
+      quant_indices( data )
   {}
 };
 

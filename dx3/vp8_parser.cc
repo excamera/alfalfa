@@ -27,8 +27,7 @@ void VP8Parser::parse_frame( const Block & frame )
       throw Unsupported( "VP8 color_space and clamping_type bits" );
     }
 
-    if ( frame_header.mode_lf_adjustments.initialized() ) {
-      cout << to_string( frame_header.mode_lf_adjustments->mode_ref_lf_delta_update_flag ) << endl;
+    if ( frame_header.mode_lf_adjustments.object.initialized() ) {
     }
   }
 }
