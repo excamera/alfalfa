@@ -12,24 +12,37 @@ public:
   {}
 };
 
-template <class T, int width>
-class UnsignedInteger
+template <int width>
+class Unsigned
 {
 private:
-  T i;
+  uint8_t i_;
 
 public:
-  UnsignedInteger( BoolDecoder & data ) : i( data.uint( width ) ) {}
-  operator const T & () const { return i; }
+  Unsigned( BoolDecoder & data ) : i_( data.uint( width ) )
+  {
+    static_assert( width <= 8, "Unsigned width must be <= 8" );
+  }
+  operator const uint8_t & () const { return i_; }
+};
+
+class Bool
+{
+private:
+  bool i_;
+
+public:
+  Bool( BoolDecoder & data ) : i_( data.bit() ) {}
+  operator const bool & () const { return i_; }
 };
 
 template <int width>
-struct FlagMagSign : public FlaggedType< UnsignedInteger<uint8_t, width> >
+struct FlagMagSign : public FlaggedType< Unsigned<width> >
 {
   Optional<bool> sign;
 
   FlagMagSign( BoolDecoder & data )
-    : FlaggedType< UnsignedInteger<uint8_t, width> >( data ),
+    : FlaggedType< Unsigned<width> >( data ),
       sign( this->initialized() ? data.bit() : Optional<bool>() )
   {}
 };

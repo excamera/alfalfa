@@ -8,7 +8,7 @@
 
 struct QuantIndices
 {
-  uint8_t y_ac_qi;
+  Unsigned<7> y_ac_qi;
   FlagMagSign<4> y_dc;
   FlagMagSign<4> y2_dc;
   FlagMagSign<4> y2_ac;
@@ -16,7 +16,7 @@ struct QuantIndices
   FlagMagSign<4> uv_ac;
 
   QuantIndices( BoolDecoder & data )
-    : y_ac_qi( data.uint( 7 ) ),
+    : y_ac_qi( data ),
       y_dc( data ),
       y2_dc( data ),
       y2_ac( data ),
@@ -38,7 +38,7 @@ struct ModeRefLFDeltaUpdate
 
 struct MBSegmentationMap
 {
-  std::array< FlaggedType<UnsignedInteger<uint8_t, 8> >, 3 > segment_prob_update;
+  std::array< FlaggedType<Unsigned<8>>, 3 > segment_prob_update;
 
   MBSegmentationMap( BoolDecoder & data )
     : segment_prob_update{ { data, data, data } }
@@ -47,12 +47,12 @@ struct MBSegmentationMap
 
 struct SegmentFeatureData
 {
-  bool segment_feature_mode;
+  Bool segment_feature_mode;
   std::array<FlagMagSign<7>, 4> quantizer_update;
   std::array<FlagMagSign<6>, 4> loop_filter_update;
 
   SegmentFeatureData( BoolDecoder & data )
-    : segment_feature_mode( data.bit() ),
+    : segment_feature_mode( data ),
       quantizer_update{ { data, data, data, data } },
       loop_filter_update{ { data, data, data, data } }
   {}
@@ -60,12 +60,12 @@ struct SegmentFeatureData
 
 struct UpdateSegmentation
 {
-  bool update_mb_segmentation_map;
+  Bool update_mb_segmentation_map;
   FlaggedType<SegmentFeatureData> segment_feature_data;
   Optional<MBSegmentationMap> mb_segmentation_map;
 
   UpdateSegmentation( BoolDecoder & data )
-    : update_mb_segmentation_map( data.bit() ),
+    : update_mb_segmentation_map( data ),
       segment_feature_data( data ),
       mb_segmentation_map( update_mb_segmentation_map
 			   ? MBSegmentationMap( data )
@@ -75,25 +75,25 @@ struct UpdateSegmentation
 
 struct KeyFrameHeader
 {
-  bool color_space;
-  bool clamping_type;
+  Bool color_space;
+  Bool clamping_type;
   FlaggedType<UpdateSegmentation> update_segmentation;
-  bool filter_type;
-  uint8_t loop_filter_level;
-  uint8_t sharpness_level;
+  Bool filter_type;
+  Unsigned<6> loop_filter_level;
+  Unsigned<3> sharpness_level;
   FlaggedType<FlaggedType<ModeRefLFDeltaUpdate>> mode_lf_adjustments;
-  uint8_t log2_nbr_of_dct_partitions;
+  Unsigned<2> log2_nbr_of_dct_partitions;
   QuantIndices quant_indices;
 
   KeyFrameHeader( BoolDecoder & data )
-    : color_space( data.bit() ),
-      clamping_type( data.bit() ),
+    : color_space( data ),
+      clamping_type( data ),
       update_segmentation( data ),
-      filter_type( data.bit() ),
-      loop_filter_level( data.uint( 6 ) ),
-      sharpness_level( data.uint( 3 ) ),
+      filter_type( data ),
+      loop_filter_level( data ),
+      sharpness_level( data ),
       mode_lf_adjustments( data ),
-      log2_nbr_of_dct_partitions( data.uint( 2 ) ),
+      log2_nbr_of_dct_partitions( data ),
       quant_indices( data )
   {}
 };
