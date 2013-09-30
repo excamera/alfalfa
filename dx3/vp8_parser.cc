@@ -27,7 +27,12 @@ void VP8Parser::parse_frame( const Block & frame )
       throw Unsupported( "VP8 color_space and clamping_type bits" );
     }
 
-    if ( frame_header.mode_lf_adjustments.object.initialized() ) {
+    if ( frame_header.mode_lf_adjustments.initialized() ) {
+      if ( frame_header.mode_lf_adjustments.get().initialized() ) {
+	if ( frame_header.mode_lf_adjustments.get().get().ref_update.at( 0 ).initialized() ) {
+	  cout << "magnitude: " << to_string( frame_header.mode_lf_adjustments.get().get().ref_update.at( 0 ).get() ) << endl;
+	}
+      }
     }
   }
 }

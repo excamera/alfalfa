@@ -18,11 +18,11 @@ public:
   Optional( const T & other ) : initialized_( true ), object_( other ) {}
 
   bool initialized( void ) const { return initialized_; }
-  const T * operator->() const { assert( initialized() ); return &object_; }
+  const T & get() const { assert( initialized() ); return object_; }
 
   Optional( const Optional<T> & other ) : initialized_( other.initialized_ ), object_( other.object_ ) {}
 
-  ~Optional() { if ( initialized() ) { object_.~T(); } }
+  virtual ~Optional() { if ( initialized() ) { object_.~T(); } }
 };
 
 

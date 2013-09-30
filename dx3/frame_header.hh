@@ -1,44 +1,10 @@
 #ifndef FRAME_HEADER_HH
 #define FRAME_HEADER_HH
 
-#include "optional.hh"
+#include "vp8_header_structures.hh"
 #include "bool_decoder.hh"
 
 #include <array>
-
-template <class MaybePresent>
-struct FlaggedType
-{
-  Optional<MaybePresent> object;
-
-  FlaggedType( BoolDecoder & data )
-    : object( data.bit() ? MaybePresent( data ) : Optional<MaybePresent>() )
-  {}
-
-  virtual ~FlaggedType() {}
-};
-
-template <class T, int width>
-class UnsignedInteger
-{
-private:
-  T i;
-
-public:
-  UnsignedInteger( BoolDecoder & data ) : i( data.uint( width ) ) {}
-  explicit operator const T & () const { return i; }
-};
-
-template <int width>
-struct FlagMagSign : public FlaggedType< UnsignedInteger<uint8_t, width> >
-{
-  Optional<bool> sign;
-
-  FlagMagSign( BoolDecoder & data )
-    : FlaggedType< UnsignedInteger<uint8_t, width> >( data ),
-      sign( this->object.initialized() ? data.bit() : Optional<bool>() )
-  {}
-};
 
 struct QuantIndices
 {
@@ -95,16 +61,12 @@ struct SegmentFeatureData
 struct UpdateSegmentation
 {
   bool update_mb_segmentation_map;
-  bool update_segment_feature_data;
-  Optional<SegmentFeatureData> segment_feature_data;
+  FlaggedType<SegmentFeatureData> segment_feature_data;
   Optional<MBSegmentationMap> mb_segmentation_map;
 
   UpdateSegmentation( BoolDecoder & data )
     : update_mb_segmentation_map( data.bit() ),
-      update_segment_feature_data( data.bit() ),
-      segment_feature_data( update_segment_feature_data
-			    ? SegmentFeatureData( data ) :
-			    Optional<SegmentFeatureData>() ),
+      segment_feature_data( data ),
       mb_segmentation_map( update_mb_segmentation_map
 			   ? MBSegmentationMap( data )
 			   : Optional<MBSegmentationMap>() )
