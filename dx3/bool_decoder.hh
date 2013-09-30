@@ -17,10 +17,10 @@ public:
   BoolDecoder( const Block & s_block );
 
   bool get( const uint8_t & probability );
-  bool get_bit( void ) { return get( 128 ); }
-  uint32_t get_uint( const unsigned int num_bits );
-  int32_t get_int( const unsigned int num_bits );
-  int32_t maybe_get_int( const unsigned int num_bits );
+  bool bit( void ) { return get( 128 ); }
+  uint32_t uint( const unsigned int num_bits );
+  int32_t sint( const unsigned int num_bits );
+  int32_t maybe_sint( const unsigned int num_bits );
 };
 
 #endif /* BOOL_DECODER_HH */

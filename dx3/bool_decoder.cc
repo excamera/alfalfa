@@ -50,26 +50,26 @@ bool BoolDecoder::get( const uint8_t & probability )
   return ret;
 }
 
-uint32_t BoolDecoder::get_uint( const unsigned int num_bits )
+uint32_t BoolDecoder::uint( const unsigned int num_bits )
 {
   uint32_t ret = 0;
 
   assert( num_bits < 32 );
 
   for ( int bit = num_bits - 1; bit >= 0; bit-- ) {
-    ret |= (get_bit() << bit);
+    ret |= (BoolDecoder::bit() << bit);
   }
 
   return ret;
 }
 
-int32_t BoolDecoder::get_int( const unsigned int num_bits )
+int32_t BoolDecoder::sint( const unsigned int num_bits )
 {
-  uint32_t ret = get_uint( num_bits );
-  return get_bit() ? -ret : ret;
+  uint32_t ret = uint( num_bits );
+  return bit() ? -ret : ret;
 }
 
-int32_t BoolDecoder::maybe_get_int( const unsigned int num_bits )
+int32_t BoolDecoder::maybe_sint( const unsigned int num_bits )
 {
-  return get_bit() ? get_int( num_bits ) : 0;
+  return bit() ? sint( num_bits ) : 0;
 }

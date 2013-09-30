@@ -63,7 +63,7 @@ int main(int argc, const char** argv) {
 
     /* Pretty print */
     frame_states.push_back(op_parser.get_frame_state());
-    frame_states.back().pretty_print_compact();
+    frame_states.back().pretty_print_everything();
 
     /* Update ids of different raster buffers for the next frame */
     current_raster_ref_ids = op_parser.update_ref_rasters();

@@ -7,4 +7,4 @@ vp8scan_SOURCES = vp8scan.cc exception.hh file_descriptor.hh \
 	ivf.hh ivf.cc vp8_parser.hh vp8_parser.cc \
 	bool_decoder.hh bool_decoder.cc \
 	uncompressed_chunk.hh uncompressed_chunk.cc \
-	frame_header.hh frame_header.cc optional.hh
+	frame_header.hh optional.hh
