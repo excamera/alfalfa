@@ -45,7 +45,7 @@ UncompressedChunk::UncompressedChunk( const Block & frame,
     uint32_t first_partition_byte_offset = key_frame_ ? 10 : 3;
 
     if ( frame.size() <= first_partition_byte_offset + first_partition_length ) {
-      /* why <= ? matches dixie */
+      /* why <= ? Matches dixie. Probably because second partition is mandatory */
       throw Invalid( "invalid VP8 first partition length" );
     }
 
