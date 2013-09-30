@@ -77,8 +77,7 @@ struct KeyFrameHeader
 {
   bool color_space;
   bool clamping_type;
-  bool segmentation_enabled;
-  Optional<UpdateSegmentation> update_segmentation;
+  FlaggedType<UpdateSegmentation> update_segmentation;
   bool filter_type;
   uint8_t loop_filter_level;
   uint8_t sharpness_level;
@@ -89,10 +88,7 @@ struct KeyFrameHeader
   KeyFrameHeader( BoolDecoder & data )
     : color_space( data.bit() ),
       clamping_type( data.bit() ),
-      segmentation_enabled( data.bit() ),
-      update_segmentation( segmentation_enabled
-			   ? UpdateSegmentation( data )
-			   : Optional<UpdateSegmentation>() ),
+      update_segmentation( data ),
       filter_type( data.bit() ),
       loop_filter_level( data.uint( 6 ) ),
       sharpness_level( data.uint( 3 ) ),
