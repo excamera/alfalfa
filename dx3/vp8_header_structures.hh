@@ -39,11 +39,11 @@ public:
 template <int width>
 struct FlagMagSign : public FlaggedType< Unsigned<width> >
 {
-  Optional<bool> sign;
+  Optional<Bool> sign;
 
   FlagMagSign( BoolDecoder & data )
     : FlaggedType< Unsigned<width> >( data ),
-      sign( this->initialized() ? data.bit() : Optional<bool>() )
+      sign( this->initialized() ? Bool( data ) : Optional<Bool>() )
   {}
 };
 
