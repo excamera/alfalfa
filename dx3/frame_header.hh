@@ -6,6 +6,64 @@
 
 #include <array>
 
+struct RefUpdate
+{
+  bool ref_frame_delta_update_flag;
+  Optional<uint8_t> delta_magnitude;
+  Optional<bool> delta_sign;
+
+  RefUpdate( BoolDecoder & data )
+    : ref_frame_delta_update_flag( data.bit() ),
+      delta_magnitude( ref_frame_delta_update_flag
+		       ? data.uint( 6 )
+		       : Optional<uint8_t>() ),
+      delta_sign( ref_frame_delta_update_flag
+		  ? data.bit()
+		  : Optional<bool>() )
+  {}
+};
+
+struct ModeUpdate
+{
+  bool mb_mode_delta_update_flag;
+  Optional<uint8_t> delta_magnitude;
+  Optional<bool> delta_sign;
+
+  ModeUpdate( BoolDecoder & data )
+    : mb_mode_delta_update_flag( data.bit() ),
+      delta_magnitude( mb_mode_delta_update_flag
+		       ? data.uint( 6 )
+		       : Optional<uint8_t>() ),
+      delta_sign( mb_mode_delta_update_flag
+		  ? data.bit()
+		  : Optional<bool>() )
+  {}
+};
+
+struct ModeRefLFDeltaUpdate
+{
+  std::array< RefUpdate, 4 > ref_update;
+  std::array< ModeUpdate, 4 > mode_update;
+
+  ModeRefLFDeltaUpdate( BoolDecoder & data )
+    : ref_update{ { data, data, data, data } },
+      mode_update{ { data, data, data, data } }
+  {}
+};
+
+struct ModeLFAdjustments
+{
+  bool mode_ref_lf_delta_update_flag;
+  Optional<ModeRefLFDeltaUpdate> mode_ref_lf_delta_update;
+
+  ModeLFAdjustments( BoolDecoder & data )
+    : mode_ref_lf_delta_update_flag( data.bit() ),
+      mode_ref_lf_delta_update( mode_ref_lf_delta_update_flag
+				? ModeRefLFDeltaUpdate( data )
+				: Optional<ModeRefLFDeltaUpdate>() )
+  {}
+};
+
 struct SegmentProbUpdate
 {
   bool segment_prob_update;
@@ -90,6 +148,11 @@ struct KeyFrameHeader
   bool clamping_type;
   bool segmentation_enabled;
   Optional<UpdateSegmentation> update_segmentation;
+  bool filter_type;
+  uint8_t loop_filter_level;
+  uint8_t sharpness_level;
+  bool loop_filter_adj_enable;
+  Optional<ModeLFAdjustments> mode_lf_adjustments;
 
   KeyFrameHeader( BoolDecoder & data )
     : color_space( data.bit() ),
@@ -97,7 +160,14 @@ struct KeyFrameHeader
       segmentation_enabled( data.bit() ),
       update_segmentation( segmentation_enabled
 			   ? UpdateSegmentation( data )
-			   : Optional<UpdateSegmentation>() )
+			   : Optional<UpdateSegmentation>() ),
+      filter_type( data.bit() ),
+      loop_filter_level( data.uint( 6 ) ),
+      sharpness_level( data.uint( 3 ) ),
+      loop_filter_adj_enable( data.bit() ),
+      mode_lf_adjustments( loop_filter_adj_enable
+			   ? ModeLFAdjustments( data )
+			   : Optional<ModeLFAdjustments>() )
   {}
 };
 

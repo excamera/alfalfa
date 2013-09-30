@@ -49,6 +49,8 @@ UncompressedChunk::UncompressedChunk( const Block & frame,
       throw Invalid( "invalid VP8 first partition length" );
     }
 
+    first_partition_ = frame( first_partition_byte_offset, first_partition_length );
+
     if ( key_frame_ ) {
       if ( frame( 3, 3 ).to_string() != "\x9d\x01\x2a" ) {
 	throw Invalid( "did not find key-frame start code" );
