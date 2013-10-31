@@ -20,7 +20,6 @@ public:
   bool bit( void ) { return get( 128 ); }
   uint32_t uint( const unsigned int num_bits );
   int32_t sint( const unsigned int num_bits );
-  int32_t maybe_sint( const unsigned int num_bits );
 };
 
 #endif /* BOOL_DECODER_HH */

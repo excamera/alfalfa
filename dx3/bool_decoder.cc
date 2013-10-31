@@ -68,8 +68,3 @@ int32_t BoolDecoder::sint( const unsigned int num_bits )
   uint32_t ret = uint( num_bits );
   return bit() ? -ret : ret;
 }
-
-int32_t BoolDecoder::maybe_sint( const unsigned int num_bits )
-{
-  return bit() ? sint( num_bits ) : 0;
-}

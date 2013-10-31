@@ -4,16 +4,14 @@
 #include "vp8_header_structures.hh"
 #include "bool_decoder.hh"
 
-#include <array>
-
 struct QuantIndices
 {
   Unsigned<7> y_ac_qi;
-  FlagMagSign<4> y_dc;
-  FlagMagSign<4> y2_dc;
-  FlagMagSign<4> y2_ac;
-  FlagMagSign<4> uv_dc;
-  FlagMagSign<4> uv_ac;
+  Flagged< Signed<4> > y_dc;
+  Flagged< Signed<4> > y2_dc;
+  Flagged< Signed<4> > y2_ac;
+  Flagged< Signed<4> > uv_dc;
+  Flagged< Signed<4> > uv_ac;
 
   QuantIndices( BoolDecoder & data )
     : y_ac_qi( data ), y_dc( data ), y2_dc( data ),
@@ -23,41 +21,41 @@ struct QuantIndices
 
 struct ModeRefLFDeltaUpdate
 {
-  std::array< FlagMagSign<6>, 4 > ref_update;
-  std::array< FlagMagSign<6>, 4 > mode_update;
+  Array< Flagged< Signed<6> >, 4 > ref_update;
+  Array< Flagged< Signed<6> >, 4 > mode_update;
 
   ModeRefLFDeltaUpdate( BoolDecoder & data )
-    : ref_update{ { data, data, data, data } },
-      mode_update{ { data, data, data, data } }
+  : ref_update( data ),
+    mode_update( data )
   {}
 };
 
 struct MBSegmentationMap
 {
-  std::array< FlaggedType<Unsigned<8>>, 3 > segment_prob_update;
+  Array< Flagged< Unsigned<8> >, 3 > segment_prob_update;
 
   MBSegmentationMap( BoolDecoder & data )
-    : segment_prob_update{ { data, data, data } }
+  : segment_prob_update( data )
   {}
 };
 
 struct SegmentFeatureData
 {
   Bool segment_feature_mode;
-  std::array<FlagMagSign<7>, 4> quantizer_update;
-  std::array<FlagMagSign<6>, 4> loop_filter_update;
+  Array< Flagged< Signed<7> >, 4 > quantizer_update;
+  Array< Flagged< Signed<6> >, 4 > loop_filter_update;
 
   SegmentFeatureData( BoolDecoder & data )
     : segment_feature_mode( data ),
-      quantizer_update{ { data, data, data, data } },
-      loop_filter_update{ { data, data, data, data } }
+      quantizer_update( data ),
+      loop_filter_update( data )
   {}
 };
 
 struct UpdateSegmentation
 {
   Bool update_mb_segmentation_map;
-  FlaggedType<SegmentFeatureData> segment_feature_data;
+  Flagged<SegmentFeatureData> segment_feature_data;
   Optional<MBSegmentationMap> mb_segmentation_map;
 
   UpdateSegmentation( BoolDecoder & data )
@@ -75,14 +73,16 @@ struct KeyFrameHeader
 {
   Bool color_space;
   Bool clamping_type;
-  FlaggedType<UpdateSegmentation> update_segmentation;
+  Flagged<UpdateSegmentation> update_segmentation;
   Bool filter_type;
   Unsigned<6> loop_filter_level;
   Unsigned<3> sharpness_level;
-  FlaggedType<FlaggedType<ModeRefLFDeltaUpdate>> mode_lf_adjustments;
+  Flagged<Flagged<ModeRefLFDeltaUpdate>> mode_lf_adjustments;
   Unsigned<2> log2_nbr_of_dct_partitions;
   QuantIndices quant_indices;
   Bool refresh_entropy_probs;
+  Array< Array< Array< Array< Flagged< Unsigned< 8 > >, 11 >, 3 >, 8 >, 4 > token_prob_update;
+  Flagged< Unsigned< 8 > > prob_skip_false;
 
   KeyFrameHeader( BoolDecoder & data )
     : color_space( data ), clamping_type( data ),
@@ -91,7 +91,9 @@ struct KeyFrameHeader
       mode_lf_adjustments( data ),
       log2_nbr_of_dct_partitions( data ),
       quant_indices( data ),
-      refresh_entropy_probs( data )
+      refresh_entropy_probs( data ),
+      token_prob_update( data ),
+      prob_skip_false( data )
   {}
 };
 

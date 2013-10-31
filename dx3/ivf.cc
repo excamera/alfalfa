@@ -15,7 +15,7 @@ try :
     frame_rate_( header_( 16, 4 ).le32() ),
     time_scale_( header_( 20, 4 ).le32() ),
     frame_count_( header_( 24, 4 ).le32() ),
-    frame_index_( 0 )
+    frame_index_()
       {
 	if ( header_( 0, 4 ).to_string() != "DKIF" ) {
 	  throw Invalid( "missing IVF file header" );
