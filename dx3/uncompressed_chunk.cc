@@ -10,7 +10,8 @@ UncompressedChunk::UncompressedChunk( const Block & frame,
     reconstruction_filter_(),
     loop_filter_(),
     show_frame_(),
-    first_partition_( nullptr, 0 )
+    first_partition_( nullptr, 0 ),
+    rest_( nullptr, 0 )
 {
   try {
     /* flags */
@@ -50,6 +51,8 @@ UncompressedChunk::UncompressedChunk( const Block & frame,
     }
 
     first_partition_ = frame( first_partition_byte_offset, first_partition_length );
+    rest_ = frame( first_partition_byte_offset + first_partition_length,
+		   frame.size() - first_partition_byte_offset - first_partition_length );
 
     if ( key_frame_ ) {
       if ( frame( 3, 3 ).to_string() != "\x9d\x01\x2a" ) {

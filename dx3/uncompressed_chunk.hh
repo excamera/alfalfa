@@ -23,12 +23,14 @@ private:
   LoopFilter loop_filter_;
   bool show_frame_;
   Block first_partition_;
+  Block rest_;
 
 public:
   UncompressedChunk( const Block & frame, const uint16_t expected_width, const uint16_t expected_height );
 
   bool key_frame( void ) const { return key_frame_; }
   const Block & first_partition( void ) const { return first_partition_; }
+  const Block & rest( void ) const { return rest_; }
 };
 
 #endif /* UNCOMPRESSED_CHUNK_HH */

@@ -67,8 +67,6 @@ struct UpdateSegmentation
   {}
 };
 
-
-
 struct KeyFrameHeader
 {
   Bool color_space;
