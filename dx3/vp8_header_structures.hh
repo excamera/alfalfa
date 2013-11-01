@@ -25,6 +25,8 @@ public:
   {
     static_assert( width <= 8, "Unsigned width must be <= 8" );
   }
+  Unsigned( const uint8_t & val ) : i_( val ) {}
+
   operator const uint8_t & () const { return i_; }
 };
 
@@ -39,6 +41,8 @@ public:
   {
     static_assert( width <= 7, "Signed width must be <= 7" );
   }
+  Signed( const int8_t & val ) : i_( val ) {}
+
   operator const int8_t & () const { return i_; }
 };
 
@@ -49,6 +53,8 @@ private:
 
 public:
   Bool( BoolDecoder & data ) : i_( data.bit() ) {}
+  Bool( const bool & val ) : i_( val ) {}
+
   operator const bool & () const { return i_; }
 };
 

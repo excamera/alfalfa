@@ -5,6 +5,8 @@
 #include "bool_decoder.hh"
 #include "uncompressed_chunk.hh"
 #include "frame_header.hh"
+#include "mb_records.hh"
+#include "2d.hh"
 
 using namespace std;
 
@@ -40,6 +42,18 @@ void VP8Parser::parse_frame( const Block & frame )
 
   vector< BoolDecoder > dct_partitions = extract_dct_partitions( uncompressed_chunk.rest(),
 								 num_dct_partitions );
+
+  /* parse macroblock prediction records */
+  TwoD< KeyFrameMacroblockHeader > mb_records( (width_ + 15) / 16 + 1,
+					       (height_ + 15) / 16 + 1,
+					       partition1,
+					       frame_header );
+
+  for ( unsigned int row = 0; row < mb_records.height(); row++ ) {
+    for ( unsigned int col = 0; col < mb_records.width(); col++ ) {
+      printf( "row = %u, col = %u, segment_id = %u\n", row, col, mb_records.at( row, col ).segment_id.get_if( 255 ) );
+    }
+  }
 }
 
 vector< BoolDecoder > VP8Parser::extract_dct_partitions( const Block & after_first_partition,

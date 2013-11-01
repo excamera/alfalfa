@@ -157,12 +157,14 @@ struct vp8_mb_dependencies OperatorParser::decode_macroblock_data(void) {
      If it's a keyframe, there are no dependencies, so
      simply set all depends_* to 0 and return
    */
+#if 0
   if (ctx->frame_hdr.is_keyframe) {
     return (raster_deps_ = {false, false, false});
   }
 
   /* Ensure it's not a keyframe */
   assert(!ctx->frame_hdr.is_keyframe);
+#endif
 
   /* Track current mb, left mb and above mb */
   struct mb_info *current, *left, *above;
@@ -187,6 +189,9 @@ struct vp8_mb_dependencies OperatorParser::decode_macroblock_data(void) {
         current->base.segment_id = read_segment_id(&entropy_decoder,
                                                    &ctx->segment_hdr);
       }
+
+      printf( "row = %d, col = %d, segment_id = %d\n",
+	      row, col, current->base.segment_id );
 
       if (ctx->entropy_hdr.coeff_skip_enabled) {
         current->base.skip_coeff = bool_get(&entropy_decoder,

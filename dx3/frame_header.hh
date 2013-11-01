@@ -30,15 +30,6 @@ struct ModeRefLFDeltaUpdate
   {}
 };
 
-struct MBSegmentationMap
-{
-  Array< Flagged< Unsigned<8> >, 3 > segment_prob_update;
-
-  MBSegmentationMap( BoolDecoder & data )
-  : segment_prob_update( data )
-  {}
-};
-
 struct SegmentFeatureData
 {
   Bool segment_feature_mode;
@@ -56,14 +47,14 @@ struct UpdateSegmentation
 {
   Bool update_mb_segmentation_map;
   Flagged<SegmentFeatureData> segment_feature_data;
-  Optional<MBSegmentationMap> mb_segmentation_map;
+  Optional< Array< Flagged< Unsigned<8> >, 3 > > mb_segmentation_map;
 
   UpdateSegmentation( BoolDecoder & data )
     : update_mb_segmentation_map( data ),
       segment_feature_data( data ),
       mb_segmentation_map( update_mb_segmentation_map
-			   ? MBSegmentationMap( data )
-			   : Optional<MBSegmentationMap>() )
+			   ? decltype(mb_segmentation_map)( data )
+			   : Optional<decltype(mb_segmentation_map)::object_type>() )
   {}
 };
 

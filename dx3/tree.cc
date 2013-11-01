@@ -21,7 +21,7 @@ T Tree<alphabet_size, T>::get( BoolDecoder & data ) const
 {
   int i = 0;
 
-  while (i = tree_.at( i + data.get( probabilities_.at( i >> 1 ) ) ) > 0) {}
+  while ( (i = tree_.at( i + data.get( probabilities_.at( i >> 1 ) ) ) > 0) ) {}
 
   assert( i <= 0 );
   /* XXX verify i is not bigger than cardinality of T */
