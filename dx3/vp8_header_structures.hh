@@ -5,15 +5,6 @@
 
 #include "optional.hh"
 
-template <class T>
-class Flagged : public Optional<T>
-{
-public:
-  Flagged( BoolDecoder & data )
-    : Optional<T>( data.bit() ? T( data ) : Optional<T>() )
-  {}
-};
-
 template <int width>
 class Unsigned
 {
@@ -52,10 +43,25 @@ private:
   bool i_;
 
 public:
-  Bool( BoolDecoder & data ) : i_( data.bit() ) {}
+  Bool( BoolDecoder & data, const uint8_t probability ) : i_( data.get( probability ) ) {}
   Bool( const bool & val ) : i_( val ) {}
-
   operator const bool & () const { return i_; }
+  virtual ~Bool() {}
+};
+
+class Flag : public Bool
+{
+public:
+  Flag( BoolDecoder & data ) : Bool( data, 128 ) {}
+};
+
+template <class T>
+class Flagged : public Optional<T>
+{
+public:
+  Flagged( BoolDecoder & data )
+    : Optional<T>( Flag( data ) ? T( data ) : Optional<T>() )
+  {}
 };
 
 template <class T, unsigned int size>
