@@ -19,9 +19,9 @@ public:
     : segment_id( key_frame_header.update_segmentation.initialized()
 		  ? key_frame_header.update_segmentation.get().update_mb_segmentation_map
 		  ? Tree< 4, SegmentID >( { 2, 4, -0, -1, -2, -3 },
-		    { key_frame_header.update_segmentation.get().mb_segmentation_map.get().at( 0 ).get_if( 255 ),
-			key_frame_header.update_segmentation.get().mb_segmentation_map.get().at( 1 ).get_if( 255 ),
-			key_frame_header.update_segmentation.get().mb_segmentation_map.get().at( 2 ).get_if( 255 )  }
+		    { key_frame_header.update_segmentation.get().mb_segmentation_map.get().at( 0 ).get_or( 255 ),
+			key_frame_header.update_segmentation.get().mb_segmentation_map.get().at( 1 ).get_or( 255 ),
+			key_frame_header.update_segmentation.get().mb_segmentation_map.get().at( 2 ).get_or( 255 )  }
 		    ).get( data )
 		  : Optional< SegmentID >()
 		  : Optional< SegmentID >() )
