@@ -71,12 +71,13 @@ private:
   std::vector< T > storage_;
 
 public:
-  Array( BoolDecoder & data )
+  template< typename... Targs >
+  Array( Targs&&... Fargs )
   : storage_()
   {
     storage_.reserve( size );
     for ( unsigned int i = 0; i < size; i++ ) {
-      storage_.emplace_back( data );
+      storage_.emplace_back( Fargs... );
     }
   }
 
