@@ -26,7 +26,8 @@ public:
     mb_skip_coeff( key_frame_header.prob_skip_false.initialized()
 		   ? Bool( data, key_frame_header.prob_skip_false.get() )
 		   : Optional< Bool >() ),
-    y_mode( data.tree< 5, intra_mbmode >( { -DC_PRED, 2, 4, 6, -V_PRED, -H_PRED, -TM_PRED, -B_PRED },
+    y_mode( data.tree< 5, intra_mbmode >( { -B_PRED, 2, 4, 6,
+	    -DC_PRED, -V_PRED, -H_PRED, -TM_PRED },
       { 145, 156, 163, 128 } ) )
   {}
 };
