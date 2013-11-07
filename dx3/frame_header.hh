@@ -84,6 +84,10 @@ struct KeyFrameHeader
       token_prob_update( data ),
       prob_skip_false( data )
   {}
+
+  typedef std::array< uint8_t, 3 > mb_segment_tree_probs_type;
+
+  mb_segment_tree_probs_type mb_segment_tree_probs( void ) const;
 };
 
 #endif /* FRAME_HEADER_HH */

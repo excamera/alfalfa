@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "optional.hh"
+#include "bool_decoder.hh"
 
 template <int width>
 class Unsigned

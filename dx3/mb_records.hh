@@ -17,13 +17,11 @@ private:
 
 public:
   KeyFrameMacroblockHeader( BoolDecoder & data,
-			    const KeyFrameHeader & key_frame_header )
+			    const KeyFrameHeader & key_frame_header,
+			    const KeyFrameHeader::mb_segment_tree_probs_type & mb_segment_tree_probs )
     : segment_id( key_frame_header.update_segmentation.initialized()
 		  ? key_frame_header.update_segmentation.get().update_mb_segmentation_map
-		  ? data.tree< 4, uint8_t >( { 2, 4, -0, -1, -2, -3 },
-		    {   key_frame_header.update_segmentation.get().mb_segmentation_map.get().at( 0 ).get_or( 255 ),
-			key_frame_header.update_segmentation.get().mb_segmentation_map.get().at( 1 ).get_or( 255 ),
-			key_frame_header.update_segmentation.get().mb_segmentation_map.get().at( 2 ).get_or( 255 ) } )
+		  ? data.tree< 4, uint8_t >( { 2, 4, -0, -1, -2, -3 }, mb_segment_tree_probs )
 		  : Optional< uint8_t >() : Optional< uint8_t >() ),
     mb_skip_coeff( key_frame_header.prob_skip_false.initialized()
 		   ? Bool( data, key_frame_header.prob_skip_false.get() )
