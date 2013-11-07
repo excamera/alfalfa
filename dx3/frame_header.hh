@@ -85,9 +85,14 @@ struct KeyFrameHeader
       prob_skip_false( data )
   {}
 
-  typedef std::array< uint8_t, 3 > mb_segment_tree_probs_type;
+  struct DerivedQuantities
+  {
+    typedef std::array< uint8_t, 3 > mb_segment_tree_probs_type;
 
-  mb_segment_tree_probs_type mb_segment_tree_probs( void ) const;
+    mb_segment_tree_probs_type mb_segment_tree_probs;
+  };
+
+  DerivedQuantities derived_quantities( void ) const;
 };
 
 #endif /* FRAME_HEADER_HH */

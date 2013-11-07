@@ -44,14 +44,14 @@ void VP8Parser::parse_frame( const Block & frame )
 								 num_dct_partitions );
 
   /* pre-calculate (fixed) probability tables for the frame */
-  const auto mb_segment_tree_probs = frame_header.mb_segment_tree_probs();
+  const auto derived = frame_header.derived_quantities();
 
   /* parse macroblock prediction records */
   TwoD< KeyFrameMacroblockHeader > mb_records( (width_ + 15) / 16 + 1,
 					       (height_ + 15) / 16 + 1,
 					       partition1,
 					       frame_header,
-					       mb_segment_tree_probs );
+					       derived );
 }
 
 vector< BoolDecoder > VP8Parser::extract_dct_partitions( const Block & after_first_partition,
