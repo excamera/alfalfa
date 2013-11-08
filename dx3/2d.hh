@@ -24,7 +24,13 @@ public:
       std::vector< T > row;
       row.reserve( width );
       for ( unsigned int j = 0; j < width; j++ ) {
-	row.emplace_back( Fargs... );
+	Optional< const T * > above( i == 0
+				     ? Optional< const T * >()
+				     : & storage_.at( i - 1 ).at( j ) );
+	Optional< const T * > left( j == 0
+				    ? Optional< const T * >()
+				    : & row.at( j - 1 ) );
+	row.emplace_back( above, left, Fargs... );
       }
       storage_.emplace_back( row );
     }

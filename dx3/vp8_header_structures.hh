@@ -88,4 +88,42 @@ public:
   }
 };
 
+/* Like an Array, but also conveys the index to each member */
+template <class T, unsigned int size>
+class Enumeration
+{
+private:
+  std::vector< T > storage_;
+
+public:
+  template< typename... Targs >
+  Enumeration( Targs&&... Fargs )
+  : storage_()
+  {
+    storage_.reserve( size );
+    for ( unsigned int i = 0; i < size; i++ ) {
+      storage_.emplace_back( i, Fargs... );
+    }
+  }
+
+  const T & at( const typename decltype( storage_ )::size_type & offset ) const
+  {
+    return storage_.at( offset );
+  }
+};
+
+template <class enumeration, uint8_t alphabet_size, const std::array< int8_t, 2 * (alphabet_size - 1) > & nodes>
+class Tree
+{
+private:
+  enumeration value_;
+
+public:
+  Tree( BoolDecoder & data, const std::array< uint8_t, alphabet_size - 1 > & probabilities )
+    : value_( data.tree< alphabet_size, enumeration >( nodes, probabilities ) )
+  {}
+
+  operator const enumeration & () const { return value_; }
+};
+
 #endif /* VP8_HEADER_STRUCTURES_HH */
