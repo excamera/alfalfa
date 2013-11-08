@@ -2,6 +2,7 @@
 #define VP8_HEADER_STRUCTURES_HH
 
 #include <vector>
+#include <type_traits>
 
 #include "optional.hh"
 #include "bool_decoder.hh"
@@ -65,46 +66,41 @@ public:
   {}
 };
 
+/* An Array of VP8 header elements.
+   A header element may optionally take its position in the array as an argument. */
+
 template <class T, unsigned int size>
 class Array
 {
 private:
   std::vector< T > storage_;
 
-public:
-  template< typename... Targs >
-  Array( Targs&&... Fargs )
-  : storage_()
+  template < int > struct switch_helper {};
+
+  template < typename Y = switch_helper<1>,
+	     typename = typename std::enable_if< std::is_constructible< T, BoolDecoder & >::value, Y >::type >
+  Array( switch_helper<1>, BoolDecoder & data )
+    : storage_()
   {
     storage_.reserve( size );
     for ( unsigned int i = 0; i < size; i++ ) {
-      storage_.emplace_back( Fargs... );
+      storage_.emplace_back( data );
     }
   }
 
-  const T & at( const typename decltype( storage_ )::size_type & offset ) const
-  {
-    return storage_.at( offset );
-  }
-};
-
-/* Like an Array, but also conveys the index to each member */
-template <class T, unsigned int size>
-class Enumeration
-{
-private:
-  std::vector< T > storage_;
-
-public:
-  template< typename... Targs >
-  Enumeration( Targs&&... Fargs )
-  : storage_()
+  template < typename Y = switch_helper<2>,
+	     typename = typename std::enable_if< std::is_constructible< T, unsigned int, BoolDecoder & >::value, Y >::type >
+  Array( switch_helper<2>, BoolDecoder & data )
+    : storage_()
   {
     storage_.reserve( size );
     for ( unsigned int i = 0; i < size; i++ ) {
-      storage_.emplace_back( i, Fargs... );
+      storage_.emplace_back( i, data );
     }
   }
+
+public:
+  Array( BoolDecoder & data ) : Array( {}, data ) {}
 
   const T & at( const typename decltype( storage_ )::size_type & offset ) const
   {
