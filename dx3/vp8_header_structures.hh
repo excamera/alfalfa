@@ -77,30 +77,33 @@ private:
 
   template < int > struct switch_helper {};
 
-  template < typename Y = switch_helper<1>,
-	     typename = typename std::enable_if< std::is_constructible< T, BoolDecoder & >::value, Y >::type >
-  Array( switch_helper<1>, BoolDecoder & data )
+  template < typename... Targs,
+	     typename Y = switch_helper<1>,
+	     typename = typename std::enable_if< std::is_constructible< T, BoolDecoder &, Targs... >::value, Y >::type >
+  Array( switch_helper<1>, BoolDecoder & data, Targs&&... Fargs )
     : storage_()
   {
     storage_.reserve( size );
     for ( unsigned int i = 0; i < size; i++ ) {
-      storage_.emplace_back( data );
+      storage_.emplace_back( data, std::forward<Targs>( Fargs )... );
     }
   }
 
-  template < typename Y = switch_helper<2>,
-	     typename = typename std::enable_if< std::is_constructible< T, unsigned int, BoolDecoder & >::value, Y >::type >
-  Array( switch_helper<2>, BoolDecoder & data )
+  template < typename... Targs,
+	     typename Y = switch_helper<2>,
+	     typename = typename std::enable_if< std::is_constructible< T, unsigned int, BoolDecoder &, Targs... >::value, Y >::type >
+  Array( switch_helper<2>, BoolDecoder & data, Targs&&... Fargs )
     : storage_()
   {
     storage_.reserve( size );
     for ( unsigned int i = 0; i < size; i++ ) {
-      storage_.emplace_back( i, data );
+      storage_.emplace_back( data, i, std::forward<Targs>( Fargs )... );
     }
   }
 
 public:
-  Array( BoolDecoder & data ) : Array( {}, data ) {}
+  template < typename... Targs >
+  Array( BoolDecoder & data, Targs&&... Fargs ) : Array( {}, data, std::forward<Targs>(Fargs)... ) {}
 
   const T & at( const typename decltype( storage_ )::size_type & offset ) const
   {
