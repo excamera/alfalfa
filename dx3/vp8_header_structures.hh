@@ -97,7 +97,7 @@ private:
   {
     storage_.reserve( size );
     for ( unsigned int i = 0; i < size; i++ ) {
-      storage_.emplace_back( data, i, std::forward<Targs>( Fargs )... );
+      storage_.emplace_back( i, data, std::forward<Targs>( Fargs )... );
     }
   }
 
@@ -123,22 +123,8 @@ public:
   {}
 
   operator const enumeration & () const { return value_; }
-};
 
-template <class enumeration, uint8_t alphabet_size>
-class ContextualTree
-{
-private:
-  enumeration value_;
-
-public:
-  ContextualTree( BoolDecoder & data,
-	const std::array< int8_t, 2 * (alphabet_size - 1) > & nodes,
-	const std::array< uint8_t, alphabet_size - 1 > & probabilities )
-    : value_( data.tree< alphabet_size, enumeration >( nodes, probabilities ) )
-  {}
-
-  operator const enumeration & () const { return value_; }
+  virtual ~Tree() {}
 };
 
 #endif /* VP8_HEADER_STRUCTURES_HH */

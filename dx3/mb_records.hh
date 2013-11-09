@@ -7,22 +7,37 @@
 
 #include "tree.cc"
 
+class KeyFrameMacroblockHeader;
+
+class IntraBMode : public Tree< intra_bmode, num_intra_bmodes, b_mode_tree >
+{
+private:
+  static const std::array< uint8_t, num_intra_bmodes - 1 > &
+    b_mode_probabilities( const unsigned int position,
+			  const Optional< KeyFrameMacroblockHeader * > & above,
+			  const Optional< KeyFrameMacroblockHeader * > & left );
+
+public:
+  IntraBMode( const unsigned int position,
+	      BoolDecoder & data,
+	      const Optional< KeyFrameMacroblockHeader * > & above,
+	      const Optional< KeyFrameMacroblockHeader * > & left )
+    : Tree( data, b_mode_probabilities( position, above, left ) )
+  {}
+};
+
 class KeyFrameMacroblockHeader
 {
 private:
   Optional< Tree< uint8_t, 4, segment_id_tree > > segment_id;
   Optional< Bool > mb_skip_coeff;
   Tree< intra_mbmode, num_ymodes, kf_y_mode_tree > y_mode;
-  //  Optional< Array< ContextualTree< intra_bmode, num_intra_bmodes >, 16 > > b_modes;
 
-  static const std::array< uint8_t, num_intra_bmodes - 1 > &
-  b_mode_probabilities( const unsigned int i,
-			const Optional< KeyFrameMacroblockHeader * > & above,
-			const Optional< KeyFrameMacroblockHeader * > & left );
+  Optional< Array< IntraBMode, 16 > > b_modes;
 
 public:
-  KeyFrameMacroblockHeader( const Optional< KeyFrameMacroblockHeader * > & ,
-			    const Optional< KeyFrameMacroblockHeader * > & ,
+  KeyFrameMacroblockHeader( const Optional< KeyFrameMacroblockHeader * > & above,
+			    const Optional< KeyFrameMacroblockHeader * > & left,
 			    BoolDecoder & data,
 			    const KeyFrameHeader & key_frame_header,
 			    const KeyFrameHeader::DerivedQuantities & derived )
@@ -32,7 +47,8 @@ public:
       mb_skip_coeff( key_frame_header.prob_skip_false.initialized()
 		     ? Bool( data, key_frame_header.prob_skip_false.get() )
 		     : Optional< Bool >() ),
-    y_mode( data, { 145, 156, 163, 128 } )
+    y_mode( data, { 145, 156, 163, 128 } ),
+    b_modes( y_mode == B_PRED, data, above, left )
    {}
 };
 

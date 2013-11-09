@@ -5,9 +5,9 @@
 using namespace std;
 
 const std::array< uint8_t, num_intra_bmodes - 1 > &
-KeyFrameMacroblockHeader::b_mode_probabilities( const unsigned int,
-						const Optional< KeyFrameMacroblockHeader * > & ,
-						const Optional< KeyFrameMacroblockHeader * > &  )
+IntraBMode::b_mode_probabilities( const unsigned int ,
+				  const Optional< KeyFrameMacroblockHeader * > & ,
+				  const Optional< KeyFrameMacroblockHeader * > &  )
 {
   return kf_b_mode_probs[ 0 ][ 0 ];
 }

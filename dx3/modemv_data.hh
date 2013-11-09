@@ -9,8 +9,6 @@ enum intra_bmode { B_DC_PRED, B_TM_PRED, B_VE_PRED, B_HE_PRED, B_LD_PRED,
 		   B_RD_PRED, B_VR_PRED, B_VL_PRED, B_HD_PRED, B_HU_PRED,
 		   num_intra_bmodes };
 
-
-
 const extern std::array< uint8_t, 4 > kf_y_mode_probs;
 const extern std::array< uint8_t, 3 > kf_uv_mode_probs;
 

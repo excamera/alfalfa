@@ -28,7 +28,7 @@ public:
 	const Optional< T * > left ( j > 0 ? &row.at( j - 1 ) : Optional< T * >() );
 	row.emplace_back( above, left, Fargs... );
       }
-      storage_.emplace_back( row );
+      storage_.emplace_back( move( row ) );
     }
   }
 
