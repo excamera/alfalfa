@@ -126,6 +126,8 @@ public:
     : value_( data.tree< alphabet_size, enumeration >( nodes, probabilities ) )
   {}
 
+  Tree( const enumeration & x ) : value_( x ) {}
+
   operator const enumeration & () const { return value_; }
 
   virtual ~Tree() {}
