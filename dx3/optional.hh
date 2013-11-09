@@ -36,5 +36,4 @@ public:
   virtual ~Optional() { if ( initialized() ) { object_.~T(); } }
 };
 
-
 #endif /* OPTIONAL_HH */

@@ -3,11 +3,12 @@
 
 #include <array>
 
-enum intra_mbmode { DC_PRED, V_PRED, H_PRED, TM_PRED, B_PRED,
-		    num_yv_modes = B_PRED, num_ymodes };
+enum intra_mbmode { DC_PRED, V_PRED, H_PRED, TM_PRED, B_PRED };
+const int num_uv_modes = B_PRED, num_ymodes = num_uv_modes + 1;
+
 enum intra_bmode { B_DC_PRED, B_TM_PRED, B_VE_PRED, B_HE_PRED, B_LD_PRED,
-		   B_RD_PRED, B_VR_PRED, B_VL_PRED, B_HD_PRED, B_HU_PRED,
-		   num_intra_bmodes };
+		   B_RD_PRED, B_VR_PRED, B_VL_PRED, B_HD_PRED, B_HU_PRED };
+const int num_intra_bmodes = B_HU_PRED + 1;
 
 const extern std::array< uint8_t, 4 > kf_y_mode_probs;
 const extern std::array< uint8_t, 3 > kf_uv_mode_probs;

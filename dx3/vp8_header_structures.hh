@@ -91,13 +91,13 @@ private:
 
   template < typename... Targs,
 	     typename Y = switch_helper<2>,
-	     typename = typename std::enable_if< std::is_constructible< T, unsigned int, BoolDecoder &, Targs... >::value, Y >::type >
+	     typename = typename std::enable_if< std::is_constructible< T, unsigned int, const Array &, BoolDecoder &, Targs... >::value, Y >::type >
   Array( switch_helper<2>, BoolDecoder & data, Targs&&... Fargs )
     : storage_()
   {
     storage_.reserve( size );
     for ( unsigned int i = 0; i < size; i++ ) {
-      storage_.emplace_back( i, data, std::forward<Targs>( Fargs )... );
+      storage_.emplace_back( i, *this, data, std::forward<Targs>( Fargs )... );
     }
   }
 
@@ -105,10 +105,14 @@ public:
   template < typename... Targs >
   Array( BoolDecoder & data, Targs&&... Fargs ) : Array( {}, data, std::forward<Targs>(Fargs)... ) {}
 
+  Array( const std::vector< T > & x ) : storage_( x ) {}
+
   const T & at( const typename decltype( storage_ )::size_type & offset ) const
   {
     return storage_.at( offset );
   }
+
+  operator const std::vector< T > & () const { return storage_; }
 };
 
 template <class enumeration, uint8_t alphabet_size, const std::array< int8_t, 2 * (alphabet_size - 1) > & nodes>

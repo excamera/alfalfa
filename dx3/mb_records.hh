@@ -14,28 +14,30 @@ class IntraBMode : public Tree< intra_bmode, num_intra_bmodes, b_mode_tree >
 private:
   static const std::array< uint8_t, num_intra_bmodes - 1 > &
     b_mode_probabilities( const unsigned int position,
+			  const Array< IntraBMode, 16 > & prefix,
+			  const KeyFrameMacroblockHeader & current,
 			  const Optional< KeyFrameMacroblockHeader * > & above,
 			  const Optional< KeyFrameMacroblockHeader * > & left );
 
 public:
   IntraBMode( const unsigned int position,
+	      const Array< IntraBMode, 16 > & prefix,
 	      BoolDecoder & data,
+	      const KeyFrameMacroblockHeader & current,
 	      const Optional< KeyFrameMacroblockHeader * > & above,
 	      const Optional< KeyFrameMacroblockHeader * > & left )
-    : Tree( data, b_mode_probabilities( position, above, left ) )
+    : Tree( data, b_mode_probabilities( position, prefix, current, above, left ) )
   {}
 };
 
-class KeyFrameMacroblockHeader
+struct KeyFrameMacroblockHeader
 {
-private:
   Optional< Tree< uint8_t, 4, segment_id_tree > > segment_id;
   Optional< Bool > mb_skip_coeff;
   Tree< intra_mbmode, num_ymodes, kf_y_mode_tree > y_mode;
 
   Optional< Array< IntraBMode, 16 > > b_modes;
 
-public:
   KeyFrameMacroblockHeader( const Optional< KeyFrameMacroblockHeader * > & above,
 			    const Optional< KeyFrameMacroblockHeader * > & left,
 			    BoolDecoder & data,
@@ -48,7 +50,7 @@ public:
 		     ? Bool( data, key_frame_header.prob_skip_false.get() )
 		     : Optional< Bool >() ),
     y_mode( data, { 145, 156, 163, 128 } ),
-    b_modes( y_mode == B_PRED, data, above, left )
+    b_modes( y_mode == B_PRED, data, *this, above, left )
    {}
 };
 
