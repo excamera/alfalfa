@@ -62,7 +62,7 @@ class Flagged : public Optional<T>
 {
 public:
   Flagged( BoolDecoder & data )
-    : Optional<T>( Flag( data ) ? T( data ) : Optional<T>() )
+    : Optional<T>( Flag( data ), data )
   {}
 };
 

@@ -29,15 +29,14 @@ private:
 			const Optional< KeyFrameMacroblockHeader * > & left );
 
 public:
-  KeyFrameMacroblockHeader( Optional< const KeyFrameMacroblockHeader * > & ,
-			    Optional< const KeyFrameMacroblockHeader * > & ,
+  KeyFrameMacroblockHeader( const Optional< KeyFrameMacroblockHeader * > & ,
+			    const Optional< KeyFrameMacroblockHeader * > & ,
 			    BoolDecoder & data,
 			    const KeyFrameHeader & key_frame_header,
 			    const KeyFrameHeader::DerivedQuantities & derived )
-    : segment_id( (key_frame_header.update_segmentation.initialized()
-		   and key_frame_header.update_segmentation.get().update_mb_segmentation_map)
-		  ? decltype(segment_id)::object_type( data, derived.mb_segment_tree_probs )
-		  : decltype(segment_id)() ),
+    : segment_id( key_frame_header.update_segmentation.initialized()
+		  and key_frame_header.update_segmentation.get().update_mb_segmentation_map,
+		  data, derived.mb_segment_tree_probs ),
       mb_skip_coeff( key_frame_header.prob_skip_false.initialized()
 		     ? Bool( data, key_frame_header.prob_skip_false.get() )
 		     : Optional< Bool >() ),

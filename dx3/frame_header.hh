@@ -52,9 +52,7 @@ struct UpdateSegmentation
   UpdateSegmentation( BoolDecoder & data )
     : update_mb_segmentation_map( data ),
       segment_feature_data( data ),
-      mb_segmentation_map( update_mb_segmentation_map
-			   ? decltype(mb_segmentation_map)( data )
-			   : decltype(mb_segmentation_map)() )
+      mb_segmentation_map( update_mb_segmentation_map, data )
   {}
 };
 
