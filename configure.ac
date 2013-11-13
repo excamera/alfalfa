@@ -20,7 +20,7 @@ AC_PROG_RANLIB
 # Checks for library functions.
 
 # Add picky CXXFLAGS
-PICKY_CXXFLAGS="-std=c++11 -pedantic -Wall -Wextra -Weffc++ -fno-default-inline -pipe -pthread -Wno-unused-function -Werror"
+PICKY_CXXFLAGS="-std=c++11 -pedantic -Wall -Wextra -Weffc++ -pipe -pthread -Wno-unused-function -Werror"
 AC_SUBST([PICKY_CXXFLAGS])
 
 AC_CONFIG_FILES([Makefile src/Makefile dx2/Makefile dx3/Makefile])

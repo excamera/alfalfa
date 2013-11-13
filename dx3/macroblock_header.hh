@@ -7,7 +7,7 @@
 
 #include "tree.cc"
 
-class KeyFrameMacroblockHeader;
+struct KeyFrameMacroblockHeader;
 
 class IntraBMode : public Tree< intra_bmode, num_intra_bmodes, b_mode_tree >
 {

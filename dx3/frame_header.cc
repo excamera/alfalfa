@@ -4,7 +4,7 @@ using namespace std;
 
 KeyFrameHeader::DerivedQuantities KeyFrameHeader::derived_quantities( void ) const
 {
-  DerivedQuantities::mb_segment_tree_probs_type mb_segment_tree_probs { 255, 255, 255 };
+  DerivedQuantities::mb_segment_tree_probs_type mb_segment_tree_probs = {{ 255, 255, 255 }};
 
   for ( unsigned int i = 0; i < 3; i++ ) {
     if ( update_segmentation.initialized() and update_segmentation.get().update_mb_segmentation_map ) {
