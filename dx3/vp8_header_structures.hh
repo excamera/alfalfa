@@ -114,7 +114,26 @@ public:
   {
     Array<T, size>::storage_.reserve( size );
     for ( unsigned int i = 0; i < size; i++ ) {
-      Array<T, size>::storage_.emplace_back( data, i, *const_cast< const Enumerate * >( this ), std::forward<Targs>( Fargs )... );
+      Array<T, size>::storage_.emplace_back( data, i, std::forward<Targs>( Fargs )... );
+    }
+  }
+};
+
+template <class T, unsigned int size>
+class EnumerateContext : public Array< T, size >
+{
+public:
+  EnumerateContext()
+    : Array<T, size>()
+  {}
+
+  template < typename... Targs >
+  EnumerateContext( BoolDecoder & data, Targs&&... Fargs )
+    : Array<T, size>()
+  {
+    Array<T, size>::storage_.reserve( size );
+    for ( unsigned int i = 0; i < size; i++ ) {
+      Array<T, size>::storage_.emplace_back( data, i, *const_cast< const EnumerateContext<T, size> * >( this ), std::forward<Targs>( Fargs )... );
     }
   }
 };

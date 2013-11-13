@@ -3,6 +3,7 @@
 
 #include "vp8_header_structures.hh"
 #include "bool_decoder.hh"
+#include "vp8_prob_data.hh"
 
 struct QuantIndices
 {
@@ -24,10 +25,7 @@ struct ModeRefLFDeltaUpdate
   Array< Flagged< Signed<6> >, 4 > ref_update;
   Array< Flagged< Signed<6> >, 4 > mode_update;
 
-  ModeRefLFDeltaUpdate( BoolDecoder & data )
-  : ref_update( data ),
-    mode_update( data )
-  {}
+  ModeRefLFDeltaUpdate( BoolDecoder & data ) : ref_update( data ), mode_update( data ) {}
 };
 
 struct SegmentFeatureData
@@ -37,10 +35,7 @@ struct SegmentFeatureData
   Array< Flagged< Signed<6> >, 4 > loop_filter_update;
 
   SegmentFeatureData( BoolDecoder & data )
-    : segment_feature_mode( data ),
-      quantizer_update( data ),
-      loop_filter_update( data )
-  {}
+    : segment_feature_mode( data ), quantizer_update( data ), loop_filter_update( data ) {}
 };
 
 struct UpdateSegmentation
@@ -50,10 +45,20 @@ struct UpdateSegmentation
   Optional< Array< Flagged< Unsigned<8> >, 3 > > mb_segmentation_map;
 
   UpdateSegmentation( BoolDecoder & data )
-    : update_mb_segmentation_map( data ),
-      segment_feature_data( data ),
-      mb_segmentation_map( update_mb_segmentation_map, data )
-  {}
+    : update_mb_segmentation_map( data ), segment_feature_data( data ),
+      mb_segmentation_map( update_mb_segmentation_map, data ) {}
+};
+
+struct TokenProbUpdate
+{
+  Bool token_prob_update_flag;
+  Optional< Unsigned<8> > coeff_prob;
+
+  TokenProbUpdate( BoolDecoder & data,
+		   const unsigned int l, const unsigned int k,
+		   const unsigned int j, const unsigned int i )
+    : token_prob_update_flag( data, k_coeff_entropy_update_probs.at( i ).at( j ).at( k ).at( l ) ),
+      coeff_prob( token_prob_update_flag, data ) {}
 };
 
 struct KeyFrameHeader
@@ -68,19 +73,20 @@ struct KeyFrameHeader
   Unsigned<2> log2_nbr_of_dct_partitions;
   QuantIndices quant_indices;
   Flag refresh_entropy_probs;
-  Array< Array< Array< Array< Flagged< Unsigned<8> >, 11 >, 3 >, 8 >, 4 > token_prob_update;
+  Enumerate< Enumerate< Enumerate< Enumerate< TokenProbUpdate,
+					      ENTROPY_NODES >,
+				   PREV_COEF_CONTEXTS >,
+			COEF_BANDS >,
+	     BLOCK_TYPES > token_prob_update;
   Flagged< Unsigned<8> > prob_skip_false;
 
   KeyFrameHeader( BoolDecoder & data )
     : color_space( data ), clamping_type( data ),
       update_segmentation( data ), filter_type( data ),
       loop_filter_level( data ), sharpness_level( data ),
-      mode_lf_adjustments( data ),
-      log2_nbr_of_dct_partitions( data ),
-      quant_indices( data ),
-      refresh_entropy_probs( data ),
-      token_prob_update( data ),
-      prob_skip_false( data )
+      mode_lf_adjustments( data ), log2_nbr_of_dct_partitions( data ),
+      quant_indices( data ), refresh_entropy_probs( data ),
+      token_prob_update( data ), prob_skip_false( data )
   {}
 
   struct DerivedQuantities
