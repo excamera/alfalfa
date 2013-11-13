@@ -35,8 +35,8 @@ struct KeyFrameMacroblockHeader
   Optional< Tree< uint8_t, 4, segment_id_tree > > segment_id;
   Optional< Bool > mb_skip_coeff;
   Tree< intra_mbmode, num_ymodes, kf_y_mode_tree > y_mode;
-
   Optional< Array< IntraBMode, 16 > > b_modes;
+  Tree< intra_mbmode, num_uv_modes, uv_mode_tree > uv_mode;
 
   KeyFrameMacroblockHeader( const Optional< KeyFrameMacroblockHeader * > & above,
 			    const Optional< KeyFrameMacroblockHeader * > & left,
@@ -49,9 +49,12 @@ struct KeyFrameMacroblockHeader
       mb_skip_coeff( key_frame_header.prob_skip_false.initialized()
 		     ? Bool( data, key_frame_header.prob_skip_false.get() )
 		     : Optional< Bool >() ),
-    y_mode( data, { 145, 156, 163, 128 } ),
-    b_modes( y_mode == B_PRED, data, *this, above, left )
-   {}
+    y_mode( data, kf_y_mode_probs ),
+    b_modes( y_mode == B_PRED, data, *this, above, left ),
+    uv_mode( data, kf_uv_mode_probs )
+   {
+     fprintf( stderr, "y_mode = %d\n", static_cast<int>( y_mode ) );
+   }
 };
 
 #endif /* MB_RECORDS_HH */
