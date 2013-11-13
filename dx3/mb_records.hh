@@ -47,21 +47,11 @@ struct KeyFrameMacroblockHeader
 		  and key_frame_header.update_segmentation.get().update_mb_segmentation_map,
 		  data, derived.mb_segment_tree_probs ),
       mb_skip_coeff( key_frame_header.prob_skip_false.initialized()
-		     ? Bool( data, key_frame_header.prob_skip_false.get() )
-		     : Optional< Bool >() ),
+		     ? Bool( data, key_frame_header.prob_skip_false.get() ) : Optional< Bool >() ),
     y_mode( data, kf_y_mode_probs ),
     b_modes( y_mode == B_PRED, data, *this, above, left ),
     uv_mode( data, kf_uv_mode_probs )
-   {
-     fprintf( stderr, "y_mode = %d\n", static_cast<int>( y_mode ) );
-
-     if ( b_modes.initialized() ) {
-       for ( int i = 0; i < 16; i++ ) {
-	 fprintf( stderr, "%u ", static_cast<unsigned int>( b_modes.get().at( i ) ) );
-       }
-       fprintf( stderr, "\n" );
-     }
-   }
+  {}
 };
 
 #endif /* MB_RECORDS_HH */

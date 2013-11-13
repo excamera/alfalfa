@@ -47,8 +47,8 @@ void VP8Parser::parse_frame( const Block & frame )
   const auto derived = frame_header.derived_quantities();
 
   /* parse macroblock prediction records */
-  TwoD< KeyFrameMacroblockHeader > mb_records( (width_ + 15) / 16 + 1,
-					       (height_ + 15) / 16 + 1,
+  TwoD< KeyFrameMacroblockHeader > mb_records( (width_ + 15) / 16,
+					       (height_ + 15) / 16,
 					       partition1,
 					       frame_header,
 					       derived );
