@@ -20,9 +20,9 @@ private:
 			  const Optional< KeyFrameMacroblockHeader * > & left );
 
 public:
-  IntraBMode( const unsigned int position,
-	      const Array< IntraBMode, 16 > & prefix,
-	      BoolDecoder & data,
+  IntraBMode( BoolDecoder & data,
+	      const unsigned int position,
+	      const Enumerate< IntraBMode, 16 > & prefix,
 	      const KeyFrameMacroblockHeader & current,
 	      const Optional< KeyFrameMacroblockHeader * > & above,
 	      const Optional< KeyFrameMacroblockHeader * > & left )
@@ -35,7 +35,7 @@ struct KeyFrameMacroblockHeader
   Optional< Tree< uint8_t, 4, segment_id_tree > > segment_id;
   Optional< Bool > mb_skip_coeff;
   Tree< intra_mbmode, num_ymodes, kf_y_mode_tree > y_mode;
-  Optional< Array< IntraBMode, 16 > > b_modes;
+  Optional< Enumerate< IntraBMode, 16 > > b_modes;
   Tree< intra_mbmode, num_uv_modes, uv_mode_tree > uv_mode;
 
   KeyFrameMacroblockHeader( const Optional< KeyFrameMacroblockHeader * > & above,

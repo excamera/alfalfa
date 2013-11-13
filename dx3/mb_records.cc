@@ -1,4 +1,3 @@
-#include <array>
 #include <vector>
 
 #include "mb_records.hh"
@@ -20,13 +19,6 @@ static intra_bmode get_subblock_bmode( const unsigned int position,
   return intra_bmode();  
 }
 
-static intra_bmode get_subblock_bmode( const unsigned int position,
-				       const intra_mbmode & y_mode,
-				       const Optional< Array< IntraBMode, 16 > > & prefix )
-{
-  return get_subblock_bmode( position, y_mode, prefix.get_or( vector<IntraBMode>() ) );
-}
-
 static intra_bmode above_block_mode( const unsigned int position,
 				     const Array< IntraBMode, 16 > & prefix,
 				     const KeyFrameMacroblockHeader & current,
@@ -34,7 +26,7 @@ static intra_bmode above_block_mode( const unsigned int position,
 {
   if ( position < 4 ) {
     return above.initialized()
-      ? get_subblock_bmode( position + 12, above.get()->y_mode, above.get()->b_modes )
+      ? get_subblock_bmode( position + 12, above.get()->y_mode, above.get()->b_modes.get_or( {} ) )
       : B_DC_PRED;
   } else {
     return get_subblock_bmode( position - 4, current.y_mode, prefix );
@@ -48,7 +40,7 @@ static intra_bmode left_block_mode( const unsigned int position,
 {
   if ( not position & 3 ) {
     return left.initialized()
-      ? get_subblock_bmode( position + 3, left.get()->y_mode, left.get()->b_modes )
+      ? get_subblock_bmode( position + 3, left.get()->y_mode, left.get()->b_modes.get_or( {} ) )
       : B_DC_PRED;
   } else {
     return get_subblock_bmode( position - 1, current.y_mode, prefix );

@@ -72,15 +72,16 @@ public:
 template <class T, unsigned int size>
 class Array
 {
-private:
+protected:
   std::vector< T > storage_;
 
-  template < int > struct switch_helper {};
+public:
+  Array()
+    : storage_()
+  {}
 
-  template < typename... Targs,
-	     typename Y = switch_helper<1>,
-	     typename = typename std::enable_if< std::is_constructible< T, BoolDecoder &, Targs... >::value, Y >::type >
-  Array( switch_helper<1>, BoolDecoder & data, Targs&&... Fargs )
+  template < typename... Targs >
+  Array( BoolDecoder & data, Targs&&... Fargs )
     : storage_()
   {
     storage_.reserve( size );
@@ -89,30 +90,33 @@ private:
     }
   }
 
-  template < typename... Targs,
-	     typename Y = switch_helper<2>,
-	     typename = typename std::enable_if< std::is_constructible< T, unsigned int, const Array &, BoolDecoder &, Targs... >::value, Y >::type >
-  Array( switch_helper<2>, BoolDecoder & data, Targs&&... Fargs )
-    : storage_()
-  {
-    storage_.reserve( size );
-    for ( unsigned int i = 0; i < size; i++ ) {
-      storage_.emplace_back( i, *this, data, std::forward<Targs>( Fargs )... );
-    }
-  }
-
-public:
-  template < typename... Targs >
-  Array( BoolDecoder & data, Targs&&... Fargs ) : Array( {}, data, std::forward<Targs>(Fargs)... ) {}
-
-  Array( const std::vector< T > & x ) : storage_( x ) {}
-
   const T & at( const typename decltype( storage_ )::size_type & offset ) const
   {
     return storage_.at( offset );
   }
 
   operator const std::vector< T > & () const { return storage_; }
+
+  virtual ~Array() {}
+};
+
+template <class T, unsigned int size>
+class Enumerate : public Array< T, size >
+{
+public:
+  Enumerate()
+    : Array<T, size>()
+  {}
+
+  template < typename... Targs >
+  Enumerate( BoolDecoder & data, Targs&&... Fargs )
+    : Array<T, size>()
+  {
+    Array<T, size>::storage_.reserve( size );
+    for ( unsigned int i = 0; i < size; i++ ) {
+      Array<T, size>::storage_.emplace_back( data, i, *const_cast< const Enumerate * >( this ), std::forward<Targs>( Fargs )... );
+    }
+  }
 };
 
 template <class enumeration, uint8_t alphabet_size, const std::array< int8_t, 2 * (alphabet_size - 1) > & nodes>
