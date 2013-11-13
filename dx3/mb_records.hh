@@ -54,6 +54,13 @@ struct KeyFrameMacroblockHeader
     uv_mode( data, kf_uv_mode_probs )
    {
      fprintf( stderr, "y_mode = %d\n", static_cast<int>( y_mode ) );
+
+     if ( b_modes.initialized() ) {
+       for ( int i = 0; i < 16; i++ ) {
+	 fprintf( stderr, "%u ", static_cast<unsigned int>( b_modes.get().at( i ) ) );
+       }
+       fprintf( stderr, "\n" );
+     }
    }
 };
 

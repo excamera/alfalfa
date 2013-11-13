@@ -38,7 +38,7 @@ static intra_bmode left_block_mode( const unsigned int position,
 				    const KeyFrameMacroblockHeader & current,
 				    const Optional< KeyFrameMacroblockHeader * > & left )
 {
-  if ( not position & 3 ) {
+  if ( not (position & 3) ) {
     return left.initialized()
       ? get_subblock_bmode( position + 3, left.get()->y_mode, left.get()->b_modes.get_or( {} ) )
       : B_DC_PRED;
