@@ -8,6 +8,6 @@ vp8scan_SOURCES = vp8scan.cc exception.hh file_descriptor.hh \
 	bool_decoder.hh bool_decoder.cc \
 	uncompressed_chunk.hh uncompressed_chunk.cc \
 	frame_header.hh frame_header.cc optional.hh vp8_header_structures.hh \
-	tree.cc mb_records.hh mb_records.cc 2d.hh \
+	tree.cc macroblock_header.hh macroblock_header.cc 2d.hh \
 	modemv_data.hh modemv_data.cc \
 	vp8_prob_data.hh vp8_prob_data.cc

@@ -1,6 +1,6 @@
 #include <vector>
 
-#include "mb_records.hh"
+#include "macroblock_header.hh"
 
 using namespace std;
 
