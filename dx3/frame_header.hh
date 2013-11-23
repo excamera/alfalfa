@@ -92,9 +92,7 @@ struct KeyFrameHeader
 
   struct DerivedQuantities
   {
-    typedef ProbabilityArray< num_segments > mb_segment_tree_probs_type;
-
-    mb_segment_tree_probs_type mb_segment_tree_probs;
+    ProbabilityArray< num_segments > mb_segment_tree_probs;
   };
 
   DerivedQuantities derived_quantities( void ) const;
