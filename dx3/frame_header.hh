@@ -4,6 +4,7 @@
 #include "vp8_header_structures.hh"
 #include "bool_decoder.hh"
 #include "vp8_prob_data.hh"
+#include "modemv_data.hh"
 
 struct QuantIndices
 {
@@ -91,7 +92,7 @@ struct KeyFrameHeader
 
   struct DerivedQuantities
   {
-    typedef std::array< uint8_t, 3 > mb_segment_tree_probs_type;
+    typedef ProbabilityArray< num_segments > mb_segment_tree_probs_type;
 
     mb_segment_tree_probs_type mb_segment_tree_probs;
   };

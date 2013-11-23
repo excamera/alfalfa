@@ -138,14 +138,14 @@ public:
   }
 };
 
-template <class enumeration, uint8_t alphabet_size, const std::array< int8_t, 2 * (alphabet_size - 1) > & nodes>
+template <class enumeration, uint8_t alphabet_size, const TreeArray< alphabet_size > & nodes>
 class Tree
 {
 private:
   enumeration value_;
 
 public:
-  Tree( BoolDecoder & data, const std::array< uint8_t, alphabet_size - 1 > & probabilities )
+  Tree( BoolDecoder & data, const ProbabilityArray< alphabet_size > & probabilities )
     : value_( data.tree< alphabet_size, enumeration >( nodes, probabilities ) )
   {}
 

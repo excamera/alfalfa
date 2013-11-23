@@ -47,7 +47,7 @@ static intra_bmode left_block_mode( const unsigned int position,
   }
 }
 
-const std::array< uint8_t, num_intra_bmodes - 1 > &
+const ProbabilityArray< num_intra_b_modes > &
 IntraBMode::b_mode_probabilities( const unsigned int position,
 				  const Array< IntraBMode, 16 > & prefix,
 				  const KeyFrameMacroblockHeader & current,

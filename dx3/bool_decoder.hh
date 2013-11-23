@@ -5,6 +5,16 @@
 
 #include "block.hh"
 
+typedef int8_t TreeNode;
+
+template < std::size_t alphabet_size >
+using TreeArray = std::array< TreeNode, 2 * (alphabet_size - 1) >;
+
+typedef uint8_t Probability;
+
+template < std::size_t alphabet_size >
+using ProbabilityArray = std::array< Probability, alphabet_size - 1 >;
+
 class BoolDecoder
 {
 private:
@@ -18,14 +28,14 @@ private:
 public:
   BoolDecoder( const Block & s_block );
 
-  bool get( const uint8_t & probability );
+  bool get( const Probability & probability );
   bool bit( void ) { return get( 128 ); }
   uint32_t uint( const unsigned int num_bits );
   int32_t sint( const unsigned int num_bits );
 
   template < uint8_t alphabet_size, class T >
-  T tree( const std::array< int8_t, 2 * (alphabet_size - 1) > & nodes,
-	  const std::array< uint8_t, alphabet_size - 1 > & probabilities );
+  T tree( const TreeArray< alphabet_size > & nodes,
+	  const ProbabilityArray< alphabet_size > & probabilities );
 };
 
 #endif /* BOOL_DECODER_HH */

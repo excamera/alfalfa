@@ -23,7 +23,7 @@ void BoolDecoder::load_octet( void )
 }
 
 /* based on dixie bool_decoder.h */
-bool BoolDecoder::get( const uint8_t & probability )
+bool BoolDecoder::get( const Probability & probability )
 {
   const uint32_t split = 1 + (((range_ - 1) * probability) >> 8);
   const uint32_t SPLIT = split << 8;

@@ -9,10 +9,10 @@
 
 struct KeyFrameMacroblockHeader;
 
-class IntraBMode : public Tree< intra_bmode, num_intra_bmodes, b_mode_tree >
+class IntraBMode : public Tree< intra_bmode, num_intra_b_modes, b_mode_tree >
 {
 private:
-  static const std::array< uint8_t, num_intra_bmodes - 1 > &
+  static const ProbabilityArray< num_intra_b_modes > &
     b_mode_probabilities( const unsigned int position,
 			  const Array< IntraBMode, 16 > & prefix,
 			  const KeyFrameMacroblockHeader & current,
@@ -34,7 +34,7 @@ struct KeyFrameMacroblockHeader
 {
   Optional< Tree< uint8_t, 4, segment_id_tree > > segment_id;
   Optional< Bool > mb_skip_coeff;
-  Tree< intra_mbmode, num_ymodes, kf_y_mode_tree > y_mode;
+  Tree< intra_mbmode, num_y_modes, kf_y_mode_tree > y_mode;
   Optional< EnumerateContext< IntraBMode, 16 > > b_modes;
   Tree< intra_mbmode, num_uv_modes, uv_mode_tree > uv_mode;
 

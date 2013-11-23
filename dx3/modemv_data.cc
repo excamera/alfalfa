@@ -2,10 +2,12 @@
 
 using namespace std;
 
-const array< uint8_t, 4 > kf_y_mode_probs = {{ 145, 156, 163, 128 }};
-const array< uint8_t, 3 > kf_uv_mode_probs = {{ 142, 114, 183 }};
+const ProbabilityArray< num_y_modes > kf_y_mode_probs = {{ 145, 156, 163, 128 }};
+const ProbabilityArray< num_uv_modes > kf_uv_mode_probs = {{ 142, 114, 183 }};
 
-const array< array< array< uint8_t, 9 >, 10 >, 10 > kf_b_mode_probs =
+const array< array< ProbabilityArray< num_intra_b_modes >,
+		    num_intra_b_modes >,
+	     num_intra_b_modes > kf_b_mode_probs =
 {{
   {{ /* above mode 0 */
     {{ /* left mode 0 */ 231, 120,  48,  89, 115, 113, 120, 152, 112}},
@@ -129,7 +131,7 @@ const array< array< array< uint8_t, 9 >, 10 >, 10 > kf_b_mode_probs =
    }}
  }};
 
-const array< int8_t, 8 > kf_y_mode_tree =
+const TreeArray< num_y_modes > kf_y_mode_tree =
 {{
   -B_PRED, 2,
   4, 6,
@@ -137,7 +139,7 @@ const array< int8_t, 8 > kf_y_mode_tree =
   -H_PRED, -TM_PRED
 }};
 
-const array< int8_t, 8 > y_mode_tree =
+const TreeArray< num_y_modes > y_mode_tree =
 {{
   -DC_PRED, 2,
   4, 6,
@@ -145,14 +147,14 @@ const array< int8_t, 8 > y_mode_tree =
   -TM_PRED, -B_PRED
 }};
 
-const array< int8_t, 6 > uv_mode_tree =
+const TreeArray< num_uv_modes > uv_mode_tree =
 {{
   -DC_PRED, 2,
   -V_PRED, 4,
   -H_PRED, -TM_PRED
 }};
 
-const array< int8_t, 18 > b_mode_tree =
+const TreeArray< num_intra_b_modes > b_mode_tree =
 {{
   -B_DC_PRED, 2,                 /* 0 = DC_NODE */
   -B_TM_PRED, 4,                /* 1 = TM_NODE */
@@ -165,7 +167,7 @@ const array< int8_t, 18 > b_mode_tree =
   -B_HD_PRED, -B_HU_PRED         /* 8 = HD_NODE */
 }};
 
-const array< int8_t, 14 > small_mv_tree =
+const TreeArray< 8 > small_mv_tree =
 {{
   2, 8,
   4, 6,
@@ -225,5 +227,5 @@ const array< array< uint8_t, 16 >, 4 > mv_partitions
   {{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }};
 */
 
-/* not in original modemv_data.hh */
-const array< int8_t, 6 > segment_id_tree = {{ 2, 4, -0, -1, -2, -3 }};
+/* not in original modemv_data.h */
+const TreeArray< num_segments > segment_id_tree = {{ 2, 4, -0, -1, -2, -3 }};

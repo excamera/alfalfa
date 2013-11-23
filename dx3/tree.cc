@@ -6,8 +6,8 @@
 using namespace std;
 
 template < uint8_t alphabet_size, class T >
-T BoolDecoder::tree( const std::array< int8_t, 2 * (alphabet_size - 1) > & nodes,
-		     const std::array< uint8_t, alphabet_size - 1 > & probabilities )
+T BoolDecoder::tree( const TreeArray< alphabet_size > & nodes,
+		     const ProbabilityArray< alphabet_size > & probabilities )
 {
   /* verify correctness of tree -- XXX */
   for ( unsigned int i = 0; i < nodes.size(); i++ ) {

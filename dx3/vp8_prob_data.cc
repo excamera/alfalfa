@@ -4,7 +4,7 @@
 
 using namespace std;
 
-const array< array< array< array< uint8_t,
+const array< array< array< array< Probability,
 				  ENTROPY_NODES >,
 			   PREV_COEF_CONTEXTS >,
 		    COEF_BANDS >,
@@ -185,7 +185,7 @@ const array< uint8_t, 4 > k_default_y_mode_probs = {{ 112,  86, 140,  37 }};
 
 const array< uint8_t, 4 > k_default_uv_mode_probs = {{ 162, 101, 204 }};
 
-const array< array< array< array< uint8_t,
+const array< array< array< array< Probability,
 				  ENTROPY_NODES >,
 			   PREV_COEF_CONTEXTS >,
 		    COEF_BANDS >,
