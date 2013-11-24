@@ -66,11 +66,11 @@ struct KeyFrameHeader
 {
   Flag color_space;
   Flag clamping_type;
-  Flagged<UpdateSegmentation> update_segmentation;
+  Flagged< UpdateSegmentation > update_segmentation;
   Flag filter_type;
   Unsigned<6> loop_filter_level;
   Unsigned<3> sharpness_level;
-  Flagged<Flagged<ModeRefLFDeltaUpdate>> mode_lf_adjustments;
+  Flagged< Flagged< ModeRefLFDeltaUpdate > > mode_lf_adjustments;
   Unsigned<2> log2_nbr_of_dct_partitions;
   QuantIndices quant_indices;
   Flag refresh_entropy_probs;
