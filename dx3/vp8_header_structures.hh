@@ -95,7 +95,10 @@ public:
     return storage_.at( offset );
   }
 
-  operator const std::vector< T > & () const { return storage_; }
+  operator const std::array< T, len > & () const
+  {
+    return *reinterpret_cast< const std::array< T, len > * >( &storage_[ 0 ] );
+  }
 
   size_t size( void ) const { return len; }
 

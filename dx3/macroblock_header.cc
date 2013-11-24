@@ -6,7 +6,7 @@ using namespace std;
 
 static intra_bmode get_subblock_bmode( const unsigned int position,
 				       const intra_mbmode & y_mode,
-				       const vector< IntraBMode > & b_modes )
+				       const array< IntraBMode, 16 > & b_modes )
 {
   switch ( y_mode ) {
   case DC_PRED: return B_DC_PRED;
