@@ -75,11 +75,9 @@ class Array
 protected:
   std::vector< T > storage_;
 
-public:
-  Array()
-    : storage_()
-  {}
+  Array() : storage_() {}
 
+public:
   template < typename... Targs >
   Array( BoolDecoder & data, Targs&&... Fargs )
     : storage_()
@@ -90,6 +88,18 @@ public:
     }
   }
 
+  Array( const std::array< T, len > & other )
+    : storage_( begin( other ), end( other ) )
+  {}
+
+  Array( const std::vector< T > & other )
+    : storage_( other )
+  {}
+
+  Array( const std::vector< T > && other )
+    : storage_( move( other ) )
+  {}
+
   const T & at( const typename decltype( storage_ )::size_type & offset ) const
   {
     return storage_.at( offset );
@@ -97,7 +107,7 @@ public:
 
   operator const std::array< T, len > & () const
   {
-    return *reinterpret_cast< const std::array< T, len > * >( &storage_[ 0 ] );
+    return *reinterpret_cast< const std::array< T, len > * >( &storage_.at( 0 ) );
   }
 
   size_t size( void ) const { return len; }
@@ -109,9 +119,7 @@ template <class T, unsigned int size>
 class Enumerate : public Array< T, size >
 {
 public:
-  Enumerate()
-    : Array<T, size>()
-  {}
+  using Array< T, size >::Array;
 
   template < typename... Targs >
   Enumerate( BoolDecoder & data, Targs&&... Fargs )
@@ -128,9 +136,7 @@ template <class T, unsigned int size>
 class EnumerateContext : public Array< T, size >
 {
 public:
-  EnumerateContext()
-    : Array<T, size>()
-  {}
+  using Array< T, size >::Array;
 
   template < typename... Targs >
   EnumerateContext( BoolDecoder & data, Targs&&... Fargs )

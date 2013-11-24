@@ -28,6 +28,8 @@ public:
 	      const Optional< KeyFrameMacroblockHeader * > & left )
     : Tree( data, b_mode_probabilities( position, prefix, current, above, left ) )
   {}
+
+  using Tree::Tree;
 };
 
 struct KeyFrameMacroblockHeader
