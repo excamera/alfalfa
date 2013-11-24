@@ -100,7 +100,7 @@ public:
     : storage_( move( other ) )
   {}
 
-  const T & at( const typename decltype( storage_ )::size_type & offset ) const
+  const T & at( const unsigned int offset ) const
   {
     return storage_.at( offset );
   }
@@ -110,7 +110,7 @@ public:
     return *reinterpret_cast< const std::array< T, len > * >( &storage_.at( 0 ) );
   }
 
-  size_t size( void ) const { return len; }
+  unsigned int size( void ) const { return len; }
 
   virtual ~Array() {}
 };
