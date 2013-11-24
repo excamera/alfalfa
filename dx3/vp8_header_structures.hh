@@ -94,11 +94,15 @@ public:
 
   Array( const std::vector< T > & other )
     : storage_( other )
-  {}
+  {
+    assert( storage_.size() == len );
+  }
 
   Array( const std::vector< T > && other )
     : storage_( move( other ) )
-  {}
+  {
+    assert( storage_.size() == len );
+  }
 
   const T & at( const unsigned int offset ) const
   {
