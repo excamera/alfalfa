@@ -45,7 +45,7 @@ private:
   bool i_;
 
 public:
-  Bool( BoolDecoder & data, const uint8_t probability ) : i_( data.get( probability ) ) {}
+  Bool( BoolDecoder & data, const Probability probability ) : i_( data.get( probability ) ) {}
   Bool( const bool & val ) : i_( val ) {}
   operator const bool & () const { return i_; }
   virtual ~Bool() {}
@@ -61,15 +61,15 @@ template <class T>
 class Flagged : public Optional<T>
 {
 public:
-  Flagged( BoolDecoder & data )
-    : Optional<T>( Flag( data ), data )
+  Flagged( BoolDecoder & data, const Probability probability = 128 )
+    : Optional<T>( Bool( data, probability ), data )
   {}
 };
 
 /* An Array of VP8 header elements.
    A header element may optionally take its position in the array as an argument. */
 
-template <class T, unsigned int size>
+template <class T, unsigned int len>
 class Array
 {
 protected:
@@ -84,8 +84,8 @@ public:
   Array( BoolDecoder & data, Targs&&... Fargs )
     : storage_()
   {
-    storage_.reserve( size );
-    for ( unsigned int i = 0; i < size; i++ ) {
+    storage_.reserve( len );
+    for ( unsigned int i = 0; i < len; i++ ) {
       storage_.emplace_back( data, std::forward<Targs>( Fargs )... );
     }
   }
@@ -96,6 +96,8 @@ public:
   }
 
   operator const std::vector< T > & () const { return storage_; }
+
+  size_t size( void ) const { return len; }
 
   virtual ~Array() {}
 };

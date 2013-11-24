@@ -52,14 +52,12 @@ struct UpdateSegmentation
 
 struct TokenProbUpdate
 {
-  Bool token_prob_update_flag;
-  Optional< Unsigned<8> > coeff_prob;
+  Flagged< Unsigned<8> > coeff_prob;
 
   TokenProbUpdate( BoolDecoder & data,
 		   const unsigned int l, const unsigned int k,
 		   const unsigned int j, const unsigned int i )
-    : token_prob_update_flag( data, k_coeff_entropy_update_probs.at( i ).at( j ).at( k ).at( l ) ),
-      coeff_prob( token_prob_update_flag, data ) {}
+    : coeff_prob( data, k_coeff_entropy_update_probs.at( i ).at( j ).at( k ).at( l ) ) {}
 };
 
 struct KeyFrameHeader
@@ -93,6 +91,13 @@ struct KeyFrameHeader
   struct DerivedQuantities
   {
     ProbabilityArray< num_segments > mb_segment_tree_probs;
+    std::array< std::array< std::array< std::array< Probability,
+						    ENTROPY_NODES >,
+					PREV_COEF_CONTEXTS >,
+			    COEF_BANDS >,
+		BLOCK_TYPES > coeff_probs;
+
+    DerivedQuantities();
   };
 
   DerivedQuantities derived_quantities( void ) const;
