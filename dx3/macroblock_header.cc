@@ -21,45 +21,42 @@ KeyFrameMacroblockHeader::KeyFrameMacroblockHeader( TwoD< KeyFrameMacroblockHead
 						    BoolDecoder & data,
 						    const KeyFrameHeader & key_frame_header,
 						    const KeyFrameHeader::DerivedQuantities & probability_tables,
-						    TwoD< Y2Block > & Y2,
-						    TwoD< YBlock > & Y,
-						    TwoD< UBlock > & U,
-						    TwoD< VBlock > & V )
+						    TwoD< Y2Block > & frame_Y2,
+						    TwoD< YBlock > & frame_Y,
+						    TwoD< UBlock > & frame_U,
+						    TwoD< VBlock > & frame_V )
   : segment_id( key_frame_header.update_segmentation.initialized()
 		and key_frame_header.update_segmentation.get().update_mb_segmentation_map,
 		data, probability_tables.mb_segment_tree_probs ),
   mb_skip_coeff( key_frame_header.prob_skip_false.initialized()
-		 ? Bool( data, key_frame_header.prob_skip_false.get() ) : Optional< Bool >() )
+		 ? Bool( data, key_frame_header.prob_skip_false.get() ) : Optional< Bool >() ),
+  Y2( frame_Y2.at( c.column, c.row ) ),
+  Y( frame_Y, c.column * 4, c.row * 4, 4, 4 ),
+  U( frame_U, c.column * 2, c.row * 2, 2, 2 ),
+  V( frame_V, c.column * 2, c.row * 2, 2, 2 )
 {
   /* Set Y prediction mode */
-  Y2Block & y2_block = Y2.at( c.column, c.row );
-  y2_block.set_prediction_mode( data.tree< num_y_modes, intra_mbmode >( kf_y_mode_tree, kf_y_mode_probs ) );
+  Y2.set_prediction_mode( data.tree< num_y_modes, intra_mbmode >( kf_y_mode_tree, kf_y_mode_probs ) );
 
   /* Set subblock prediction modes */
   YBlock default_block;
   default_block.set_prediction_mode( B_DC_PRED );
 
-  for ( unsigned int row = c.row * 4; row < (c.row + 1) * 4; row++ ) {
-    for ( unsigned int column = c.column * 4; column < (c.column + 1) * 4; column++ ) {
-      YBlock & block = Y.at( column, row );
-      if ( y2_block.prediction_mode() == B_PRED ) {
-	const auto above_mode = block.above().get_or( &default_block )->prediction_mode();
-	const auto left_mode = block.left().get_or( &default_block )->prediction_mode();
-	block.set_prediction_mode( data.tree< num_intra_b_modes,
-				   intra_bmode >( b_mode_tree,
-						  kf_b_mode_probs.at( above_mode ).at( left_mode ) ) );
-      } else {
-	block.set_prediction_mode( implied_subblock_mode( y2_block.prediction_mode() ) );
-      }
-    }
-  }
+  Y.forall( [&]( YBlock & block )
+	    {
+	      if ( Y2.prediction_mode() == B_PRED ) {
+		const auto above_mode = block.above().get_or( &default_block )->prediction_mode();
+		const auto left_mode = block.left().get_or( &default_block )->prediction_mode();
+		block.set_prediction_mode( data.tree< num_intra_b_modes,
+					   intra_bmode >( b_mode_tree,
+							  kf_b_mode_probs.at( above_mode ).at( left_mode ) ) );
+	      } else {
+		block.set_prediction_mode( implied_subblock_mode( Y2.prediction_mode() ) );
+	      }
+	    } );
 
   /* Set U and V prediction modes */
   auto uv_mode = data.tree< num_uv_modes, intra_mbmode >( uv_mode_tree, kf_uv_mode_probs );
-  for ( unsigned int row = c.row * 2; row < (c.row + 1) * 2; row++ ) {
-    for ( unsigned int column = c.column * 2; column < (c.column + 1) * 2; column++ ) {
-      U.at( column, row ).set_prediction_mode( uv_mode );
-      V.at( column, row ).set_prediction_mode( uv_mode );
-    }
-  }
+  U.forall( [&]( UBlock & block ) { block.set_prediction_mode( uv_mode ); } );
+  V.forall( [&]( VBlock & block ) { block.set_prediction_mode( uv_mode ); } );
 }

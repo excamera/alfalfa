@@ -16,7 +16,7 @@ private:
 public:
   struct Context
   {
-    const unsigned int row, column;
+    const unsigned int column, row;
     const Optional< T * > above, left;
   };
 
@@ -35,20 +35,57 @@ public:
       for ( unsigned int j = 0; j < width; j++ ) {
 	const Optional< T * > above( i > 0 ? &storage_.at( i - 1 ).at( j ) : Optional< T * >() );
 	const Optional< T * > left ( j > 0 ? &row.at( j - 1 ) : Optional< T * >() );
-	Context c { i, j, above, left };
+	Context c { j, i, above, left };
 	row.emplace_back( c, Fargs... );
       }
       storage_.emplace_back( move( row ) );
     }
   }
 
-  T & at( const uint16_t x, const uint16_t y )
+  T & at( const unsigned int column, const unsigned int row )
   {
-    return storage_.at( y ).at( x );
+    return storage_.at( row ).at( column );
   }
 
-  uint16_t width( void ) const { return storage_.at( 0 ).size(); }
-  uint16_t height( void ) const { return storage_.size(); }  
+  unsigned int width( void ) const { return storage_.at( 0 ).size(); }
+  unsigned int height( void ) const { return storage_.size(); }  
+};
+
+template< class T >
+class TwoDSubRange
+{
+private:
+  TwoD< T > & master_;
+
+  unsigned int row_, column_;
+  unsigned int width_, height_;
+
+public:
+  TwoDSubRange( TwoD< T > & master,
+		const unsigned int column,
+		const unsigned int row,
+		const unsigned int width,
+		const unsigned int height )
+    : master_( master ), row_( row ), column_( column ), width_( width ), height_( height )
+  {}
+
+  T & at( const unsigned int column, const unsigned int row )
+  {
+    return master_.at( column_ + column, row_ + row );
+  }
+
+  unsigned int width( void ) const { return width_; }
+  unsigned int height( void ) const { return height_; }
+
+  void forall( std::function<void( T & )> && f )
+  {
+    for ( unsigned int row = 0; row < height(); row++ ) {
+      for ( unsigned int column = 0; column < width(); column++ ) {
+	f( at( column, row ) );
+      }
+    }
+  }
+	       
 };
 
 #endif /* TWOD_HH */
