@@ -3,13 +3,10 @@
 
 #include "vp8_header_structures.hh"
 #include "frame_header.hh"
-#include "modemv_data.hh"
 #include "2d.hh"
 #include "block.hh"
 
 #include "tree.cc"
-
-intra_bmode subblock_mode( const intra_mbmode y_mode );
 
 struct KeyFrameMacroblockHeader
 {
