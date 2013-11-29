@@ -5,6 +5,7 @@
 #include "bool_decoder.hh"
 #include "vp8_prob_data.hh"
 #include "modemv_data.hh"
+#include "exception.hh"
 
 struct QuantIndices
 {
@@ -69,7 +70,7 @@ struct KeyFrameHeader
   Unsigned<6> loop_filter_level;
   Unsigned<3> sharpness_level;
   Flagged< Flagged< ModeRefLFDeltaUpdate > > mode_lf_adjustments;
-  Unsigned<2> log2_nbr_of_dct_partitions;
+  Unsigned<2> log2_number_of_dct_partitions;
   QuantIndices quant_indices;
   Flag refresh_entropy_probs;
   Enumerate< Enumerate< Enumerate< Enumerate< TokenProbUpdate,
@@ -83,10 +84,14 @@ struct KeyFrameHeader
     : color_space( data ), clamping_type( data ),
       update_segmentation( data ), filter_type( data ),
       loop_filter_level( data ), sharpness_level( data ),
-      mode_lf_adjustments( data ), log2_nbr_of_dct_partitions( data ),
+      mode_lf_adjustments( data ), log2_number_of_dct_partitions( data ),
       quant_indices( data ), refresh_entropy_probs( data ),
       token_prob_update( data ), prob_skip_false( data )
-  {}
+  {
+    if ( color_space or clamping_type ) {
+      throw Unsupported( "VP8 color_space and clamping_type bits" );
+    }
+  }
 
   struct DerivedQuantities
   {

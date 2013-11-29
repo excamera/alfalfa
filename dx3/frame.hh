@@ -15,6 +15,11 @@ class KeyFrame
   TwoD< Block > Y_ { 4 * macroblock_width, 4 * macroblock_height };
   TwoD< Block > U_ { 2 * macroblock_width, 2 * macroblock_height };
   TwoD< Block > V_ { 2 * macroblock_width, 2 * macroblock_height };
+
+  BoolDecoder first_partition;
+  KeyFrameHeader header_ { first_partition };
+  KeyFrameHeader::DerivedQuantities probability_tables_ { header_.derived_quantities() };
+
   Optional< TwoD< KeyFrameMacroblockHeader > > macroblock_headers_ {};
 
  public:

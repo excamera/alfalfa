@@ -7,11 +7,11 @@
 class Block
 {
 private:
-  Optional< Block * > above_ {};
-  Optional< Block * > left_ {};
+  Optional< Block * > above_;
+  Optional< Block * > left_;
 
 public:
-  Block( TwoD< Block >::Context &  ) {};
+  Block( TwoD< Block >::Context & context );
 };
 
 #endif /* BLOCK_HH */
