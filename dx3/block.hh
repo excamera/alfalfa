@@ -19,7 +19,7 @@ public:
     : above_( context.above ), left_( context.left )
   {}
 
-  PredictionMode & prediction_mode( void ) { return prediction_mode_; }
+  const PredictionMode & prediction_mode( void ) const { return prediction_mode_; }
   void set_prediction_mode( const PredictionMode & prediction_mode ) { prediction_mode_ = prediction_mode; }
 
   const Optional< Block * > above( void ) const { return above_; }
