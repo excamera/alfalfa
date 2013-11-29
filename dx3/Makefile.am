@@ -11,4 +11,4 @@ vp8scan_SOURCES = vp8scan.cc exception.hh file_descriptor.hh \
 	tree.cc macroblock_header.hh macroblock_header.cc 2d.hh \
 	modemv_data.hh modemv_data.cc \
 	vp8_prob_data.hh vp8_prob_data.cc \
-	frame.hh frame.cc block.hh block.cc
+	frame.hh frame.cc block.hh

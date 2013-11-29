@@ -48,7 +48,7 @@ public:
   }
 
   uint16_t width( void ) const { return storage_.at( 0 ).size(); }
-  uint16_t height( void ) const { return storage_.size(); }
+  uint16_t height( void ) const { return storage_.size(); }  
 };
 
 #endif /* TWOD_HH */

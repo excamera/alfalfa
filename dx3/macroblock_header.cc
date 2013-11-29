@@ -4,57 +4,59 @@
 
 using namespace std;
 
-static intra_bmode get_subblock_bmode( const unsigned int position,
-				       const intra_mbmode & y_mode,
-				       const array< IntraBMode, 16 > & b_modes )
+intra_bmode subblock_mode( const intra_mbmode y_mode )
 {
   switch ( y_mode ) {
   case DC_PRED: return B_DC_PRED;
   case V_PRED:  return B_VE_PRED;
   case H_PRED:  return B_HE_PRED;
   case TM_PRED: return B_TM_PRED;
-  case B_PRED:  return b_modes.at( position );
+  case B_PRED:  return B_DC_PRED;
   }
   assert( false );
   return intra_bmode();  
 }
 
-static const vector< IntraBMode > default_b_modes( 16, B_DC_PRED );
-
-static intra_bmode above_block_mode( const unsigned int position,
-				     const Array< IntraBMode, 16 > & prefix,
-				     const KeyFrameMacroblockHeader & current,
-				     const Optional< KeyFrameMacroblockHeader * > & above )
+KeyFrameMacroblockHeader::KeyFrameMacroblockHeader( TwoD< KeyFrameMacroblockHeader >::Context & c,
+						    BoolDecoder & data,
+						    const KeyFrameHeader & key_frame_header,
+						    const KeyFrameHeader::DerivedQuantities & probability_tables,
+						    TwoD< Y2Block > & Y2,
+						    TwoD< YBlock > & Y,
+						    TwoD< UBlock > & U,
+						    TwoD< VBlock > & V )
+  : segment_id( key_frame_header.update_segmentation.initialized()
+		and key_frame_header.update_segmentation.get().update_mb_segmentation_map,
+		data, probability_tables.mb_segment_tree_probs ),
+  mb_skip_coeff( key_frame_header.prob_skip_false.initialized()
+		 ? Bool( data, key_frame_header.prob_skip_false.get() ) : Optional< Bool >() )
 {
-  if ( position < 4 ) {
-    return above.initialized()
-      ? get_subblock_bmode( position + 12, above.get()->y_mode, above.get()->b_modes.get_or( default_b_modes ) )
-      : B_DC_PRED;
-  } else {
-    return get_subblock_bmode( position - 4, current.y_mode, prefix );
+  /* Set Y prediction mode */
+  Y2Block & y2_block = Y2.at( c.column, c.row );
+  y2_block.prediction_mode() = data.tree< num_y_modes, intra_mbmode >( kf_y_mode_tree, kf_y_mode_probs );
+
+  /* Set subblock prediction modes */
+  YBlock default_block;
+  default_block.prediction_mode() = B_DC_PRED;
+  const auto overall_mode = subblock_mode( y2_block.prediction_mode() );
+
+  for ( unsigned int row = c.row * 4; row < (c.row + 1) * 4; row++ ) {
+    for ( unsigned int column = c.column * 4; column < (c.column + 1) * 4; column++ ) {
+      YBlock block = Y.at( column, row );
+      const auto above_mode = block.above().get_or( &default_block )->prediction_mode();
+      const auto left_mode = block.left().get_or( &default_block )->prediction_mode();
+      block.prediction_mode() = (y2_block.prediction_mode() == B_PRED)
+	? data.tree< num_intra_b_modes, intra_bmode >( b_mode_tree, kf_b_mode_probs.at( above_mode ).at( left_mode ) )
+	: overall_mode;
+    }
   }
-}
 
-static intra_bmode left_block_mode( const unsigned int position,
-				    const Array< IntraBMode, 16 > & prefix,
-				    const KeyFrameMacroblockHeader & current,
-				    const Optional< KeyFrameMacroblockHeader * > & left )
-{
-  if ( not (position & 3) ) {
-    return left.initialized()
-      ? get_subblock_bmode( position + 3, left.get()->y_mode, left.get()->b_modes.get_or( default_b_modes ) )
-      : B_DC_PRED;
-  } else {
-    return get_subblock_bmode( position - 1, current.y_mode, prefix );
+  /* Set U and V prediction modes */
+  auto uv_mode = data.tree< num_uv_modes, intra_mbmode >( uv_mode_tree, kf_uv_mode_probs );
+  for ( unsigned int row = c.row * 2; row < (c.row + 1) * 2; row++ ) {
+    for ( unsigned int column = c.column * 2; column < (c.column + 1) * 2; column++ ) {
+      U.at( column, row ).prediction_mode() = uv_mode;
+      V.at( column, row ).prediction_mode() = uv_mode;
+    }
   }
-}
-
-const ProbabilityArray< num_intra_b_modes > &
-IntraBMode::b_mode_probabilities( const unsigned int position,
-				  const Array< IntraBMode, 16 > & prefix,
-				  const KeyFrameMacroblockHeader & current,
-				  const Optional< KeyFrameMacroblockHeader * > & above,
-				  const Optional< KeyFrameMacroblockHeader * > & left )
-{
-  return kf_b_mode_probs.at( above_block_mode( position, prefix, current, above ) ).at( left_block_mode( position, prefix, current, left ) );
 }

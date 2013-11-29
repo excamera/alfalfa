@@ -136,23 +136,6 @@ public:
   }
 };
 
-template <class T, unsigned int size>
-class EnumerateContext : public Array< T, size >
-{
-public:
-  using Array< T, size >::Array;
-
-  template < typename... Targs >
-  EnumerateContext( BoolDecoder & data, Targs&&... Fargs )
-    : Array<T, size>()
-  {
-    Array<T, size>::storage_.reserve( size );
-    for ( unsigned int i = 0; i < size; i++ ) {
-      Array<T, size>::storage_.emplace_back( data, i, *const_cast< const EnumerateContext<T, size> * >( this ), std::forward<Targs>( Fargs )... );
-    }
-  }
-};
-
 template <class enumeration, uint8_t alphabet_size, const TreeArray< alphabet_size > & nodes>
 class Tree
 {
@@ -169,17 +152,6 @@ public:
   operator const enumeration & () const { return value_; }
 
   virtual ~Tree() {}
-};
-
-template <class Target, class Source>
-struct Assign
-{
-  template< typename... Targs >
-  Assign( Target & target, Targs... Fargs )
-  {
-    Source temp( std::forward< Targs >( Fargs )... );
-    target = temp;
-  }
 };
 
 #endif /* VP8_HEADER_STRUCTURES_HH */

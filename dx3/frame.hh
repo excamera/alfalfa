@@ -12,10 +12,10 @@ class KeyFrame
  private:
   unsigned int macroblock_width, macroblock_height;
 
-  TwoD< Block< intra_mbmode > > Y2_ { macroblock_width, macroblock_height };
-  TwoD< Block< intra_bmode > > Y_ { 4 * macroblock_width, 4 * macroblock_height };
-  TwoD< Block< intra_mbmode > > U_ { 2 * macroblock_width, 2 * macroblock_height };
-  TwoD< Block< intra_mbmode > > V_ { 2 * macroblock_width, 2 * macroblock_height };
+  TwoD< Y2Block > Y2_ { macroblock_width, macroblock_height };
+  TwoD< YBlock > Y_ { 4 * macroblock_width, 4 * macroblock_height };
+  TwoD< UBlock > U_ { 2 * macroblock_width, 2 * macroblock_height };
+  TwoD< VBlock > V_ { 2 * macroblock_width, 2 * macroblock_height };
 
   BoolDecoder first_partition;
   KeyFrameHeader header_ { first_partition };
