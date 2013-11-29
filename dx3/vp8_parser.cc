@@ -15,7 +15,7 @@ VP8Parser::VP8Parser( uint16_t s_width, uint16_t s_height )
 {
 }
 
-void VP8Parser::parse_frame( const Block & frame )
+void VP8Parser::parse_frame( const Chunk & frame )
 {
   /* parse uncompressed data chunk */
   UncompressedChunk uncompressed_chunk( frame, width_, height_ );
@@ -54,11 +54,11 @@ void VP8Parser::parse_frame( const Block & frame )
 						       derived );
 }
 
-vector< BoolDecoder > VP8Parser::extract_dct_partitions( const Block & after_first_partition,
+vector< BoolDecoder > VP8Parser::extract_dct_partitions( const Chunk & after_first_partition,
 							 const uint8_t num_dct_partitions )
 {
   /* extract the rest of the partitions */
-  Block rest_of_frame = after_first_partition;
+  Chunk rest_of_frame = after_first_partition;
 
   /* get the lengths of all DCT partitions except the last one */
   vector< uint32_t > partition_lengths;

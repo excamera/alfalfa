@@ -1,10 +1,10 @@
-#ifndef BLOCK_HH
-#define BLOCK_HH
+#ifndef CHUNK_HH
+#define CHUNK_HH
 
 #include <string>
 #include <stdexcept>
 
-class Block
+class Chunk
 {
 private:
   uint8_t *buffer_;
@@ -13,7 +13,7 @@ private:
   void bounds_check( const uint64_t & length ) const
   {
     if ( length > size_ ) {
-      throw std::out_of_range( "attempted to read past end of block" );
+      throw std::out_of_range( "attempted to read past end of chunk" );
     }
   }
 
@@ -26,7 +26,7 @@ private:
   }
 
 public:
-  Block( uint8_t * const s_buffer, const uint64_t & s_size )
+  Chunk( uint8_t * const s_buffer, const uint64_t & s_size )
     : buffer_( s_buffer ),
       size_( s_size )
   {}
@@ -35,16 +35,16 @@ public:
   uint8_t * mutable_buffer( void ) { return buffer_; }
   const uint64_t & size( void ) const { return size_; }
 
-  Block operator() ( const uint64_t & offset ) const
+  Chunk operator() ( const uint64_t & offset ) const
   {
     return operator() ( offset, size_ - offset );
   }
 
-  Block operator() ( const uint64_t & offset, const uint64_t & length ) const
+  Chunk operator() ( const uint64_t & offset, const uint64_t & length ) const
   {
     bounds_check( offset );
     bounds_check( offset + length );
-    return Block( buffer_ + offset, length );
+    return Chunk( buffer_ + offset, length );
   }
 
   std::string to_string( void ) const
@@ -93,4 +93,4 @@ public:
   }
 };
 
-#endif /* BLOCK_HH */
+#endif /* CHUNK_HH */

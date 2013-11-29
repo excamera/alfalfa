@@ -3,8 +3,8 @@
 #include "bool_decoder.hh"
 #include "exception.hh"
 
-BoolDecoder::BoolDecoder( const Block & s_block )
-  : block_( s_block ),
+BoolDecoder::BoolDecoder( const Chunk & s_chunk )
+  : chunk_( s_chunk ),
     range_( 255 ),
     value_( 0 ),
     bit_count_( 0 )
@@ -16,9 +16,9 @@ BoolDecoder::BoolDecoder( const Block & s_block )
 
 void BoolDecoder::load_octet( void )
 {
-  if ( block_.size() ) {
-    value_ |= block_.octet();
-    block_ = block_( 1 );
+  if ( chunk_.size() ) {
+    value_ |= chunk_.octet();
+    chunk_ = chunk_( 1 );
   }
 }
 

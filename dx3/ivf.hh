@@ -14,7 +14,7 @@ private:
   const int frame_header_len = 12;
 
   File file_;
-  Block header_;
+  Chunk header_;
 
   std::string fourcc_;
   uint16_t width_, height_;
@@ -32,7 +32,7 @@ public:
   const uint32_t & time_scale( void ) const { return time_scale_; }
   const uint32_t & frame_count( void ) const { return frame_count_; }
 
-  Block frame( const uint32_t & index ) const;
+  Chunk frame( const uint32_t & index ) const;
 };
 
 #endif /* IVF_HH */

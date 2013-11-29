@@ -1,7 +1,7 @@
 #ifndef UNCOMPRESSED_CHUNK_HH
 #define UNCOMPRESSED_CHUNK_HH
 
-#include "block.hh"
+#include "chunk.hh"
 
 class UncompressedChunk
 {
@@ -22,15 +22,15 @@ private:
   ReconstructionFilter reconstruction_filter_;
   LoopFilter loop_filter_;
   bool show_frame_;
-  Block first_partition_;
-  Block rest_;
+  Chunk first_partition_;
+  Chunk rest_;
 
 public:
-  UncompressedChunk( const Block & frame, const uint16_t expected_width, const uint16_t expected_height );
+  UncompressedChunk( const Chunk & frame, const uint16_t expected_width, const uint16_t expected_height );
 
   bool key_frame( void ) const { return key_frame_; }
-  const Block & first_partition( void ) const { return first_partition_; }
-  const Block & rest( void ) const { return rest_; }
+  const Chunk & first_partition( void ) const { return first_partition_; }
+  const Chunk & rest( void ) const { return rest_; }
 };
 
 #endif /* UNCOMPRESSED_CHUNK_HH */

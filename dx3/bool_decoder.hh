@@ -3,7 +3,7 @@
 
 #include <array>
 
-#include "block.hh"
+#include "chunk.hh"
 
 typedef int8_t TreeNode;
 
@@ -18,7 +18,7 @@ using ProbabilityArray = std::array< Probability, alphabet_size - 1 >;
 class BoolDecoder
 {
 private:
-  Block block_;
+  Chunk chunk_;
   
   uint32_t range_, value_;
   char bit_count_;
@@ -26,7 +26,7 @@ private:
   void load_octet( void );
 
 public:
-  BoolDecoder( const Block & s_block );
+  BoolDecoder( const Chunk & s_chunk );
 
   bool get( const Probability & probability );
   bool bit( void ) { return get( 128 ); }

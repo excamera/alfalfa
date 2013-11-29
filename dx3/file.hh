@@ -6,22 +6,22 @@
 #include <string>
 
 #include "file_descriptor.hh"
-#include "block.hh"
+#include "chunk.hh"
 
 class File
 {
 private:
   FileDescriptor fd_;
-  Block block_;
+  Chunk chunk_;
 
 public:
   File( const std::string & filename );
   ~File();
 
-  const Block & block( void ) const { return block_; }
-  const Block operator() ( const uint64_t & offset, const uint64_t & length ) const
+  const Chunk & chunk( void ) const { return chunk_; }
+  const Chunk operator() ( const uint64_t & offset, const uint64_t & length ) const
   {
-    return block_( offset, length );
+    return chunk_( offset, length );
   }
 };
 

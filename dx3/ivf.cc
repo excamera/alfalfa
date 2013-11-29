@@ -34,7 +34,7 @@ try :
 
 	uint64_t position = supported_header_len;
 	for ( uint32_t i = 0; i < frame_count_; i++ ) {
-	  Block frame_header = file_( position, frame_header_len );
+	  Chunk frame_header = file_( position, frame_header_len );
 	  const uint32_t frame_len = frame_header.le32();
 
 	  frame_index_.emplace_back( position + frame_header_len, frame_len );
@@ -46,7 +46,7 @@ catch ( const out_of_range & e )
     throw Invalid( "IVF file truncated" );
   }
 
-Block IVF::frame( const uint32_t & index ) const
+Chunk IVF::frame( const uint32_t & index ) const
 {
   const auto & entry = frame_index_.at( index );
   return file_( entry.first, entry.second );

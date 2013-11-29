@@ -3,7 +3,7 @@
 
 using namespace std;
 
-UncompressedChunk::UncompressedChunk( const Block & frame,
+UncompressedChunk::UncompressedChunk( const Chunk & frame,
 				      const uint16_t expected_width,
 				      const uint16_t expected_height )
   : key_frame_(),
@@ -59,7 +59,7 @@ UncompressedChunk::UncompressedChunk( const Block & frame,
 	throw Invalid( "did not find key-frame start code" );
       }
 
-      Block sizes = frame( 6, 4 );
+      Chunk sizes = frame( 6, 4 );
 
       const char horizontal_scale = sizes.bits( 14, 2 ), vertical_scale = sizes.bits( 30, 2 );
       const uint16_t frame_width = sizes.bits( 0, 14 ), frame_height = sizes.bits( 16, 14 );
