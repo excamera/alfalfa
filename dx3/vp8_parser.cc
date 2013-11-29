@@ -40,8 +40,7 @@ void VP8Parser::parse_frame( const Chunk & frame )
   const uint8_t num_dct_partitions = 1 << frame_header.log2_nbr_of_dct_partitions;
   assert( num_dct_partitions <= 8 );
 
-  vector< BoolDecoder > dct_partitions = extract_dct_partitions( uncompressed_chunk.rest(),
-								 num_dct_partitions );
+  vector< BoolDecoder > dct_partitions = uncompressed_chunk.dct_partitions( num_dct_partitions );
 
   /* pre-calculate (fixed) probability tables for the frame */
   const auto derived = frame_header.derived_quantities();
@@ -52,30 +51,4 @@ void VP8Parser::parse_frame( const Chunk & frame )
 						       partition1,
 						       frame_header,
 						       derived );
-}
-
-vector< BoolDecoder > VP8Parser::extract_dct_partitions( const Chunk & after_first_partition,
-							 const uint8_t num_dct_partitions )
-{
-  /* extract the rest of the partitions */
-  Chunk rest_of_frame = after_first_partition;
-
-  /* get the lengths of all DCT partitions except the last one */
-  vector< uint32_t > partition_lengths;
-  for ( uint8_t i = 0; i < num_dct_partitions - 1; i++ ) {
-    partition_lengths.push_back( rest_of_frame.bits( 0, 24 ) );
-    rest_of_frame = rest_of_frame( 3 );
-  }
-
-  /* make all the DCT partition */
-  vector< BoolDecoder > dct_partitions;
-  for ( const auto & length : partition_lengths ) {
-    dct_partitions.emplace_back( rest_of_frame( 0, length ) );
-    rest_of_frame = rest_of_frame( length );
-  }
-
-  /* make the last DCT partition */
-  dct_partitions.emplace_back( rest_of_frame );
-
-  return dct_partitions;
 }

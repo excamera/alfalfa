@@ -2,6 +2,9 @@
 #define UNCOMPRESSED_CHUNK_HH
 
 #include "chunk.hh"
+#include "bool_decoder.hh"
+
+#include <vector>
 
 class UncompressedChunk
 {
@@ -27,10 +30,10 @@ private:
 
 public:
   UncompressedChunk( const Chunk & frame, const uint16_t expected_width, const uint16_t expected_height );
-
   bool key_frame( void ) const { return key_frame_; }
-  const Chunk & first_partition( void ) const { return first_partition_; }
-  const Chunk & rest( void ) const { return rest_; }
+
+  BoolDecoder first_partition( void ) const { return first_partition_; }
+  std::vector< BoolDecoder > dct_partitions( const uint8_t num ) const;
 };
 
 #endif /* UNCOMPRESSED_CHUNK_HH */
