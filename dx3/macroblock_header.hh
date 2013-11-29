@@ -5,6 +5,7 @@
 #include "frame_header.hh"
 #include "modemv_data.hh"
 #include "2d.hh"
+#include "block.hh"
 
 #include "tree.cc"
 
@@ -44,10 +45,14 @@ struct KeyFrameMacroblockHeader
   KeyFrameMacroblockHeader( TwoD< KeyFrameMacroblockHeader >::Context & c,
 			    BoolDecoder & data,
 			    const KeyFrameHeader & key_frame_header,
-			    const KeyFrameHeader::DerivedQuantities & derived )
+			    const KeyFrameHeader::DerivedQuantities & probability_tables,
+			    TwoD< Block< intra_mbmode > > & ,
+			    TwoD< Block< intra_bmode > > & ,
+			    TwoD< Block< intra_mbmode > > & ,
+			    TwoD< Block< intra_mbmode > > &  )
     : segment_id( key_frame_header.update_segmentation.initialized()
 		  and key_frame_header.update_segmentation.get().update_mb_segmentation_map,
-		  data, derived.mb_segment_tree_probs ),
+		  data, probability_tables.mb_segment_tree_probs ),
       mb_skip_coeff( key_frame_header.prob_skip_false.initialized()
 		     ? Bool( data, key_frame_header.prob_skip_false.get() ) : Optional< Bool >() ),
     y_mode( data, kf_y_mode_probs ),

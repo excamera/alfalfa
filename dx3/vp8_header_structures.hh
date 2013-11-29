@@ -171,4 +171,15 @@ public:
   virtual ~Tree() {}
 };
 
+template <class Target, class Source>
+struct Assign
+{
+  template< typename... Targs >
+  Assign( Target & target, Targs... Fargs )
+  {
+    Source temp( std::forward< Targs >( Fargs )... );
+    target = temp;
+  }
+};
+
 #endif /* VP8_HEADER_STRUCTURES_HH */
