@@ -1,12 +1,8 @@
 #include <iostream>
 
 #include "vp8_parser.hh"
-#include "exception.hh"
-#include "bool_decoder.hh"
 #include "uncompressed_chunk.hh"
-#include "frame_header.hh"
-#include "macroblock_header.hh"
-#include "2d.hh"
+#include "frame.hh"
 
 using namespace std;
 
@@ -25,30 +21,5 @@ void VP8Parser::parse_frame( const Chunk & frame )
     return;
   }
 
-  /* extract the first partition */
-  BoolDecoder partition1( uncompressed_chunk.first_partition() );
-
-  /* parse the frame header */
-  KeyFrameHeader frame_header( partition1 );
-
-  /* safety checks for the frame header */
-  if ( frame_header.color_space or frame_header.clamping_type ) {
-    throw Unsupported( "VP8 color_space and clamping_type bits" );
-  }
-
-  /* locate the remaining partitions */
-  const uint8_t num_dct_partitions = 1 << frame_header.log2_nbr_of_dct_partitions;
-  assert( num_dct_partitions <= 8 );
-
-  vector< BoolDecoder > dct_partitions = uncompressed_chunk.dct_partitions( num_dct_partitions );
-
-  /* pre-calculate (fixed) probability tables for the frame */
-  const auto derived = frame_header.derived_quantities();
-
-  /* parse macroblock prediction records */
-  TwoD< KeyFrameMacroblockHeader > macroblock_headers( (width_ + 15) / 16,
-						       (height_ + 15) / 16,
-						       partition1,
-						       frame_header,
-						       derived );
+  KeyFrame( uncompressed_chunk, width_, height_ );
 }

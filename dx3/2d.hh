@@ -2,6 +2,9 @@
 #define TWOD_HH
 
 #include <cassert>
+#include <vector>
+
+#include "optional.hh"
 
 /* simple two-dimensional container */
 template< class T >
