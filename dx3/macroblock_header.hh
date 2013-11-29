@@ -4,6 +4,7 @@
 #include "vp8_header_structures.hh"
 #include "frame_header.hh"
 #include "modemv_data.hh"
+#include "2d.hh"
 
 #include "tree.cc"
 
@@ -40,8 +41,7 @@ struct KeyFrameMacroblockHeader
   Optional< EnumerateContext< IntraBMode, 16 > > b_modes;
   Tree< intra_mbmode, num_uv_modes, uv_mode_tree > uv_mode;
 
-  KeyFrameMacroblockHeader( const Optional< KeyFrameMacroblockHeader * > & above,
-			    const Optional< KeyFrameMacroblockHeader * > & left,
+  KeyFrameMacroblockHeader( TwoD< KeyFrameMacroblockHeader >::Context & c,
 			    BoolDecoder & data,
 			    const KeyFrameHeader & key_frame_header,
 			    const KeyFrameHeader::DerivedQuantities & derived )
@@ -51,7 +51,7 @@ struct KeyFrameMacroblockHeader
       mb_skip_coeff( key_frame_header.prob_skip_false.initialized()
 		     ? Bool( data, key_frame_header.prob_skip_false.get() ) : Optional< Bool >() ),
     y_mode( data, kf_y_mode_probs ),
-    b_modes( y_mode == B_PRED, data, *this, above, left ),
+    b_modes( y_mode == B_PRED, data, *this, c.above, c.left ),
     uv_mode( data, kf_uv_mode_probs )
   {}
 };

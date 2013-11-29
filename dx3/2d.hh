@@ -11,8 +11,14 @@ private:
   std::vector< std::vector< T > > storage_;
 
 public:
+  struct Context
+  {
+    const unsigned int row, column;
+    const Optional< T * > above, left;
+  };
+
   template< typename... Targs >
-  TwoD( const uint16_t width, const uint16_t height, Targs&&... Fargs )
+  TwoD( const unsigned int width, const unsigned int height, Targs&&... Fargs )
     : storage_()
   {
     assert( width > 0 );
@@ -26,7 +32,8 @@ public:
       for ( unsigned int j = 0; j < width; j++ ) {
 	const Optional< T * > above( i > 0 ? &storage_.at( i - 1 ).at( j ) : Optional< T * >() );
 	const Optional< T * > left ( j > 0 ? &row.at( j - 1 ) : Optional< T * >() );
-	row.emplace_back( above, left, Fargs... );
+	Context c { i, j, above, left };
+	row.emplace_back( c, Fargs... );
       }
       storage_.emplace_back( move( row ) );
     }
