@@ -17,14 +17,13 @@ class KeyFrame
   TwoD< UBlock > U_ { 2 * macroblock_width, 2 * macroblock_height };
   TwoD< VBlock > V_ { 2 * macroblock_width, 2 * macroblock_height };
 
-  BoolDecoder first_partition;
-  KeyFrameHeader header_ { first_partition };
+  BoolDecoder first_partition_;
+  KeyFrameHeader header_ { first_partition_ };
   KeyFrameHeader::DerivedQuantities probability_tables_ { header_.derived_quantities() };
 
   TwoD< KeyFrameMacroblockHeader > macroblock_headers_ { macroblock_width, macroblock_height,
-                                                         first_partition, header_, probability_tables_,
+                                                         first_partition_, header_, probability_tables_,
                                                          Y2_, Y_, U_, V_ };
-
  public:
   KeyFrame( UncompressedChunk & chunk,
 	    const unsigned int width,

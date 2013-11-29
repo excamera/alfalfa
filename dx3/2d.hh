@@ -49,6 +49,15 @@ public:
 
   unsigned int width( void ) const { return storage_.at( 0 ).size(); }
   unsigned int height( void ) const { return storage_.size(); }  
+
+  void forall( std::function<void( T & )> && f )
+  {
+    for ( unsigned int row = 0; row < height(); row++ ) {
+      for ( unsigned int column = 0; column < width(); column++ ) {
+	f( at( column, row ) );
+      }
+    }
+  }
 };
 
 template< class T >
@@ -84,8 +93,7 @@ public:
 	f( at( column, row ) );
       }
     }
-  }
-	       
+  }	       
 };
 
 #endif /* TWOD_HH */

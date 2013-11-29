@@ -8,16 +8,20 @@
 
 #include "tree.cc"
 
-struct KeyFrameMacroblockHeader
+class KeyFrameMacroblockHeader
 {
-  Optional< Tree< uint8_t, 4, segment_id_tree > > segment_id;
-  Optional< Bool > mb_skip_coeff;
+private:
+  unsigned int column_, row_;
 
-  Y2Block & Y2;
-  TwoDSubRange< YBlock > Y;
-  TwoDSubRange< UBlock > U;
-  TwoDSubRange< VBlock > V;
+  Optional< Tree< uint8_t, 4, segment_id_tree > > segment_id_;
+  Optional< Bool > mb_skip_coeff_;
 
+  Y2Block & Y2_;
+  TwoDSubRange< YBlock > Y_;
+  TwoDSubRange< UBlock > U_;
+  TwoDSubRange< VBlock > V_;
+
+public:
   KeyFrameMacroblockHeader( TwoD< KeyFrameMacroblockHeader >::Context & c,
 			    BoolDecoder & data,
 			    const KeyFrameHeader & key_frame_header,

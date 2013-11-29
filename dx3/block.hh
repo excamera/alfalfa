@@ -12,6 +12,8 @@ private:
   Optional< Block * > above_ {};
   Optional< Block * > left_ {};
 
+  std::array< uint8_t, 16 > coefficients_ {{}};
+
 public:
   Block() {}
 
