@@ -25,20 +25,19 @@ KeyFrameMacroblockHeader::KeyFrameMacroblockHeader( TwoD< KeyFrameMacroblockHead
 						    TwoD< YBlock > & frame_Y,
 						    TwoD< UBlock > & frame_U,
 						    TwoD< VBlock > & frame_V )
-  : column_( c.column ),
-    row_( c.row ),
-    segment_id_( key_frame_header.update_segmentation.initialized()
+  : segment_id_( key_frame_header.update_segmentation.initialized()
 		 and key_frame_header.update_segmentation.get().update_mb_segmentation_map,
 		 data, probability_tables.mb_segment_tree_probs ),
-  mb_skip_coeff_( key_frame_header.prob_skip_false.initialized()
-		  ? Bool( data, key_frame_header.prob_skip_false.get() ) : Optional< Bool >() ),
+  mb_skip_coeff_( key_frame_header.prob_skip_false.initialized(),
+		  data, key_frame_header.prob_skip_false.get() ),
   Y2_( frame_Y2.at( c.column, c.row ) ),
-  Y_( frame_Y, column_ * 4, row_ * 4, 4, 4 ),
-  U_( frame_U, column_ * 2, row_ * 2, 2, 2 ),
-  V_( frame_V, column_ * 2, row_ * 2, 2, 2 )
+  Y_( frame_Y, c.column * 4, c.row * 4, 4, 4 ),
+  U_( frame_U, c.column * 2, c.row * 2, 2, 2 ),
+  V_( frame_V, c.column * 2, c.row * 2, 2, 2 )
 {
   /* Set Y prediction mode */
   Y2_.set_prediction_mode( data.tree< num_y_modes, intra_mbmode >( kf_y_mode_tree, kf_y_mode_probs ) );
+  Y2_.set_if_coded();
 
   /* Set subblock prediction modes */
   YBlock default_block;
@@ -49,6 +48,7 @@ KeyFrameMacroblockHeader::KeyFrameMacroblockHeader( TwoD< KeyFrameMacroblockHead
 	       if ( Y2_.prediction_mode() == B_PRED ) {
 		 const auto above_mode = block.above().get_or( &default_block )->prediction_mode();
 		 const auto left_mode = block.left().get_or( &default_block )->prediction_mode();
+		 block.set_Y_without_Y2();
 		 block.set_prediction_mode( data.tree< num_intra_b_modes,
 					    intra_bmode >( b_mode_tree,
 							   kf_b_mode_probs.at( above_mode ).at( left_mode ) ) );

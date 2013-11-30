@@ -11,8 +11,6 @@
 class KeyFrameMacroblockHeader
 {
 private:
-  unsigned int column_, row_;
-
   Optional< Tree< uint8_t, 4, segment_id_tree > > segment_id_;
   Optional< Bool > mb_skip_coeff_;
 
@@ -30,6 +28,9 @@ public:
 			    TwoD< YBlock > & frame_Y,
 			    TwoD< UBlock > & frame_U,
 			    TwoD< VBlock > & frame_V );
+
+  void parse_tokens( BoolDecoder & data,
+		     const KeyFrameHeader::DerivedQuantities & probability_tables );
 };
 
 #endif /* MB_RECORDS_HH */
