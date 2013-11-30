@@ -59,7 +59,7 @@ static const array< TokenDecoder, ENTROPY_NODES > token_decoders = {{
     TokenDecoder( 67, { 254, 254, 243, 230, 196, 177, 153, 140, 133, 130, 129 } )
   }};
 
-template <BlockType initial_block_type, class PredictionMode >
+template < BlockType initial_block_type, class PredictionMode >
 void Block< initial_block_type,
 	    PredictionMode >::parse_tokens( BoolDecoder & data,
 					    const KeyFrameHeader::DerivedQuantities & probability_tables )
@@ -76,7 +76,7 @@ void Block< initial_block_type,
   char context = above_.get_or( &default_block )->has_nonzero()
     + left_.get_or( &default_block )->has_nonzero();
 
-  for ( unsigned int index = (type() == BlockType::Y_after_Y2) ? 1 : 0;
+  for ( unsigned int index = (type_ == BlockType::Y_after_Y2) ? 1 : 0;
 	index < 16;
 	index++ ) {
     /* select the tree probabilities based on the prediction context */
@@ -101,8 +101,8 @@ void Block< initial_block_type,
     /* after first-decoded coefficient, context becomes summary of magnitude of last coefficient */
     switch ( coded_token ) {
     case ZERO_TOKEN: context = 0; break;
-    case ONE_TOKEN: context = 1; break;
-    default: context = 2; break;
+    case ONE_TOKEN:  context = 1; break;
+    default:         context = 2; break;
     };
 
     /* decode extra bits if there are any */
