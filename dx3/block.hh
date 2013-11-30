@@ -26,6 +26,9 @@ public:
 
   const Optional< Block * > above( void ) const { return above_; }
   const Optional< Block * > left( void ) const { return left_; }
+
+  void set_above( const Optional< Block * > & s_above ) { above_ = s_above; }
+  void set_left( const Optional< Block * > & s_left ) { left_ = s_left; }
 };
 
 using Y2Block = Block< intra_mbmode >;
