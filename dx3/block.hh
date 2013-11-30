@@ -3,10 +3,9 @@
 
 #include "modemv_data.hh"
 #include "2d.hh"
-#include "tokens.hh"
 #include "frame_header.hh"
 
-enum class BlockType { Y_after_Y2 = 0, Y2, UV, Y_without_Y2 };
+enum BlockType { Y_after_Y2 = 0, Y2, UV, Y_without_Y2 };
 
 template <BlockType initial_block_type, class PredictionMode>
 class Block
@@ -18,9 +17,11 @@ private:
   Optional< Block * > above_ {};
   Optional< Block * > left_ {};
 
-  std::vector< token > tokens_ {};
+  std::array< int16_t, 16 > coefficients_ {{}};
 
   bool coded_ { true };
+
+  bool has_nonzero_ { false };
 
 public:
   Block() {}
@@ -43,14 +44,14 @@ public:
 
   void set_Y_without_Y2( void )
   {
-    static_assert( initial_block_type == BlockType::Y_after_Y2,
+    static_assert( initial_block_type == Y_after_Y2,
 		   "set_Y_without_Y2 called on non-Y coded block" );
-    type_ = BlockType::Y_without_Y2;
+    type_ = Y_without_Y2;
   }
 
   void set_if_coded( void )
   {
-    static_assert( initial_block_type == BlockType::Y2,
+    static_assert( initial_block_type == Y2,
 		   "set_if_coded called on non-Y2 coded block" );
     if ( prediction_mode_ == B_PRED ) {
       coded_ = false;
@@ -62,11 +63,12 @@ public:
 
   BlockType type( void ) const { return type_; }
   bool coded( void ) const { return coded_; }
+  bool has_nonzero( void ) const { return has_nonzero_; }
 };
 
-using Y2Block = Block< BlockType::Y2, intra_mbmode >;
-using YBlock = Block< BlockType::Y_after_Y2, intra_bmode >;
-using UBlock = Block< BlockType::UV, intra_mbmode >;
-using VBlock = Block< BlockType::UV, intra_mbmode >;
+using Y2Block = Block< Y2, intra_mbmode >;
+using YBlock = Block< Y_after_Y2, intra_bmode >;
+using UBlock = Block< UV, intra_mbmode >;
+using VBlock = Block< UV, intra_mbmode >;
 
 #endif /* BLOCK_HH */

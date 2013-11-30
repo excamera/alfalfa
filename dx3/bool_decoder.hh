@@ -35,7 +35,8 @@ public:
 
   template < uint8_t alphabet_size, class T >
   T tree( const TreeArray< alphabet_size > & nodes,
-	  const ProbabilityArray< alphabet_size > & probabilities );
+	  const ProbabilityArray< alphabet_size > & probabilities,
+	  const uint8_t starting_node = 0 );
 };
 
 #endif /* BOOL_DECODER_HH */

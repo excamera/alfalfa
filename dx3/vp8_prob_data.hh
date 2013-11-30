@@ -4,11 +4,15 @@
 #include <array>
 
 #include "bool_decoder.hh"
+#include "tokens.hh"
 
 const unsigned int BLOCK_TYPES         = 4;
 const unsigned int COEF_BANDS         = 8;
 const unsigned int PREV_COEF_CONTEXTS = 3;
 const unsigned int ENTROPY_NODES       = 11;
+
+static_assert( ENTROPY_NODES + 1 == MAX_ENTROPY_TOKENS,
+	       "max entropy tokens must equal number of entropy nodes + EOB" );
 
 const unsigned int MV_PROB_CNT = 2 + 8 - 1 + 10;
 
