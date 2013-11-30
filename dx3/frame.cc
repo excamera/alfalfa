@@ -15,6 +15,19 @@ KeyFrame::KeyFrame( UncompressedChunk & chunk,
 {
   /* repoint Y2 above/left pointers */
   relink_y2_blocks();
+
+  /* get residual partitions */
+  const uint8_t num_partitions = 1 << header_.log2_number_of_dct_partitions;
+  vector< BoolDecoder > residual_partitions = chunk.dct_partitions( num_partitions );
+
+  /* parse tokens */
+  macroblock_headers_.forall( [&]( KeyFrameMacroblockHeader & macroblock,
+				   const unsigned int column __attribute((unused)),
+				   const unsigned int row )
+			      {
+				macroblock.parse_tokens( residual_partitions.at( row % num_partitions ),
+							 probability_tables_ );
+			      } );
 }
 
 /* "above" for a Y2 block refers to the first macroblock above that actually has Y2 coded */
