@@ -5,11 +5,11 @@
 #include "bool_decoder.hh"
 
 enum intra_mbmode { DC_PRED, V_PRED, H_PRED, TM_PRED, B_PRED };
-const int num_uv_modes = B_PRED, num_y_modes = num_uv_modes + 1;
+const unsigned int num_uv_modes = B_PRED, num_y_modes = num_uv_modes + 1;
 
 enum intra_bmode { B_DC_PRED, B_TM_PRED, B_VE_PRED, B_HE_PRED, B_LD_PRED,
 		   B_RD_PRED, B_VR_PRED, B_VL_PRED, B_HD_PRED, B_HU_PRED };
-const int num_intra_b_modes = B_HU_PRED + 1;
+const unsigned int num_intra_b_modes = B_HU_PRED + 1;
 
 const extern ProbabilityArray< num_y_modes > kf_y_mode_probs;
 const extern ProbabilityArray< num_uv_modes > kf_uv_mode_probs;
