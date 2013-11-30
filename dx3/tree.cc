@@ -10,6 +10,7 @@ T BoolDecoder::tree( const TreeArray< alphabet_size > & nodes,
 		     const ProbabilityArray< alphabet_size > & probabilities,
 		     const uint8_t starting_node )
 {
+#if 0
   /* verify correctness of tree -- XXX */
   for ( unsigned int i = 0; i < nodes.size(); i++ ) {
     auto value = nodes.at( i );
@@ -17,6 +18,7 @@ T BoolDecoder::tree( const TreeArray< alphabet_size > & nodes,
       assert( value % 2 == 0 );
     }
   }
+#endif
 
   assert( starting_node < nodes.size() );
 
