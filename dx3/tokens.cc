@@ -39,9 +39,9 @@ public:
 
   uint16_t decode( BoolDecoder & data ) const
   {
-    uint16_t value( base_value_ );
-    for ( auto & x : bit_probabilities_ ) { value += value + data.get( x ); }
-    return value;
+    uint16_t increment = 0;
+    for ( auto & x : bit_probabilities_ ) { increment += increment + data.get( x ); }
+    return base_value_ + increment;
   }
 };
 
