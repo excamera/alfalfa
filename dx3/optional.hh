@@ -48,9 +48,23 @@ public:
     }
   }
 
-  /* move assignment operator */
+  /* initialize in place */
+  template <typename... Targs>
+  void initialize( Targs&&... Fargs )
+  {
+    assert( not initialized() );
+    new( &object_ ) T( std::forward<Targs>( Fargs )... );
+    initialized_ = true;
+  }
+
+  /* move assignment operators */
   const Optional & operator=( Optional<T> && other )
   {
+    /* destroy if necessary */
+    if ( initialized_ and (!other.initialized_) ) {
+      object_.~T();
+    }
+
     initialized_ = other.initialized_;
     if ( initialized_ ) {
       object_ = std::move( other.object_ );
@@ -61,6 +75,11 @@ public:
   /* copy assignment operator */
   const Optional & operator=( const Optional<T> & other )
   {
+    /* destroy if necessary */
+    if ( initialized_ and (!other.initialized_) ) {
+      object_.~T();
+    }
+
     initialized_ = other.initialized_;
     if ( initialized_ ) {
       object_ = other.object_;
@@ -72,6 +91,8 @@ public:
   bool initialized( void ) const { return initialized_; }
   const T & get( void ) const { assert( initialized() ); return object_; }
   const T & get_or( const T & default_value ) const { return initialized() ? object_ : default_value; }
+
+  T & get( void ) { assert( initialized() ); return object_; }
 
   /* destructor */
   virtual ~Optional() { if ( initialized() ) { object_.~T(); } }

@@ -21,5 +21,8 @@ void VP8Parser::parse_frame( const Chunk & frame )
     return;
   }
 
-  KeyFrame( uncompressed_chunk, width_, height_ );
+  KeyFrame myframe( uncompressed_chunk, width_, height_ );
+  myframe.calculate_probability_tables();
+  myframe.parse_macroblock_headers();
+  myframe.parse_tokens();
 }

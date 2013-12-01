@@ -11,23 +11,37 @@ KeyFrame::KeyFrame( UncompressedChunk & chunk,
 		    const unsigned int height )
   : macroblock_width_( (width + 15) / 16 ),
     macroblock_height_( (height + 15) / 16 ),
-    first_partition_( chunk.first_partition() )
+    first_partition_( chunk.first_partition() ),
+    dct_partitions_( chunk.dct_partitions( 1 << header_.log2_number_of_dct_partitions ) )
+{}
+
+void KeyFrame::calculate_probability_tables( void )
 {
-  /* repoint Y2 above/left pointers */
+  /* calculate the probability tables from the defaults and any frame-header updates */
+  probability_tables_ = header_.derived_quantities();
+}
+
+void KeyFrame::parse_macroblock_headers( void )
+{
+  /* parse the macroblock headers */
+  macroblock_headers_.initialize( macroblock_width_, macroblock_height_,
+				  first_partition_, header_, probability_tables_.get(),
+				  Y2_, Y_, U_, V_ );
+}
+
+void KeyFrame::parse_tokens( void )
+{
+  /* repoint Y2 above/left pointers to skip missing subblocks */
   relink_y2_blocks();
 
-  /* get residual partitions */
-  const uint8_t num_partitions = 1 << header_.log2_number_of_dct_partitions;
-  vector< BoolDecoder > residual_partitions = chunk.dct_partitions( num_partitions );
-
   /* parse tokens */
-  macroblock_headers_.forall( [&]( KeyFrameMacroblockHeader & macroblock,
-				   const unsigned int column __attribute((unused)),
-				   const unsigned int row )
-			      {
-				macroblock.parse_tokens( residual_partitions.at( row % num_partitions ),
-							 probability_tables_ );
-			      } );
+  macroblock_headers_.get().forall( [&]( KeyFrameMacroblockHeader & macroblock,
+					 const unsigned int column __attribute((unused)),
+					 const unsigned int row )
+				    {
+				      macroblock.parse_tokens( dct_partitions_.at( row % dct_partitions_.size() ),
+							       probability_tables_.get() );
+				    } );
 }
 
 /* "above" for a Y2 block refers to the first macroblock above that actually has Y2 coded */

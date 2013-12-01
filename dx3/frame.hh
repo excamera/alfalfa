@@ -19,11 +19,11 @@ class KeyFrame
 
   BoolDecoder first_partition_;
   KeyFrameHeader header_ { first_partition_ };
-  KeyFrameHeader::DerivedQuantities probability_tables_ { header_.derived_quantities() };
 
-  TwoD< KeyFrameMacroblockHeader > macroblock_headers_ { macroblock_width_, macroblock_height_,
-                                                         first_partition_, header_, probability_tables_,
-                                                         Y2_, Y_, U_, V_ };
+  std::vector< BoolDecoder > dct_partitions_;
+
+  Optional< KeyFrameHeader::DerivedQuantities > probability_tables_ {};
+  Optional< TwoD< KeyFrameMacroblockHeader > > macroblock_headers_ {};
 
   void relink_y2_blocks( void );
 
@@ -31,6 +31,10 @@ class KeyFrame
   KeyFrame( UncompressedChunk & chunk,
 	    const unsigned int width,
 	    const unsigned int height );
+
+  void calculate_probability_tables( void );
+  void parse_macroblock_headers( void );
+  void parse_tokens( void );
 };
 
 #endif /* FRAME_HH */
