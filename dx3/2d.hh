@@ -39,7 +39,8 @@ template< class T >
 class TwoD : public TwoDBase< T >
 {
 private:
-  std::vector< std::vector< T > > storage_;
+  unsigned int width_, height_;
+  std::vector< T > storage_;
 
 public:
   struct Context
@@ -50,33 +51,31 @@ public:
 
   template< typename... Targs >
   TwoD( const unsigned int width, const unsigned int height, Targs&&... Fargs )
-    : storage_()
+    : width_( width ), height_( height ), storage_()
   {
     assert( width > 0 );
     assert( height > 0 );
 
-    /* we need to construct each member separately */
-    storage_.reserve( height );
-    for ( unsigned int i = 0; i < height; i++ ) {
-      std::vector< T > row;
-      row.reserve( width );
-      for ( unsigned int j = 0; j < width; j++ ) {
-	const Optional< T * > above( i > 0 ? &storage_.at( i - 1 ).at( j ) : Optional< T * >() );
-	const Optional< T * > left ( j > 0 ? &row.at( j - 1 ) : Optional< T * >() );
-	Context c { j, i, above, left };
-	row.emplace_back( c, Fargs... );
+    storage_.reserve( width * height );
+
+    /* we want to construct each member separately */
+    for ( unsigned int row = 0; row < height; row++ ) {
+      for ( unsigned int column = 0; column < width; column++ ) {
+	const Optional< T * > above( row > 0    ? &at( column, row - 1 ) : Optional< T * >() );
+	const Optional< T * > left ( column > 0 ? &at( column - 1, row ) : Optional< T * >() );
+	Context c { column, row, above, left };
+	storage_.emplace_back( c, Fargs... );
       }
-      storage_.emplace_back( move( row ) );
     }
   }
 
   T & at( const unsigned int column, const unsigned int row ) override
   {
-    return storage_.at( row ).at( column );
+    return storage_.at( row * width_ + column );
   }
 
-  unsigned int width( void ) const override { return storage_.at( 0 ).size(); }
-  unsigned int height( void ) const override { return storage_.size(); }  
+  unsigned int width( void ) const override { return width_; }
+  unsigned int height( void ) const override { return height_; }
 
   /* forbid copying */
   TwoD( const TwoD & other ) = delete;
