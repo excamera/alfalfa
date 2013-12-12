@@ -36,6 +36,9 @@ public:
 };
 
 template< class T >
+class TwoDSubRange;
+
+template< class T >
 class TwoD : public TwoDBase< T >
 {
 private:
@@ -76,6 +79,14 @@ public:
 
   unsigned int width( void ) const override { return width_; }
   unsigned int height( void ) const override { return height_; }
+
+  TwoDSubRange< T > sub( const unsigned int column,
+			 const unsigned int row,
+			 const unsigned int width,
+			 const unsigned int height )
+  {
+    return TwoDSubRange< T >( *this, column, row, width, height );
+  }
 
   /* forbid copying */
   TwoD( const TwoD & other ) = delete;
