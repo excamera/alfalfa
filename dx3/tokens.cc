@@ -27,6 +27,8 @@ void KeyFrameMacroblockHeader::parse_tokens( BoolDecoder & data,
 
 static const array< uint8_t, 16 > coefficient_to_band {{ 0, 1, 2, 3, 6, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 7 }};
 
+static const array< uint8_t, 16 > zigzag = {{ 0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15 }};
+
 struct TokenDecoder
 {
 private:
@@ -114,7 +116,7 @@ void Block< initial_block_type,
     }
 
     /* assign to block storage */
-    coefficients_.at( index ) = coefficient;
+    coefficients_.at( zigzag.at( index ) ) = coefficient;
   }
 }
 
