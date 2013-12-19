@@ -4,6 +4,8 @@
 #include "modemv_data.hh"
 #include "2d.hh"
 #include "frame_header.hh"
+#include "raster.hh"
+#include "quantization.hh"
 
 enum BlockType { Y_after_Y2 = 0, Y2, UV, Y_without_Y2 };
 
@@ -52,7 +54,7 @@ public:
   void set_if_coded( void )
   {
     static_assert( initial_block_type == Y2,
-		   "set_if_coded called on non-Y2 coded block" );
+		   "set_if_coded attempted on non-Y2 coded block" );
     if ( prediction_mode_ == B_PRED ) {
       coded_ = false;
     }
@@ -64,11 +66,15 @@ public:
   BlockType type( void ) const { return type_; }
   bool coded( void ) const { return coded_; }
   bool has_nonzero( void ) const { return has_nonzero_; }
+
+  void walsh_transform( TwoDSubRange< Block< Y_after_Y2, intra_bmode > > & output );
+  void idct( Raster::Macroblock::Block & output );
+  void set_dc_coefficient( const int16_t & val );
+  void dequantize( const Quantizer & quantizer );
 };
 
 using Y2Block = Block< Y2, intra_mbmode >;
 using YBlock = Block< Y_after_Y2, intra_bmode >;
-using UBlock = Block< UV, intra_mbmode >;
-using VBlock = Block< UV, intra_mbmode >;
+using UVBlock = Block< UV, intra_mbmode >;
 
 #endif /* BLOCK_HH */

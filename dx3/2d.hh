@@ -74,23 +74,14 @@ public:
 
   T & at( const unsigned int column, const unsigned int row ) override
   {
+    if ( column > width_ or row > height_ ) {
+      throw std::out_of_range( "attempted to read outside of TwoD structure" );
+    }
     return storage_.at( row * width_ + column );
   }
 
   unsigned int width( void ) const override { return width_; }
   unsigned int height( void ) const override { return height_; }
-
-  TwoDSubRange< T > sub( const unsigned int column,
-			 const unsigned int row,
-			 const unsigned int width,
-			 const unsigned int height )
-  {
-    return TwoDSubRange< T >( *this, column, row, width, height );
-  }
-
-  /* forbid copying */
-  TwoD( const TwoD & other ) = delete;
-  TwoD & operator=( const TwoD & other ) = delete;
 };
 
 template< class T >
@@ -110,12 +101,30 @@ public:
 		const unsigned int height )
     : master_( master ), column_( column ), row_( row ), width_( width ), height_( height )
   {
-    assert( column + width <= master.width() );
-    assert( row + height <= master.height() );
+    assert( column_ + width <= master_.width() );
+    assert( row_ + height <= master_.height() );
+  }
+
+  TwoDSubRange( TwoDSubRange< T > & parent,
+		const unsigned int column,
+		const unsigned int row,
+		const unsigned int width,
+		const unsigned int height )
+    : master_( parent.master_ ),
+      column_( column + parent.column_ ),
+      row_( row + parent.row_ ),
+      width_( width ),
+      height_( height )
+  {
+    assert( column_ + width_ <= master_.width() );
+    assert( row_ + height_ <= master_.height() );
   }
 
   T & at( const unsigned int column, const unsigned int row ) override
   {
+    if ( column > width_ or row > height_ ) {
+      throw std::out_of_range( "attempted to read outside of TwoD structure" );
+    }
     return master_.at( column_ + column, row_ + row );
   }
 

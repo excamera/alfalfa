@@ -6,6 +6,7 @@
 #include "vp8_prob_data.hh"
 #include "modemv_data.hh"
 #include "exception.hh"
+#include "quantization.hh"
 
 struct QuantIndices
 {
@@ -101,11 +102,14 @@ struct KeyFrameHeader
 					PREV_COEF_CONTEXTS >,
 			    COEF_BANDS >,
 		BLOCK_TYPES > coeff_probs;
+    
+    Quantizer quantizer;
+    std::array< Quantizer, num_segments > segment_quantizers;
 
-    DerivedQuantities();
+    DerivedQuantities( const KeyFrameHeader & header );
   };
 
-  DerivedQuantities derived_quantities( void ) const;
+  DerivedQuantities derived_quantities( void ) const { return *this; }
 };
 
 #endif /* FRAME_HEADER_HH */

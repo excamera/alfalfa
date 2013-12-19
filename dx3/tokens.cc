@@ -21,8 +21,8 @@ void KeyFrameMacroblockHeader::parse_tokens( BoolDecoder & data,
   Y_.forall( [&]( YBlock & block ) { block.parse_tokens( data, probability_tables ); } );
 
   /* parse U and V blocks */
-  U_.forall( [&]( UBlock & block ) { block.parse_tokens( data, probability_tables ); } );
-  V_.forall( [&]( VBlock & block ) { block.parse_tokens( data, probability_tables ); } );
+  U_.forall( [&]( UVBlock & block ) { block.parse_tokens( data, probability_tables ); } );
+  V_.forall( [&]( UVBlock & block ) { block.parse_tokens( data, probability_tables ); } );
 }
 
 static const array< uint8_t, 16 > coefficient_to_band {{ 0, 1, 2, 3, 6, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 7 }};

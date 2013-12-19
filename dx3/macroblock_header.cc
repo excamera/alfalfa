@@ -23,8 +23,8 @@ KeyFrameMacroblockHeader::KeyFrameMacroblockHeader( TwoD< KeyFrameMacroblockHead
 						    const KeyFrameHeader::DerivedQuantities & probability_tables,
 						    TwoD< Y2Block > & frame_Y2,
 						    TwoD< YBlock > & frame_Y,
-						    TwoD< UBlock > & frame_U,
-						    TwoD< VBlock > & frame_V )
+						    TwoD< UVBlock > & frame_U,
+						    TwoD< UVBlock > & frame_V )
   : segment_id_( key_frame_header.update_segmentation.initialized()
 		 and key_frame_header.update_segmentation.get().update_mb_segmentation_map,
 		 data, probability_tables.mb_segment_tree_probs ),
@@ -59,6 +59,6 @@ KeyFrameMacroblockHeader::KeyFrameMacroblockHeader( TwoD< KeyFrameMacroblockHead
 
   /* Set U and V prediction modes */
   auto uv_mode = data.tree< num_uv_modes, intra_mbmode >( uv_mode_tree, kf_uv_mode_probs );
-  U_.forall( [&]( UBlock & block ) { block.set_prediction_mode( uv_mode ); } );
-  V_.forall( [&]( VBlock & block ) { block.set_prediction_mode( uv_mode ); } );
+  U_.forall( [&]( UVBlock & block ) { block.set_prediction_mode( uv_mode ); } );
+  V_.forall( [&]( UVBlock & block ) { block.set_prediction_mode( uv_mode ); } );
 }

@@ -24,13 +24,36 @@ private:
 public:
   struct Macroblock
   {
-    TwoDSubRange< Component > Y_, U_, V_;
+    struct Block
+    {
+      TwoDSubRange< Component > contents;
+
+      Block( TwoD< Block >::Context & c, TwoDSubRange< Component > & macroblock_component );
+
+      Component & at( const unsigned int column, const unsigned int row ) { return contents.at( column, row ); }
+    };
+
+    TwoDSubRange< Component > Y, U, V;
+    TwoD< Block > Y_blocks, U_blocks, V_blocks;
+
+    Macroblock( TwoD< Macroblock >::Context & c, Raster & raster );
   };
 
+private:
+  TwoD< Macroblock > macroblocks_;
+
+public:
   Raster( const unsigned int width, const unsigned int height,
 	  const unsigned int display_width, const unsigned int display_height );
 
-  Macroblock macroblock( const unsigned int macroblock_column, const unsigned int macroblock_row );
+  TwoD< Component > & Y( void ) { return Y_; }
+  TwoD< Component > & U( void ) { return U_; }
+  TwoD< Component > & V( void ) { return V_; }
+
+  Macroblock & macroblock( const unsigned int column, const unsigned int row )
+  {
+    return macroblocks_.at( column, row );
+  }
 };
 
 #endif /* RASTER_HH */

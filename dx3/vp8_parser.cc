@@ -25,4 +25,6 @@ void VP8Parser::parse_frame( const Chunk & frame )
   myframe.calculate_probability_tables();
   myframe.parse_macroblock_headers();
   myframe.parse_tokens();
+  myframe.dequantize();
+  myframe.inverse_transform();
 }

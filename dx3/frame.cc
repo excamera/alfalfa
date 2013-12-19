@@ -9,8 +9,8 @@ using namespace std;
 KeyFrame::KeyFrame( UncompressedChunk & chunk,
 		    const unsigned int width,
 		    const unsigned int height )
-  : macroblock_width_( (width + 15) / 16 ),
-    macroblock_height_( (height + 15) / 16 ),
+  : display_width_( width ),
+    display_height_( height ),
     first_partition_( chunk.first_partition() ),
     dct_partitions_( chunk.dct_partitions( 1 << header_.log2_number_of_dct_partitions ) )
 {}
@@ -18,14 +18,14 @@ KeyFrame::KeyFrame( UncompressedChunk & chunk,
 void KeyFrame::calculate_probability_tables( void )
 {
   /* calculate the probability tables from the defaults and any frame-header updates */
-  probability_tables_ = header_.derived_quantities();
+  derived_quantities_ = header_.derived_quantities();
 }
 
 void KeyFrame::parse_macroblock_headers( void )
 {
   /* parse the macroblock headers */
   macroblock_headers_.initialize( macroblock_width_, macroblock_height_,
-				  first_partition_, header_, probability_tables_.get(),
+				  first_partition_, header_, derived_quantities_.get(),
 				  Y2_, Y_, U_, V_ );
 }
 
@@ -40,7 +40,7 @@ void KeyFrame::parse_tokens( void )
 					 const unsigned int row )
 				    {
 				      macroblock.parse_tokens( dct_partitions_.at( row % dct_partitions_.size() ),
-							       probability_tables_.get() );
+							       derived_quantities_.get() );
 				    } );
 }
 
@@ -60,4 +60,22 @@ void KeyFrame::relink_y2_blocks( void )
 	left_coded.at( row ) = &block;
       }
     } );
+}
+
+void KeyFrame::dequantize( void )
+{
+  macroblock_headers_.get().forall( [&] ( KeyFrameMacroblockHeader & macroblock,
+					  const unsigned int, const unsigned int )
+				    { macroblock.dequantize( derived_quantities_.get() ); } );
+}
+
+void KeyFrame::inverse_transform( void )
+{
+  raster_.initialize( macroblock_width_ * 16, macroblock_height_ * 16,
+		      display_width_, display_height_ );
+
+  macroblock_headers_.get().forall( [&] ( KeyFrameMacroblockHeader & macroblock,
+					  const unsigned int column,
+					  const unsigned int row )
+				    { macroblock.inverse_transform( raster_.get().macroblock( column, row ) ); } );
 }

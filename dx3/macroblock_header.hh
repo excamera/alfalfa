@@ -5,6 +5,7 @@
 #include "frame_header.hh"
 #include "2d.hh"
 #include "block.hh"
+#include "raster.hh"
 
 #include "tree.cc"
 
@@ -16,8 +17,7 @@ private:
 
   Y2Block & Y2_;
   TwoDSubRange< YBlock > Y_;
-  TwoDSubRange< UBlock > U_;
-  TwoDSubRange< VBlock > V_;
+  TwoDSubRange< UVBlock > U_, V_;
 
 public:
   KeyFrameMacroblockHeader( TwoD< KeyFrameMacroblockHeader >::Context & c,
@@ -26,11 +26,15 @@ public:
 			    const KeyFrameHeader::DerivedQuantities & probability_tables,
 			    TwoD< Y2Block > & frame_Y2,
 			    TwoD< YBlock > & frame_Y,
-			    TwoD< UBlock > & frame_U,
-			    TwoD< VBlock > & frame_V );
+			    TwoD< UVBlock > & frame_U,
+			    TwoD< UVBlock > & frame_V );
 
   void parse_tokens( BoolDecoder & data,
 		     const KeyFrameHeader::DerivedQuantities & probability_tables );
+
+  void dequantize( const KeyFrameHeader::DerivedQuantities & derived );
+
+  void inverse_transform( Raster::Macroblock & raster );
 };
 
 #endif /* MB_RECORDS_HH */
