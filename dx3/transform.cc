@@ -52,7 +52,7 @@ static inline int MUL_20091( const int a ) { return ((((a)*20091) >> 16) + (a));
 static inline int MUL_35468( const int a ) { return (((a)*35468) >> 16); }
 
 template <BlockType initial_block_type, class PredictionMode>
-void Block< initial_block_type, PredictionMode >::idct( Raster::Macroblock::Block & output )
+void Block< initial_block_type, PredictionMode >::idct( Raster::Block & output )
 {
   assert( type_ == UV or type_ == Y_without_Y2 );
 

@@ -5,7 +5,7 @@
 
 class Raster
 {
-private:
+public:
   struct Component
   {
     uint8_t value {};
@@ -14,6 +14,25 @@ private:
     Component & operator=( const uint8_t other ) { value = other; return *this; }
   };
 
+  struct Block
+  {
+    TwoDSubRange< Component > contents;
+
+    Block( TwoD< Block >::Context & c, TwoD< Component > & macroblock_component );
+
+    Component & at( const unsigned int column, const unsigned int row )
+    { return contents.at( column, row ); }
+  };
+
+  struct Macroblock
+  {
+    TwoDSubRange< Component > Y, U, V;
+    TwoDSubRange< Block > Y_blocks, U_blocks, V_blocks;
+
+    Macroblock( TwoD< Macroblock >::Context & c, Raster & raster );
+  };
+
+private:
   unsigned int width_, height_;
   unsigned int display_width_, display_height_;
 
@@ -21,34 +40,20 @@ private:
   TwoD< Component > U_ { width_ / 2, height_ / 2 };
   TwoD< Component > V_ { width_ / 2, height_ / 2 };
 
-public:
-  struct Macroblock
-  {
-    struct Block
-    {
-      TwoDSubRange< Component > contents;
-
-      Block( TwoD< Block >::Context & c, TwoDSubRange< Component > & macroblock_component );
-
-      Component & at( const unsigned int column, const unsigned int row ) { return contents.at( column, row ); }
-    };
-
-    TwoDSubRange< Component > Y, U, V;
-    TwoD< Block > Y_blocks, U_blocks, V_blocks;
-
-    Macroblock( TwoD< Macroblock >::Context & c, Raster & raster );
-  };
-
-private:
+  TwoD< Block > Y_blocks_, U_blocks_, V_blocks_;
   TwoD< Macroblock > macroblocks_;
 
 public:
-  Raster( const unsigned int width, const unsigned int height,
+  Raster( const unsigned int macroblock_width, const unsigned int macroblock_height,
 	  const unsigned int display_width, const unsigned int display_height );
 
   TwoD< Component > & Y( void ) { return Y_; }
   TwoD< Component > & U( void ) { return U_; }
   TwoD< Component > & V( void ) { return V_; }
+
+  TwoD< Block > & Y_blocks( void ) { return Y_blocks_; }
+  TwoD< Block > & U_blocks( void ) { return U_blocks_; }
+  TwoD< Block > & V_blocks( void ) { return V_blocks_; }
 
   Macroblock & macroblock( const unsigned int column, const unsigned int row )
   {

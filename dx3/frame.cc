@@ -71,8 +71,7 @@ void KeyFrame::dequantize( void )
 
 void KeyFrame::inverse_transform( void )
 {
-  raster_.initialize( macroblock_width_ * 16, macroblock_height_ * 16,
-		      display_width_, display_height_ );
+  raster_.initialize( macroblock_width_, macroblock_height_, display_width_, display_height_ );
 
   macroblock_headers_.get().forall( [&] ( KeyFrameMacroblockHeader & macroblock,
 					  const unsigned int column,

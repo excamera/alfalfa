@@ -68,7 +68,7 @@ public:
   bool has_nonzero( void ) const { return has_nonzero_; }
 
   void walsh_transform( TwoDSubRange< Block< Y_after_Y2, intra_bmode > > & output );
-  void idct( Raster::Macroblock::Block & output );
+  void idct( Raster::Block & output );
   void set_dc_coefficient( const int16_t & val );
   void dequantize( const Quantizer & quantizer );
 };
