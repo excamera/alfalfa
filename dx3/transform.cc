@@ -105,12 +105,9 @@ void KeyFrameMacroblockHeader::dequantize( const KeyFrameHeader::DerivedQuantiti
     Y2_.dequantize( the_quantizer );
   }
 
-  Y_.forall( [&] ( YBlock & block, const unsigned int, const unsigned int )
-	     { block.dequantize( the_quantizer ); } );
-  U_.forall( [&] ( UVBlock & block, const unsigned int, const unsigned int )
-	     { block.dequantize( the_quantizer ); } );
-  V_.forall( [&] ( UVBlock & block, const unsigned int, const unsigned int )
-	     { block.dequantize( the_quantizer ); } );
+  Y_.forall( [&] ( YBlock & block ) { block.dequantize( the_quantizer ); } );
+  U_.forall( [&] ( UVBlock & block ) { block.dequantize( the_quantizer ); } );
+  V_.forall( [&] ( UVBlock & block ) { block.dequantize( the_quantizer ); } );
 }
 
 void KeyFrameMacroblockHeader::inverse_transform( Raster::Macroblock & macroblock )
