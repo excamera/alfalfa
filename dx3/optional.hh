@@ -1,7 +1,7 @@
 #ifndef OPTIONAL_HH
 #define OPTIONAL_HH
 
-#include <functional>
+#include <stdexcept>
 #include <cassert>
 #include <utility>
 

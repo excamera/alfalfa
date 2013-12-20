@@ -35,13 +35,13 @@ void KeyFrame::parse_tokens( void )
   relink_y2_blocks();
 
   /* parse tokens */
-  macroblock_headers_.get().forall( [&]( KeyFrameMacroblockHeader & macroblock,
-					 const unsigned int column __attribute((unused)),
-					 const unsigned int row )
-				    {
-				      macroblock.parse_tokens( dct_partitions_.at( row % dct_partitions_.size() ),
-							       derived_quantities_.get() );
-				    } );
+  macroblock_headers_.get().forall_ij( [&]( KeyFrameMacroblockHeader & macroblock,
+					    const unsigned int column __attribute((unused)),
+					    const unsigned int row )
+				       {
+					 macroblock.parse_tokens( dct_partitions_.at( row % dct_partitions_.size() ),
+								  derived_quantities_.get() );
+				       } );
 }
 
 /* "above" for a Y2 block refers to the first macroblock above that actually has Y2 coded */
@@ -52,7 +52,7 @@ void KeyFrame::relink_y2_blocks( void )
   vector< Optional< Y2Block * > > above_coded( macroblock_width_, Optional< Y2Block * >() );
   vector< Optional< Y2Block * > > left_coded( macroblock_height_, Optional< Y2Block * >() );
   
-  Y2_.forall( [&]( Y2Block & block, const unsigned int column, const unsigned int row ) {
+  Y2_.forall_ij( [&]( Y2Block & block, const unsigned int column, const unsigned int row ) {
       block.set_above( above_coded.at( column ) );
       block.set_left( left_coded.at( row ) );
       if ( block.prediction_mode() != B_PRED ) {
@@ -64,17 +64,17 @@ void KeyFrame::relink_y2_blocks( void )
 
 void KeyFrame::dequantize( void )
 {
-  macroblock_headers_.get().forall( [&] ( KeyFrameMacroblockHeader & macroblock,
-					  const unsigned int, const unsigned int )
-				    { macroblock.dequantize( derived_quantities_.get() ); } );
+  macroblock_headers_.get().forall_ij( [&] ( KeyFrameMacroblockHeader & macroblock,
+					     const unsigned int, const unsigned int )
+				       { macroblock.dequantize( derived_quantities_.get() ); } );
 }
 
 void KeyFrame::inverse_transform( void )
 {
   raster_.initialize( macroblock_width_, macroblock_height_, display_width_, display_height_ );
 
-  macroblock_headers_.get().forall( [&] ( KeyFrameMacroblockHeader & macroblock,
-					  const unsigned int column,
-					  const unsigned int row )
-				    { macroblock.inverse_transform( raster_.get().macroblock( column, row ) ); } );
+  macroblock_headers_.get().forall_ij( [&] ( KeyFrameMacroblockHeader & macroblock,
+					     const unsigned int column,
+					     const unsigned int row )
+				       { macroblock.inverse_transform( raster_.get().macroblock( column, row ) ); } );
 }

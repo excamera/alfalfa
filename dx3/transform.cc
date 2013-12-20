@@ -123,14 +123,14 @@ void KeyFrameMacroblockHeader::inverse_transform( Raster::Macroblock & macrobloc
   }
 
   /* decode the Y blocks */
-  Y_.forall( [&] ( YBlock & block, const unsigned int column, const unsigned int row )
-	     { block.idct( macroblock.Y_blocks.at( column, row ) ); } );
+  Y_.forall_ij( [&] ( YBlock & block, const unsigned int column, const unsigned int row )
+		{ block.idct( macroblock.Y_blocks.at( column, row ) ); } );
 
   /* U blocks */
-  U_.forall( [&] ( UVBlock & block, const unsigned int column, const unsigned int row )
-	     { block.idct( macroblock.U_blocks.at( column, row ) ); } );
+  U_.forall_ij( [&] ( UVBlock & block, const unsigned int column, const unsigned int row )
+		{ block.idct( macroblock.U_blocks.at( column, row ) ); } );
 
   /* V blocks */
-  V_.forall( [&] ( UVBlock & block, const unsigned int column, const unsigned int row )
-	     { block.idct( macroblock.V_blocks.at( column, row ) ); } );
+  V_.forall_ij( [&] ( UVBlock & block, const unsigned int column, const unsigned int row )
+		{ block.idct( macroblock.V_blocks.at( column, row ) ); } );
 }

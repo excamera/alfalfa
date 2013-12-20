@@ -16,7 +16,8 @@ public:
 
   virtual T & at( const unsigned int column, const unsigned int row ) = 0;
 
-  void forall( std::function<void( T & )> && f )
+  template <class lambda>
+  void forall( const lambda & f )
   {
     for ( unsigned int row = 0; row < height(); row++ ) {
       for ( unsigned int column = 0; column < width(); column++ ) {
@@ -25,7 +26,8 @@ public:
     }
   }
 
-  void forall( std::function<void( T &, const unsigned int, const unsigned int )> && f )
+  template <class lambda>
+  void forall_ij( const lambda & f )
   {
     for ( unsigned int row = 0; row < height(); row++ ) {
       for ( unsigned int column = 0; column < width(); column++ ) {
