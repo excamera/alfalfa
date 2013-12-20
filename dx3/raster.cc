@@ -17,9 +17,5 @@ Raster::Macroblock::Macroblock( TwoD< Macroblock >::Context & c, Raster & raster
 Raster::Raster( const unsigned int macroblock_width, const unsigned int macroblock_height,
 		const unsigned int display_width, const unsigned int display_height )
   : width_( macroblock_width * 16 ), height_( macroblock_height * 16 ),
-    display_width_( display_width ), display_height_( display_height ),
-    Y_blocks_( width_ / 4, height_ / 4, Y_ ),
-    U_blocks_( width_ / 8, height_ / 8, U_ ),
-    V_blocks_( width_ / 8, height_ / 8, V_ ),
-    macroblocks_( width_ / 16, height_ / 16, *this )
+    display_width_( display_width ), display_height_( display_height )
 {}

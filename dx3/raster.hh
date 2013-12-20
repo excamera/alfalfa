@@ -36,12 +36,15 @@ private:
   unsigned int width_, height_;
   unsigned int display_width_, display_height_;
 
-  TwoD< Component > Y_ { width_, height_ };
-  TwoD< Component > U_ { width_ / 2, height_ / 2 };
-  TwoD< Component > V_ { width_ / 2, height_ / 2 };
+  TwoD< Component > Y_ { width_, height_ },
+    U_ { width_ / 2, height_ / 2 },
+    V_ { width_ / 2, height_ / 2 };
 
-  TwoD< Block > Y_blocks_, U_blocks_, V_blocks_;
-  TwoD< Macroblock > macroblocks_;
+  TwoD< Block > Y_blocks_ { width_ / 4, height_ / 4, Y_ },
+    U_blocks_ { width_ / 8, height_ / 8, U_ },
+    V_blocks_ { width_ / 8, height_ / 8, V_ };
+
+  TwoD< Macroblock > macroblocks_ { width_ / 16, height_ / 16, *this };
 
 public:
   Raster( const unsigned int macroblock_width, const unsigned int macroblock_height,
