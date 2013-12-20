@@ -82,6 +82,17 @@ public:
 
   unsigned int width( void ) const override { return width_; }
   unsigned int height( void ) const override { return height_; }
+
+  /* forbid copying */
+  TwoD( const TwoD & other ) = delete;
+  TwoD & operator=( const TwoD & other ) = delete;
+
+  /* allow moving */
+  TwoD( TwoD && other )
+    : width_( other.width_ ),
+      height_( other.height_ ),
+      storage_( move( other.storage_ ) )
+  {}
 };
 
 template< class T >
