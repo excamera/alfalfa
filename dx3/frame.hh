@@ -27,8 +27,7 @@ class KeyFrame
 
   Optional< KeyFrameHeader::DerivedQuantities > derived_quantities_ {};
   Optional< TwoD< KeyFrameMacroblockHeader > > macroblock_headers_ {};
-  Optional< Raster > residue_ {};
-  Optional< Raster > prediction_ {};
+  Optional< Raster > raster_ {};
 
   void relink_y2_blocks( void );
 
@@ -41,8 +40,8 @@ class KeyFrame
   void parse_macroblock_headers( void );
   void parse_tokens( void );
   void dequantize( void );
-  void inverse_transform( void );
-  void intra_predict( void );
+  void initialize_raster( void );
+  void intra_predict_and_inverse_transform( void );
 };
 
 #endif /* FRAME_HH */

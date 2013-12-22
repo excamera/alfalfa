@@ -1,6 +1,13 @@
 #include "macroblock_header.hh"
 #include "block.hh"
 
+static uint8_t clamp( const int16_t input )
+{
+  if ( input < 0 ) return 0;
+  if ( input > 255 ) return 255;
+  return input;
+}
+
 template <>
 void YBlock::set_dc_coefficient( const int16_t & val )
 {
@@ -82,35 +89,14 @@ void Block< initial_block_type, PredictionMode >::idct( Raster::Block4 & output 
     int t2 = MUL_35468( intermediate[ i + 4 ] ) - MUL_20091( intermediate[ i + 12 ] );
     int t3 = MUL_20091( intermediate[ i + 4 ] ) + MUL_35468( intermediate[ i + 12 ] );
 
-    output.at( 0, i ) = (t0 + t3 + 4) >> 3;
-    output.at( 1, i ) = (t1 + t2 + 4) >> 3;
-    output.at( 2, i ) = (t1 - t2 + 4) >> 3;
-    output.at( 3, i ) = (t0 - t3 + 4) >> 3;
+    output.at( 0, i ) = clamp( output.at( 0, i ) + ((t0 + t3 + 4) >> 3) );
+    output.at( 1, i ) = clamp( output.at( 1, i ) + ((t1 + t2 + 4) >> 3) );
+    output.at( 2, i ) = clamp( output.at( 2, i ) + ((t1 - t2 + 4) >> 3) );
+    output.at( 3, i ) = clamp( output.at( 3, i ) + ((t0 - t3 + 4) >> 3) );
   }
 }
 
-void KeyFrameMacroblockHeader::dequantize( const KeyFrameHeader::DerivedQuantities & derived )
-{
-  /* is macroblock skipped? */
-  if ( mb_skip_coeff_.get_or( false ) ) {
-    return;
-  }
-
-  /* which quantizer are we using? */
-  const Quantizer & the_quantizer( segment_id_.initialized()
-				   ? derived.segment_quantizers.at( segment_id_.get() )
-				   : derived.quantizer );
-
-  if ( Y2_.coded() ) {
-    Y2_.dequantize( the_quantizer );
-  }
-
-  Y_.forall( [&] ( YBlock & block ) { block.dequantize( the_quantizer ); } );
-  U_.forall( [&] ( UVBlock & block ) { block.dequantize( the_quantizer ); } );
-  V_.forall( [&] ( UVBlock & block ) { block.dequantize( the_quantizer ); } );
-}
-
-void KeyFrameMacroblockHeader::inverse_transform( Raster::Macroblock & macroblock )
+void KeyFrameMacroblockHeader::inverse_transform( void )
 {
   /* is macroblock skipped? */
   if ( mb_skip_coeff_.get_or( false ) ) {
@@ -124,13 +110,13 @@ void KeyFrameMacroblockHeader::inverse_transform( Raster::Macroblock & macrobloc
 
   /* decode the Y blocks */
   Y_.forall_ij( [&] ( YBlock & block, const unsigned int column, const unsigned int row )
-		{ block.idct( macroblock.Y_sub.at( column, row ) ); } );
+		{ block.idct( raster_.get()->Y_sub.at( column, row ) ); } );
 
   /* U blocks */
   U_.forall_ij( [&] ( UVBlock & block, const unsigned int column, const unsigned int row )
-		{ block.idct( macroblock.U_sub.at( column, row ) ); } );
+		{ block.idct( raster_.get()->U_sub.at( column, row ) ); } );
 
   /* V blocks */
   V_.forall_ij( [&] ( UVBlock & block, const unsigned int column, const unsigned int row )
-		{ block.idct( macroblock.V_sub.at( column, row ) ); } );
+		{ block.idct( raster_.get()->V_sub.at( column, row ) ); } );
 }

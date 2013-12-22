@@ -8,9 +8,9 @@ Raster::Block<size>::Block( const typename TwoD< Block >::Context & c,
 {}
 
 Raster::Macroblock::Macroblock( const TwoD< Macroblock >::Context & c, Raster & raster )
-  : Y( raster.Y_bigblocks_, c.column, c.row, 1, 1 ),
-    U( raster.U_bigblocks_, c.column, c.row, 1, 1 ),
-    V( raster.V_bigblocks_, c.column, c.row, 1, 1 ),
+  : Y( raster.Y_bigblocks_.at( c.column, c.row ) ),
+    U( raster.U_bigblocks_.at( c.column, c.row ) ),
+    V( raster.V_bigblocks_.at( c.column, c.row ) ),
     Y_sub( raster.Y_subblocks_, 4 * c.column, 4 * c.row, 4, 4 ),
     U_sub( raster.U_subblocks_, 2 * c.column, 2 * c.row, 2, 2 ),
     V_sub( raster.V_subblocks_, 2 * c.column, 2 * c.row, 2, 2 )

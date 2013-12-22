@@ -19,6 +19,10 @@ private:
   TwoDSubRange< YBlock > Y_;
   TwoDSubRange< UVBlock > U_, V_;
 
+  Optional< Raster::Macroblock * > raster_ {};
+
+  const intra_mbmode & uv_prediction_mode( void ) const { return U_.at( 0, 0 ).prediction_mode(); }
+
 public:
   KeyFrameMacroblockHeader( const TwoD< KeyFrameMacroblockHeader >::Context & c,
 			    BoolDecoder & data,
@@ -34,7 +38,11 @@ public:
 
   void dequantize( const KeyFrameHeader::DerivedQuantities & derived );
 
-  void inverse_transform( Raster::Macroblock & raster );
+  void assign_output_raster( Raster::Macroblock & raster ) { raster_.initialize( &raster ); }
+
+  void inverse_transform( void );
+
+  void intra_predict( void );
 };
 
 #endif /* MB_RECORDS_HH */

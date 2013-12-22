@@ -26,5 +26,6 @@ void VP8Parser::parse_frame( const Chunk & frame )
   myframe.parse_macroblock_headers();
   myframe.parse_tokens();
   myframe.dequantize();
-  myframe.inverse_transform();
+  myframe.initialize_raster();
+  myframe.intra_predict_and_inverse_transform();
 }

@@ -16,6 +16,8 @@ public:
 
   virtual T & at( const unsigned int column, const unsigned int row ) = 0;
 
+  
+
   template <class lambda>
   void forall( const lambda & f )
   {
@@ -88,10 +90,18 @@ public:
     return storage_.at( row * width_ + column );
   }
 
+  const T & at( const unsigned int column, const unsigned int row ) const
+  {
+    if ( column >= width_ or row >= height_ ) {
+      throw std::out_of_range( "attempted to read outside of TwoD structure" );
+    }
+    return storage_.at( row * width_ + column );
+  }
+
   Optional< const T * > maybe_at( const unsigned int column, const unsigned int row ) const
   {
     if ( column < width_ and row < height_ ) {
-      return &storage_.at( row * width_ + column );
+      return &at( column, row );
     } else {
       return Optional< const T * >();
     }
@@ -149,6 +159,14 @@ public:
   }
 
   T & at( const unsigned int column, const unsigned int row ) override
+  {
+    if ( column >= width_ or row >= height_ ) {
+      throw std::out_of_range( "attempted to read outside of TwoDSubRange" );
+    }
+    return master_.at( column_ + column, row_ + row );
+  }
+
+  const T & at( const unsigned int column, const unsigned int row ) const
   {
     if ( column >= width_ or row >= height_ ) {
       throw std::out_of_range( "attempted to read outside of TwoDSubRange" );

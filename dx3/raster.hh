@@ -2,6 +2,7 @@
 #define RASTER_HH
 
 #include "2d.hh"
+#include "modemv_data.hh"
 
 class Raster
 {
@@ -9,7 +10,7 @@ public:
   struct Component
   {
     uint8_t value {};
-    operator uint8_t() { return value; }
+    operator uint8_t() const { return value; }
     Component( const TwoD< Component >::Context & ) {} 
     Component & operator=( const uint8_t other ) { value = other; return *this; }
   };
@@ -25,6 +26,17 @@ public:
     { return contents.at( column, row ); }
 
     const typename TwoD< Block >::Context context;
+
+    template <class PredictionMode>
+    void intra_predict( const PredictionMode mb_mode );
+
+    void dc_predict( void );
+    void v_predict( void );
+    void h_predict( void );
+    void tm_predict( void );
+
+    int16_t bottom_sum( void ) const;
+    int16_t right_sum( void ) const;
   };
 
   using Block4  = Block< 4 >;
@@ -33,8 +45,9 @@ public:
 
   struct Macroblock
   {
-    TwoDSubRange< Block16 > Y;
-    TwoDSubRange< Block8 > U, V;
+    Block16 & Y;
+    Block8 & U;
+    Block8 & V;
     TwoDSubRange< Block4 > Y_sub, U_sub, V_sub;
 
     Macroblock( const TwoD< Macroblock >::Context & c, Raster & raster );

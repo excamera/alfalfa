@@ -143,7 +143,10 @@ private:
   enumeration value_;
 
 public:
-  Tree( BoolDecoder & data, const ProbabilityArray< alphabet_size > & probabilities )
+  typedef enumeration type;
+  typedef const ProbabilityArray< alphabet_size > probability_array_type;
+
+  Tree( BoolDecoder & data, probability_array_type & probabilities )
     : value_( data.tree< alphabet_size, enumeration >( nodes, probabilities ) )
   {}
 

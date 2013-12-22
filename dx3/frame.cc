@@ -64,31 +64,25 @@ void KeyFrame::relink_y2_blocks( void )
 
 void KeyFrame::dequantize( void )
 {
-  macroblock_headers_.get().forall_ij( [&] ( KeyFrameMacroblockHeader & macroblock,
-					     const unsigned int, const unsigned int )
-				       { macroblock.dequantize( derived_quantities_.get() ); } );
+  macroblock_headers_.get().forall( [&] ( KeyFrameMacroblockHeader & macroblock )
+				    { macroblock.dequantize( derived_quantities_.get() ); } );
 }
 
-void KeyFrame::inverse_transform( void )
+void KeyFrame::initialize_raster( void )
 {
-  residue_.initialize( macroblock_width_, macroblock_height_, display_width_, display_height_ );
+  raster_.initialize( macroblock_width_, macroblock_height_, display_width_, display_height_ );
 
-  macroblock_headers_.get().forall_ij( [&] ( KeyFrameMacroblockHeader & macroblock,
-					     const unsigned int column,
-					     const unsigned int row )
-				       { macroblock.inverse_transform( residue_.get().macroblock( column, row ) ); } );
+  macroblock_headers_.get().forall_ij( [&]( KeyFrameMacroblockHeader & macroblock,
+					    const unsigned int column,
+					    const unsigned int row )
+				       { macroblock.assign_output_raster( raster_.get().macroblock( column, row ) ); } );
 }
 
-void KeyFrame::intra_predict( void )
+void KeyFrame::intra_predict_and_inverse_transform( void )
 {
-  prediction_.initialize( macroblock_width_, macroblock_height_, display_width_, display_height_ );
-
-  /*
-  macroblock_headers_.get().forall_ij( [&] ( KeyFrameMacroblockHeader & macroblock,
-					     const unsigned int column,
-					     const unsigned int row )
-				       { macroblock.intra_predict( residue_.get().macroblock( column, row ).context(),
-								   prediction_.get().macroblock( column, row ) ); } );
-					 
-  */
+  macroblock_headers_.get().forall( [&] ( KeyFrameMacroblockHeader & macroblock )
+				    {
+				      macroblock.intra_predict();
+				      macroblock.inverse_transform();
+				    } );
 }

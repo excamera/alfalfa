@@ -3,6 +3,7 @@
 #include "quantization.hh"
 #include "frame_header.hh"
 #include "block.hh"
+#include "macroblock_header.hh"
 
 using namespace std;
 
@@ -109,4 +110,25 @@ void UVBlock::dequantize( const Quantizer & quantizer )
   for ( uint8_t i = 1; i < 15; i++ ) {
     coefficients_[ i ] *= quantizer.uv_ac;
   }
+}
+
+void KeyFrameMacroblockHeader::dequantize( const KeyFrameHeader::DerivedQuantities & derived )
+{
+  /* is macroblock skipped? */
+  if ( mb_skip_coeff_.get_or( false ) ) {
+    return;
+  }
+
+  /* which quantizer are we using? */
+  const Quantizer & the_quantizer( segment_id_.initialized()
+				   ? derived.segment_quantizers.at( segment_id_.get() )
+				   : derived.quantizer );
+
+  if ( Y2_.coded() ) {
+    Y2_.dequantize( the_quantizer );
+  }
+
+  Y_.forall( [&] ( YBlock & block ) { block.dequantize( the_quantizer ); } );
+  U_.forall( [&] ( UVBlock & block ) { block.dequantize( the_quantizer ); } );
+  V_.forall( [&] ( UVBlock & block ) { block.dequantize( the_quantizer ); } );
 }
