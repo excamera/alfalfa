@@ -44,6 +44,7 @@ public:
     void he_predict( void );
     void ld_predict( void );
     void rd_predict( void );
+    void vr_predict( void );
 
     struct Predictors {
       typedef TwoDSubRange< Component, size, 1 > Row;
@@ -62,12 +63,14 @@ public:
 
       Component above( const int column ) const;
       Component left( const int row ) const;
+      Component east( const int num ) const;
 
       Predictors( const typename TwoD< Block >::Context & context );
     } predictors;
 
     Component above( const int column ) const { return predictors.above( column ); }
     Component left( const int column ) const { return predictors.left( column ); }
+    Component east( const int column ) const { return predictors.east( column ); }
   };
 
   using Block4  = Block< 4 >;

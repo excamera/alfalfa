@@ -78,7 +78,7 @@ Raster::Component Raster::Block<size>::Predictors::above_right( const unsigned i
 template <unsigned int size>
 Raster::Component Raster::Block<size>::Predictors::above( const int column ) const
 {
-  assert( column >= -1 and column < size * 2 );
+  assert( column >= -1 and column < int( size * 2 ) );
   if ( column == -1 ) return above_left;
   if ( 0 <= column and column < size ) return above_row.at( column, 0 );
   return above_right( column - size );
@@ -87,9 +87,17 @@ Raster::Component Raster::Block<size>::Predictors::above( const int column ) con
 template <unsigned int size>
 Raster::Component Raster::Block<size>::Predictors::left( const int row ) const
 {
-  assert( row >= -1 and row < size );
+  assert( row >= -1 and row < int( size ) );
   if ( row == -1 ) return above_left;
   return left_column.at( 0, row );
+}
+
+template <unsigned int size>
+Raster::Component Raster::Block<size>::Predictors::east( const int num ) const
+{
+  assert( 0 <= num and num <= size * 2 );
+  if ( num <= 4 ) { return left( 3 - num ); }
+  return above( num - 5 );
 }
 
 template <unsigned int size>
@@ -208,13 +216,28 @@ void Raster::Block4::ld_predict( void )
 template <>
 void Raster::Block4::rd_predict( void )
 {
-  at( 0, 3 ) =                                        avg3( left( 3 ),  left( 2 ),  left( 1 ) );
-  at( 1, 3 ) = at( 0, 2 ) =                           avg3( left( 2 ),  left( 1 ),  left( 0 ) );
-  at( 2, 3 ) = at( 1, 2 ) = at( 0, 1 ) =              avg3( left( 1 ),  left( 0 ),  left( -1 ) );
-  at( 3, 3 ) = at( 2, 2 ) = at( 1, 1 ) = at( 0, 0 ) = avg3( left( 0 ),  left( -1 ), above( 0 ) );
-  at( 3, 2 ) = at( 2, 1 ) = at( 1, 0 ) =              avg3( left( -1 ), above( 0 ), above( 1 ) );
-  at( 3, 1 ) = at( 2, 0 ) =                           avg3( above( 0 ), above( 1 ), above( 2 ) );
-  at( 3, 0 ) =                                        avg3( above( 1 ), above( 2 ), above( 3 ) );
+  at( 0, 3 ) =                                        avg3( east( 0 ), east( 1 ), east( 2 ) );
+  at( 1, 3 ) = at( 0, 2 ) =                           avg3( east( 1 ), east( 2 ), east( 3 ) );
+  at( 2, 3 ) = at( 1, 2 ) = at( 0, 1 ) =              avg3( east( 2 ), east( 3 ), east( 4 ) );
+  at( 3, 3 ) = at( 2, 2 ) = at( 1, 1 ) = at( 0, 0 ) = avg3( east( 3 ), east( 4 ), east( 5 ) );
+  at( 3, 2 ) = at( 2, 1 ) = at( 1, 0 ) =              avg3( east( 4 ), east( 5 ), east( 6 ) );
+  at( 3, 1 ) = at( 2, 0 ) =                           avg3( east( 5 ), east( 6 ), east( 7 ) );
+  at( 3, 0 ) =                                        avg3( east( 6 ), east( 7 ), east( 8 ) );
+}
+
+template <>
+void Raster::Block4::vr_predict( void )
+{
+  at( 0, 3 ) =                                        avg3( east( 1 ), east( 2 ), east( 3 ) );
+  at( 0, 2 ) =                                        avg3( east( 2 ), east( 3 ), east( 4 ) );
+  at( 1, 3 ) = at( 0, 1 ) =                           avg3( east( 3 ), east( 4 ), east( 5 ) );
+  at( 1, 2 ) = at( 0, 0 ) =                           avg2( east( 4 ), east( 5 ) );
+  at( 2, 3 ) = at( 1, 1 ) =                           avg3( east( 4 ), east( 5 ), east( 6 ) );
+  at( 2, 2 ) = at( 1, 0 ) =                           avg2( east( 5 ), east( 6 ) );
+  at( 3, 3 ) = at( 2, 1 ) =                           avg3( east( 5 ), east( 6 ), east( 7 ) );
+  at( 3, 2 ) = at( 2, 0 ) =                           avg2( east( 6 ), east( 7 ) );
+  at( 3, 1 ) =                                        avg3( east( 6 ), east( 7 ), east( 8 ) );
+  at( 3, 0 ) =                                        avg2( east( 7 ), east( 8 ) );
 }
 
 template <>
@@ -230,7 +253,7 @@ void Raster::Block4::intra_predict( const intra_bmode b_mode )
   case B_HE_PRED: he_predict(); break;
   case B_LD_PRED: ld_predict(); break;
   case B_RD_PRED: rd_predict(); break;
-  case B_VR_PRED:
+  case B_VR_PRED: vr_predict(); break;
   case B_VL_PRED:
   case B_HD_PRED:
   case B_HU_PRED: break;
