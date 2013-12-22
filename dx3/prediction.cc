@@ -256,6 +256,21 @@ void Raster::Block4::vl_predict( void )
 }
 
 template <>
+void Raster::Block4::hd_predict( void )
+{
+  at( 0, 3 ) =                                        avg2( east( 0 ), east( 1 ) );
+  at( 1, 3 ) =                                        avg3( east( 0 ), east( 1 ), east( 2 ) );
+  at( 0, 2 ) = at( 2, 3 ) =                           avg2( east( 1 ), east( 2 ) );
+  at( 1, 2 ) = at( 3, 3 ) =                           avg3( east( 1 ), east( 2 ), east( 3 ) );
+  at( 2, 2 ) = at( 0, 1 ) =                           avg2( east( 2 ), east( 3 ) );
+  at( 3, 2 ) = at( 1, 1 ) =                           avg3( east( 2 ), east( 3 ), east( 4 ) );
+  at( 2, 1 ) = at( 0, 0 ) =                           avg2( east( 3 ), east( 4 ) );
+  at( 3, 1 ) = at( 1, 0 ) =                           avg3( east( 3 ), east( 4 ), east( 5 ) );
+  at( 2, 0 ) =                                        avg3( east( 4 ), east( 5 ), east( 6 ) );
+  at( 3, 0 ) =                                        avg3( east( 5 ), east( 6 ), east( 7 ) );
+}
+
+template <>
 template <>
 void Raster::Block4::intra_predict( const intra_bmode b_mode )
 {
@@ -270,7 +285,7 @@ void Raster::Block4::intra_predict( const intra_bmode b_mode )
   case B_RD_PRED: rd_predict(); break;
   case B_VR_PRED: vr_predict(); break;
   case B_VL_PRED: vl_predict(); break;
-  case B_HD_PRED:
+  case B_HD_PRED: hd_predict(); break;
   case B_HU_PRED: break;
   }
 }
