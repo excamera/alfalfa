@@ -42,6 +42,7 @@ public:
     void tm_predict( void );
     void ve_predict( void );
     void he_predict( void );
+    void ld_predict( void );
 
     struct Predictors {
       typedef TwoDSubRange< Component, size, 1 > Row;
@@ -50,18 +51,22 @@ public:
       static const Row & row127( void );
       static const Column & col129( void );
 
-      const Row above;
-      const Column left;
+      const Row above_row;
+      const Column left_column;
       const Component & above_left;
-
       Row above_right_bottom_row; /* non-const so macroblock can fix */
       const Component & above_bottom_right_pixel;
       bool use_row;
-
       Component above_right( const unsigned int column ) const;
+
+      Component above( const int column ) const;
+      Component left( const int row ) const;
 
       Predictors( const typename TwoD< Block >::Context & context );
     } predictors;
+
+    Component above( const int column ) const { return predictors.above( column ); }
+    Component left( const int column ) const { return predictors.left( column ); }
   };
 
   using Block4  = Block< 4 >;
