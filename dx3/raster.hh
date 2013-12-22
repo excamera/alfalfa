@@ -40,6 +40,7 @@ public:
     void v_predict( void );
     void h_predict( void );
     void tm_predict( void );
+    void ve_predict( void );
 
     struct Predictors {
       typedef TwoDSubRange< Component, size, 1 > Row;
@@ -54,8 +55,9 @@ public:
 
       Row above_right_bottom_row; /* non-const so macroblock can fix */
       const Component & above_bottom_right_pixel;
+      bool use_row;
 
-      const Component & above_right( const unsigned int column ) const;
+      Component above_right( const unsigned int column ) const;
 
       Predictors( const typename TwoD< Block >::Context & context );
     } predictors;

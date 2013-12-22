@@ -7,7 +7,7 @@ vp8scan_SOURCES = 2d.hh block.hh bool_decoder.cc bool_decoder.hh \
 	frame.cc frame_header.cc frame_header.hh frame.hh \
 	ivf.cc ivf.hh macroblock_header.cc macroblock_header.hh \
 	modemv_data.cc modemv_data.hh optional.hh prediction.cc \
-	quantization.cc quantization.hh raster.cc raster.hh \
+	quantization.cc quantization.hh raster.hh \
 	tokens.cc tokens.hh transform.cc tree.cc \
 	uncompressed_chunk.cc uncompressed_chunk.hh \
 	vp8_header_structures.hh vp8_parser.cc vp8_parser.hh \
