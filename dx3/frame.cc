@@ -71,10 +71,24 @@ void KeyFrame::dequantize( void )
 
 void KeyFrame::inverse_transform( void )
 {
-  raster_.initialize( macroblock_width_, macroblock_height_, display_width_, display_height_ );
+  residue_.initialize( macroblock_width_, macroblock_height_, display_width_, display_height_ );
 
   macroblock_headers_.get().forall_ij( [&] ( KeyFrameMacroblockHeader & macroblock,
 					     const unsigned int column,
 					     const unsigned int row )
-				       { macroblock.inverse_transform( raster_.get().macroblock( column, row ) ); } );
+				       { macroblock.inverse_transform( residue_.get().macroblock( column, row ) ); } );
+}
+
+void KeyFrame::intra_predict( void )
+{
+  prediction_.initialize( macroblock_width_, macroblock_height_, display_width_, display_height_ );
+
+  /*
+  macroblock_headers_.get().forall_ij( [&] ( KeyFrameMacroblockHeader & macroblock,
+					     const unsigned int column,
+					     const unsigned int row )
+				       { macroblock.intra_predict( residue_.get().macroblock( column, row ).context(),
+								   prediction_.get().macroblock( column, row ) ); } );
+					 
+  */
 }

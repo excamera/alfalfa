@@ -14,20 +14,27 @@ public:
     Component & operator=( const uint8_t other ) { value = other; return *this; }
   };
 
+  template <unsigned int size>
   struct Block
   {
     TwoDSubRange< Component > contents;
 
-    Block( TwoD< Block >::Context & c, TwoD< Component > & macroblock_component );
+    Block( typename TwoD< Block >::Context & c, TwoD< Component > & macroblock_component );
 
     Component & at( const unsigned int column, const unsigned int row )
     { return contents.at( column, row ); }
   };
 
+  using Block4  = Block< 4 >;
+  using Block8  = Block< 8 >;
+  using Block16 = Block< 16 >;
+
   struct Macroblock
   {
-    TwoDSubRange< Component > Y, U, V;
-    TwoDSubRange< Block > Y_blocks, U_blocks, V_blocks;
+    TwoDSubRange< Block16 > Y;
+    TwoDSubRange< Block8 > U, V;
+
+    TwoDSubRange< Block4 > Y_sub, U_sub, V_sub;
 
     Macroblock( TwoD< Macroblock >::Context & c, Raster & raster );
   };
@@ -40,11 +47,17 @@ private:
     U_ { width_ / 2, height_ / 2 },
     V_ { width_ / 2, height_ / 2 };
 
-  TwoD< Block > Y_blocks_ { width_ / 4, height_ / 4, Y_ },
-    U_blocks_ { width_ / 8, height_ / 8, U_ },
-    V_blocks_ { width_ / 8, height_ / 8, V_ };
+  TwoD< Block4 > Y_subblocks_ { width_ / 4, height_ / 4, Y_ },
+    U_subblocks_ { width_ / 8, height_ / 8, U_ },
+    V_subblocks_ { width_ / 8, height_ / 8, V_ };
+
+  TwoD< Block16 > Y_bigblocks_ { width_ / 16, height_ / 16, Y_ };
+  TwoD< Block8 >  U_bigblocks_ { width_ / 16, height_ / 16, U_ };
+  TwoD< Block8 >  V_bigblocks_ { width_ / 16, height_ / 16, V_ };
 
   TwoD< Macroblock > macroblocks_ { width_ / 16, height_ / 16, *this };
+
+  friend class Macroblock;
 
 public:
   Raster( const unsigned int macroblock_width, const unsigned int macroblock_height,
@@ -53,10 +66,6 @@ public:
   TwoD< Component > & Y( void ) { return Y_; }
   TwoD< Component > & U( void ) { return U_; }
   TwoD< Component > & V( void ) { return V_; }
-
-  TwoD< Block > & Y_blocks( void ) { return Y_blocks_; }
-  TwoD< Block > & U_blocks( void ) { return U_blocks_; }
-  TwoD< Block > & V_blocks( void ) { return V_blocks_; }
 
   Macroblock & macroblock( const unsigned int column, const unsigned int row )
   {

@@ -52,7 +52,7 @@ static inline int MUL_20091( const int a ) { return ((((a)*20091) >> 16) + (a));
 static inline int MUL_35468( const int a ) { return (((a)*35468) >> 16); }
 
 template <BlockType initial_block_type, class PredictionMode>
-void Block< initial_block_type, PredictionMode >::idct( Raster::Block & output )
+void Block< initial_block_type, PredictionMode >::idct( Raster::Block4 & output )
 {
   assert( type_ == UV or type_ == Y_without_Y2 );
 
@@ -124,13 +124,13 @@ void KeyFrameMacroblockHeader::inverse_transform( Raster::Macroblock & macrobloc
 
   /* decode the Y blocks */
   Y_.forall_ij( [&] ( YBlock & block, const unsigned int column, const unsigned int row )
-		{ block.idct( macroblock.Y_blocks.at( column, row ) ); } );
+		{ block.idct( macroblock.Y_sub.at( column, row ) ); } );
 
   /* U blocks */
   U_.forall_ij( [&] ( UVBlock & block, const unsigned int column, const unsigned int row )
-		{ block.idct( macroblock.U_blocks.at( column, row ) ); } );
+		{ block.idct( macroblock.U_sub.at( column, row ) ); } );
 
   /* V blocks */
   V_.forall_ij( [&] ( UVBlock & block, const unsigned int column, const unsigned int row )
-		{ block.idct( macroblock.V_blocks.at( column, row ) ); } );
+		{ block.idct( macroblock.V_sub.at( column, row ) ); } );
 }
