@@ -4,7 +4,8 @@ template <unsigned int size>
 Raster::Block<size>::Block( const typename TwoD< Block >::Context & c,
 			    TwoD< Component > & raster_component )
   : contents( raster_component, size * c.column, size * c.row ),
-    context( c )
+    context( c ),
+    predictors( context )
 {}
 
 Raster::Macroblock::Macroblock( const TwoD< Macroblock >::Context & c, Raster & raster )
@@ -14,7 +15,12 @@ Raster::Macroblock::Macroblock( const TwoD< Macroblock >::Context & c, Raster & 
     Y_sub( raster.Y_subblocks_, 4 * c.column, 4 * c.row ),
     U_sub( raster.U_subblocks_, 2 * c.column, 2 * c.row ),
     V_sub( raster.V_subblocks_, 2 * c.column, 2 * c.row )
-{}
+{
+  /* adjust "extra pixels" for rightmost Y subblocks in macroblock (other than the top one) */
+  for ( unsigned int row = 1; row < 4; row++ ) {
+    Y_sub.at( 3, row ).predictors.above_right_bottom_row.set( Y_sub.at( 3, 0 ).predictors.above_right_bottom_row );
+  }
+}
 
 Raster::Raster( const unsigned int macroblock_width, const unsigned int macroblock_height,
 		const unsigned int display_width, const unsigned int display_height )

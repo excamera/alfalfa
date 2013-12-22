@@ -36,20 +36,29 @@ public:
     void intra_predict( const PredictionMode mb_mode );
 
     void dc_predict( void );
+    void dc_predict_simple( void );
     void v_predict( void );
     void h_predict( void );
     void tm_predict( void );
 
-    typedef TwoDSubRange< Component, size, 1 > Row;
-    typedef TwoDSubRange< Component, 1, size > Column;
+    struct Predictors {
+      typedef TwoDSubRange< Component, size, 1 > Row;
+      typedef TwoDSubRange< Component, 1, size > Column;
 
-    static const Row & row127( void );
-    static const Column & col129( void );
+      static const Row & row127( void );
+      static const Column & col129( void );
 
-    const Row above_predictor( void ) const;
-    const Column left_predictor( void ) const;
+      const Row above;
+      const Column left;
+      const Component & above_left;
 
-    Component above_left_predictor( void ) const;
+      Row above_right_bottom_row; /* non-const so macroblock can fix */
+      const Component & above_bottom_right_pixel;
+
+      const Component & above_right( const unsigned int column ) const;
+
+      Predictors( const typename TwoD< Block >::Context & context );
+    } predictors;
   };
 
   using Block4  = Block< 4 >;
