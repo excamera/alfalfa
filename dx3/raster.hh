@@ -47,6 +47,7 @@ public:
     void vr_predict( void );
     void vl_predict( void );
     void hd_predict( void );
+    void hu_predict( void );
 
     struct Predictors {
       typedef TwoDSubRange< Component, size, 1 > Row;
