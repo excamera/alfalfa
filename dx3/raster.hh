@@ -12,6 +12,7 @@ public:
     uint8_t value {};
     operator uint8_t() const { return value; }
     Component( const TwoD< Component >::Context & ) {} 
+    Component( const uint8_t other ) : value( other ) {}
     Component & operator=( const uint8_t other ) { value = other; return *this; }
   };
 
@@ -35,8 +36,8 @@ public:
     void h_predict( void );
     void tm_predict( void );
 
-    int16_t bottom_sum( void ) const;
-    int16_t right_sum( void ) const;
+    TwoDSubRange< Component, size, 1 > bottom( void ) const { return contents.row( size - 1 ); }
+    TwoDSubRange< Component, 1, size > right( void ) const { return contents.column( size - 1 ); }
   };
 
   using Block4  = Block< 4 >;

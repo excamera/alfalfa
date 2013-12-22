@@ -16,8 +16,6 @@ public:
 
   virtual T & at( const unsigned int column, const unsigned int row ) = 0;
 
-  
-
   template <class lambda>
   void forall( const lambda & f )
   {
@@ -36,6 +34,19 @@ public:
 	f( at( column, row ), column, row );
       }
     }
+  }
+
+  template <class type>
+  type sum( const type & initial )
+  {
+    type ret = initial;
+    forall( [&] ( const T & x ) { ret += x; } );
+    return ret;
+  }
+
+  void fill( const T & value )
+  {
+    forall( [&] ( T & x ) { x = value; } ); 
   }
 };
 
@@ -117,9 +128,7 @@ private:
   unsigned int column_, row_;
 
 public:
-  TwoDSubRange( TwoD< T > & master,
-		const unsigned int column,
-		const unsigned int row )
+  TwoDSubRange( TwoD< T > & master, const unsigned int column, const unsigned int row )
     : master_( master ), column_( column ), row_( row )
   {
     assert( column_ + sub_width <= master_.width() );
@@ -140,6 +149,16 @@ public:
 
   unsigned int width( void ) const override { return sub_width; }
   unsigned int height( void ) const override { return sub_height; }
+
+  TwoDSubRange< T, sub_width, 1 > row( const unsigned int num ) const
+  {
+    return TwoDSubRange< T, sub_width, 1 >( master_, column_, row_ + num );
+  }
+
+  TwoDSubRange< T, 1, sub_height > column( const unsigned int num ) const
+  {
+    return TwoDSubRange< T, 1, sub_height >( master_, column_ + num, row_ );
+  }
 };
 
 #endif /* TWOD_HH */

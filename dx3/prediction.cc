@@ -12,13 +12,10 @@ void Raster::Block<size>::h_predict( void )
 {
   if ( context.left.initialized() ) {
     for ( unsigned int row = 0; row < size; row++ ) {
-      const uint8_t value = context.left.get()->contents.at( size - 1, row );
-      for ( unsigned int column = 0; column < size; column++ ) {
-	contents.at( column, row ) = value;
-      }
+      contents.row( row ).fill( context.left.get()->right().at( 0, row ) );
     }
   } else {
-    contents.forall( [&] ( Component & component ) { component = 129; } );    
+    contents.fill( 129 );
   }
 }
 
@@ -27,53 +24,28 @@ void Raster::Block<size>::v_predict( void )
 {
   if ( context.above.initialized() ) {
     for ( unsigned int column = 0; column < size; column++ ) {
-      const uint8_t value = context.above.get()->contents.at( column, size - 1 );
-      for ( unsigned int row = 0; row < size; row++ ) {
-	contents.at( column, row ) = value;
-      }
+      contents.column( column ).fill( context.above.get()->bottom().at( column, 0 ) );
     }
   } else {
-    contents.forall( [&] ( Component & component ) { component = 127; } );    
+    contents.fill( 127 );
   }
-}
-
-template <unsigned int size>
-int16_t Raster::Block<size>::bottom_sum( void ) const
-{
-  int16_t value = 0;
-  for ( unsigned int column = 0; column < size; column++ ) {
-    value += contents.at( column, size - 1 );
-  }
-  return value;
-}
-
-template <unsigned int size>
-int16_t Raster::Block<size>::right_sum( void ) const
-{
-  int16_t value = 0;
-  for ( unsigned int row = 0; row < size; row++ ) {
-    value += contents.at( size - 1, row );
-  }
-  return value;
 }
 
 template <unsigned int size>
 void Raster::Block<size>::dc_predict( void )
 {
-  int16_t value = 128;
+  uint8_t value = 128;
 
   if ( context.above.initialized() and context.left.initialized() ) {
-    const int16_t sum = context.above.get()->bottom_sum() + context.left.get()->right_sum();
-    value = (sum + (1 << 3)) >> 4;
+    value = ((context.above.get()->bottom().sum(int16_t())
+	      + context.left.get()->right().sum(int16_t())) + (1 << 3)) >> 4;
   } else if ( context.above.initialized() ) {
-    const int16_t sum = context.above.get()->bottom_sum();
-    value = (sum + (1 << 2)) >> 3;
+    value = (context.above.get()->bottom().sum(int16_t()) + (1 << 2)) >> 3;
   } else if ( context.left.initialized() ) {
-    const int16_t sum = context.left.get()->right_sum();
-    value = (sum + (1 << 2)) >> 3;
+    value = (context.left.get()->right().sum(int16_t()) + (1 << 2)) >> 3;
   }
 
-  contents.forall( [&] ( Component & component ) { component = value; } );
+  contents.fill( value );
 }
 
 template <>
