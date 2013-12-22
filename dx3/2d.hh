@@ -106,13 +106,6 @@ public:
   /* forbid copying */
   TwoD( const TwoD & other ) = delete;
   TwoD & operator=( const TwoD & other ) = delete;
-
-  /* allow moving */
-  TwoD( TwoD && other )
-    : width_( other.width_ ),
-      height_( other.height_ ),
-      storage_( move( other.storage_ ) )
-  {}
 };
 
 template< class T, unsigned int sub_width, unsigned int sub_height >
