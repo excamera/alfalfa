@@ -11,9 +11,10 @@ public:
   {
     uint8_t value {};
     operator uint8_t() const { return value; }
-    Component( const TwoD< Component >::Context & ) {} 
+    Component( const TwoD< Component >::Context &, const uint8_t s_value = 0 ) : value( s_value ) {} 
     Component( const uint8_t other ) : value( other ) {}
     Component & operator=( const uint8_t other ) { value = other; return *this; }
+    void clamp( const int16_t other ) { if ( other < 0 ) { value = 0; } else if ( other > 255 ) { value = 255; } else { value = other; } }
   };
 
   template <unsigned int size>
@@ -26,6 +27,9 @@ public:
     Component & at( const unsigned int column, const unsigned int row )
     { return contents.at( column, row ); }
 
+    const Component & at( const unsigned int column, const unsigned int row ) const
+    { return contents.at( column, row ); }
+
     const typename TwoD< Block >::Context context;
 
     template <class PredictionMode>
@@ -36,8 +40,16 @@ public:
     void h_predict( void );
     void tm_predict( void );
 
-    TwoDSubRange< Component, size, 1 > bottom( void ) const { return contents.bottom(); }
-    TwoDSubRange< Component, 1, size > right( void ) const { return contents.right(); }
+    typedef TwoDSubRange< Component, size, 1 > Row;
+    typedef TwoDSubRange< Component, 1, size > Column;
+
+    static const Row & row127( void );
+    static const Column & col129( void );
+
+    const Row above_predictor( void ) const;
+    const Column left_predictor( void ) const;
+
+    Component above_left_predictor( void ) const;
   };
 
   using Block4  = Block< 4 >;

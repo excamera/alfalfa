@@ -15,6 +15,17 @@ public:
   virtual unsigned int height( void ) const = 0;
 
   virtual T & at( const unsigned int column, const unsigned int row ) = 0;
+  virtual const T & at( const unsigned int column, const unsigned int row ) const = 0;
+
+  template <class lambda>
+  void forall( const lambda & f ) const
+  {
+    for ( unsigned int row = 0; row < height(); row++ ) {
+      for ( unsigned int column = 0; column < width(); column++ ) {
+	f( at( column, row ) );
+      }
+    }
+  }
 
   template <class lambda>
   void forall( const lambda & f )
@@ -37,7 +48,7 @@ public:
   }
 
   template <class type>
-  type sum( const type & initial )
+  type sum( const type & initial ) const
   {
     type ret = initial;
     forall( [&] ( const T & x ) { ret += x; } );
@@ -96,7 +107,7 @@ public:
     return storage_.at( row * width_ + column );
   }
 
-  const T & at( const unsigned int column, const unsigned int row ) const
+  const T & at( const unsigned int column, const unsigned int row ) const override
   {
     assert( column < width_ and row < height_ );
     return storage_.at( row * width_ + column );
@@ -141,7 +152,7 @@ public:
     return master_.at( column_ + column, row_ + row );
   }
 
-  const T & at( const unsigned int column, const unsigned int row ) const
+  const T & at( const unsigned int column, const unsigned int row ) const override
   {
     assert( column < sub_width and row < sub_height );
     return master_.at( column_ + column, row_ + row );

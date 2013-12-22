@@ -1,13 +1,6 @@
 #include "macroblock_header.hh"
 #include "block.hh"
 
-static uint8_t clamp( const int16_t input )
-{
-  if ( input < 0 ) return 0;
-  if ( input > 255 ) return 255;
-  return input;
-}
-
 template <>
 void YBlock::set_dc_coefficient( const int16_t & val )
 {
@@ -89,10 +82,10 @@ void Block< initial_block_type, PredictionMode >::idct( Raster::Block4 & output 
     int t2 = MUL_35468( intermediate[ i + 4 ] ) - MUL_20091( intermediate[ i + 12 ] );
     int t3 = MUL_20091( intermediate[ i + 4 ] ) + MUL_35468( intermediate[ i + 12 ] );
 
-    output.at( 0, i ) = clamp( output.at( 0, i ) + ((t0 + t3 + 4) >> 3) );
-    output.at( 1, i ) = clamp( output.at( 1, i ) + ((t1 + t2 + 4) >> 3) );
-    output.at( 2, i ) = clamp( output.at( 2, i ) + ((t1 - t2 + 4) >> 3) );
-    output.at( 3, i ) = clamp( output.at( 3, i ) + ((t0 - t3 + 4) >> 3) );
+    output.at( 0, i ).clamp( output.at( 0, i ) + ((t0 + t3 + 4) >> 3) );
+    output.at( 1, i ).clamp( output.at( 1, i ) + ((t1 + t2 + 4) >> 3) );
+    output.at( 2, i ).clamp( output.at( 2, i ) + ((t1 - t2 + 4) >> 3) );
+    output.at( 3, i ).clamp( output.at( 3, i ) + ((t0 - t3 + 4) >> 3) );
   }
 }
 
