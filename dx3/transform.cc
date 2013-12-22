@@ -16,7 +16,7 @@ void YBlock::set_dc_coefficient( const int16_t & val )
 }
 
 template <>
-void Y2Block::walsh_transform( TwoDSubRange< YBlock > & output )
+void Y2Block::walsh_transform( TwoDSubRange< YBlock, 4, 4 > & output )
 {
   assert( coded_ );
   assert( output.width() == 4 );

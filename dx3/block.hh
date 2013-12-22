@@ -76,7 +76,7 @@ public:
   bool coded( void ) const { return coded_; }
   bool has_nonzero( void ) const { return has_nonzero_; }
 
-  void walsh_transform( TwoDSubRange< Block< Y_after_Y2, Tree< intra_bmode, num_intra_b_modes, b_mode_tree > > > & output );
+  void walsh_transform( TwoDSubRange< Block< Y_after_Y2, Tree< intra_bmode, num_intra_b_modes, b_mode_tree > >, 4, 4 > & output );
   void idct( Raster::Block4 & output );
   void set_dc_coefficient( const int16_t & val );
   void dequantize( const Quantizer & quantizer );

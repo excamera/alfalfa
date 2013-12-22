@@ -31,9 +31,9 @@ KeyFrameMacroblockHeader::KeyFrameMacroblockHeader( const TwoD< KeyFrameMacroblo
   mb_skip_coeff_( key_frame_header.prob_skip_false.initialized(),
 		  data, key_frame_header.prob_skip_false.get() ),
   Y2_( frame_Y2.at( c.column, c.row ) ),
-  Y_( frame_Y, c.column * 4, c.row * 4, 4, 4 ),
-  U_( frame_U, c.column * 2, c.row * 2, 2, 2 ),
-  V_( frame_V, c.column * 2, c.row * 2, 2, 2 )
+  Y_( frame_Y, c.column * 4, c.row * 4 ),
+  U_( frame_U, c.column * 2, c.row * 2 ),
+  V_( frame_V, c.column * 2, c.row * 2 )
 {
   /* Set Y prediction mode */
   Y2_.decode_prediction_mode( data, kf_y_mode_probs );

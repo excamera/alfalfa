@@ -3,7 +3,7 @@
 template <unsigned int size>
 Raster::Block<size>::Block( const typename TwoD< Block >::Context & c,
 			    TwoD< Component > & raster_component )
-  : contents( raster_component, size * c.column, size * c.row, size, size ),
+  : contents( raster_component, size * c.column, size * c.row ),
     context( c )
 {}
 
@@ -11,9 +11,9 @@ Raster::Macroblock::Macroblock( const TwoD< Macroblock >::Context & c, Raster & 
   : Y( raster.Y_bigblocks_.at( c.column, c.row ) ),
     U( raster.U_bigblocks_.at( c.column, c.row ) ),
     V( raster.V_bigblocks_.at( c.column, c.row ) ),
-    Y_sub( raster.Y_subblocks_, 4 * c.column, 4 * c.row, 4, 4 ),
-    U_sub( raster.U_subblocks_, 2 * c.column, 2 * c.row, 2, 2 ),
-    V_sub( raster.V_subblocks_, 2 * c.column, 2 * c.row, 2, 2 )
+    Y_sub( raster.Y_subblocks_, 4 * c.column, 4 * c.row ),
+    U_sub( raster.U_subblocks_, 2 * c.column, 2 * c.row ),
+    V_sub( raster.V_subblocks_, 2 * c.column, 2 * c.row )
 {}
 
 Raster::Raster( const unsigned int macroblock_width, const unsigned int macroblock_height,

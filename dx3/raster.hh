@@ -18,7 +18,7 @@ public:
   template <unsigned int size>
   struct Block
   {
-    TwoDSubRange< Component > contents;
+    TwoDSubRange< Component, size, size > contents;
 
     Block( const typename TwoD< Block >::Context & c, TwoD< Component > & macroblock_component );
 
@@ -48,7 +48,8 @@ public:
     Block16 & Y;
     Block8 & U;
     Block8 & V;
-    TwoDSubRange< Block4 > Y_sub, U_sub, V_sub;
+    TwoDSubRange< Block4, 4, 4 > Y_sub;
+    TwoDSubRange< Block4, 2, 2 > U_sub, V_sub;
 
     Macroblock( const TwoD< Macroblock >::Context & c, Raster & raster );
   };

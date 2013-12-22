@@ -16,8 +16,8 @@ private:
   Optional< Bool > mb_skip_coeff_;
 
   Y2Block & Y2_;
-  TwoDSubRange< YBlock > Y_;
-  TwoDSubRange< UVBlock > U_, V_;
+  TwoDSubRange< YBlock, 4, 4 > Y_;
+  TwoDSubRange< UVBlock, 2, 2 > U_, V_;
 
   Optional< Raster::Macroblock * > raster_ {};
 
