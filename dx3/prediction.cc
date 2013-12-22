@@ -148,7 +148,7 @@ void Raster::Block8::intra_predict( const intra_mbmode uv_mode )
 
 uint8_t avg3( const uint8_t x, const uint8_t y, const uint8_t z )
 {
-  return (x + y + y + z + 2) >> 2;
+  return (x + 2 * y + z + 2) >> 2;
 }
 
 template <>
@@ -166,6 +166,15 @@ void Raster::Block4::ve_predict( void )
 }
 
 template <>
+void Raster::Block4::he_predict( void )
+{
+  contents.row( 0 ).fill( avg3( predictors.above_left, predictors.left.at( 0, 0 ), predictors.left.at( 0, 1 ) ) );
+  contents.row( 1 ).fill( avg3( predictors.left.at( 0, 0 ), predictors.left.at( 0, 1 ), predictors.left.at( 0, 2 ) ) );
+  contents.row( 2 ).fill( avg3( predictors.left.at( 0, 1 ), predictors.left.at( 0, 2 ), predictors.left.at( 0, 3 ) ) );
+  contents.row( 3 ).fill( avg3( predictors.left.at( 0, 2 ), predictors.left.at( 0, 3 ), predictors.left.at( 0, 3 ) ) );
+}
+
+template <>
 template <>
 void Raster::Block4::intra_predict( const intra_bmode b_mode )
 {
@@ -175,7 +184,7 @@ void Raster::Block4::intra_predict( const intra_bmode b_mode )
   case B_DC_PRED: dc_predict_simple(); break; 
   case B_TM_PRED: tm_predict(); break;
   case B_VE_PRED: ve_predict(); break;
-  case B_HE_PRED:
+  case B_HE_PRED: he_predict(); break;
   case B_LD_PRED:
   case B_RD_PRED:
   case B_VR_PRED:
