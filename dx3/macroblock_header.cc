@@ -17,7 +17,7 @@ static intra_bmode implied_subblock_mode( const intra_mbmode y_mode )
   return intra_bmode();  
 }
 
-KeyFrameMacroblockHeader::KeyFrameMacroblockHeader( TwoD< KeyFrameMacroblockHeader >::Context & c,
+KeyFrameMacroblockHeader::KeyFrameMacroblockHeader( const TwoD< KeyFrameMacroblockHeader >::Context & c,
 						    BoolDecoder & data,
 						    const KeyFrameHeader & key_frame_header,
 						    const KeyFrameHeader::DerivedQuantities & probability_tables,

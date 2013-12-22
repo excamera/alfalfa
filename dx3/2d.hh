@@ -51,7 +51,15 @@ public:
   struct Context
   {
     const unsigned int column, row;
-    const Optional< T * > above, left;
+    const Optional< const T * > left, above_left, above, above_right;
+
+    Context( const unsigned int s_column, const unsigned int s_row, const TwoD & self )
+      : column( s_column ), row( s_row ),
+	left(        self.maybe_at( column - 1, row ) ),
+	above_left(  self.maybe_at( column - 1, row - 1 ) ),
+	above(       self.maybe_at( column,     row - 1 ) ),
+	above_right( self.maybe_at( column + 1, row - 1 ) )
+    {}
   };
 
   template< typename... Targs >
@@ -66,9 +74,7 @@ public:
     /* we want to construct each member separately */
     for ( unsigned int row = 0; row < height; row++ ) {
       for ( unsigned int column = 0; column < width; column++ ) {
-	const Optional< T * > above( row > 0    ? &at( column, row - 1 ) : Optional< T * >() );
-	const Optional< T * > left ( column > 0 ? &at( column - 1, row ) : Optional< T * >() );
-	Context c { column, row, above, left };
+	const Context c( column, row, *this );
 	storage_.emplace_back( c, Fargs... );
       }
     }
@@ -76,10 +82,19 @@ public:
 
   T & at( const unsigned int column, const unsigned int row ) override
   {
-    if ( column > width_ or row > height_ ) {
+    if ( column >= width_ or row >= height_ ) {
       throw std::out_of_range( "attempted to read outside of TwoD structure" );
     }
     return storage_.at( row * width_ + column );
+  }
+
+  Optional< const T * > maybe_at( const unsigned int column, const unsigned int row ) const
+  {
+    if ( column < width_ and row < height_ ) {
+      return &storage_.at( row * width_ + column );
+    } else {
+      return Optional< const T * >();
+    }
   }
 
   unsigned int width( void ) const override { return width_; }
@@ -135,8 +150,8 @@ public:
 
   T & at( const unsigned int column, const unsigned int row ) override
   {
-    if ( column > width_ or row > height_ ) {
-      throw std::out_of_range( "attempted to read outside of TwoD structure" );
+    if ( column >= width_ or row >= height_ ) {
+      throw std::out_of_range( "attempted to read outside of TwoDSubRange" );
     }
     return master_.at( column_ + column, row_ + row );
   }

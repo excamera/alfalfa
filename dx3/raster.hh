@@ -19,10 +19,12 @@ public:
   {
     TwoDSubRange< Component > contents;
 
-    Block( typename TwoD< Block >::Context & c, TwoD< Component > & macroblock_component );
+    Block( const typename TwoD< Block >::Context & c, TwoD< Component > & macroblock_component );
 
     Component & at( const unsigned int column, const unsigned int row )
     { return contents.at( column, row ); }
+
+    const typename TwoD< Block >::Context context;
   };
 
   using Block4  = Block< 4 >;
@@ -33,10 +35,9 @@ public:
   {
     TwoDSubRange< Block16 > Y;
     TwoDSubRange< Block8 > U, V;
-
     TwoDSubRange< Block4 > Y_sub, U_sub, V_sub;
 
-    Macroblock( TwoD< Macroblock >::Context & c, Raster & raster );
+    Macroblock( const TwoD< Macroblock >::Context & c, Raster & raster );
   };
 
 private:

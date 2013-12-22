@@ -1,12 +1,13 @@
 #include "raster.hh"
 
 template <unsigned int size>
-Raster::Block<size>::Block( typename TwoD< Block >::Context & c,
+Raster::Block<size>::Block( const typename TwoD< Block >::Context & c,
 			    TwoD< Component > & raster_component )
-  : contents( raster_component, size * c.column, size * c.row, size, size )
+  : contents( raster_component, size * c.column, size * c.row, size, size ),
+    context( c )
 {}
 
-Raster::Macroblock::Macroblock( TwoD< Macroblock >::Context & c, Raster & raster )
+Raster::Macroblock::Macroblock( const TwoD< Macroblock >::Context & c, Raster & raster )
   : Y( raster.Y_bigblocks_, c.column, c.row, 1, 1 ),
     U( raster.U_bigblocks_, c.column, c.row, 1, 1 ),
     V( raster.V_bigblocks_, c.column, c.row, 1, 1 ),

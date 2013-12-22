@@ -20,7 +20,7 @@ private:
   TwoDSubRange< UVBlock > U_, V_;
 
 public:
-  KeyFrameMacroblockHeader( TwoD< KeyFrameMacroblockHeader >::Context & c,
+  KeyFrameMacroblockHeader( const TwoD< KeyFrameMacroblockHeader >::Context & c,
 			    BoolDecoder & data,
 			    const KeyFrameHeader & key_frame_header,
 			    const KeyFrameHeader::DerivedQuantities & probability_tables,

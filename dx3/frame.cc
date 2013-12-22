@@ -49,8 +49,8 @@ void KeyFrame::parse_tokens( void )
    for the block */
 void KeyFrame::relink_y2_blocks( void )
 {
-  vector< Optional< Y2Block * > > above_coded( macroblock_width_, Optional< Y2Block * >() );
-  vector< Optional< Y2Block * > > left_coded( macroblock_height_, Optional< Y2Block * >() );
+  vector< Optional< const Y2Block * > > above_coded( macroblock_width_ );
+  vector< Optional< const Y2Block * > > left_coded( macroblock_height_ );
   
   Y2_.forall_ij( [&]( Y2Block & block, const unsigned int column, const unsigned int row ) {
       block.set_above( above_coded.at( column ) );

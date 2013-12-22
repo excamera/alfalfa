@@ -16,8 +16,8 @@ private:
   BlockType type_ { initial_block_type };
 
   PredictionMode prediction_mode_ {};
-  Optional< Block * > above_ {};
-  Optional< Block * > left_ {};
+  Optional< const Block * > above_ {};
+  Optional< const Block * > left_ {};
 
   std::array< int16_t, 16 > coefficients_ {{}};
 
@@ -28,7 +28,7 @@ private:
 public:
   Block() {}
 
-  Block( typename TwoD< Block >::Context & context )
+  Block( const typename TwoD< Block >::Context & context )
     : above_( context.above ), left_( context.left )
   {}
 
@@ -38,11 +38,11 @@ public:
     prediction_mode_ = prediction_mode;
   }
 
-  const Optional< Block * > above( void ) const { return above_; }
-  const Optional< Block * > left( void ) const { return left_; }
+  const Optional< const Block * > & above( void ) const { return above_; }
+  const Optional< const Block * > & left( void ) const { return left_; }
 
-  void set_above( const Optional< Block * > & s_above ) { above_ = s_above; }
-  void set_left( const Optional< Block * > & s_left ) { left_ = s_left; }
+  void set_above( const Optional< const Block * > & s_above ) { above_ = s_above; }
+  void set_left( const Optional< const Block * > & s_left ) { left_ = s_left; }
 
   void set_Y_without_Y2( void )
   {
