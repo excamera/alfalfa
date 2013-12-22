@@ -36,8 +36,8 @@ public:
     void h_predict( void );
     void tm_predict( void );
 
-    TwoDSubRange< Component, size, 1 > bottom( void ) const { return contents.row( size - 1 ); }
-    TwoDSubRange< Component, 1, size > right( void ) const { return contents.column( size - 1 ); }
+    TwoDSubRange< Component, size, 1 > bottom( void ) const { return contents.bottom(); }
+    TwoDSubRange< Component, 1, size > right( void ) const { return contents.right(); }
   };
 
   using Block4  = Block< 4 >;

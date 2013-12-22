@@ -159,6 +159,16 @@ public:
   {
     return TwoDSubRange< T, 1, sub_height >( master_, column_ + num, row_ );
   }
+
+  TwoDSubRange< T, sub_width, 1 > bottom( void ) const
+  {
+    return row( sub_height - 1 );
+  }
+
+  TwoDSubRange< T, 1, sub_height > right( void ) const
+  {
+    return column( sub_width - 1 );
+  }
 };
 
 #endif /* TWOD_HH */
