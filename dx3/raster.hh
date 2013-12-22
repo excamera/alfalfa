@@ -43,6 +43,7 @@ public:
     void ve_predict( void );
     void he_predict( void );
     void ld_predict( void );
+    void rd_predict( void );
 
     struct Predictors {
       typedef TwoDSubRange< Component, size, 1 > Row;
