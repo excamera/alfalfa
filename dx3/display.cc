@@ -50,8 +50,6 @@ XWindow::XWindow( xcb_connection_t * connection,
 		     0, nullptr );
 
   xcb_map_window( connection, window_ );
-
-  xcb_flush( connection );
 }
 
 XWindow::~XWindow( void )
@@ -122,6 +120,19 @@ VideoDisplay::VideoDisplay( const unsigned int display_width, const unsigned int
   Cr_( GL_TEXTURE0, raster_width_/2, raster_height_/2 ),
   shader_()
 {
+  /* initialize viewport */
+  glLoadIdentity();
+  glViewport( 0, 0, display_width_, display_height_ );
+  glMatrixMode( GL_PROJECTION );
+  glLoadIdentity();
+  glOrtho( 0, display_width_, display_height_, 0, -1, 1 );
+  glMatrixMode( GL_MODELVIEW );
+  glLoadIdentity();
+  glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
+  glWindowPos2d( 0, 0 );
+  glClear( GL_COLOR_BUFFER_BIT );
+  GLcheck( "viewport" );
+
   xcb_flush( xcb_connection_ );
 }
 
