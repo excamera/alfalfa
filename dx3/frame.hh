@@ -42,6 +42,8 @@ class KeyFrame
   void dequantize( void );
   void initialize_raster( void );
   void intra_predict_and_inverse_transform( void );
+
+  Raster & raster( void ) { return raster_.get(); }
 };
 
 #endif /* FRAME_HH */

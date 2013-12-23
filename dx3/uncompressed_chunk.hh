@@ -12,13 +12,13 @@ private:
   enum class ReconstructionFilter : char {
     Bicubic,
     Bilinear,
-    None
+    NoFilter
   };
 
   enum class LoopFilter : char {
     Normal,
     Simple,
-    None
+    NoFilter
   };
 
   bool key_frame_;

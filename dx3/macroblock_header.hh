@@ -13,7 +13,7 @@ class KeyFrameMacroblockHeader
 {
 private:
   Optional< Tree< uint8_t, 4, segment_id_tree > > segment_id_;
-  Optional< Bool > mb_skip_coeff_;
+  Optional< Boolean > mb_skip_coeff_;
 
   Y2Block & Y2_;
   TwoDSubRange< YBlock, 4, 4 > Y_;

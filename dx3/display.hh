@@ -8,6 +8,8 @@
 #include <functional>
 #include <string>
 
+#include "raster.hh"
+
 template <typename T>
 class CheckedPointer
 {
@@ -65,13 +67,16 @@ public:
 class GLTexture
 {
 private:
+  GLenum texture_unit_;
   GLuint id_;
+  unsigned int width_, height_;
 
 public:
   GLTexture( const GLenum texture_unit,
 	     const unsigned int width,
 	     const unsigned int height );
   ~GLTexture();
+  void load( const TwoD< Raster::Component > & raster );
 };
 
 class GLShader
@@ -107,6 +112,9 @@ public:
 
   VideoDisplay( const VideoDisplay & other ) = delete;
   VideoDisplay & operator=( const VideoDisplay & other ) = delete;
+
+  void draw( const Raster & raster );
+  void repaint( void );
 };
 
 #endif

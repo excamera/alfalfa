@@ -119,10 +119,19 @@ public:
   TwoD< Component > & U( void ) { return U_; }
   TwoD< Component > & V( void ) { return V_; }
 
+  const TwoD< Component > & Y( void ) const { return Y_; }
+  const TwoD< Component > & U( void ) const { return U_; }
+  const TwoD< Component > & V( void ) const { return V_; }
+
   Macroblock & macroblock( const unsigned int column, const unsigned int row )
   {
     return macroblocks_.at( column, row );
   }
+
+  unsigned int width( void ) const { return width_; }
+  unsigned int height( void ) const { return height_; }
+  unsigned int display_width( void ) const { return display_width_; }
+  unsigned int display_height( void ) const { return display_height_; }
 };
 
 #endif /* RASTER_HH */

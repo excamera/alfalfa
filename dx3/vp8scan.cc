@@ -25,7 +25,7 @@ int main( int argc, char *argv[] )
 			  vp8.raster_width(), vp8.raster_height() );
 
     for ( uint32_t i = 0; i < file.frame_count(); i++ ) {
-      vp8.parse_frame( file.frame( i ) );
+      vp8.parse_frame( file.frame( i ), display );
     }
   } catch ( const Exception & e ) {
     e.perror( argv[ 0 ] );

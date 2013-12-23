@@ -31,11 +31,11 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
       break;
     case 2:
       reconstruction_filter_ = ReconstructionFilter::Bilinear;
-      loop_filter_ = LoopFilter::None;
+      loop_filter_ = LoopFilter::NoFilter;
       break;
     case 3:
-      reconstruction_filter_ = ReconstructionFilter::None;
-      loop_filter_ = LoopFilter::None;
+      reconstruction_filter_ = ReconstructionFilter::NoFilter;
+      loop_filter_ = LoopFilter::NoFilter;
       break;
     default:
       throw Unsupported( "VP8 version of " + to_string( version ) );

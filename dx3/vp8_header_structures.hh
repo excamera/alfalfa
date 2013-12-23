@@ -39,22 +39,22 @@ public:
   operator const int8_t & () const { return i_; }
 };
 
-class Bool
+class Boolean
 {
 private:
   bool i_;
 
 public:
-  Bool( BoolDecoder & data, const Probability probability ) : i_( data.get( probability ) ) {}
-  Bool( const bool & val ) : i_( val ) {}
+  Boolean( BoolDecoder & data, const Probability probability ) : i_( data.get( probability ) ) {}
+  Boolean( const bool & val ) : i_( val ) {}
   operator const bool & () const { return i_; }
-  virtual ~Bool() {}
+  virtual ~Boolean() {}
 };
 
-class Flag : public Bool
+class Flag : public Boolean
 {
 public:
-  Flag( BoolDecoder & data ) : Bool( data, 128 ) {}
+  Flag( BoolDecoder & data ) : Boolean( data, 128 ) {}
 };
 
 template <class T>
@@ -62,7 +62,7 @@ class Flagged : public Optional<T>
 {
 public:
   Flagged( BoolDecoder & data, const Probability probability = 128 )
-    : Optional<T>( Bool( data, probability ), data )
+    : Optional<T>( Boolean( data, probability ), data )
   {}
 };
 

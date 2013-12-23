@@ -60,7 +60,10 @@ XWindow::~XWindow( void )
 GLTexture::GLTexture( const GLenum texture_unit,
 		      const unsigned int width,
 		      const unsigned int height )
-  : id_( -1 )
+  : texture_unit_( texture_unit ),
+    id_( -1 ),
+    width_( width ),
+    height_( height )
 {
   glActiveTexture( texture_unit );
   glEnable( GL_TEXTURE_RECTANGLE_ARB );
@@ -80,6 +83,17 @@ GLTexture::GLTexture( const GLenum texture_unit,
 GLTexture::~GLTexture()
 {
   glDeleteTextures( 1, &id_ );
+}
+
+void GLTexture::load( const TwoD< Raster::Component > & raster )
+{
+  assert( width_ == raster.width() );
+  assert( height_ == raster.height() );
+
+  glActiveTexture( texture_unit_ );
+  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, id_ );
+  glTexSubImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, width_, height_,
+                   GL_LUMINANCE, GL_UNSIGNED_BYTE, &( raster.at( 0, 0 ) ) );
 }
 
 static int desired_attributes[] = { GLX_RGBA,
@@ -116,8 +130,8 @@ VideoDisplay::VideoDisplay( const unsigned int display_width, const unsigned int
   window_( xcb_connection_, display_width, display_height ),
   context_( display_, window_ ),
   Y_( GL_TEXTURE0, raster_width_, raster_height_ ),
-  Cb_( GL_TEXTURE0, raster_width_/2, raster_height_/2 ),
-  Cr_( GL_TEXTURE0, raster_width_/2, raster_height_/2 ),
+  Cb_( GL_TEXTURE1, raster_width_/2, raster_height_/2 ),
+  Cr_( GL_TEXTURE2, raster_width_/2, raster_height_/2 ),
   shader_()
 {
   /* initialize viewport */
@@ -170,4 +184,53 @@ GLShader::GLShader()
 GLShader::~GLShader()
 {
   glDeleteProgramsARB( 1, &id_ );
+}
+
+void VideoDisplay::draw( const Raster & raster )
+{
+  Y_.load( raster.Y() );
+  Cb_.load( raster.U() );
+  Cr_.load( raster.V() );
+
+  repaint();
+}
+
+void VideoDisplay::repaint( void )
+{
+  glPushMatrix();
+  glLoadIdentity();
+  glTranslatef( 0, 0, 0 );
+  glBegin( GL_POLYGON );
+
+  const double xoffset = 0.25; /* MPEG-2 style 4:2:0 subsampling */
+
+  glMultiTexCoord2d( GL_TEXTURE0, 0, 0 );
+  glMultiTexCoord2d( GL_TEXTURE1, xoffset, 0 );
+  glMultiTexCoord2d( GL_TEXTURE2, xoffset, 0 );
+  glVertex2s( 0, 0 );
+
+  glMultiTexCoord2d( GL_TEXTURE0, display_width_, 0 );
+  glMultiTexCoord2d( GL_TEXTURE1, display_width_/2 + xoffset, 0 );
+  glMultiTexCoord2d( GL_TEXTURE2, display_width_/2 + xoffset, 0 );
+  glVertex2s( display_width_, 0 );
+
+  glMultiTexCoord2d( GL_TEXTURE0, display_width_, display_height_ );
+  glMultiTexCoord2d( GL_TEXTURE1, display_width_/2 + xoffset, display_height_/2 );
+  glMultiTexCoord2d( GL_TEXTURE2, display_width_/2 + xoffset, display_height_/2 );
+  glVertex2s( display_width_, display_height_ );
+
+  glMultiTexCoord2d( GL_TEXTURE0, 0, display_height_ );
+  glMultiTexCoord2d( GL_TEXTURE1, xoffset, display_height_/2 );
+  glMultiTexCoord2d( GL_TEXTURE2, xoffset, display_height_/2 );
+  glVertex2s( 0, display_height_ );
+
+  glEnd();
+
+  glPopMatrix();
+
+  glXSwapBuffers( display_, window_ );
+
+  GLcheck( "glXSwapBuffers" );
+
+  glFinish();
 }
