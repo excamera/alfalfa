@@ -31,6 +31,7 @@ public:
 class XWindow
 {
 private:
+  xcb_connection_t * connection_;
   CheckedPointer< xcb_screen_t* > xcb_screen_;
   xcb_window_t window_;
 
@@ -38,18 +39,27 @@ public:
   XWindow( xcb_connection_t * connection,
 	   const unsigned int display_width,
 	   const unsigned int display_height );
+  ~XWindow();
 
   operator xcb_window_t() const { return window_; }
+  void destroy( xcb_connection_t * connection );
+
+  XWindow( const XWindow & other ) = delete;
+  XWindow & operator=( const XWindow & other ) = delete;
 };
 
 class GLContext
 {
 private:
+  Display * display_;
   CheckedPointer< XVisualInfo* > visual_;
   CheckedPointer< GLXContext > context_;
 
 public:
   GLContext( Display * display, const XWindow & window );
+
+  GLContext( const GLContext & other ) = delete;
+  GLContext & operator=( const GLContext & other ) = delete;
 };
 
 class GLTexture
@@ -61,6 +71,17 @@ public:
   GLTexture( const GLenum texture_unit,
 	     const unsigned int width,
 	     const unsigned int height );
+  ~GLTexture();
+};
+
+class GLShader
+{
+private:
+  GLuint id_;
+
+public:
+  GLShader();
+  ~GLShader();
 };
 
 class VideoDisplay
@@ -76,6 +97,9 @@ private:
 
   /* textures */
   GLTexture Y_, Cb_, Cr_;
+
+  /* colorspace transformation shader */
+  GLShader shader_;
 
 public:
   VideoDisplay( const unsigned int display_width, const unsigned int display_height,

@@ -1,7 +1,14 @@
+#define GL_GLEXT_PROTOTYPES
+
+#include <X11/Xlib.h>
+#include <GL/gl.h>
+#include <GL/glext.h>
+#include <GL/glx.h>
 #include <GL/glu.h>
 
 #include "display.hh"
 #include "exception.hh"
+#include "ahab_shader.hh"
 
 using namespace std;
 
@@ -26,7 +33,8 @@ CheckedPointer<T>::CheckedPointer( const string & context, T const pointer, std:
 XWindow::XWindow( xcb_connection_t * connection,
 		  const unsigned int display_width,
 		  const unsigned int display_height )
-  : xcb_screen_( "xcb_setup_roots_iterator",
+  : connection_( connection ),
+    xcb_screen_( "xcb_setup_roots_iterator",
 		 xcb_setup_roots_iterator( xcb_get_setup( connection ) ).data ),
     window_( xcb_generate_id( connection ) )
 {
@@ -46,10 +54,15 @@ XWindow::XWindow( xcb_connection_t * connection,
   xcb_flush( connection );
 }
 
+XWindow::~XWindow( void )
+{
+  xcb_destroy_window( connection_, window_ );
+}
+
 GLTexture::GLTexture( const GLenum texture_unit,
 		      const unsigned int width,
 		      const unsigned int height )
-  : id_()
+  : id_( -1 )
 {
   glActiveTexture( texture_unit );
   glEnable( GL_TEXTURE_RECTANGLE_ARB );
@@ -66,6 +79,11 @@ GLTexture::GLTexture( const GLenum texture_unit,
   GLcheck( "GLTexture" );
 }
 
+GLTexture::~GLTexture()
+{
+  glDeleteTextures( 1, &id_ );
+}
+
 static int desired_attributes[] = { GLX_RGBA,
 				    GLX_DOUBLEBUFFER, True,
 				    GLX_RED_SIZE, 8,
@@ -74,12 +92,13 @@ static int desired_attributes[] = { GLX_RGBA,
 				    None };
 
 GLContext::GLContext( Display * display, const XWindow & window )
-  : visual_( "glXChooseVisual",
+  : display_( display ),
+    visual_( "glXChooseVisual",
 	     glXChooseVisual( display, 0, desired_attributes ),
 	     []( XVisualInfo * x ) { XFree( x ); } ),
     context_( "glXCreateContext",
 	      glXCreateContext( display, visual_, nullptr, true ),
-	      [&]( GLXContext x ) { glXDestroyContext( display, x ); } )
+	      [&]( GLXContext x ) { glXDestroyContext( display_, x ); } )
 {
   if ( not glXMakeCurrent( display, window, context_ ) ) {
     throw Exception( "glXMakeCurrent", "failed" );
@@ -100,8 +119,44 @@ VideoDisplay::VideoDisplay( const unsigned int display_width, const unsigned int
   context_( display_, window_ ),
   Y_( GL_TEXTURE0, raster_width_, raster_height_ ),
   Cb_( GL_TEXTURE0, raster_width_/2, raster_height_/2 ),
-  Cr_( GL_TEXTURE0, raster_width_/2, raster_height_/2 )
+  Cr_( GL_TEXTURE0, raster_width_/2, raster_height_/2 ),
+  shader_()
 {
-  
+  xcb_flush( xcb_connection_ );
 }
 
+GLShader::GLShader()
+  : id_( -1 )
+{
+  glEnable( GL_FRAGMENT_PROGRAM_ARB );
+  glGenProgramsARB( 1, &id_ );
+  glBindProgramARB( GL_FRAGMENT_PROGRAM_ARB, id_ );
+  glProgramStringARB( GL_FRAGMENT_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB,
+                      strlen( ahab_shader ),
+                      ahab_shader );
+
+  /* check for errors */
+  GLint error_location;
+  glGetIntegerv( GL_PROGRAM_ERROR_POSITION_ARB, &error_location );
+  if ( error_location != -1 ) {
+    throw Exception( "loading colorspace transformation shader",
+		     reinterpret_cast<const char *>( glGetString( GL_PROGRAM_ERROR_STRING_ARB ) ) );
+  }
+
+  GLcheck( "glProgramString" );
+
+  /* load Rec. 709 colors */
+  glProgramLocalParameter4dARB( GL_FRAGMENT_PROGRAM_ARB, 0,
+                                itu709_green[ 0 ], itu709_green[ 1 ], itu709_green[ 2 ], 0 );
+  glProgramLocalParameter4dARB( GL_FRAGMENT_PROGRAM_ARB, 1,
+                                itu709_blue[ 0 ], itu709_blue[ 1 ], itu709_blue[ 2 ], 0 );
+  glProgramLocalParameter4dARB( GL_FRAGMENT_PROGRAM_ARB, 2,
+                                itu709_red[ 0 ], itu709_red[ 1 ], itu709_red[ 2 ], 0 );
+
+  GLcheck( "glProgramEnvParamater4d" );
+}
+
+GLShader::~GLShader()
+{
+  glDeleteProgramsARB( 1, &id_ );
+}
