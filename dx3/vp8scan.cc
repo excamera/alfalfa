@@ -2,6 +2,7 @@
 
 #include "ivf.hh"
 #include "vp8_parser.hh"
+#include "display.hh"
 
 using namespace std;
 
@@ -20,6 +21,8 @@ int main( int argc, char *argv[] )
     }
 
     VP8Parser vp8( file.width(), file.height() );
+    VideoDisplay display( file.width(), file.height(),
+			  vp8.raster_width(), vp8.raster_height() );
 
     for ( uint32_t i = 0; i < file.frame_count(); i++ ) {
       vp8.parse_frame( file.frame( i ) );

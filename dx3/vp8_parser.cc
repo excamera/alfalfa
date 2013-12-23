@@ -29,3 +29,13 @@ void VP8Parser::parse_frame( const Chunk & frame )
   myframe.initialize_raster();
   myframe.intra_predict_and_inverse_transform();
 }
+
+unsigned int VP8Parser::raster_width( void ) const
+{
+  return 16 * ((width_ + 15) / 16);
+}
+
+unsigned int VP8Parser::raster_height( void ) const
+{
+  return 16 * ((height_ + 15) / 16);
+}
