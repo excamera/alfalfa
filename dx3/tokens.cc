@@ -14,7 +14,9 @@ void KeyFrameMacroblockHeader::parse_tokens( BoolDecoder & data,
   }
 
   /* parse Y2 block if present */
-  Y2_.parse_tokens( data, probability_tables );
+  if ( Y2_.coded() ) {
+    Y2_.parse_tokens( data, probability_tables );
+  }
 
   /* parse Y blocks with variable first coefficient */
   Y_.forall( [&]( YBlock & block ) { block.parse_tokens( data, probability_tables ); } );
@@ -65,10 +67,6 @@ void Block< initial_block_type,
 	    PredictionMode >::parse_tokens( BoolDecoder & data,
 					    const KeyFrameHeader::DerivedQuantities & probability_tables )
 {
-  if ( not coded_ ) {
-    return;
-  }
-
   bool last_was_zero = false;
 
   Block default_block;
