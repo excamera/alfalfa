@@ -5,7 +5,7 @@
 
 template <unsigned int size>
 Raster::Block<size>::Block( const typename TwoD< Block >::Context & c,
-			    TwoD< Component > & raster_component )
+			    TwoD< uint8_t > & raster_component )
   : contents( raster_component, size * c.column, size * c.row ),
     context( c ),
     predictors( context )
@@ -34,7 +34,7 @@ Raster::Raster( const unsigned int macroblock_width, const unsigned int macroblo
 template <unsigned int size>
 const typename Raster::Block<size>::Predictors::Row & Raster::Block<size>::Predictors::row127( void )
 {
-  static TwoD< Component > storage( size, 1, 127 );
+  static TwoD< uint8_t > storage( size, 1, 127 );
   static const Row row( storage, 0, 0 );
   return row;
 }
@@ -42,7 +42,7 @@ const typename Raster::Block<size>::Predictors::Row & Raster::Block<size>::Predi
 template <unsigned int size>
 const typename Raster::Block<size>::Predictors::Column & Raster::Block<size>::Predictors::col129( void )
 {
-  static TwoD< Component > storage( 1, size, 129 );
+  static TwoD< uint8_t > storage( 1, size, 129 );
   static const Column col( storage, 0, 0 );
   return col;
 }
@@ -70,13 +70,13 @@ Raster::Block<size>::Predictors::Predictors( const typename TwoD< Block >::Conte
 {}
 
 template <unsigned int size>
-Component Raster::Block<size>::Predictors::above_right( const unsigned int column ) const
+uint8_t Raster::Block<size>::Predictors::above_right( const unsigned int column ) const
 {
   return use_row ? above_right_bottom_row.at( column, 0 ) : above_bottom_right_pixel;
 }
 
 template <unsigned int size>
-Component Raster::Block<size>::Predictors::above( const int column ) const
+uint8_t Raster::Block<size>::Predictors::above( const int column ) const
 {
   assert( column >= -1 and column < int( size * 2 ) );
   if ( column == -1 ) return above_left;
@@ -85,7 +85,7 @@ Component Raster::Block<size>::Predictors::above( const int column ) const
 }
 
 template <unsigned int size>
-Component Raster::Block<size>::Predictors::left( const int row ) const
+uint8_t Raster::Block<size>::Predictors::left( const int row ) const
 {
   assert( row >= -1 and row < int( size ) );
   if ( row == -1 ) return above_left;
@@ -93,7 +93,7 @@ Component Raster::Block<size>::Predictors::left( const int row ) const
 }
 
 template <unsigned int size>
-Component Raster::Block<size>::Predictors::east( const int num ) const
+uint8_t Raster::Block<size>::Predictors::east( const int num ) const
 {
   assert( 0 <= num and num <= size * 2 );
   if ( num <= 4 ) { return left( 3 - num ); }
@@ -103,10 +103,10 @@ Component Raster::Block<size>::Predictors::east( const int num ) const
 template <unsigned int size>
 void Raster::Block<size>::true_motion_predict( void )
 {
-  contents.forall_ij( [&] ( Component & b, unsigned int column, unsigned int row )
-		      { b.clamp( predictors.left_column.at( 0, row )
-				 + predictors.above_row.at( column, 0 )
-				 - predictors.above_left ); } );
+  contents.forall_ij( [&] ( uint8_t & b, unsigned int column, unsigned int row )
+		      { b = clamp255( predictors.left_column.at( 0, row )
+				      + predictors.above_row.at( column, 0 )
+				      - predictors.above_left ); } );
 }
 
 template <unsigned int size>
@@ -143,7 +143,7 @@ void Raster::Block<size>::dc_predict( void )
     return dc_predict_simple();
   }
 
-  Component value = 128;
+  uint8_t value = 128;
   static_assert( size == 4 or size == 8 or size == 16, "invalid Block size" );
   static constexpr uint8_t log2size = size == 4 ? 2 : size == 8 ? 3 : size == 16 ? 4 : 0;
 

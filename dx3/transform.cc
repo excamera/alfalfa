@@ -83,10 +83,10 @@ void Block< initial_block_type, PredictionMode >::idct( Raster::Block4 & output 
     int t2 = MUL_35468( intermediate.at( i + 4 ) ) - MUL_20091( intermediate.at( i + 12 ) );
     int t3 = MUL_20091( intermediate.at( i + 4 ) ) + MUL_35468( intermediate.at( i + 12 ) );
 
-    output.at( 0, i ).clamp( output.at( 0, i ) + ((t0 + t3 + 4) >> 3) );
-    output.at( 1, i ).clamp( output.at( 1, i ) + ((t1 + t2 + 4) >> 3) );
-    output.at( 2, i ).clamp( output.at( 2, i ) + ((t1 - t2 + 4) >> 3) );
-    output.at( 3, i ).clamp( output.at( 3, i ) + ((t0 - t3 + 4) >> 3) );
+    output.at( 0, i ) = clamp255( output.at( 0, i ) + ((t0 + t3 + 4) >> 3) );
+    output.at( 1, i ) = clamp255( output.at( 1, i ) + ((t1 + t2 + 4) >> 3) );
+    output.at( 2, i ) = clamp255( output.at( 2, i ) + ((t1 - t2 + 4) >> 3) );
+    output.at( 3, i ) = clamp255( output.at( 3, i ) + ((t0 - t3 + 4) >> 3) );
   }
 }
 

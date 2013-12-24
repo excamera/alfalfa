@@ -4,23 +4,10 @@
 #include "2d.hh"
 #include "modemv_data.hh"
 
-class Component
-{
-private:
-  uint8_t value[ 1 ]; /* allowed to be uninitialized */
-
-public:
-  operator uint8_t() const { return value[ 0 ]; }
-  Component() {}
-  Component( const uint8_t other ) { value[ 0 ] = other; }
-  Component & operator=( const uint8_t other ) { value[ 0 ] = other; return *this; }
-  void clamp( const int16_t other ) { if ( other < 0 ) { value[ 0 ] = 0; } else if ( other > 255 ) { value[ 0 ] = 255; } else { value[ 0 ] = other; } }
-};
-
-/* specialize TwoD because context not necessary for raster of Components */
+/* specialize TwoD because context not necessary for raster of uint8_ts */
 template<>
 template< typename... Targs >
-TwoD< Component >::TwoD( const unsigned int width, const unsigned int height, Targs&&... Fargs )
+TwoD< uint8_t >::TwoD( const unsigned int width, const unsigned int height, Targs&&... Fargs )
   : width_( width ), height_( height ), storage_()
 {
   assert( width > 0 );
@@ -35,20 +22,27 @@ TwoD< Component >::TwoD( const unsigned int width, const unsigned int height, Ta
   }
 }
 
+static inline uint8_t clamp255( const int16_t value )
+{
+  if ( value < 0 ) return 0;
+  if ( value > 255 ) return 255;
+  return value;
+}
+
 class Raster
 {
 public:
   template <unsigned int size>
   struct Block
   {
-    TwoDSubRange< Component, size, size > contents;
+    TwoDSubRange< uint8_t, size, size > contents;
 
-    Block( const typename TwoD< Block >::Context & c, TwoD< Component > & macroblock_component );
+    Block( const typename TwoD< Block >::Context & c, TwoD< uint8_t > & macroblock_component );
 
-    Component & at( const unsigned int column, const unsigned int row )
+    uint8_t & at( const unsigned int column, const unsigned int row )
     { return contents.at( column, row ); }
 
-    const Component & at( const unsigned int column, const unsigned int row ) const
+    const uint8_t & at( const unsigned int column, const unsigned int row ) const
     { return contents.at( column, row ); }
 
     const typename TwoD< Block >::Context context;
@@ -71,30 +65,30 @@ public:
     void horizontal_up_predict( void );
 
     struct Predictors {
-      typedef TwoDSubRange< Component, size, 1 > Row;
-      typedef TwoDSubRange< Component, 1, size > Column;
+      typedef TwoDSubRange< uint8_t, size, 1 > Row;
+      typedef TwoDSubRange< uint8_t, 1, size > Column;
 
       static const Row & row127( void );
       static const Column & col129( void );
 
       const Row above_row;
       const Column left_column;
-      const Component & above_left;
+      const uint8_t & above_left;
       Row above_right_bottom_row; /* non-const so macroblock can fix */
-      const Component & above_bottom_right_pixel;
+      const uint8_t & above_bottom_right_pixel;
       bool use_row;
-      Component above_right( const unsigned int column ) const;
+      uint8_t above_right( const unsigned int column ) const;
 
-      Component above( const int column ) const;
-      Component left( const int row ) const;
-      Component east( const int num ) const;
+      uint8_t above( const int column ) const;
+      uint8_t left( const int row ) const;
+      uint8_t east( const int num ) const;
 
       Predictors( const typename TwoD< Block >::Context & context );
     } predictors;
 
-    Component above( const int column ) const { return predictors.above( column ); }
-    Component left( const int column ) const { return predictors.left( column ); }
-    Component east( const int column ) const { return predictors.east( column ); }
+    uint8_t above( const int column ) const { return predictors.above( column ); }
+    uint8_t left( const int column ) const { return predictors.left( column ); }
+    uint8_t east( const int column ) const { return predictors.east( column ); }
   };
 
   using Block4  = Block< 4 >;
@@ -116,7 +110,7 @@ private:
   unsigned int width_, height_;
   unsigned int display_width_, display_height_;
 
-  TwoD< Component > Y_ { width_, height_ },
+  TwoD< uint8_t > Y_ { width_, height_ },
     U_ { width_ / 2, height_ / 2 },
     V_ { width_ / 2, height_ / 2 };
 
@@ -136,13 +130,13 @@ public:
   Raster( const unsigned int macroblock_width, const unsigned int macroblock_height,
 	  const unsigned int display_width, const unsigned int display_height );
 
-  TwoD< Component > & Y( void ) { return Y_; }
-  TwoD< Component > & U( void ) { return U_; }
-  TwoD< Component > & V( void ) { return V_; }
+  TwoD< uint8_t > & Y( void ) { return Y_; }
+  TwoD< uint8_t > & U( void ) { return U_; }
+  TwoD< uint8_t > & V( void ) { return V_; }
 
-  const TwoD< Component > & Y( void ) const { return Y_; }
-  const TwoD< Component > & U( void ) const { return U_; }
-  const TwoD< Component > & V( void ) const { return V_; }
+  const TwoD< uint8_t > & Y( void ) const { return Y_; }
+  const TwoD< uint8_t > & U( void ) const { return U_; }
+  const TwoD< uint8_t > & V( void ) const { return V_; }
 
   Macroblock & macroblock( const unsigned int column, const unsigned int row )
   {

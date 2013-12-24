@@ -76,7 +76,7 @@ public:
 	     const unsigned int width,
 	     const unsigned int height );
   ~GLTexture();
-  void load( const TwoD< Component > & raster );
+  void load( const TwoD< uint8_t > & raster );
 };
 
 class GLShader

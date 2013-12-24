@@ -85,7 +85,7 @@ GLTexture::~GLTexture()
   glDeleteTextures( 1, &id_ );
 }
 
-void GLTexture::load( const TwoD< Component > & raster )
+void GLTexture::load( const TwoD< uint8_t > & raster )
 {
   assert( width_ == raster.width() );
   assert( height_ == raster.height() );
