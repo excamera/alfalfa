@@ -27,7 +27,6 @@ class KeyFrame
 
   Optional< KeyFrameHeader::DerivedQuantities > derived_quantities_ {};
   Optional< TwoD< KeyFrameMacroblockHeader > > macroblock_headers_ {};
-  Optional< Raster > raster_ {};
 
   void relink_y2_blocks( void );
 
@@ -38,10 +37,8 @@ class KeyFrame
 
   void calculate_probability_tables( void );
   void parse_macroblock_headers( void );
-  void initialize_raster( void );
+  void assign_output_raster( Raster & raster );
   void decode( void );
-
-  Raster & raster( void ) { return raster_.get(); }
 };
 
 #endif /* FRAME_HH */

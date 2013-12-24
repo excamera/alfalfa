@@ -16,7 +16,7 @@ private:
 public:
   VP8Parser( uint16_t s_width, uint16_t s_height );
 
-  void parse_frame( const Chunk & frame, VideoDisplay & display );
+  void parse_frame( const Chunk & frame, VideoDisplay & display, Raster & raster );
 
   unsigned int raster_width( void ) const;
   unsigned int raster_height( void ) const;

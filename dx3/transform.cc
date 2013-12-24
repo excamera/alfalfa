@@ -92,30 +92,36 @@ void Block< initial_block_type, PredictionMode >::idct( Raster::Block4 & output 
 
 void KeyFrameMacroblockHeader::intra_predict_and_inverse_transform( void )
 {
+  const bool do_idct = not mb_skip_coeff_.get_or( false );
+
   /* Chroma */
   raster_.get()->U.intra_predict( uv_prediction_mode() );
-  U_.forall_ij( [&] ( UVBlock & block, const unsigned int column, const unsigned int row )
-		{ block.idct( raster_.get()->U_sub.at( column, row ) ); } );
-
   raster_.get()->V.intra_predict( uv_prediction_mode() );
-  V_.forall_ij( [&] ( UVBlock & block, const unsigned int column, const unsigned int row )
-		{ block.idct( raster_.get()->V_sub.at( column, row ) ); } );
+
+  if ( do_idct ) {
+    U_.forall_ij( [&] ( UVBlock & block, const unsigned int column, const unsigned int row )
+		  { block.idct( raster_.get()->U_sub.at( column, row ) ); } );
+    V_.forall_ij( [&] ( UVBlock & block, const unsigned int column, const unsigned int row )
+		  { block.idct( raster_.get()->V_sub.at( column, row ) ); } );
+  }
 
   /* Luma */
   if ( Y2_.prediction_mode() == B_PRED ) {
     /* Prediction and inverse transform done in line! */
     Y_.forall_ij( [&] ( YBlock & block, const unsigned int column, const unsigned int row ) {
 	raster_.get()->Y_sub.at( column, row ).intra_predict( block.prediction_mode() );
-	block.idct( raster_.get()->Y_sub.at( column, row ) ); } );
+	if ( do_idct ) block.idct( raster_.get()->Y_sub.at( column, row ) ); } );
   } else {
     raster_.get()->Y.intra_predict( Y2_.prediction_mode() );
 
-    /* transfer the Y2 block with WHT first, if necessary */
-    if ( Y2_.coded() ) {
-      Y2_.walsh_transform( Y_ );
-    }
+    if ( do_idct ) {
+      /* transfer the Y2 block with WHT first, if necessary */
+      if ( Y2_.coded() ) {
+	Y2_.walsh_transform( Y_ );
+      }
 
-    Y_.forall_ij( [&] ( YBlock & block, const unsigned int column, const unsigned int row )
-		  { block.idct( raster_.get()->Y_sub.at( column, row ) ); } );
+      Y_.forall_ij( [&] ( YBlock & block, const unsigned int column, const unsigned int row )
+		    { block.idct( raster_.get()->Y_sub.at( column, row ) ); } );
+    }
   }
 }

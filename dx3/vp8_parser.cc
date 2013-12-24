@@ -13,7 +13,7 @@ VP8Parser::VP8Parser( uint16_t s_width, uint16_t s_height )
 {
 }
 
-void VP8Parser::parse_frame( const Chunk & frame, VideoDisplay & display )
+void VP8Parser::parse_frame( const Chunk & frame, VideoDisplay & display, Raster & raster )
 {
   /* parse uncompressed data chunk */
   UncompressedChunk uncompressed_chunk( frame, width_, height_ );
@@ -26,10 +26,10 @@ void VP8Parser::parse_frame( const Chunk & frame, VideoDisplay & display )
   KeyFrame myframe( uncompressed_chunk, width_, height_ );
   myframe.calculate_probability_tables();
   myframe.parse_macroblock_headers();
-  myframe.initialize_raster();
+  myframe.assign_output_raster( raster );
   myframe.decode();
 
-  display.draw( myframe.raster() );
+  display.draw( raster );
   //  sleep( 1 );
 }
 

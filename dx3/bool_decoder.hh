@@ -43,7 +43,7 @@ public:
   }
 
   /* based on dixie bool_decoder.h */
-  bool get( const Probability & probability )
+  bool get( const Probability probability )
   {
     const uint32_t split = 1 + (((range_ - 1) * probability) >> 8);
     const uint32_t SPLIT = split << 8;

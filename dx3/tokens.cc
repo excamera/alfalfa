@@ -30,37 +30,33 @@ static const SafeArray< uint8_t, 16 > coefficient_to_band {{ 0, 1, 2, 3, 6, 4, 5
 
 static const SafeArray< uint8_t, 16 > zigzag = {{ 0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15 }};
 
+template < unsigned int length >
 struct TokenDecoder
 {
 private:
   const uint16_t base_value_;
-  const vector< Probability > bit_probabilities_;
+  const SafeArray< Probability, length > bit_probabilities_;
 
 public:
-  TokenDecoder( const uint16_t base_value, const vector< Probability > probs )
+  TokenDecoder( const uint16_t base_value, const SafeArray< Probability, length > & probs )
     : base_value_( base_value ), bit_probabilities_( probs ) {}
 
   uint16_t decode( BoolDecoder & data ) const
   {
     uint16_t increment = 0;
-    for ( auto & x : bit_probabilities_ ) { increment += increment + data.get( x ); }
+    for ( uint8_t i = 0; i < length; i++ ) { increment = ( increment << 1 ) + data.get( bit_probabilities_.at( i ) ); }
     return base_value_ + increment;
   }
 };
 
-static const SafeArray< TokenDecoder, ENTROPY_NODES > token_decoders = {{
-    TokenDecoder( 0, {} ),
-    TokenDecoder( 1, {} ),
-    TokenDecoder( 2, {} ),
-    TokenDecoder( 3, {} ),
-    TokenDecoder( 4, {} ),
-    TokenDecoder( 5, { 159 } ), /* range 5..6 */
-    TokenDecoder( 7, { 165, 145 } ), /* range 7..10 */
-    TokenDecoder( 11, { 173, 148, 140 } ),
-    TokenDecoder( 19, { 176, 155, 140, 135 } ),
-    TokenDecoder( 35, { 180, 157, 141, 134, 130 } ),
-    TokenDecoder( 67, { 254, 254, 243, 230, 196, 177, 153, 140, 133, 130, 129 } )
-  }};
+static const TokenDecoder< 2 > token_decoder_1( 7, { 165, 145 } );
+static const TokenDecoder< 3 > token_decoder_2( 11, { 173, 148, 140 } );
+static const TokenDecoder< 4 > token_decoder_3( 19, { 176, 155, 140, 135 } );
+static const TokenDecoder< 5 > token_decoder_4( 35, { 180, 157, 141, 134, 130 } );
+static const TokenDecoder< 11 > token_decoder_5( 67, { 254, 254, 243, 230, 196, 177, 153, 140, 133, 130, 129 } );
+
+/* The unfolded token decoder is not pretty, but it is considerably faster
+   than using a tree decoder */
 
 template < BlockType initial_block_type, class PredictionMode >
 void Block< initial_block_type,
@@ -83,50 +79,70 @@ void Block< initial_block_type,
       = probability_tables.coeff_probs.at( type_ ).at( coefficient_to_band.at( index ) ).at( context );
 
     /* decode the token */
-    const token coded_token = data.tree< MAX_ENTROPY_TOKENS,
-					 token >( token_tree, prob, last_was_zero ? 2 : 0 );
-
-    /* check for end of block */
-    if ( coded_token == DCT_EOB_TOKEN ) {
-      break;
+    if ( not last_was_zero ) {
+      if ( not data.get( prob.at( 0 ) ) ) {
+	/* EOB */
+	break;
+      }
     }
 
-    /* update the block's record of whether it has a nonzero coefficient */
-    has_nonzero_ |= (coded_token != ZERO_TOKEN);
+    if ( not data.get( prob.at( 1 ) ) ) {
+      last_was_zero = true;
+      context = 0;
+      continue;
+    }
 
-    /* update prediction context */
-    last_was_zero = (coded_token == ZERO_TOKEN);
+    last_was_zero = false;
+    has_nonzero_ = true;
 
-    /* after first-decoded coefficient, context becomes summary of magnitude of last coefficient */
-    switch ( coded_token ) {
-    case ZERO_TOKEN: context = 0; break;
-    case ONE_TOKEN:  context = 1; break;
-    default:         context = 2; break;
-    };
+    int16_t value;
 
-    /* decode extra bits if there are any */
-    int16_t coefficient = token_decoders.at( coded_token ).decode( data );
+    if ( not data.get( prob.at( 2 ) ) ) {
+      value = 1;
+      context = 1;
+    } else {
+      context = 2;
+      if ( not data.get( prob.at( 3 ) ) ) {
+	if ( not data.get( prob.at( 4 ) ) ) {
+	  value = 2;
+	} else {
+	  if ( not data.get( prob.at( 5 ) ) ) {
+	    value = 3;
+	  } else {
+	    value = 4;
+	  }
+	}
+      } else {
+	if ( not data.get( prob.at( 6 ) ) ) {
+	  if ( not data.get( prob.at( 7 ) ) ) {
+	    value = 5 + data.get( 159 );
+	  } else {
+	    value = token_decoder_1.decode( data );
+	  }
+	} else {
+	  if ( not data.get( prob.at( 8 ) ) ) {
+	    if ( not data.get( prob.at( 9 ) ) ) {
+	      value = token_decoder_2.decode( data );
+	    } else {
+	      value = token_decoder_3.decode( data );
+	    }
+	  } else {
+	    if ( not data.get( prob.at( 10 ) ) ) {
+	      value = token_decoder_4.decode( data );
+	    } else {
+	      value = token_decoder_5.decode( data );
+	    }
+	  }
+	}
+      }
+    }
 
     /* decode sign bit if absolute value is nonzero */
-    if ( (coded_token > ZERO_TOKEN) and data.bit() ) {
-      coefficient = -coefficient;
+    if ( data.bit() ) {
+      value = -value;
     }
 
     /* assign to block storage */
-    coefficients_.at( zigzag.at( index ) ) = coefficient;
+    coefficients_.at( zigzag.at( index ) ) = value;
   }
 }
-
-const TreeArray< MAX_ENTROPY_TOKENS > token_tree = {{
-    -DCT_EOB_TOKEN, 2,
-    -ZERO_TOKEN, 4,
-    -ONE_TOKEN, 6,
-    8, 12,
-    -TWO_TOKEN, 10,
-    -THREE_TOKEN, -FOUR_TOKEN,
-    14, 16,
-    -DCT_VAL_CATEGORY1, -DCT_VAL_CATEGORY2,
-    18, 20,
-    -DCT_VAL_CATEGORY3, -DCT_VAL_CATEGORY4,
-    -DCT_VAL_CATEGORY5, -DCT_VAL_CATEGORY6
-  }};

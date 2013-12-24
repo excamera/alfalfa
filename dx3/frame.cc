@@ -64,12 +64,10 @@ void KeyFrame::relink_y2_blocks( void )
     } );
 }
 
-void KeyFrame::initialize_raster( void )
+void KeyFrame::assign_output_raster( Raster & raster )
 {
-  raster_.initialize( macroblock_width_, macroblock_height_, display_width_, display_height_ );
-
   macroblock_headers_.get().forall_ij( [&]( KeyFrameMacroblockHeader & macroblock,
 					    const unsigned int column,
 					    const unsigned int row )
-				       { macroblock.assign_output_raster( raster_.get().macroblock( column, row ) ); } );
+				       { macroblock.assign_output_raster( raster.macroblock( column, row ) ); } );
 }
