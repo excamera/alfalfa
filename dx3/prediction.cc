@@ -101,7 +101,7 @@ Component Raster::Block<size>::Predictors::east( const int num ) const
 }
 
 template <unsigned int size>
-void Raster::Block<size>::tm_predict( void )
+void Raster::Block<size>::true_motion_predict( void )
 {
   contents.forall_ij( [&] ( Component & b, unsigned int column, unsigned int row )
 		      { b.clamp( predictors.left_column.at( 0, row )
@@ -110,7 +110,7 @@ void Raster::Block<size>::tm_predict( void )
 }
 
 template <unsigned int size>
-void Raster::Block<size>::h_predict( void )
+void Raster::Block<size>::horizontal_predict( void )
 {
   for ( unsigned int row = 0; row < size; row++ ) {
     contents.row( row ).fill( predictors.left_column.at( 0, row ) );
@@ -118,7 +118,7 @@ void Raster::Block<size>::h_predict( void )
 }
 
 template <unsigned int size>
-void Raster::Block<size>::v_predict( void )
+void Raster::Block<size>::vertical_predict( void )
 {
   for ( unsigned int column = 0; column < size; column++ ) {
     contents.column( column ).fill( predictors.above_row.at( column, 0 ) );
@@ -164,9 +164,9 @@ void Raster::Block8::intra_predict( const intra_mbmode uv_mode )
 
   switch ( uv_mode ) {
   case DC_PRED: dc_predict(); break;
-  case V_PRED:  v_predict();  break;
-  case H_PRED:  h_predict();  break;
-  case TM_PRED: tm_predict(); break;
+  case V_PRED:  vertical_predict();  break;
+  case H_PRED:  horizontal_predict();  break;
+  case TM_PRED: true_motion_predict(); break;
   case B_PRED: assert( false ); break; /* tree decoder for uv_mode can't produce this */
   }
 }
@@ -179,9 +179,9 @@ void Raster::Block16::intra_predict( const intra_mbmode uv_mode )
 
   switch ( uv_mode ) {
   case DC_PRED: dc_predict(); break;
-  case V_PRED:  v_predict();  break;
-  case H_PRED:  h_predict();  break;
-  case TM_PRED: tm_predict(); break;
+  case V_PRED:  vertical_predict();  break;
+  case H_PRED:  horizontal_predict();  break;
+  case TM_PRED: true_motion_predict(); break;
   case B_PRED: assert( false ); break; /* need to predict and transform subblocks independently */
   }
 }
@@ -197,7 +197,7 @@ uint8_t avg2( const uint8_t x, const uint8_t y )
 }
 
 template <>
-void Raster::Block4::ve_predict( void )
+void Raster::Block4::vertical_smoothed_predict( void )
 {
   contents.column( 0 ).fill( avg3( above( -1 ), above( 0 ), above( 1 ) ) );
   contents.column( 1 ).fill( avg3( above( 0 ),  above( 1 ), above( 2 ) ) );
@@ -206,7 +206,7 @@ void Raster::Block4::ve_predict( void )
 }
 
 template <>
-void Raster::Block4::he_predict( void )
+void Raster::Block4::horizontal_smoothed_predict( void )
 {
   contents.row( 0 ).fill( avg3( left( -1 ), left( 0 ), left( 1 ) ) );
   contents.row( 1 ).fill( avg3( left( 0 ),  left( 1 ), left( 2 ) ) );
@@ -216,7 +216,7 @@ void Raster::Block4::he_predict( void )
 }
 
 template <>
-void Raster::Block4::ld_predict( void )
+void Raster::Block4::left_down_predict( void )
 {
   at( 0, 0 ) =                                        avg3( above( 0 ), above( 1 ), above( 2 ) );
   at( 1, 0 ) = at( 0, 1 ) =                           avg3( above( 1 ), above( 2 ), above( 3 ) );
@@ -229,7 +229,7 @@ void Raster::Block4::ld_predict( void )
 }
 
 template <>
-void Raster::Block4::rd_predict( void )
+void Raster::Block4::right_down_predict( void )
 {
   at( 0, 3 ) =                                        avg3( east( 0 ), east( 1 ), east( 2 ) );
   at( 1, 3 ) = at( 0, 2 ) =                           avg3( east( 1 ), east( 2 ), east( 3 ) );
@@ -241,7 +241,7 @@ void Raster::Block4::rd_predict( void )
 }
 
 template <>
-void Raster::Block4::vr_predict( void )
+void Raster::Block4::vertical_right_predict( void )
 {
   at( 0, 3 ) =                                        avg3( east( 1 ), east( 2 ), east( 3 ) );
   at( 0, 2 ) =                                        avg3( east( 2 ), east( 3 ), east( 4 ) );
@@ -256,7 +256,7 @@ void Raster::Block4::vr_predict( void )
 }
 
 template <>
-void Raster::Block4::vl_predict( void )
+void Raster::Block4::vertical_left_predict( void )
 {
   at( 0, 0 ) =                                        avg2( above( 0 ), above( 1 ) );
   at( 0, 1 ) =                                        avg3( above( 0 ), above( 1 ), above( 2 ) );
@@ -271,7 +271,7 @@ void Raster::Block4::vl_predict( void )
 }
 
 template <>
-void Raster::Block4::hd_predict( void )
+void Raster::Block4::horizontal_down_predict( void )
 {
   at( 0, 3 ) =                                        avg2( east( 0 ), east( 1 ) );
   at( 1, 3 ) =                                        avg3( east( 0 ), east( 1 ), east( 2 ) );
@@ -286,7 +286,7 @@ void Raster::Block4::hd_predict( void )
 }
 
 template <>
-void Raster::Block4::hu_predict( void )
+void Raster::Block4::horizontal_up_predict( void )
 {
   at( 0, 0 ) =                                        avg2( left( 0 ), left( 1 ) );
   at( 1, 0 ) =                                        avg3( left( 0 ), left( 1 ), left( 2 ) );
@@ -306,14 +306,14 @@ void Raster::Block4::intra_predict( const intra_bmode b_mode )
 
   switch ( b_mode ) {
   case B_DC_PRED: dc_predict_simple(); break; 
-  case B_TM_PRED: tm_predict(); break;
-  case B_VE_PRED: ve_predict(); break;
-  case B_HE_PRED: he_predict(); break;
-  case B_LD_PRED: ld_predict(); break;
-  case B_RD_PRED: rd_predict(); break;
-  case B_VR_PRED: vr_predict(); break;
-  case B_VL_PRED: vl_predict(); break;
-  case B_HD_PRED: hd_predict(); break;
-  case B_HU_PRED: hu_predict(); break;
+  case B_TM_PRED: true_motion_predict(); break;
+  case B_VE_PRED: vertical_smoothed_predict(); break;
+  case B_HE_PRED: horizontal_smoothed_predict(); break;
+  case B_LD_PRED: left_down_predict(); break;
+  case B_RD_PRED: right_down_predict(); break;
+  case B_VR_PRED: vertical_right_predict(); break;
+  case B_VL_PRED: vertical_left_predict(); break;
+  case B_HD_PRED: horizontal_down_predict(); break;
+  case B_HU_PRED: horizontal_up_predict(); break;
   }
 }

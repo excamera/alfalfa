@@ -58,17 +58,17 @@ public:
 
     void dc_predict( void );
     void dc_predict_simple( void );
-    void v_predict( void );
-    void h_predict( void );
-    void tm_predict( void );
-    void ve_predict( void );
-    void he_predict( void );
-    void ld_predict( void );
-    void rd_predict( void );
-    void vr_predict( void );
-    void vl_predict( void );
-    void hd_predict( void );
-    void hu_predict( void );
+    void vertical_predict( void );
+    void horizontal_predict( void );
+    void true_motion_predict( void );
+    void vertical_smoothed_predict( void );
+    void horizontal_smoothed_predict( void );
+    void left_down_predict( void );
+    void right_down_predict( void );
+    void vertical_right_predict( void );
+    void vertical_left_predict( void );
+    void horizontal_down_predict( void );
+    void horizontal_up_predict( void );
 
     struct Predictors {
       typedef TwoDSubRange< Component, size, 1 > Row;
