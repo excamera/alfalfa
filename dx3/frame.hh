@@ -38,10 +38,8 @@ class KeyFrame
 
   void calculate_probability_tables( void );
   void parse_macroblock_headers( void );
-  void parse_tokens( void );
-  void dequantize( void );
   void initialize_raster( void );
-  void intra_predict_and_inverse_transform( void );
+  void decode( void );
 
   Raster & raster( void ) { return raster_.get(); }
 };

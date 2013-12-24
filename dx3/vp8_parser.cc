@@ -26,10 +26,8 @@ void VP8Parser::parse_frame( const Chunk & frame, VideoDisplay & display )
   KeyFrame myframe( uncompressed_chunk, width_, height_ );
   myframe.calculate_probability_tables();
   myframe.parse_macroblock_headers();
-  myframe.parse_tokens();
-  myframe.dequantize();
   myframe.initialize_raster();
-  myframe.intra_predict_and_inverse_transform();
+  myframe.decode();
 
   display.draw( myframe.raster() );
   //  sleep( 1 );

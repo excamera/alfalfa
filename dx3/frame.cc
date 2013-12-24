@@ -29,18 +29,20 @@ void KeyFrame::parse_macroblock_headers( void )
 				  Y2_, Y_, U_, V_ );
 }
 
-void KeyFrame::parse_tokens( void )
+void KeyFrame::decode( void )
 {
   /* repoint Y2 above/left pointers to skip missing subblocks */
   relink_y2_blocks();
 
-  /* parse tokens */
+  /* process each macroblock */
   macroblock_headers_.get().forall_ij( [&]( KeyFrameMacroblockHeader & macroblock,
 					    const unsigned int column __attribute((unused)),
 					    const unsigned int row )
 				       {
 					 macroblock.parse_tokens( dct_partitions_.at( row % dct_partitions_.size() ),
 								  derived_quantities_.get() );
+					 macroblock.dequantize( derived_quantities_.get() );
+					 macroblock.intra_predict_and_inverse_transform();
 				       } );
 }
 
@@ -62,12 +64,6 @@ void KeyFrame::relink_y2_blocks( void )
     } );
 }
 
-void KeyFrame::dequantize( void )
-{
-  macroblock_headers_.get().forall( [&] ( KeyFrameMacroblockHeader & macroblock )
-				    { macroblock.dequantize( derived_quantities_.get() ); } );
-}
-
 void KeyFrame::initialize_raster( void )
 {
   raster_.initialize( macroblock_width_, macroblock_height_, display_width_, display_height_ );
@@ -76,12 +72,4 @@ void KeyFrame::initialize_raster( void )
 					    const unsigned int column,
 					    const unsigned int row )
 				       { macroblock.assign_output_raster( raster_.get().macroblock( column, row ) ); } );
-}
-
-void KeyFrame::intra_predict_and_inverse_transform( void )
-{
-  macroblock_headers_.get().forall( [&] ( KeyFrameMacroblockHeader & macroblock )
-				    {
-				      macroblock.intra_predict_and_inverse_transform();
-				    } );
 }
