@@ -88,33 +88,16 @@ public:
     }
   }
 
-  Array( const SafeArray< T, len > & other )
-    : storage_( begin( other ), end( other ) )
-  {}
-
-  Array( const std::vector< T > & other )
-    : storage_( other )
-  {
-    assert( storage_.size() == len );
-  }
-
-  Array( const std::vector< T > && other )
-    : storage_( move( other ) )
-  {
-    assert( storage_.size() == len );
-  }
-
   const T & at( const unsigned int offset ) const
   {
+    #ifdef NDEBUG
+    return storage_[ offset ];
+    #else
     return storage_.at( offset );
+    #endif
   }
 
-  operator const SafeArray< T, len > & () const
-  {
-    return *reinterpret_cast< const SafeArray< T, len > * >( &storage_.at( 0 ) );
-  }
-
-  unsigned int size( void ) const { return len; }
+  static constexpr unsigned int size( void ) { return len; }
 
   virtual ~Array() {}
 };
