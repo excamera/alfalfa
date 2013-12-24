@@ -70,13 +70,13 @@ Raster::Block<size>::Predictors::Predictors( const typename TwoD< Block >::Conte
 {}
 
 template <unsigned int size>
-Raster::Component Raster::Block<size>::Predictors::above_right( const unsigned int column ) const
+Component Raster::Block<size>::Predictors::above_right( const unsigned int column ) const
 {
   return use_row ? above_right_bottom_row.at( column, 0 ) : above_bottom_right_pixel;
 }
 
 template <unsigned int size>
-Raster::Component Raster::Block<size>::Predictors::above( const int column ) const
+Component Raster::Block<size>::Predictors::above( const int column ) const
 {
   assert( column >= -1 and column < int( size * 2 ) );
   if ( column == -1 ) return above_left;
@@ -85,7 +85,7 @@ Raster::Component Raster::Block<size>::Predictors::above( const int column ) con
 }
 
 template <unsigned int size>
-Raster::Component Raster::Block<size>::Predictors::left( const int row ) const
+Component Raster::Block<size>::Predictors::left( const int row ) const
 {
   assert( row >= -1 and row < int( size ) );
   if ( row == -1 ) return above_left;
@@ -93,7 +93,7 @@ Raster::Component Raster::Block<size>::Predictors::left( const int row ) const
 }
 
 template <unsigned int size>
-Raster::Component Raster::Block<size>::Predictors::east( const int num ) const
+Component Raster::Block<size>::Predictors::east( const int num ) const
 {
   assert( 0 <= num and num <= size * 2 );
   if ( num <= 4 ) { return left( 3 - num ); }

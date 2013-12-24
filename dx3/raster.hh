@@ -4,23 +4,40 @@
 #include "2d.hh"
 #include "modemv_data.hh"
 
+class Component
+{
+private:
+  uint8_t value[ 1 ]; /* allowed to be uninitialized */
+
+public:
+  operator uint8_t() const { return value[ 0 ]; }
+  Component() {}
+  Component( const uint8_t other ) { value[ 0 ] = other; }
+  Component & operator=( const uint8_t other ) { value[ 0 ] = other; return *this; }
+  void clamp( const int16_t other ) { if ( other < 0 ) { value[ 0 ] = 0; } else if ( other > 255 ) { value[ 0 ] = 255; } else { value[ 0 ] = other; } }
+};
+
+/* specialize TwoD because context not necessary for raster of Components */
+template<>
+template< typename... Targs >
+TwoD< Component >::TwoD( const unsigned int width, const unsigned int height, Targs&&... Fargs )
+  : width_( width ), height_( height ), storage_()
+{
+  assert( width > 0 );
+  assert( height > 0 );
+
+  storage_.reserve( width * height );
+
+  for ( unsigned int row = 0; row < height; row++ ) {
+    for ( unsigned int column = 0; column < width; column++ ) {
+      storage_.emplace_back( Fargs... );
+    }
+  }
+}
+
 class Raster
 {
 public:
-  class Component
-  {
-  private:
-    uint8_t value[ 1 ];
-
-  public:
-    operator uint8_t() const { return value[ 0 ]; }
-    Component( const TwoD< Component >::Context & ) {} 
-    Component( const TwoD< Component >::Context &, const uint8_t s_value ) { value[ 0 ] = s_value; } 
-    Component( const uint8_t other ) { value[ 0 ] = other; }
-    Component & operator=( const uint8_t other ) { value[ 0 ] = other; return *this; }
-    void clamp( const int16_t other ) { if ( other < 0 ) { value[ 0 ] = 0; } else if ( other > 255 ) { value[ 0 ] = 255; } else { value[ 0 ] = other; } }
-  };
-
   template <unsigned int size>
   struct Block
   {
