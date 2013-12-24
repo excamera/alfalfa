@@ -171,6 +171,21 @@ void Raster::Block8::intra_predict( const intra_mbmode uv_mode )
   }
 }
 
+template <>
+template <>
+void Raster::Block16::intra_predict( const intra_mbmode uv_mode )
+{
+  /* Y prediction for whole macroblock */
+
+  switch ( uv_mode ) {
+  case DC_PRED: dc_predict(); break;
+  case V_PRED:  v_predict();  break;
+  case H_PRED:  h_predict();  break;
+  case TM_PRED: tm_predict(); break;
+  case B_PRED: assert( false ); break; /* need to predict and transform subblocks independently */
+  }
+}
+
 uint8_t avg3( const uint8_t x, const uint8_t y, const uint8_t z )
 {
   return (x + 2 * y + z + 2) >> 2;
@@ -300,24 +315,5 @@ void Raster::Block4::intra_predict( const intra_bmode b_mode )
   case B_VL_PRED: vl_predict(); break;
   case B_HD_PRED: hd_predict(); break;
   case B_HU_PRED: hu_predict(); break;
-  }
-}
-
-void KeyFrameMacroblockHeader::intra_predict( void )
-{
-  /* Chroma prediction */
-  raster_.get()->U.intra_predict( uv_prediction_mode() );
-  raster_.get()->V.intra_predict( uv_prediction_mode() );
-
-  /* Luma prediction */
-  switch ( Y2_.prediction_mode() ) {
-  case DC_PRED: raster_.get()->Y.dc_predict(); break;
-  case V_PRED:  raster_.get()->Y.v_predict();  break;
-  case H_PRED:  raster_.get()->Y.h_predict();  break;
-  case TM_PRED: raster_.get()->Y.tm_predict(); break;    
-  case B_PRED:
-    raster_.get()->Y_sub.forall_ij( [&] ( Raster::Block4 & block, unsigned int column, unsigned int row )
-				    { block.intra_predict( Y_.at( column, row ).prediction_mode() ); } );
-    break;
   }
 }

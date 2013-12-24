@@ -40,9 +40,7 @@ public:
 
   void assign_output_raster( Raster::Macroblock & raster ) { raster_.initialize( &raster ); }
 
-  void inverse_transform( void );
-
-  void intra_predict( void );
+  void intra_predict_and_inverse_transform( void );
 };
 
 #endif /* MB_RECORDS_HH */

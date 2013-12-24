@@ -82,7 +82,6 @@ void KeyFrame::intra_predict_and_inverse_transform( void )
 {
   macroblock_headers_.get().forall( [&] ( KeyFrameMacroblockHeader & macroblock )
 				    {
-				      macroblock.intra_predict();
-				      macroblock.inverse_transform();
+				      macroblock.intra_predict_and_inverse_transform();
 				    } );
 }
