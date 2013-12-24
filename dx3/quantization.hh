@@ -5,8 +5,8 @@
 
 #include "optional.hh"
 
-class QuantIndices;
-class UpdateSegmentation;
+struct QuantIndices;
+struct UpdateSegmentation;
 
 struct Quantizer
 {
