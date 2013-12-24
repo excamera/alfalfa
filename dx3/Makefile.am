@@ -3,7 +3,7 @@ AM_CXXFLAGS = $(PICKY_CXXFLAGS)
 LDADD = $(X11_XCB_LIBS) $(GLU_LIBS)
 bin_PROGRAMS = vp8scan
 
-vp8scan_SOURCES = 2d.hh block.hh bool_decoder.cc bool_decoder.hh \
+vp8scan_SOURCES = 2d.hh block.hh bool_decoder.hh \
 	chunk.hh exception.hh file.cc file_descriptor.hh file.hh \
 	frame.cc frame_header.cc frame_header.hh frame.hh \
 	ivf.cc ivf.hh macroblock_header.cc macroblock_header.hh \
