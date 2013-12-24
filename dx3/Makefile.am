@@ -13,4 +13,4 @@ vp8scan_SOURCES = 2d.hh block.hh bool_decoder.cc bool_decoder.hh \
 	uncompressed_chunk.cc uncompressed_chunk.hh \
 	vp8_header_structures.hh vp8_parser.cc vp8_parser.hh \
 	vp8_prob_data.cc vp8_prob_data.hh vp8scan.cc \
-	display.hh display.cc ahab_shader.hh
+	display.hh display.cc ahab_shader.hh safe_array.hh

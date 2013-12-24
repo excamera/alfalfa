@@ -1,8 +1,7 @@
-#include <array>
-
 #include "macroblock_header.hh"
 #include "tokens.hh"
 #include "bool_decoder.hh"
+#include "safe_array.hh"
 
 using namespace std;
 
@@ -25,9 +24,9 @@ void KeyFrameMacroblockHeader::parse_tokens( BoolDecoder & data,
   V_.forall( [&]( UVBlock & block ) { block.parse_tokens( data, probability_tables ); } );
 }
 
-static const array< uint8_t, 16 > coefficient_to_band {{ 0, 1, 2, 3, 6, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 7 }};
+static const SafeArray< uint8_t, 16 > coefficient_to_band {{ 0, 1, 2, 3, 6, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 7 }};
 
-static const array< uint8_t, 16 > zigzag = {{ 0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15 }};
+static const SafeArray< uint8_t, 16 > zigzag = {{ 0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15 }};
 
 struct TokenDecoder
 {
@@ -47,7 +46,7 @@ public:
   }
 };
 
-static const array< TokenDecoder, ENTROPY_NODES > token_decoders = {{
+static const SafeArray< TokenDecoder, ENTROPY_NODES > token_decoders = {{
     TokenDecoder( 0, {} ),
     TokenDecoder( 1, {} ),
     TokenDecoder( 2, {} ),

@@ -5,9 +5,9 @@ using namespace std;
 const ProbabilityArray< num_y_modes > kf_y_mode_probs = {{ 145, 156, 163, 128 }};
 const ProbabilityArray< num_uv_modes > kf_uv_mode_probs = {{ 142, 114, 183 }};
 
-const array< array< ProbabilityArray< num_intra_b_modes >,
-		    num_intra_b_modes >,
-	     num_intra_b_modes > kf_b_mode_probs =
+const SafeArray< SafeArray< ProbabilityArray< num_intra_b_modes >,
+			    num_intra_b_modes >,
+		 num_intra_b_modes > kf_b_mode_probs =
 {{
   {{ /* above mode 0 */
     {{ /* left mode 0 */ 231, 120,  48,  89, 115, 113, 120, 152, 112}},

@@ -97,14 +97,14 @@ struct KeyFrameHeader
   struct DerivedQuantities
   {
     ProbabilityArray< num_segments > mb_segment_tree_probs;
-    std::array< std::array< std::array< std::array< Probability,
-						    ENTROPY_NODES >,
-					PREV_COEF_CONTEXTS >,
-			    COEF_BANDS >,
-		BLOCK_TYPES > coeff_probs;
+    SafeArray< SafeArray< SafeArray< SafeArray< Probability,
+						ENTROPY_NODES >,
+				     PREV_COEF_CONTEXTS >,
+			  COEF_BANDS >,
+	       BLOCK_TYPES > coeff_probs;
     
     Quantizer quantizer;
-    std::array< Quantizer, num_segments > segment_quantizers;
+    SafeArray< Quantizer, num_segments > segment_quantizers;
 
     DerivedQuantities( const KeyFrameHeader & header );
   };

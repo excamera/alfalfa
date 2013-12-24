@@ -88,7 +88,7 @@ public:
     }
   }
 
-  Array( const std::array< T, len > & other )
+  Array( const SafeArray< T, len > & other )
     : storage_( begin( other ), end( other ) )
   {}
 
@@ -109,9 +109,9 @@ public:
     return storage_.at( offset );
   }
 
-  operator const std::array< T, len > & () const
+  operator const SafeArray< T, len > & () const
   {
-    return *reinterpret_cast< const std::array< T, len > * >( &storage_.at( 0 ) );
+    return *reinterpret_cast< const SafeArray< T, len > * >( &storage_.at( 0 ) );
   }
 
   unsigned int size( void ) const { return len; }

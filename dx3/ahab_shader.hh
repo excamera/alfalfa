@@ -1,7 +1,7 @@
 #ifndef AHAB_SHADER_HH
 #define AHAB_SHADER_HH
 
-#include <array>
+#include "safe_array.hh"
 
 /*
   Matlab inversion of BT.709 matrix:
@@ -15,9 +15,9 @@ ans =
    1.164384394176109   0.000813948963217   1.793155612333230
 */
 
-static const std::array< double, 3 > itu709_green = { 1.164165557121523,  -0.213138349939461,  -0.532748200973066 };
-static const std::array< double, 3 > itu709_blue  = { 1.166544220758321,   2.112430116393991,   0.001144179685436 };
-static const std::array< double, 3 > itu709_red   = { 1.164384394176109,   0.000813948963217,   1.793155612333230 };
+static const SafeArray< double, 3 > itu709_green = { 1.164165557121523,  -0.213138349939461,  -0.532748200973066 };
+static const SafeArray< double, 3 > itu709_blue  = { 1.166544220758321,   2.112430116393991,   0.001144179685436 };
+static const SafeArray< double, 3 > itu709_red   = { 1.164384394176109,   0.000813948963217,   1.793155612333230 };
 
 /* Matrix inverstion of SMPTE 170M matrix:
 
@@ -30,9 +30,9 @@ ans =
    1.164383561643836  -0.001054999706803   1.595670195813386
 */
 
-static const std::array< double, 3 > smpte170m_green = { 1.164383561643836, -0.391260370716072, -0.813004933873461 };
-static const std::array< double, 3 > smpte170m_blue  = { 1.164383561643836,  2.017414758970775,  0.001127259960693 };
-static const std::array< double, 3 > smpte170m_red   = { 1.164383561643836, -0.001054999706803,  1.595670195813386 };
+static const SafeArray< double, 3 > smpte170m_green = { 1.164383561643836, -0.391260370716072, -0.813004933873461 };
+static const SafeArray< double, 3 > smpte170m_blue  = { 1.164383561643836,  2.017414758970775,  0.001127259960693 };
+static const SafeArray< double, 3 > smpte170m_red   = { 1.164383561643836, -0.001054999706803,  1.595670195813386 };
 
 static char ahab_shader[] = {
   "!!ARBfp1.0\n"

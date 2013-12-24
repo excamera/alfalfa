@@ -172,11 +172,11 @@ GLShader::GLShader()
 
   /* load Rec. 709 colors */
   glProgramLocalParameter4dARB( GL_FRAGMENT_PROGRAM_ARB, 0,
-                                itu709_green[ 0 ], itu709_green[ 1 ], itu709_green[ 2 ], 0 );
+                                itu709_green.at( 0 ), itu709_green.at( 1 ), itu709_green.at( 2 ), 0 );
   glProgramLocalParameter4dARB( GL_FRAGMENT_PROGRAM_ARB, 1,
-                                itu709_blue[ 0 ], itu709_blue[ 1 ], itu709_blue[ 2 ], 0 );
+                                itu709_blue.at( 0 ), itu709_blue.at( 1 ), itu709_blue.at( 2 ), 0 );
   glProgramLocalParameter4dARB( GL_FRAGMENT_PROGRAM_ARB, 2,
-                                itu709_red[ 0 ], itu709_red[ 1 ], itu709_red[ 2 ], 0 );
+                                itu709_red.at( 0 ), itu709_red.at( 1 ), itu709_red.at( 2 ), 0 );
 
   GLcheck( "glProgramEnvParamater4d" );
 }

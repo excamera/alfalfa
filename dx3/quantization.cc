@@ -1,13 +1,12 @@
-#include <array>
-
 #include "quantization.hh"
 #include "frame_header.hh"
 #include "block.hh"
 #include "macroblock_header.hh"
+#include "safe_array.hh"
 
 using namespace std;
 
-static const array< int16_t, 128 > dc_qlookup =
+static const SafeArray< int16_t, 128 > dc_qlookup =
   {{ 4,   5,   6,   7,   8,   9,  10,  10,   11,  12,  13,  14,  15,
      16,  17,  17,  18,  19,  20,  20,  21,   21,  22,  22,  23,  23,
      24,  25,  25,  26,  27,  28,  29,  30,   31,  32,  33,  34,  35,
@@ -19,7 +18,7 @@ static const array< int16_t, 128 > dc_qlookup =
      104, 106, 108, 110, 112, 114, 116, 118, 122, 124, 126, 128, 130,
      132, 134, 136, 138, 140, 143, 145, 148, 151, 154, 157 }};
 
-static const array< int16_t, 128 > ac_qlookup =
+static const SafeArray< int16_t, 128 > ac_qlookup =
   {{ 4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,
      17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29,
      30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,
@@ -88,27 +87,27 @@ void Y2Block::dequantize( const Quantizer & quantizer )
 {
   assert( coded_ );
 
-  coefficients_[ 0 ] *= quantizer.y2_dc;
+  coefficients_.at( 0 ) *= quantizer.y2_dc;
   for ( uint8_t i = 1; i < 15; i++ ) {
-    coefficients_[ i ] *= quantizer.y2_ac;
+    coefficients_.at( i ) *= quantizer.y2_ac;
   }
 }
 
 template <>
 void YBlock::dequantize( const Quantizer & quantizer )
 {
-  coefficients_[ 0 ] *= quantizer.y_dc;
+  coefficients_.at( 0 ) *= quantizer.y_dc;
   for ( uint8_t i = 1; i < 15; i++ ) {
-    coefficients_[ i ] *= quantizer.y_ac;
+    coefficients_.at( i ) *= quantizer.y_ac;
   }
 }
 
 template <>
 void UVBlock::dequantize( const Quantizer & quantizer )
 {
-  coefficients_[ 0 ] *= quantizer.uv_dc;
+  coefficients_.at( 0 ) *= quantizer.uv_dc;
   for ( uint8_t i = 1; i < 15; i++ ) {
-    coefficients_[ i ] *= quantizer.uv_ac;
+    coefficients_.at( i ) *= quantizer.uv_ac;
   }
 }
 

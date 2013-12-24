@@ -1,14 +1,10 @@
-#include <array>
-
 #include "vp8_prob_data.hh"
 
-using namespace std;
-
-const array< array< array< array< Probability,
-				  ENTROPY_NODES >,
-			   PREV_COEF_CONTEXTS >,
-		    COEF_BANDS >,
-	     BLOCK_TYPES > k_coeff_entropy_update_probs =
+const SafeArray< SafeArray< SafeArray< SafeArray< Probability,
+						  ENTROPY_NODES >,
+				       PREV_COEF_CONTEXTS >,
+			    COEF_BANDS >,
+		 BLOCK_TYPES > k_coeff_entropy_update_probs =
 {{
     {{
         {{
@@ -181,15 +177,15 @@ const array< array< array< array< Probability,
 }};
 
 
-const array< uint8_t, 4 > k_default_y_mode_probs = {{ 112,  86, 140,  37 }};
+const SafeArray< uint8_t, 4 > k_default_y_mode_probs = {{ 112,  86, 140,  37 }};
 
-const array< uint8_t, 4 > k_default_uv_mode_probs = {{ 162, 101, 204 }};
+const SafeArray< uint8_t, 4 > k_default_uv_mode_probs = {{ 162, 101, 204 }};
 
-const array< array< array< array< Probability,
-				  ENTROPY_NODES >,
-			   PREV_COEF_CONTEXTS >,
-		    COEF_BANDS >,
-	     BLOCK_TYPES > k_default_coeff_probs =
+const SafeArray< SafeArray< SafeArray< SafeArray< Probability,
+						  ENTROPY_NODES >,
+				       PREV_COEF_CONTEXTS >,
+			    COEF_BANDS >,
+		 BLOCK_TYPES > k_default_coeff_probs =
 {{
     {{ /* block type 0 */
         {{ /* coeff band 0 */
@@ -361,7 +357,7 @@ const array< array< array< array< Probability,
     }}
 }};
 
-const array< array< uint8_t, MV_PROB_CNT >, 2 > k_mv_entropy_update_probs =
+const SafeArray< SafeArray< uint8_t, MV_PROB_CNT >, 2 > k_mv_entropy_update_probs =
 {{
     {{
         237,
@@ -377,7 +373,7 @@ const array< array< uint8_t, MV_PROB_CNT >, 2 > k_mv_entropy_update_probs =
     }}
 }};
 
-const array< array< uint8_t, MV_PROB_CNT >, 2 > k_default_mv_probs =
+const SafeArray< SafeArray< uint8_t, MV_PROB_CNT >, 2 > k_default_mv_probs =
 {{
     {{                                                    /* row */
         162,                                             /* is short */

@@ -6,6 +6,7 @@
 #include "frame_header.hh"
 #include "raster.hh"
 #include "quantization.hh"
+#include "safe_array.hh"
 
 enum BlockType { Y_after_Y2 = 0, Y2, UV, Y_without_Y2 };
 
@@ -21,7 +22,7 @@ private:
   Optional< const Block * > above_ {};
   Optional< const Block * > left_ {};
 
-  std::array< int16_t, 16 > coefficients_ {{}};
+  SafeArray< int16_t, 16 > coefficients_ {{}};
 
   bool coded_ { true };
 

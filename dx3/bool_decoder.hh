@@ -1,19 +1,18 @@
 #ifndef BOOL_DECODER_HH
 #define BOOL_DECODER_HH
 
-#include <array>
-
 #include "chunk.hh"
+#include "safe_array.hh"
 
 typedef int8_t TreeNode;
 
 template < std::size_t alphabet_size >
-using TreeArray = std::array< TreeNode, 2 * (alphabet_size - 1) >;
+using TreeArray = SafeArray< TreeNode, 2 * (alphabet_size - 1) >;
 
 typedef uint8_t Probability;
 
 template < std::size_t alphabet_size >
-using ProbabilityArray = std::array< Probability, alphabet_size - 1 >;
+using ProbabilityArray = SafeArray< Probability, alphabet_size - 1 >;
 
 class BoolDecoder
 {
