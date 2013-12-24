@@ -83,26 +83,26 @@ uint8_t Raster::Block<size>::Predictors::above_right( const unsigned int column 
 }
 
 template <unsigned int size>
-uint8_t Raster::Block<size>::Predictors::above( const int column ) const
+uint8_t Raster::Block<size>::Predictors::above( const int8_t column ) const
 {
-  assert( column >= -1 and column < int( size * 2 ) );
+  assert( column >= -1 and column < int8_t( size * 2 ) );
   if ( column == -1 ) return above_left;
-  if ( 0 <= column and column < size ) return above_row.at( column, 0 );
+  if ( 0 <= column and column < int( size ) ) return above_row.at( column, 0 );
   return above_right( column - size );
 }
 
 template <unsigned int size>
-uint8_t Raster::Block<size>::Predictors::left( const int row ) const
+uint8_t Raster::Block<size>::Predictors::left( const int8_t row ) const
 {
-  assert( row >= -1 and row < int( size ) );
+  assert( row >= -1 and row < int8_t( size ) );
   if ( row == -1 ) return above_left;
   return left_column.at( 0, row );
 }
 
 template <unsigned int size>
-uint8_t Raster::Block<size>::Predictors::east( const int num ) const
+uint8_t Raster::Block<size>::Predictors::east( const int8_t num ) const
 {
-  assert( 0 <= num and num <= size * 2 );
+  assert( 0 <= num and num <= int8_t( size * 2 ) );
   if ( num <= 4 ) { return left( 3 - num ); }
   return above( num - 5 );
 }

@@ -114,8 +114,6 @@ template <class T, unsigned int size>
 class Enumerate : public Array< T, size >
 {
 public:
-  using Array< T, size >::Array;
-
   template < typename... Targs >
   Enumerate( BoolDecoder & data, Targs&&... Fargs )
     : Array<T, size>()

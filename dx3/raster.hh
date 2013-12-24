@@ -61,9 +61,9 @@ public:
       bool use_row;
       uint8_t above_right( const unsigned int column ) const;
 
-      uint8_t above( const int column ) const;
-      uint8_t left( const int row ) const;
-      uint8_t east( const int num ) const;
+      uint8_t above( const int8_t column ) const;
+      uint8_t left( const int8_t row ) const;
+      uint8_t east( const int8_t num ) const;
 
       Predictors( const typename TwoD< Block >::Context & context );
     } predictors_;
