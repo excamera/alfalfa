@@ -7,14 +7,18 @@
 class Raster
 {
 public:
-  struct Component
+  class Component
   {
-    uint8_t value {};
-    operator uint8_t() const { return value; }
-    Component( const TwoD< Component >::Context &, const uint8_t s_value = 0 ) : value( s_value ) {} 
-    Component( const uint8_t other ) : value( other ) {}
-    Component & operator=( const uint8_t other ) { value = other; return *this; }
-    void clamp( const int16_t other ) { if ( other < 0 ) { value = 0; } else if ( other > 255 ) { value = 255; } else { value = other; } }
+  private:
+    uint8_t value[ 1 ];
+
+  public:
+    operator uint8_t() const { return value[ 0 ]; }
+    Component( const TwoD< Component >::Context & ) {} 
+    Component( const TwoD< Component >::Context &, const uint8_t s_value ) { value[ 0 ] = s_value; } 
+    Component( const uint8_t other ) { value[ 0 ] = other; }
+    Component & operator=( const uint8_t other ) { value[ 0 ] = other; return *this; }
+    void clamp( const int16_t other ) { if ( other < 0 ) { value[ 0 ] = 0; } else if ( other > 255 ) { value[ 0 ] = 255; } else { value[ 0 ] = other; } }
   };
 
   template <unsigned int size>
