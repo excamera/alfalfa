@@ -33,22 +33,15 @@ class Raster
 {
 public:
   template <unsigned int size>
-  struct Block
+  class Block
   {
-    TwoDSubRange< uint8_t, size, size > contents;
+  public:
+    typedef TwoDSubRange< uint8_t, size, 1 > Row;
+    typedef TwoDSubRange< uint8_t, 1, size > Column;
 
-    Block( const typename TwoD< Block >::Context & c, TwoD< uint8_t > & macroblock_component );
-
-    uint8_t & at( const unsigned int column, const unsigned int row )
-    { return contents.at( column, row ); }
-
-    const uint8_t & at( const unsigned int column, const unsigned int row ) const
-    { return contents.at( column, row ); }
-
-    const typename TwoD< Block >::Context context;
-
-    template <class PredictionMode>
-    void intra_predict( const PredictionMode mb_mode );
+  private:
+    TwoDSubRange< uint8_t, size, size > contents_;
+    typename TwoD< Block >::Context context_;
 
     void dc_predict( void );
     void dc_predict_simple( void );
@@ -65,9 +58,6 @@ public:
     void horizontal_up_predict( void );
 
     struct Predictors {
-      typedef TwoDSubRange< uint8_t, size, 1 > Row;
-      typedef TwoDSubRange< uint8_t, 1, size > Column;
-
       static const Row & row127( void );
       static const Column & col129( void );
 
@@ -84,11 +74,28 @@ public:
       uint8_t east( const int num ) const;
 
       Predictors( const typename TwoD< Block >::Context & context );
-    } predictors;
+    } predictors_;
 
-    uint8_t above( const int column ) const { return predictors.above( column ); }
-    uint8_t left( const int column ) const { return predictors.left( column ); }
-    uint8_t east( const int column ) const { return predictors.east( column ); }
+    uint8_t above( const int column ) const { return predictors_.above( column ); }
+    uint8_t left( const int column ) const { return predictors_.left( column ); }
+    uint8_t east( const int column ) const { return predictors_.east( column ); }
+
+  public:
+    Block( const typename TwoD< Block >::Context & c, TwoD< uint8_t > & macroblock_component );
+
+    uint8_t & at( const unsigned int column, const unsigned int row )
+    { return contents_.at( column, row ); }
+
+    const uint8_t & at( const unsigned int column, const unsigned int row ) const
+    { return contents_.at( column, row ); }
+
+    const decltype(contents_) & contents( void ) const { return contents_; }
+    const Predictors & predictors( void ) const { return predictors_; }
+
+    template <class PredictionMode>
+    void intra_predict( const PredictionMode mb_mode );
+
+    void set_above_right_bottom_row_predictor( const Row & replacement );
   };
 
   using Block4  = Block< 4 >;
@@ -123,8 +130,6 @@ private:
   TwoD< Block8 >  V_bigblocks_ { width_ / 16, height_ / 16, V_ };
 
   TwoD< Macroblock > macroblocks_ { width_ / 16, height_ / 16, *this };
-
-  friend class Macroblock;
 
 public:
   Raster( const unsigned int macroblock_width, const unsigned int macroblock_height,

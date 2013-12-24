@@ -6,10 +6,17 @@
 template <unsigned int size>
 Raster::Block<size>::Block( const typename TwoD< Block >::Context & c,
 			    TwoD< uint8_t > & raster_component )
-  : contents( raster_component, size * c.column, size * c.row ),
-    context( c ),
-    predictors( context )
+  : contents_( raster_component, size * c.column, size * c.row ),
+    context_( c ),
+    predictors_( context_ )
 {}
+
+/* the rightmost Y-subblocks in a macroblock (other than the upper-right subblock) are special-cased */
+template <>
+void Raster::Block4::set_above_right_bottom_row_predictor( const Row & replacement )
+{
+  predictors_.above_right_bottom_row.set( replacement );
+}
 
 Raster::Macroblock::Macroblock( const TwoD< Macroblock >::Context & c, Raster & raster )
   : Y( raster.Y_bigblocks_.at( c.column, c.row ) ),
@@ -21,7 +28,7 @@ Raster::Macroblock::Macroblock( const TwoD< Macroblock >::Context & c, Raster & 
 {
   /* adjust "extra pixels" for rightmost Y subblocks in macroblock (other than the top one) */
   for ( unsigned int row = 1; row < 4; row++ ) {
-    Y_sub.at( 3, row ).predictors.above_right_bottom_row.set( Y_sub.at( 3, 0 ).predictors.above_right_bottom_row );
+    Y_sub.at( 3, row ).set_above_right_bottom_row_predictor( Y_sub.at( 3, 0 ).predictors().above_right_bottom_row );
   }
 }
 
@@ -32,7 +39,7 @@ Raster::Raster( const unsigned int macroblock_width, const unsigned int macroblo
 {}
 
 template <unsigned int size>
-const typename Raster::Block<size>::Predictors::Row & Raster::Block<size>::Predictors::row127( void )
+const typename Raster::Block<size>::Row & Raster::Block<size>::Predictors::row127( void )
 {
   static TwoD< uint8_t > storage( size, 1, 127 );
   static const Row row( storage, 0, 0 );
@@ -40,7 +47,7 @@ const typename Raster::Block<size>::Predictors::Row & Raster::Block<size>::Predi
 }
 
 template <unsigned int size>
-const typename Raster::Block<size>::Predictors::Column & Raster::Block<size>::Predictors::col129( void )
+const typename Raster::Block<size>::Column & Raster::Block<size>::Predictors::col129( void )
 {
   static TwoD< uint8_t > storage( 1, size, 129 );
   static const Column col( storage, 0, 0 );
@@ -50,10 +57,10 @@ const typename Raster::Block<size>::Predictors::Column & Raster::Block<size>::Pr
 template <unsigned int size>
 Raster::Block<size>::Predictors::Predictors( const typename TwoD< Block >::Context & context )
   : above_row( context.above.initialized()
-	       ? context.above.get()->contents.row( size - 1 )
+	       ? context.above.get()->contents().row( size - 1 )
 	       : row127() ),
     left_column( context.left.initialized()
-		 ? context.left.get()->contents.column( size - 1 )
+		 ? context.left.get()->contents().column( size - 1 )
 		 : col129() ),
     above_left( context.above_left.initialized()
 		? context.above_left.get()->at( size - 1, size - 1 )
@@ -61,7 +68,7 @@ Raster::Block<size>::Predictors::Predictors( const typename TwoD< Block >::Conte
 		    ? col129().at( 0, 0 )
 		    : row127().at( 0, 0 ) ) ),
   above_right_bottom_row( context.above_right.initialized()
-			  ? context.above_right.get()->contents.row( size - 1 )
+			  ? context.above_right.get()->contents().row( size - 1 )
 			  : row127() ),
   above_bottom_right_pixel( context.above.initialized()
 			    ? context.above.get()->at( size - 1, size - 1 )
@@ -103,17 +110,17 @@ uint8_t Raster::Block<size>::Predictors::east( const int num ) const
 template <unsigned int size>
 void Raster::Block<size>::true_motion_predict( void )
 {
-  contents.forall_ij( [&] ( uint8_t & b, unsigned int column, unsigned int row )
-		      { b = clamp255( predictors.left_column.at( 0, row )
-				      + predictors.above_row.at( column, 0 )
-				      - predictors.above_left ); } );
+  contents_.forall_ij( [&] ( uint8_t & b, unsigned int column, unsigned int row )
+		       { b = clamp255( predictors().left_column.at( 0, row )
+				       + predictors().above_row.at( column, 0 )
+				       - predictors().above_left ); } );
 }
 
 template <unsigned int size>
 void Raster::Block<size>::horizontal_predict( void )
 {
   for ( unsigned int row = 0; row < size; row++ ) {
-    contents.row( row ).fill( predictors.left_column.at( 0, row ) );
+    contents_.row( row ).fill( predictors().left_column.at( 0, row ) );
   }
 }
 
@@ -121,7 +128,7 @@ template <unsigned int size>
 void Raster::Block<size>::vertical_predict( void )
 {
   for ( unsigned int column = 0; column < size; column++ ) {
-    contents.column( column ).fill( predictors.above_row.at( column, 0 ) );
+    contents_.column( column ).fill( predictors().above_row.at( column, 0 ) );
   }
 }
 
@@ -131,15 +138,15 @@ void Raster::Block<size>::dc_predict_simple( void )
   static_assert( size == 4 or size == 8 or size == 16, "invalid Block size" );
   static constexpr uint8_t log2size = size == 4 ? 2 : size == 8 ? 3 : size == 16 ? 4 : 0;
 
-  contents.fill( ((predictors.above_row.sum(int16_t())
-		   + predictors.left_column.sum(int16_t())) + (1 << log2size))
-		 >> (log2size+1) );
+  contents_.fill( ((predictors().above_row.sum(int16_t())
+		    + predictors().left_column.sum(int16_t())) + (1 << log2size))
+		  >> (log2size+1) );
 }
 
 template <unsigned int size>
 void Raster::Block<size>::dc_predict( void )
 {
-  if ( context.above.initialized() and context.left.initialized() ) {
+  if ( context_.above.initialized() and context_.left.initialized() ) {
     return dc_predict_simple();
   }
 
@@ -147,13 +154,13 @@ void Raster::Block<size>::dc_predict( void )
   static_assert( size == 4 or size == 8 or size == 16, "invalid Block size" );
   static constexpr uint8_t log2size = size == 4 ? 2 : size == 8 ? 3 : size == 16 ? 4 : 0;
 
-  if ( context.above.initialized() ) {
-    value = (predictors.above_row.sum(int16_t()) + (1 << (log2size-1))) >> log2size;
-  } else if ( context.left.initialized() ) {
-    value = (predictors.left_column.sum(int16_t()) + (1 << (log2size-1))) >> log2size;
+  if ( context_.above.initialized() ) {
+    value = (predictors().above_row.sum(int16_t()) + (1 << (log2size-1))) >> log2size;
+  } else if ( context_.left.initialized() ) {
+    value = (predictors().left_column.sum(int16_t()) + (1 << (log2size-1))) >> log2size;
   }
 
-  contents.fill( value );
+  contents_.fill( value );
 }
 
 template <>
@@ -199,19 +206,19 @@ uint8_t avg2( const uint8_t x, const uint8_t y )
 template <>
 void Raster::Block4::vertical_smoothed_predict( void )
 {
-  contents.column( 0 ).fill( avg3( above( -1 ), above( 0 ), above( 1 ) ) );
-  contents.column( 1 ).fill( avg3( above( 0 ),  above( 1 ), above( 2 ) ) );
-  contents.column( 2 ).fill( avg3( above( 1 ),  above( 2 ), above( 3 ) ) );
-  contents.column( 3 ).fill( avg3( above( 2 ),  above( 3 ), above( 4 ) ) );
+  contents_.column( 0 ).fill( avg3( above( -1 ), above( 0 ), above( 1 ) ) );
+  contents_.column( 1 ).fill( avg3( above( 0 ),  above( 1 ), above( 2 ) ) );
+  contents_.column( 2 ).fill( avg3( above( 1 ),  above( 2 ), above( 3 ) ) );
+  contents_.column( 3 ).fill( avg3( above( 2 ),  above( 3 ), above( 4 ) ) );
 }
 
 template <>
 void Raster::Block4::horizontal_smoothed_predict( void )
 {
-  contents.row( 0 ).fill( avg3( left( -1 ), left( 0 ), left( 1 ) ) );
-  contents.row( 1 ).fill( avg3( left( 0 ),  left( 1 ), left( 2 ) ) );
-  contents.row( 2 ).fill( avg3( left( 1 ),  left( 2 ), left( 3 ) ) );
-  contents.row( 3 ).fill( avg3( left( 2 ),  left( 3 ), left( 3 ) ) );
+  contents_.row( 0 ).fill( avg3( left( -1 ), left( 0 ), left( 1 ) ) );
+  contents_.row( 1 ).fill( avg3( left( 0 ),  left( 1 ), left( 2 ) ) );
+  contents_.row( 2 ).fill( avg3( left( 1 ),  left( 2 ), left( 3 ) ) );
+  contents_.row( 3 ).fill( avg3( left( 2 ),  left( 3 ), left( 3 ) ) );
   /* last line is special because we can't use left( 4 ) yet */
 }
 
