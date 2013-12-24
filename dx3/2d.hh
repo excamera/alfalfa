@@ -8,61 +8,7 @@
 
 /* simple two-dimensional container */
 template< class T >
-class TwoDBase
-{
-public:
-  virtual unsigned int width( void ) const = 0;
-  virtual unsigned int height( void ) const = 0;
-
-  virtual T & at( const unsigned int column, const unsigned int row ) = 0;
-  virtual const T & at( const unsigned int column, const unsigned int row ) const = 0;
-
-  template <class lambda>
-  void forall( const lambda & f ) const
-  {
-    for ( unsigned int row = 0; row < height(); row++ ) {
-      for ( unsigned int column = 0; column < width(); column++ ) {
-	f( at( column, row ) );
-      }
-    }
-  }
-
-  template <class lambda>
-  void forall( const lambda & f )
-  {
-    for ( unsigned int row = 0; row < height(); row++ ) {
-      for ( unsigned int column = 0; column < width(); column++ ) {
-	f( at( column, row ) );
-      }
-    }
-  }
-
-  template <class lambda>
-  void forall_ij( const lambda & f )
-  {
-    for ( unsigned int row = 0; row < height(); row++ ) {
-      for ( unsigned int column = 0; column < width(); column++ ) {
-	f( at( column, row ), column, row );
-      }
-    }
-  }
-
-  template <class type>
-  type sum( const type & initial ) const
-  {
-    type ret = initial;
-    forall( [&] ( const T & x ) { ret += x; } );
-    return ret;
-  }
-
-  void fill( const T & value )
-  {
-    forall( [&] ( T & x ) { x = value; } ); 
-  }
-};
-
-template< class T >
-class TwoD : public TwoDBase< T >
+class TwoD
 {
 private:
   unsigned int width_, height_;
@@ -101,13 +47,13 @@ public:
     }
   }
 
-  T & at( const unsigned int column, const unsigned int row ) override
+  T & at( const unsigned int column, const unsigned int row )
   {
     assert( column < width_ and row < height_ );
     return storage_[ row * width_ + column ];
   }
 
-  const T & at( const unsigned int column, const unsigned int row ) const override
+  const T & at( const unsigned int column, const unsigned int row ) const
   {
     assert( column < width_ and row < height_ );
     return storage_[ row * width_ + column ];
@@ -122,8 +68,38 @@ public:
     }
   }
 
-  unsigned int width( void ) const override { return width_; }
-  unsigned int height( void ) const override { return height_; }
+  unsigned int width( void ) const { return width_; }
+  unsigned int height( void ) const { return height_; }
+
+  template <class lambda>
+  void forall( const lambda & f ) const
+  {
+    for ( unsigned int row = 0; row < height(); row++ ) {
+      for ( unsigned int column = 0; column < width(); column++ ) {
+	f( at( column, row ) );
+      }
+    }
+  }
+
+  template <class lambda>
+  void forall( const lambda & f )
+  {
+    for ( unsigned int row = 0; row < height(); row++ ) {
+      for ( unsigned int column = 0; column < width(); column++ ) {
+	f( at( column, row ) );
+      }
+    }
+  }
+
+  template <class lambda>
+  void forall_ij( const lambda & f )
+  {
+    for ( unsigned int row = 0; row < height(); row++ ) {
+      for ( unsigned int column = 0; column < width(); column++ ) {
+	f( at( column, row ), column, row );
+      }
+    }
+  }
 
   /* forbid copying */
   TwoD( const TwoD & other ) = delete;
@@ -131,7 +107,7 @@ public:
 };
 
 template< class T, unsigned int sub_width, unsigned int sub_height >
-class TwoDSubRange : public TwoDBase< T >
+class TwoDSubRange
 {
 private:
   TwoD< T > & master_;
@@ -146,20 +122,20 @@ public:
     assert( row_ + sub_height <= master_.height() );
   }
 
-  T & at( const unsigned int column, const unsigned int row ) override
+  T & at( const unsigned int column, const unsigned int row )
   {
     assert( column < sub_width and row < sub_height );
     return master_.at( column_ + column, row_ + row );
   }
 
-  const T & at( const unsigned int column, const unsigned int row ) const override
+  const T & at( const unsigned int column, const unsigned int row ) const
   {
     assert( column < sub_width and row < sub_height );
     return master_.at( column_ + column, row_ + row );
   }
 
-  unsigned int width( void ) const override { return sub_width; }
-  unsigned int height( void ) const override { return sub_height; }
+  unsigned int width( void ) const { return sub_width; }
+  unsigned int height( void ) const { return sub_height; }
 
   TwoDSubRange< T, sub_width, 1 > row( const unsigned int num ) const
   {
@@ -186,6 +162,49 @@ public:
     //    assert( &master_ == &other.master_ );
     column_ = other.column_;
     row_ = other.row_;
+  }
+
+  template <class type>
+  type sum( const type & initial ) const
+  {
+    type ret = initial;
+    forall( [&] ( const T & x ) { ret += x; } );
+    return ret;
+  }
+
+  void fill( const T & value )
+  {
+    forall( [&] ( T & x ) { x = value; } ); 
+  }
+
+  template <class lambda>
+  void forall( const lambda & f ) const
+  {
+    for ( unsigned int row = 0; row < height(); row++ ) {
+      for ( unsigned int column = 0; column < width(); column++ ) {
+	f( at( column, row ) );
+      }
+    }
+  }
+
+  template <class lambda>
+  void forall( const lambda & f )
+  {
+    for ( unsigned int row = 0; row < height(); row++ ) {
+      for ( unsigned int column = 0; column < width(); column++ ) {
+	f( at( column, row ) );
+      }
+    }
+  }
+
+  template <class lambda>
+  void forall_ij( const lambda & f )
+  {
+    for ( unsigned int row = 0; row < height(); row++ ) {
+      for ( unsigned int column = 0; column < width(); column++ ) {
+	f( at( column, row ), column, row );
+      }
+    }
   }
 };
 
