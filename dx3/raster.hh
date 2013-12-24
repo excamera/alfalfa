@@ -4,22 +4,14 @@
 #include "2d.hh"
 #include "modemv_data.hh"
 
-/* specialize TwoD because context not necessary for raster of uint8_ts */
+/* For an array of pixels, context and separate construction not necessary */
 template<>
 template< typename... Targs >
 TwoD< uint8_t >::TwoD( const unsigned int width, const unsigned int height, Targs&&... Fargs )
-  : width_( width ), height_( height ), storage_()
+  : width_( width ), height_( height ), storage_( width * height, Fargs... )
 {
   assert( width > 0 );
   assert( height > 0 );
-
-  storage_.reserve( width * height );
-
-  for ( unsigned int row = 0; row < height; row++ ) {
-    for ( unsigned int column = 0; column < width; column++ ) {
-      storage_.emplace_back( Fargs... );
-    }
-  }
 }
 
 static inline uint8_t clamp255( const int16_t value )
