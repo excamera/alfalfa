@@ -13,7 +13,7 @@ AC_PROG_RANLIB
 
 # Add picky CXXFLAGS
 CPPFLAGS="-std=c++11"
-PICKY_CXXFLAGS="-pedantic -Wall -Wextra -Weffc++ -Werror -fno-default-inline -Wno-unused-function"
+PICKY_CXXFLAGS="-pedantic -Wall -Wextra -Weffc++ -Werror -Wno-unused-function"
 AC_SUBST([PICKY_CXXFLAGS])
 AC_LANG_PUSH(C++)
 
