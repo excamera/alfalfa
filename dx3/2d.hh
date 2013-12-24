@@ -104,13 +104,13 @@ public:
   T & at( const unsigned int column, const unsigned int row ) override
   {
     assert( column < width_ and row < height_ );
-    return storage_.at( row * width_ + column );
+    return storage_[ row * width_ + column ];
   }
 
   const T & at( const unsigned int column, const unsigned int row ) const override
   {
     assert( column < width_ and row < height_ );
-    return storage_.at( row * width_ + column );
+    return storage_[ row * width_ + column ];
   }
 
   Optional< const T * > maybe_at( const unsigned int column, const unsigned int row ) const
