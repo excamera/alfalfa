@@ -95,7 +95,7 @@ public:
   T & get( void ) { assert( initialized() ); return object_; }
 
   /* destructor */
-  virtual ~Optional() { if ( initialized() ) { object_.~T(); } }
+  ~Optional() { if ( initialized() ) { object_.~T(); } }
 };
 
 #endif /* OPTIONAL_HH */

@@ -58,12 +58,20 @@ public:
 };
 
 template <class T>
-class Flagged : public Optional<T>
+class Flagged
 {
+private:
+  Optional< T > storage_;
+
 public:
   Flagged( BoolDecoder & data, const Probability probability = 128 )
-    : Optional<T>( Boolean( data, probability ), data )
+    : storage_( Boolean( data, probability ), data )
   {}
+
+  bool initialized( void ) const { return storage_.initialized(); }
+  const T & get( void ) const { return storage_.get(); }
+  const T & get_or( const T & default_value ) const { return storage_.get_or( default_value ); }
+  operator const Optional<T> & () const { return storage_; }
 };
 
 /* An Array of VP8 header elements.
