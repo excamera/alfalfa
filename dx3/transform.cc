@@ -92,7 +92,7 @@ void Block< initial_block_type, PredictionMode >::idct( Raster::Block4 & output 
 
 void KeyFrameMacroblockHeader::intra_predict_and_inverse_transform( void )
 {
-  const bool do_idct = not mb_skip_coeff_.get_or( false );
+  const bool do_idct = has_nonzero_;
 
   /* Chroma */
   raster_.get()->U.intra_predict( uv_prediction_mode() );

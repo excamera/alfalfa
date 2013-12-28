@@ -23,6 +23,8 @@ private:
 
   const intra_mbmode & uv_prediction_mode( void ) const { return U_.at( 0, 0 ).prediction_mode(); }
 
+  bool has_nonzero_ { false };
+
 public:
   KeyFrameMacroblockHeader( const TwoD< KeyFrameMacroblockHeader >::Context & c,
 			    BoolDecoder & data,
@@ -41,6 +43,8 @@ public:
   void assign_output_raster( Raster::Macroblock & raster ) { raster_.initialize( &raster ); }
 
   void intra_predict_and_inverse_transform( void );
+
+  void loopfilter( const KeyFrameHeader::DerivedQuantities & derived );
 };
 
 #endif /* MB_RECORDS_HH */

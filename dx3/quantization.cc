@@ -114,7 +114,7 @@ void UVBlock::dequantize( const Quantizer & quantizer )
 void KeyFrameMacroblockHeader::dequantize( const KeyFrameHeader::DerivedQuantities & derived )
 {
   /* is macroblock skipped? */
-  if ( mb_skip_coeff_.get_or( false ) ) {
+  if ( not has_nonzero_ ) {
     return;
   }
 

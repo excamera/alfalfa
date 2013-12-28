@@ -1,5 +1,6 @@
 #include "loopfilter.hh"
 #include "frame_header.hh"
+#include "macroblock_header.hh"
 
 static inline uint8_t clamp63( const int input )
 {
@@ -102,4 +103,9 @@ NormalLoopFilter::NormalLoopFilter( const bool key_frame,
   if ( params.filter_level >= 20 and (not key_frame) ) {
     high_edge_variance_threshold_++;
   }
+}
+
+void KeyFrameMacroblockHeader::loopfilter( const KeyFrameHeader::DerivedQuantities &  )
+{
+  
 }

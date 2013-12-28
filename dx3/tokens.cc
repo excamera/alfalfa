@@ -16,14 +16,21 @@ void KeyFrameMacroblockHeader::parse_tokens( BoolDecoder & data,
   /* parse Y2 block if present */
   if ( Y2_.coded() ) {
     Y2_.parse_tokens( data, probability_tables );
+    has_nonzero_ |= Y2_.has_nonzero();
   }
 
   /* parse Y blocks with variable first coefficient */
-  Y_.forall( [&]( YBlock & block ) { block.parse_tokens( data, probability_tables ); } );
+  Y_.forall( [&]( YBlock & block ) {
+      block.parse_tokens( data, probability_tables );
+      has_nonzero_ |= block.has_nonzero(); } );
 
   /* parse U and V blocks */
-  U_.forall( [&]( UVBlock & block ) { block.parse_tokens( data, probability_tables ); } );
-  V_.forall( [&]( UVBlock & block ) { block.parse_tokens( data, probability_tables ); } );
+  U_.forall( [&]( UVBlock & block ) {
+      block.parse_tokens( data, probability_tables );
+      has_nonzero_ |= block.has_nonzero(); } );
+  V_.forall( [&]( UVBlock & block ) {
+      block.parse_tokens( data, probability_tables );
+      has_nonzero_ |= block.has_nonzero(); } );
 }
 
 static const SafeArray< uint8_t, 16 > coefficient_to_band {{ 0, 1, 2, 3, 6, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 7 }};
