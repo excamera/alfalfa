@@ -48,13 +48,16 @@ public:
   Boolean( BoolDecoder & data, const Probability probability ) : i_( data.get( probability ) ) {}
   Boolean( const bool & val ) : i_( val ) {}
   operator const bool & () const { return i_; }
-  virtual ~Boolean() {}
 };
 
-class Flag : public Boolean
+class Flag
 {
+  bool i_;
+
 public:
-  Flag( BoolDecoder & data ) : Boolean( data, 128 ) {}
+  Flag( BoolDecoder & data ) : i_( data.bit() ) {}
+  Flag( const bool & val ) : i_( val ) {}
+  operator const bool & () const { return i_; }
 };
 
 template <class T>
@@ -142,8 +145,6 @@ public:
   Tree( const enumeration & x ) : value_( x ) {}
 
   operator const enumeration & () const { return value_; }
-
-  virtual ~Tree() {}
 };
 
 #endif /* VP8_HEADER_STRUCTURES_HH */
