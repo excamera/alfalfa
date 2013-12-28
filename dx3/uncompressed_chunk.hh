@@ -3,27 +3,22 @@
 
 #include "chunk.hh"
 #include "bool_decoder.hh"
+#include "loopfilter.hh"
 
 #include <vector>
 
 class UncompressedChunk
 {
 private:
-  enum class ReconstructionFilter : char {
+  enum class ReconstructionFilterType : char {
     Bicubic,
     Bilinear,
     NoFilter
   };
 
-  enum class LoopFilter : char {
-    Normal,
-    Simple,
-    NoFilter
-  };
-
   bool key_frame_;
-  ReconstructionFilter reconstruction_filter_;
-  LoopFilter loop_filter_;
+  ReconstructionFilterType reconstruction_filter_;
+  LoopFilterType loop_filter_;
   bool show_frame_;
   Chunk first_partition_;
   Chunk rest_;
@@ -34,6 +29,8 @@ public:
 
   BoolDecoder first_partition( void ) const { return first_partition_; }
   std::vector< BoolDecoder > dct_partitions( const uint8_t num ) const;
+
+  LoopFilterType loop_filter_type( void ) const { return loop_filter_; }
 };
 
 #endif /* UNCOMPRESSED_CHUNK_HH */

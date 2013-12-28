@@ -7,6 +7,7 @@
 #include "modemv_data.hh"
 #include "exception.hh"
 #include "quantization.hh"
+#include "loopfilter.hh"
 
 struct QuantIndices
 {
@@ -105,6 +106,12 @@ struct KeyFrameHeader
     
     Quantizer quantizer;
     SafeArray< Quantizer, num_segments > segment_quantizers;
+
+    FilterParameters loop_filter;
+    SafeArray< FilterParameters, num_segments > segment_loop_filters;
+
+    SafeArray< int8_t, num_reference_frames > loopfilter_ref_adjustments;
+    SafeArray< int8_t, 4 > loopfilter_mode_adjustments;
 
     DerivedQuantities( const KeyFrameHeader & header );
   };

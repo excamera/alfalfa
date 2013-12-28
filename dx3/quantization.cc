@@ -50,9 +50,9 @@ Quantizer::Quantizer( const QuantIndices & quant_indices )
   if ( uv_dc > 132 ) uv_dc = 132;
 }
 
-QuantIndices apply_segment_updates( const uint8_t segment_id,
-				    const QuantIndices & quant_indices,
-				    const Optional< UpdateSegmentation > & update_segmentation )
+static QuantIndices apply_segment_updates( const uint8_t segment_id,
+					   const QuantIndices & quant_indices,
+					   const Optional< UpdateSegmentation > & update_segmentation )
 {
   QuantIndices ret( quant_indices );
 

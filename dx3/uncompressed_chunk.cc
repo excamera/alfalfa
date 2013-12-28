@@ -18,24 +18,25 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
     key_frame_ = not frame.bits( 0, 1 );
     show_frame_ = frame.bits( 4, 1 );
 
-    /* filter parameters */
+    /* advisory filter parameters */
+    /* these have no effect on the decoding process */
     const uint8_t version = frame.bits( 1, 3 );
     switch ( version ) {
     case 0:
-      reconstruction_filter_ = ReconstructionFilter::Bicubic;
-      loop_filter_ = LoopFilter::Normal;
+      reconstruction_filter_ = ReconstructionFilterType::Bicubic;
+      loop_filter_ = LoopFilterType::Normal;
       break;
     case 1:
-      reconstruction_filter_ = ReconstructionFilter::Bilinear;
-      loop_filter_ = LoopFilter::Simple;
+      reconstruction_filter_ = ReconstructionFilterType::Bilinear;
+      loop_filter_ = LoopFilterType::Simple;
       break;
     case 2:
-      reconstruction_filter_ = ReconstructionFilter::Bilinear;
-      loop_filter_ = LoopFilter::NoFilter;
+      reconstruction_filter_ = ReconstructionFilterType::Bilinear;
+      loop_filter_ = LoopFilterType::NoFilter;
       break;
     case 3:
-      reconstruction_filter_ = ReconstructionFilter::NoFilter;
-      loop_filter_ = LoopFilter::NoFilter;
+      reconstruction_filter_ = ReconstructionFilterType::NoFilter;
+      loop_filter_ = LoopFilterType::NoFilter;
       break;
     default:
       throw Unsupported( "VP8 version of " + to_string( version ) );

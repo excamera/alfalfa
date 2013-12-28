@@ -9,7 +9,14 @@ KeyFrameHeader::DerivedQuantities::DerivedQuantities( const KeyFrameHeader & hea
     segment_quantizers( {{ Quantizer( 0, header.quant_indices, header.update_segmentation ),
 	    Quantizer( 1, header.quant_indices, header.update_segmentation ),
 	    Quantizer( 2, header.quant_indices, header.update_segmentation ),
-	    Quantizer( 3, header.quant_indices, header.update_segmentation ) }} )
+	    Quantizer( 3, header.quant_indices, header.update_segmentation ) }} ),
+    loop_filter( header ),
+  segment_loop_filters( {{ FilterParameters( 0, header, header.update_segmentation ),
+	  FilterParameters( 1, header, header.update_segmentation ),
+	  FilterParameters( 2, header, header.update_segmentation ),
+	  FilterParameters( 3, header, header.update_segmentation ) }} ),
+  loopfilter_ref_adjustments( {{ }} ),
+  loopfilter_mode_adjustments( {{ }} )
 {
   /* segmentation tree probabilities (if given in frame header) */
   if ( header.update_segmentation.initialized()
@@ -33,6 +40,14 @@ KeyFrameHeader::DerivedQuantities::DerivedQuantities( const KeyFrameHeader & hea
 	  }
 	}
       }
+    }
+  }
+
+  if ( header.mode_lf_adjustments.initialized()
+       and header.mode_lf_adjustments.get().initialized() ) {
+    for ( unsigned int i = 0; i < loopfilter_ref_adjustments.size(); i++ ) {
+      loopfilter_ref_adjustments.at( i ) = header.mode_lf_adjustments.get().get().ref_update.at( i ).get_or( 0 );
+      loopfilter_mode_adjustments.at( i ) = header.mode_lf_adjustments.get().get().mode_update.at( i ).get_or( 0 );
     }
   }
 }
