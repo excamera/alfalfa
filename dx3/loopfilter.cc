@@ -87,7 +87,7 @@ SimpleLoopFilter::SimpleLoopFilter( const FilterParameters & params )
 NormalLoopFilter::NormalLoopFilter( const bool key_frame,
 				    const FilterParameters & params )
   : simple_( params ),
-    high_edge_variance_threshold_( params.filter_level >= 15 )
+    high_edge_variance_threshold_( clamp63( params.filter_level ) >= 15 )
 {
   assert( params.type == LoopFilterType::Normal );
 
@@ -98,6 +98,8 @@ NormalLoopFilter::NormalLoopFilter( const bool key_frame,
   if ( params.filter_level >= 20 and (not key_frame) ) {
     high_edge_variance_threshold_++;
   }
+
+  fprintf( stderr, "filter_level = %d\n", params.filter_level );
 }
 
 void KeyFrameMacroblockHeader::loopfilter( const KeyFrameHeader::DerivedQuantities & derived )
@@ -257,13 +259,74 @@ void NormalLoopFilter::filter_mb_horizontal( BlockType & block )
 }
 
 template <class BlockType>
-void NormalLoopFilter::filter_sb_vertical( BlockType & )
+void NormalLoopFilter::filter_sb_vertical( BlockType & block )
 {
-  
+  const uint8_t size = block.dimension();
+
+  fprintf( stderr, "interior_limit=%d, subblock edge limit = %d, hev = %d\n",
+	   simple_.interior_limit(), simple_.subblock_edge_limit(), high_edge_variance_threshold_ );
+
+  for ( unsigned int center_column = 4; center_column < size; center_column += 4 ) {
+    for ( unsigned int row = 0; row < size; row++ ) {
+      const int8_t mask = vp8_filter_mask( simple_.interior_limit(),
+					   simple_.subblock_edge_limit(),
+					   block.at( center_column - 4, row ),
+					   block.at( center_column - 3, row ),
+					   block.at( center_column - 2, row ),
+					   block.at( center_column - 1, row ),
+					   block.at( center_column + 0, row ),
+					   block.at( center_column + 1, row ),
+					   block.at( center_column + 2, row ),
+					   block.at( center_column + 3, row ) );
+
+      const int8_t hev = vp8_hevmask( high_edge_variance_threshold_,
+				      block.at( center_column - 2, row ),
+				      block.at( center_column - 1, row ),
+				      block.at( center_column + 0, row ),
+				      block.at( center_column + 1, row ) );
+
+      vp8_mbfilter( mask, hev,
+		    block.at( center_column - 3, row ),
+		    block.at( center_column - 2, row ),
+		    block.at( center_column - 1, row ),
+		    block.at( center_column + 0, row ),
+		    block.at( center_column + 1, row ),
+		    block.at( center_column + 2, row ) );
+    }
+  }
 }
 
 template <class BlockType>
-void NormalLoopFilter::filter_sb_horizontal( BlockType & )
+void NormalLoopFilter::filter_sb_horizontal( BlockType & block )
 {
-  
+  const uint8_t size = block.dimension();
+
+  for ( unsigned int center_row = 4; center_row < size; center_row += 4 ) {
+    for ( unsigned int column = 0; column < size; column++ ) {
+      const int8_t mask = vp8_filter_mask( simple_.interior_limit(),
+					   simple_.subblock_edge_limit(),
+					   block.at( column, center_row - 4 ),
+					   block.at( column, center_row - 3 ),
+					   block.at( column, center_row - 2 ),
+					   block.at( column, center_row - 1 ),
+					   block.at( column, center_row + 0 ),
+					   block.at( column, center_row + 1 ),
+					   block.at( column, center_row + 2 ),
+					   block.at( column, center_row + 3 ) );
+
+      const int8_t hev = vp8_hevmask( high_edge_variance_threshold_,
+				      block.at( column, center_row - 2 ),
+				      block.at( column, center_row - 1 ),
+				      block.at( column, center_row + 0 ),
+				      block.at( column, center_row + 1 ) );
+
+      vp8_mbfilter( mask, hev,
+		    block.at( column, center_row - 3 ),
+		    block.at( column, center_row - 2 ),
+		    block.at( column, center_row - 1 ),
+		    block.at( column, center_row + 0 ),
+		    block.at( column, center_row + 1 ),
+		    block.at( column, center_row + 2 ) );
+    }
+  }
 }
