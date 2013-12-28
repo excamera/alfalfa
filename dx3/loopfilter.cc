@@ -1,6 +1,7 @@
 #include "loopfilter.hh"
 #include "frame_header.hh"
 #include "macroblock_header.hh"
+#include "raster.hh"
 
 static inline uint8_t clamp63( const int input )
 {
@@ -52,17 +53,13 @@ static uint8_t mode_category( const reference_frame macroblock_reference_frame,
   }
 }
 
-FilterParameters FilterParameters::adjust( const SafeArray< int8_t, num_reference_frames > & ref_adjustments,
-					   const SafeArray< int8_t, 4 > & mode_adjustments,
-					   const reference_frame macroblock_reference_frame,
-					   const intra_mbmode macroblock_y_mode ) const
+void FilterParameters::adjust( const SafeArray< int8_t, num_reference_frames > & ref_adjustments,
+			       const SafeArray< int8_t, 4 > & mode_adjustments,
+			       const reference_frame macroblock_reference_frame,
+			       const intra_mbmode macroblock_y_mode )
 {
-  FilterParameters ret( *this );
-
-  ret.filter_level += ref_adjustments.at( macroblock_reference_frame )
+  filter_level += ref_adjustments.at( macroblock_reference_frame )
     + mode_adjustments.at( mode_category( macroblock_reference_frame, macroblock_y_mode ) );
-
-  return ret;
 }
 
 SimpleLoopFilter::SimpleLoopFilter( const FilterParameters & params )
@@ -105,7 +102,50 @@ NormalLoopFilter::NormalLoopFilter( const bool key_frame,
   }
 }
 
-void KeyFrameMacroblockHeader::loopfilter( const KeyFrameHeader::DerivedQuantities &  )
+void KeyFrameMacroblockHeader::loopfilter( const KeyFrameHeader::DerivedQuantities & derived )
 {
-  
+  const bool skip_subblock_edges = ( Y2_.prediction_mode() != B_PRED ) and ( not has_nonzero_ );
+
+  /* which filter are we using? */
+  FilterParameters filter_parameters( segment_id_.initialized()
+				      ? derived.segment_loop_filters.at( segment_id_.get() )
+				      : derived.loop_filter );
+
+  filter_parameters.adjust( derived.loopfilter_ref_adjustments,
+			    derived.loopfilter_mode_adjustments,
+			    CURRENT_FRAME,
+			    Y2_.prediction_mode() );
+
+  /* is filter disabled? */
+  if ( filter_parameters.filter_level <= 0 ) {
+    return;
+  }
+
+  switch ( filter_parameters.type ) {
+  case LoopFilterType::Normal:
+    {
+      NormalLoopFilter filter( true, filter_parameters );
+      filter.filter( *raster_.get(), skip_subblock_edges );
+    }
+    break;
+  case LoopFilterType::Simple:
+    {
+      SimpleLoopFilter filter( filter_parameters );
+      filter.filter( *raster_.get(), skip_subblock_edges );
+    }
+    break;
+  default:
+    assert( false );
+  }
+}
+
+
+
+void SimpleLoopFilter::filter( Raster::Macroblock & , const bool )
+{
+  assert( false );
+}
+
+void NormalLoopFilter::filter( Raster::Macroblock & , const bool )
+{
 }

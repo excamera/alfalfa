@@ -5,6 +5,7 @@
 
 #include "optional.hh"
 #include "modemv_data.hh"
+#include "raster.hh"
 
 struct KeyFrameHeader;
 struct UpdateSegmentation;
@@ -22,10 +23,10 @@ struct FilterParameters
 		    const KeyFrameHeader & header,
 		    const Optional< UpdateSegmentation > & update_segmentation );
 
-  FilterParameters adjust( const SafeArray< int8_t, num_reference_frames > & ref_adjustments,
-			   const SafeArray< int8_t, 4 > & mode_adjustments,
-			   const reference_frame macroblock_reference_frame,
-			   const intra_mbmode macroblock_y_mode ) const;
+  void adjust( const SafeArray< int8_t, num_reference_frames > & ref_adjustments,
+	       const SafeArray< int8_t, 4 > & mode_adjustments,
+	       const reference_frame macroblock_reference_frame,
+	       const intra_mbmode macroblock_y_mode );
 };
 
 class SimpleLoopFilter
@@ -43,6 +44,8 @@ public:
   uint8_t interior_limit( void ) const { return interior_limit_; }
   uint8_t macroblock_edge_limit( void ) const { return macroblock_edge_limit_; }
   uint8_t subblock_edge_limit( void ) const { return subblock_edge_limit_; }
+
+  void filter( Raster::Macroblock & raster, const bool skip_subblock_edges );
 };
 
 class NormalLoopFilter
@@ -53,6 +56,8 @@ private:
 
 public:
   NormalLoopFilter( const bool key_frame, const FilterParameters & params );
+
+  void filter( Raster::Macroblock & raster, const bool skip_subblock_edges );
 };
 
 #endif /* LOOPFILTER_HH */
