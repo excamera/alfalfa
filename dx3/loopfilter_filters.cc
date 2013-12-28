@@ -23,7 +23,7 @@ static int8_t vp8_signed_char_clamp(int t)
 }
 
 /* should we apply any filter at all ( 11111111 yes, 00000000 no) */
-static signed char vp8_filter_mask(uc limit, uc blimit,
+signed char vp8_filter_mask(uc limit, uc blimit,
                             uc p3, uc p2, uc p1, uc p0,
                             uc q0, uc q1, uc q2, uc q3)
 {
@@ -39,7 +39,7 @@ static signed char vp8_filter_mask(uc limit, uc blimit,
 }
 
 /* is there high variance internal edge ( 11111111 yes, 00000000 no) */
-static signed char vp8_hevmask(uc thresh, uc p1, uc p0, uc q0, uc q1)
+signed char vp8_hevmask(uc thresh, uc p1, uc p0, uc q0, uc q1)
 {
     signed char hev = 0;
     hev  |= (abs(p1 - p0) > thresh) * -1;
@@ -47,8 +47,8 @@ static signed char vp8_hevmask(uc thresh, uc p1, uc p0, uc q0, uc q1)
     return hev;
 }
 
-static void vp8_filter(signed char mask, uc hev, uc *op1,
-        uc *op0, uc *oq0, uc *oq1)
+void vp8_filter(signed char mask, uc hev, uc & op1,
+		uc & op0, uc & oq0, uc & oq1)
 
 {
     signed char ps0, qs0;
@@ -56,10 +56,10 @@ static void vp8_filter(signed char mask, uc hev, uc *op1,
     signed char filter_value, Filter1, Filter2;
     signed char u;
 
-    ps1 = (signed char) * op1 ^ 0x80;
-    ps0 = (signed char) * op0 ^ 0x80;
-    qs0 = (signed char) * oq0 ^ 0x80;
-    qs1 = (signed char) * oq1 ^ 0x80;
+    ps1 = (signed char) op1 ^ 0x80;
+    ps0 = (signed char) op0 ^ 0x80;
+    qs0 = (signed char) oq0 ^ 0x80;
+    qs1 = (signed char) oq1 ^ 0x80;
 
     /* add outer taps if we have high edge variance */
     filter_value = vp8_signed_char_clamp(ps1 - qs1);
@@ -78,9 +78,9 @@ static void vp8_filter(signed char mask, uc hev, uc *op1,
     Filter1 >>= 3;
     Filter2 >>= 3;
     u = vp8_signed_char_clamp(qs0 - Filter1);
-    *oq0 = u ^ 0x80;
+    oq0 = u ^ 0x80;
     u = vp8_signed_char_clamp(ps0 + Filter2);
-    *op0 = u ^ 0x80;
+    op0 = u ^ 0x80;
     filter_value = Filter1;
 
     /* outer tap adjustments */
@@ -89,23 +89,23 @@ static void vp8_filter(signed char mask, uc hev, uc *op1,
     filter_value &= ~hev;
 
     u = vp8_signed_char_clamp(qs1 - filter_value);
-    *oq1 = u ^ 0x80;
+    oq1 = u ^ 0x80;
     u = vp8_signed_char_clamp(ps1 + filter_value);
-    *op1 = u ^ 0x80;
+    op1 = u ^ 0x80;
 
 }
 
-static void vp8_mbfilter(signed char mask, uc hev,
-                           uc *op2, uc *op1, uc *op0, uc *oq0, uc *oq1, uc *oq2)
+void vp8_mbfilter(signed char mask, uc hev,
+		  uc & op2, uc & op1, uc & op0, uc & oq0, uc & oq1, uc & oq2)
 {
     signed char s, u;
     signed char filter_value, Filter1, Filter2;
-    signed char ps2 = (signed char) * op2 ^ 0x80;
-    signed char ps1 = (signed char) * op1 ^ 0x80;
-    signed char ps0 = (signed char) * op0 ^ 0x80;
-    signed char qs0 = (signed char) * oq0 ^ 0x80;
-    signed char qs1 = (signed char) * oq1 ^ 0x80;
-    signed char qs2 = (signed char) * oq2 ^ 0x80;
+    signed char ps2 = (signed char) op2 ^ 0x80;
+    signed char ps1 = (signed char) op1 ^ 0x80;
+    signed char ps0 = (signed char) op0 ^ 0x80;
+    signed char qs0 = (signed char) oq0 ^ 0x80;
+    signed char qs1 = (signed char) oq1 ^ 0x80;
+    signed char qs2 = (signed char) oq2 ^ 0x80;
 
     /* add outer taps if we have high edge variance */
     filter_value = vp8_signed_char_clamp(ps1 - qs1);
@@ -131,23 +131,23 @@ static void vp8_mbfilter(signed char mask, uc hev,
     /* roughly 3/7th difference across boundary */
     u = vp8_signed_char_clamp((63 + Filter2 * 27) >> 7);
     s = vp8_signed_char_clamp(qs0 - u);
-    *oq0 = s ^ 0x80;
+    oq0 = s ^ 0x80;
     s = vp8_signed_char_clamp(ps0 + u);
-    *op0 = s ^ 0x80;
+    op0 = s ^ 0x80;
 
     /* roughly 2/7th difference across boundary */
     u = vp8_signed_char_clamp((63 + Filter2 * 18) >> 7);
     s = vp8_signed_char_clamp(qs1 - u);
-    *oq1 = s ^ 0x80;
+    oq1 = s ^ 0x80;
     s = vp8_signed_char_clamp(ps1 + u);
-    *op1 = s ^ 0x80;
+    op1 = s ^ 0x80;
 
     /* roughly 1/7th difference across boundary */
     u = vp8_signed_char_clamp((63 + Filter2 * 9) >> 7);
     s = vp8_signed_char_clamp(qs2 - u);
-    *oq2 = s ^ 0x80;
+    oq2 = s ^ 0x80;
     s = vp8_signed_char_clamp(ps2 + u);
-    *op2 = s ^ 0x80;
+    op2 = s ^ 0x80;
 }
 
 /* should we apply any filter at all ( 11111111 yes, 00000000 no) */

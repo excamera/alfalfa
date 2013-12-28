@@ -88,6 +88,10 @@ public:
     void intra_predict( const PredictionMode mb_mode );
 
     void set_above_right_bottom_row_predictor( const Row & replacement );
+
+    const typename TwoD< Block >::Context & context( void ) const { return context_; }
+
+    static constexpr unsigned int dimension( void ) { return size; }
   };
 
   using Block4  = Block< 4 >;

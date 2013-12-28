@@ -44,6 +44,10 @@ void KeyFrame::decode( void )
 					 macroblock.dequantize( derived_quantities_.get() );
 					 macroblock.intra_predict_and_inverse_transform();
 				       } );
+
+  /* loop filter */
+  macroblock_headers_.get().forall( [&]( KeyFrameMacroblockHeader & macroblock )
+				    { macroblock.loopfilter( derived_quantities_.get() ); } );
 }
 
 /* "above" for a Y2 block refers to the first macroblock above that actually has Y2 coded */

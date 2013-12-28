@@ -54,6 +54,18 @@ private:
   SimpleLoopFilter simple_;
   uint8_t high_edge_variance_threshold_;
 
+  template <class BlockType>
+  void filter_mb_vertical( BlockType & block );
+
+  template <class BlockType>
+  void filter_mb_horizontal( BlockType & block );
+
+  template <class BlockType>
+  void filter_sb_vertical( BlockType & block );
+
+  template <class BlockType>
+  void filter_sb_horizontal( BlockType & block );
+
 public:
   NormalLoopFilter( const bool key_frame, const FilterParameters & params );
 

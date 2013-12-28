@@ -68,8 +68,6 @@ SimpleLoopFilter::SimpleLoopFilter( const FilterParameters & params )
     macroblock_edge_limit_(),
     subblock_edge_limit_()
 {
-  assert( params.type == LoopFilterType::Simple );
-
   if ( params.sharpness_level ) {
     interior_limit_ >>= params.sharpness_level > 4 ? 2 : 1;
 
@@ -139,13 +137,133 @@ void KeyFrameMacroblockHeader::loopfilter( const KeyFrameHeader::DerivedQuantiti
   }
 }
 
-
-
 void SimpleLoopFilter::filter( Raster::Macroblock & , const bool )
 {
   assert( false );
 }
 
-void NormalLoopFilter::filter( Raster::Macroblock & , const bool )
+void NormalLoopFilter::filter( Raster::Macroblock & raster, const bool skip_subblock_edges )
 {
+  /* 1: filter the left inter-macroblock edge */
+  if ( raster.Y.context().left.initialized() ) {
+    filter_mb_vertical( raster.Y );
+    filter_mb_vertical( raster.U );
+    filter_mb_vertical( raster.V );
+  }
+
+  /* 2: filter the vertical subblock edges */
+  if ( not skip_subblock_edges ) {
+    filter_sb_vertical( raster.Y );
+    filter_sb_vertical( raster.U );
+    filter_sb_vertical( raster.V );
+  }
+
+  /* 3: filter the top inter-macroblock edge */
+  if ( raster.Y.context().above.initialized() ) {
+    filter_mb_horizontal( raster.Y );
+    filter_mb_horizontal( raster.U );
+    filter_mb_horizontal( raster.V );
+  }
+
+  /* 4: filter the horizontal subblock edges */
+  if ( not skip_subblock_edges ) {
+    filter_sb_horizontal( raster.Y );
+    filter_sb_horizontal( raster.U );
+    filter_sb_horizontal( raster.V );
+  }
+}
+
+extern int8_t vp8_filter_mask(uint8_t limit, uint8_t blimit,
+			      uint8_t p3, uint8_t p2, uint8_t p1, uint8_t p0,
+			      uint8_t q0, uint8_t q1, uint8_t q2, uint8_t q3);
+
+extern int8_t vp8_hevmask(uint8_t thresh, uint8_t p1, uint8_t p0, uint8_t q0, uint8_t q1);
+
+extern void vp8_filter( int8_t mask, uint8_t hev,
+			uint8_t & op1, uint8_t & op0, uint8_t & oq0, uint8_t & oq1);
+
+extern void vp8_mbfilter( int8_t mask, uint8_t hev,
+			  uint8_t & op2, uint8_t & op1, uint8_t & op0,
+			  uint8_t & oq0, uint8_t & oq1, uint8_t & oq2 );
+
+template <class BlockType>
+void NormalLoopFilter::filter_mb_vertical( BlockType & block )
+{
+  BlockType * left = const_cast<BlockType *>( block.context().left.get() ); /* XXX */
+
+  const uint8_t size = block.dimension();
+
+  for ( unsigned int row = 0; row < size; row++ ) {
+    const int8_t mask = vp8_filter_mask( simple_.interior_limit(),
+					 simple_.macroblock_edge_limit(),
+					 left->at( size - 4, row ),
+					 left->at( size - 3, row ),
+					 left->at( size - 2, row ),
+					 left->at( size - 1, row ),
+					 block.at( 0, row ),
+					 block.at( 1, row ),
+					 block.at( 2, row ),
+					 block.at( 3, row ) );
+
+    const int8_t hev = vp8_hevmask( high_edge_variance_threshold_,
+				    left->at( size - 2, row ),
+				    left->at( size - 1, row ),
+				    block.at( 0, row ),
+				    block.at( 1, row ) );
+
+    vp8_mbfilter( mask, hev,
+		  left->at( size - 3, row ),
+		  left->at( size - 2, row ),
+		  left->at( size - 1, row ),
+		  block.at( 0, row ),
+		  block.at( 1, row ),
+		  block.at( 2, row ) );
+  }
+}
+
+template <class BlockType>
+void NormalLoopFilter::filter_mb_horizontal( BlockType & block )
+{
+  BlockType * above = const_cast<BlockType *>( block.context().above.get() ); /* XXX */
+
+  const uint8_t size = block.dimension();
+
+  for ( unsigned int column = 0; column < size; column++ ) {
+    const int8_t mask = vp8_filter_mask( simple_.interior_limit(),
+					 simple_.macroblock_edge_limit(),
+					 above->at( column, size - 4 ),
+					 above->at( column, size - 3 ),
+					 above->at( column, size - 2 ),
+					 above->at( column, size - 1 ),
+					 block.at( column, 0 ),
+					 block.at( column, 1 ),
+					 block.at( column, 2 ),
+					 block.at( column, 3 ) );
+
+    const int8_t hev = vp8_hevmask( high_edge_variance_threshold_,
+				    above->at( column, size - 2 ),
+				    above->at( column, size - 1 ),
+				    block.at( column, 0 ),
+				    block.at( column, 1 ) );
+
+    vp8_mbfilter( mask, hev,
+		  above->at( column, size - 3 ),
+		  above->at( column, size - 2 ),
+		  above->at( column, size - 1 ),
+		  block.at( column, 0 ),
+		  block.at( column, 1 ),
+		  block.at( column, 2 ) );
+  }
+}
+
+template <class BlockType>
+void NormalLoopFilter::filter_sb_vertical( BlockType & )
+{
+  
+}
+
+template <class BlockType>
+void NormalLoopFilter::filter_sb_horizontal( BlockType & )
+{
+  
 }
