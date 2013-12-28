@@ -39,6 +39,7 @@ class KeyFrame
   void parse_macroblock_headers( void );
   void assign_output_raster( Raster & raster );
   void decode( void );
+  void loopfilter( void );
 };
 
 #endif /* FRAME_HH */

@@ -39,17 +39,18 @@ FilterParameters::FilterParameters( const uint8_t segment_id,
   }
 }
 
-static uint8_t mode_category( const reference_frame macroblock_reference_frame,
-			      const intra_mbmode macroblock_y_mode )
+static int8_t mode_adjustment( const SafeArray< int8_t, 4 > & mode_adjustments,
+			       const reference_frame macroblock_reference_frame,
+			       const intra_mbmode macroblock_y_mode )
 {
-  if ( macroblock_reference_frame == CURRENT_FRAME and macroblock_y_mode == B_PRED ) {
-    return 0;
+  if ( macroblock_reference_frame == CURRENT_FRAME ) {
+    return ( macroblock_y_mode == B_PRED ) ? mode_adjustments.at( 0 ) : 0;
     /*  } else if ( macroblock_y_mode == ZEROMV ) {
-    return 1;
-  } else if ( macroblock_y_mode == SPLITMV ) {
-  return 3; */
+	return 1;
+	} else if ( macroblock_y_mode == SPLITMV ) {
+	return 3; */
   } else {
-    return 2;
+    return mode_adjustments.at( 2 );
   }
 }
 
@@ -59,7 +60,7 @@ void FilterParameters::adjust( const SafeArray< int8_t, num_reference_frames > &
 			       const intra_mbmode macroblock_y_mode )
 {
   filter_level += ref_adjustments.at( macroblock_reference_frame )
-    + mode_adjustments.at( mode_category( macroblock_reference_frame, macroblock_y_mode ) );
+    + mode_adjustment( mode_adjustments, macroblock_reference_frame, macroblock_y_mode );
 }
 
 SimpleLoopFilter::SimpleLoopFilter( const FilterParameters & params )
@@ -98,8 +99,6 @@ NormalLoopFilter::NormalLoopFilter( const bool key_frame,
   if ( params.filter_level >= 20 and (not key_frame) ) {
     high_edge_variance_threshold_++;
   }
-
-  fprintf( stderr, "filter_level = %d\n", params.filter_level );
 }
 
 void KeyFrameMacroblockHeader::loopfilter( const KeyFrameHeader::DerivedQuantities & derived )
@@ -262,9 +261,6 @@ template <class BlockType>
 void NormalLoopFilter::filter_sb_vertical( BlockType & block )
 {
   const uint8_t size = block.dimension();
-
-  fprintf( stderr, "interior_limit=%d, subblock edge limit = %d, hev = %d\n",
-	   simple_.interior_limit(), simple_.subblock_edge_limit(), high_edge_variance_threshold_ );
 
   for ( unsigned int center_column = 4; center_column < size; center_column += 4 ) {
     for ( unsigned int row = 0; row < size; row++ ) {

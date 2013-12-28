@@ -28,8 +28,10 @@ void VP8Parser::parse_frame( const Chunk & frame, VideoDisplay & display, Raster
   myframe.parse_macroblock_headers();
   myframe.assign_output_raster( raster );
   myframe.decode();
+  myframe.loopfilter();
 
   display.draw( raster );
+
   sleep( 1 );
 }
 
