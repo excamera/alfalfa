@@ -13,7 +13,7 @@ private:
 public:
   Decoder( uint16_t s_width, uint16_t s_height );
 
-  void decode_frame( const Chunk & frame, Raster & raster );
+  bool decode_frame( const Chunk & frame, Raster & raster );
 
   unsigned int raster_width( void ) const;
   unsigned int raster_height( void ) const;

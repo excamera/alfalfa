@@ -8,14 +8,14 @@ Decoder::Decoder( uint16_t s_width, uint16_t s_height )
   : width_( s_width ), height_( s_height )
 {}
 
-void Decoder::decode_frame( const Chunk & frame, Raster & raster )
+bool Decoder::decode_frame( const Chunk & frame, Raster & raster )
 {
   /* parse uncompressed data chunk */
   UncompressedChunk uncompressed_chunk( frame, width_, height_ );
 
   /* only parse key frames for now */
   if ( !uncompressed_chunk.key_frame() ) {
-    return;
+    return false;
   }
 
   KeyFrame myframe( uncompressed_chunk, width_, height_ );
@@ -24,6 +24,8 @@ void Decoder::decode_frame( const Chunk & frame, Raster & raster )
   myframe.assign_output_raster( raster );
   myframe.decode();
   myframe.loopfilter();
+
+  return true;
 }
 
 unsigned int Decoder::raster_width( void ) const

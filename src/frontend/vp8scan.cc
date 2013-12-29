@@ -27,8 +27,9 @@ int main( int argc, char *argv[] )
 		   file.width(), file.height() );
 
     for ( uint32_t i = 0; i < file.frame_count(); i++ ) {
-      decoder.decode_frame( file.frame( i ), raster );
-      display.draw( raster );
+      if ( decoder.decode_frame( file.frame( i ), raster ) ) {
+	display.draw( raster );
+      }
     }
   } catch ( const Exception & e ) {
     e.perror( argv[ 0 ] );
