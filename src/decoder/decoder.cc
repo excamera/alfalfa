@@ -1,19 +1,14 @@
-#include <iostream>
-#include <unistd.h>
-
-#include "vp8_parser.hh"
+#include "decoder.hh"
 #include "uncompressed_chunk.hh"
 #include "frame.hh"
-#include "display.hh"
 
 using namespace std;
 
-VP8Parser::VP8Parser( uint16_t s_width, uint16_t s_height )
+Decoder::Decoder( uint16_t s_width, uint16_t s_height )
   : width_( s_width ), height_( s_height )
-{
-}
+{}
 
-void VP8Parser::parse_frame( const Chunk & frame, VideoDisplay & display, Raster & raster )
+void Decoder::decode_frame( const Chunk & frame, Raster & raster )
 {
   /* parse uncompressed data chunk */
   UncompressedChunk uncompressed_chunk( frame, width_, height_ );
@@ -29,18 +24,14 @@ void VP8Parser::parse_frame( const Chunk & frame, VideoDisplay & display, Raster
   myframe.assign_output_raster( raster );
   myframe.decode();
   myframe.loopfilter();
-
-  display.draw( raster );
-
-  // sleep( 1 );
 }
 
-unsigned int VP8Parser::raster_width( void ) const
+unsigned int Decoder::raster_width( void ) const
 {
   return 16 * ((width_ + 15) / 16);
 }
 
-unsigned int VP8Parser::raster_height( void ) const
+unsigned int Decoder::raster_height( void ) const
 {
   return 16 * ((height_ + 15) / 16);
 }

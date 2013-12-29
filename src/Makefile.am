@@ -1,1 +1,1 @@
-SUBDIRS = decoder frontend
+SUBDIRS = decoder display frontend

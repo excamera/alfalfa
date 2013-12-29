@@ -27,5 +27,5 @@ PKG_CHECK_MODULES([GLU], [glu])
 
 # Checks for library functions.
 
-AC_CONFIG_FILES([Makefile src/Makefile src/decoder/Makefile src/frontend/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile src/decoder/Makefile src/display/Makefile src/frontend/Makefile])
 AC_OUTPUT

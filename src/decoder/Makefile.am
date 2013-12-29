@@ -1,4 +1,3 @@
-AM_CPPFLAGS = $(X11_XCB_CFLAGS) $(GLU_CFLAGS)
 AM_CXXFLAGS = $(PICKY_CXXFLAGS)
 
 noinst_LIBRARIES = libalfalfadecoder.a
@@ -11,7 +10,7 @@ libalfalfadecoder_a_SOURCES = 2d.hh block.hh bool_decoder.hh \
 	quantization.cc quantization.hh raster.hh \
 	tokens.cc tokens.hh transform.cc tree.cc \
 	uncompressed_chunk.cc uncompressed_chunk.hh \
-	vp8_header_structures.hh vp8_parser.cc vp8_parser.hh \
+	vp8_header_structures.hh decoder.cc decoder.hh \
 	vp8_prob_data.cc vp8_prob_data.hh \
-	display.hh display.cc ahab_shader.hh safe_array.hh \
+	safe_array.hh \
 	loopfilter.hh loopfilter.cc loopfilter_filters.hh
