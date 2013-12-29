@@ -13,9 +13,11 @@ Raster::Block<size>::Block( const typename TwoD< Block >::Context & c,
 
 /* the rightmost Y-subblocks in a macroblock (other than the upper-right subblock) are special-cased */
 template <>
-void Raster::Block4::set_above_right_bottom_row_predictor( const Row & replacement )
+void Raster::Block4::set_above_right_bottom_row_predictor( const typename Predictors::AboveRightBottomRowPredictor & replacement )
 {
-  predictors_.above_right_bottom_row.set( replacement );
+  predictors_.above_right_bottom_row_predictor.above_right_bottom_row.set( replacement.above_right_bottom_row );
+  predictors_.above_right_bottom_row_predictor.above_bottom_right_pixel = replacement.above_bottom_right_pixel;
+  predictors_.above_right_bottom_row_predictor.use_row = replacement.use_row;
 }
 
 Raster::Macroblock::Macroblock( const TwoD< Macroblock >::Context & c, Raster & raster )
@@ -28,7 +30,7 @@ Raster::Macroblock::Macroblock( const TwoD< Macroblock >::Context & c, Raster & 
 {
   /* adjust "extra pixels" for rightmost Y subblocks in macroblock (other than the top one) */
   for ( unsigned int row = 1; row < 4; row++ ) {
-    Y_sub.at( 3, row ).set_above_right_bottom_row_predictor( Y_sub.at( 3, 0 ).predictors().above_right_bottom_row );
+    Y_sub.at( 3, row ).set_above_right_bottom_row_predictor( Y_sub.at( 3, 0 ).predictors().above_right_bottom_row_predictor );
   }
 }
 
@@ -67,19 +69,19 @@ Raster::Block<size>::Predictors::Predictors( const typename TwoD< Block >::Conte
 		: ( context.above.initialized()
 		    ? col129().at( 0, 0 )
 		    : row127().at( 0, 0 ) ) ),
-  above_right_bottom_row( context.above_right.initialized()
-			  ? context.above_right.get()->contents().row( size - 1 )
-			  : row127() ),
-  above_bottom_right_pixel( context.above.initialized()
-			    ? context.above.get()->at( size - 1, size - 1 )
-			    : row127().at( 0, 0 ) ),
-  use_row( context.above_right.initialized() )
+    above_right_bottom_row_predictor( { context.above_right.initialized()
+	  ? context.above_right.get()->contents().row( size - 1 )
+	  : row127(),
+	  context.above.initialized()
+	  ? &context.above.get()->at( size - 1, size - 1 )
+	  : &row127().at( 0, 0 ),
+	  context.above_right.initialized() } )
 {}
 
 template <unsigned int size>
-uint8_t Raster::Block<size>::Predictors::above_right( const unsigned int column ) const
+uint8_t Raster::Block<size>::Predictors::AboveRightBottomRowPredictor::above_right( const unsigned int column ) const
 {
-  return use_row ? above_right_bottom_row.at( column, 0 ) : above_bottom_right_pixel;
+  return use_row ? above_right_bottom_row.at( column, 0 ) : *above_bottom_right_pixel;
 }
 
 template <unsigned int size>
@@ -88,7 +90,7 @@ uint8_t Raster::Block<size>::Predictors::above( const int8_t column ) const
   assert( column >= -1 and column < int8_t( size * 2 ) );
   if ( column == -1 ) return above_left;
   if ( 0 <= column and column < int( size ) ) return above_row.at( column, 0 );
-  return above_right( column - size );
+  return above_right_bottom_row_predictor.above_right( column - size );
 }
 
 template <unsigned int size>

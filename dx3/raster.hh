@@ -56,10 +56,15 @@ public:
       const Row above_row;
       const Column left_column;
       const uint8_t & above_left;
-      Row above_right_bottom_row; /* non-const so macroblock can fix */
-      const uint8_t & above_bottom_right_pixel;
-      bool use_row;
-      uint8_t above_right( const unsigned int column ) const;
+
+      /* non-const so macroblock can adjust the rightmost subblocks */
+      struct AboveRightBottomRowPredictor {
+	Row above_right_bottom_row;
+	const uint8_t * above_bottom_right_pixel;
+	bool use_row;
+
+	uint8_t above_right( const unsigned int column ) const;
+      } above_right_bottom_row_predictor;
 
       uint8_t above( const int8_t column ) const;
       uint8_t left( const int8_t row ) const;
@@ -87,7 +92,7 @@ public:
     template <class PredictionMode>
     void intra_predict( const PredictionMode mb_mode );
 
-    void set_above_right_bottom_row_predictor( const Row & replacement );
+    void set_above_right_bottom_row_predictor( const typename Predictors::AboveRightBottomRowPredictor & replacement );
 
     const typename TwoD< Block >::Context & context( void ) const { return context_; }
 
