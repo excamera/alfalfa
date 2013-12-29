@@ -4,7 +4,6 @@
 #include <iostream>
 
 #include "2d.hh"
-#include "modemv_data.hh"
 
 /* For an array of pixels, context and separate construction not necessary */
 template<>
