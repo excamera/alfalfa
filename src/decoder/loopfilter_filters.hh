@@ -11,7 +11,6 @@
  */
 
 #include <cstdint>
-#include <cstdlib>
 
 typedef uint8_t uc;
 
