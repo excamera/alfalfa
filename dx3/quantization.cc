@@ -88,7 +88,7 @@ void Y2Block::dequantize( const Quantizer & quantizer )
   assert( coded_ );
 
   coefficients_.at( 0 ) *= quantizer.y2_dc;
-  for ( uint8_t i = 1; i < 15; i++ ) {
+  for ( uint8_t i = 1; i < 16; i++ ) {
     coefficients_.at( i ) *= quantizer.y2_ac;
   }
 }
@@ -97,7 +97,7 @@ template <>
 void YBlock::dequantize( const Quantizer & quantizer )
 {
   coefficients_.at( 0 ) *= quantizer.y_dc;
-  for ( uint8_t i = 1; i < 15; i++ ) {
+  for ( uint8_t i = 1; i < 16; i++ ) {
     coefficients_.at( i ) *= quantizer.y_ac;
   }
 }
@@ -106,7 +106,7 @@ template <>
 void UVBlock::dequantize( const Quantizer & quantizer )
 {
   coefficients_.at( 0 ) *= quantizer.uv_dc;
-  for ( uint8_t i = 1; i < 15; i++ ) {
+  for ( uint8_t i = 1; i < 16; i++ ) {
     coefficients_.at( i ) *= quantizer.uv_ac;
   }
 }
