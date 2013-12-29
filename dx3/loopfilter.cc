@@ -81,22 +81,22 @@ SimpleLoopFilter::SimpleLoopFilter( const FilterParameters & params )
     interior_limit_ = 1;
   }
 
-  macroblock_edge_limit_ = ( ( params.filter_level + 2 ) * 2 ) + interior_limit_;
-  subblock_edge_limit_ = ( params.filter_level * 2 ) + interior_limit_;
+  macroblock_edge_limit_ = ( ( filter_level_ + 2 ) * 2 ) + interior_limit_;
+  subblock_edge_limit_ = ( filter_level_ * 2 ) + interior_limit_;
 }
 
 NormalLoopFilter::NormalLoopFilter( const bool key_frame,
 				    const FilterParameters & params )
   : simple_( params ),
-    high_edge_variance_threshold_( clamp63( params.filter_level ) >= 15 )
+    high_edge_variance_threshold_( simple_.filter_level() >= 15 )
 {
   assert( params.type == LoopFilterType::Normal );
 
-  if ( params.filter_level >= 40 ) {
+  if ( simple_.filter_level() >= 40 ) {
     high_edge_variance_threshold_++;
   }
 
-  if ( params.filter_level >= 20 and (not key_frame) ) {
+  if ( simple_.filter_level() >= 20 and (not key_frame) ) {
     high_edge_variance_threshold_++;
   }
 }
