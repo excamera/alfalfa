@@ -22,10 +22,31 @@ PKG_CHECK_MODULES([X11_XCB], [x11-xcb])
 PKG_CHECK_MODULES([GLU], [glu])
 
 # Checks for header files.
+AC_PATH_X
+AC_CHECK_HEADERS([fcntl.h unistd.h], [], [AC_MSG_ERROR([Missing required header file])])
 
 # Checks for typedefs, structures, and compiler characteristics.
+AC_CHECK_HEADER_STDBOOL
+AC_C_INLINE
+AC_TYPE_INT16_T
+AC_TYPE_INT32_T
+AC_TYPE_INT8_T
+AC_TYPE_SIZE_T
+AC_TYPE_UINT16_T
+AC_TYPE_UINT32_T
+AC_TYPE_UINT64_T
+AC_TYPE_UINT8_T
 
 # Checks for library functions.
+AC_FUNC_MMAP
+AC_CHECK_FUNCS([munmap strerror], [], [AC_MSG_ERROR([Missing required library function])])
 
-AC_CONFIG_FILES([Makefile src/Makefile src/decoder/Makefile src/display/Makefile src/frontend/Makefile])
+AC_LANG_POP(C++)
+
+AC_CONFIG_FILES([Makefile
+                 src/Makefile
+                 src/decoder/Makefile
+                 src/display/Makefile
+                 src/frontend/Makefile])
+
 AC_OUTPUT
