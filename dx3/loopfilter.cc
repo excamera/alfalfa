@@ -281,13 +281,11 @@ void NormalLoopFilter::filter_sb_vertical( BlockType & block )
 				      block.at( center_column + 0, row ),
 				      block.at( center_column + 1, row ) );
 
-      vp8_mbfilter( mask, hev,
-		    block.at( center_column - 3, row ),
-		    block.at( center_column - 2, row ),
-		    block.at( center_column - 1, row ),
-		    block.at( center_column + 0, row ),
-		    block.at( center_column + 1, row ),
-		    block.at( center_column + 2, row ) );
+      vp8_filter( mask, hev,
+		  block.at( center_column - 2, row ),
+		  block.at( center_column - 1, row ),
+		  block.at( center_column + 0, row ),
+		  block.at( center_column + 1, row ) );
     }
   }
 }
@@ -316,13 +314,11 @@ void NormalLoopFilter::filter_sb_horizontal( BlockType & block )
 				      block.at( column, center_row + 0 ),
 				      block.at( column, center_row + 1 ) );
 
-      vp8_mbfilter( mask, hev,
-		    block.at( column, center_row - 3 ),
-		    block.at( column, center_row - 2 ),
-		    block.at( column, center_row - 1 ),
-		    block.at( column, center_row + 0 ),
-		    block.at( column, center_row + 1 ),
-		    block.at( column, center_row + 2 ) );
+      vp8_filter( mask, hev,
+		  block.at( column, center_row - 2 ),
+		  block.at( column, center_row - 1 ),
+		  block.at( column, center_row + 0 ),
+		  block.at( column, center_row + 1 ) );
     }
   }
 }
