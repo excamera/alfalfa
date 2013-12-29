@@ -88,6 +88,8 @@ public:
     const uint8_t & at( const unsigned int column, const unsigned int row ) const
     { return contents_.at( column, row ); }
 
+    unsigned int stride( void ) const { return contents_.stride(); }
+
     const decltype(contents_) & contents( void ) const { return contents_; }
     const Predictors & predictors( void ) const { return predictors_; }
 
@@ -98,7 +100,7 @@ public:
 
     const typename TwoD< Block >::Context & context( void ) const { return context_; }
 
-    static constexpr unsigned int dimension( void ) { return size; }
+    static constexpr unsigned int dimension { size };
   };
 
   using Block4  = Block< 4 >;

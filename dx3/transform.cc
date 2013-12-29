@@ -66,10 +66,6 @@ void Block< initial_block_type, PredictionMode >::idct( Raster::Block4 & output 
     int t1 = coefficients_.at( i + 0 ) - coefficients_.at( i + 8 );
     int t2 = MUL_35468( coefficients_.at( i + 4 ) ) - MUL_20091( coefficients_.at( i + 12 ) );
     int t3 = MUL_20091( coefficients_.at( i + 4 ) ) + MUL_35468( coefficients_.at( i + 12 ) );
-    coefficients_.at( i + 0 ) = 0;
-    coefficients_.at( i + 4 ) = 0;
-    coefficients_.at( i + 8 ) = 0;
-    coefficients_.at( i + 12 ) = 0;
 
     intermediate.at( i * 4 + 0 ) = t0 + t3;
     intermediate.at( i * 4 + 1 ) = t1 + t2;
@@ -83,10 +79,15 @@ void Block< initial_block_type, PredictionMode >::idct( Raster::Block4 & output 
     int t2 = MUL_35468( intermediate.at( i + 4 ) ) - MUL_20091( intermediate.at( i + 12 ) );
     int t3 = MUL_20091( intermediate.at( i + 4 ) ) + MUL_35468( intermediate.at( i + 12 ) );
 
-    output.at( 0, i ) = clamp255( output.at( 0, i ) + ((t0 + t3 + 4) >> 3) );
-    output.at( 1, i ) = clamp255( output.at( 1, i ) + ((t1 + t2 + 4) >> 3) );
-    output.at( 2, i ) = clamp255( output.at( 2, i ) + ((t1 - t2 + 4) >> 3) );
-    output.at( 3, i ) = clamp255( output.at( 3, i ) + ((t0 - t3 + 4) >> 3) );
+    uint8_t *target = &output.at( 0, i );
+
+    *target = clamp255( *target + ((t0 + t3 + 4) >> 3) );
+    target++;
+    *target = clamp255( *target + ((t1 + t2 + 4) >> 3) );
+    target++;
+    *target = clamp255( *target + ((t1 - t2 + 4) >> 3) );
+    target++;
+    *target = clamp255( *target + ((t0 - t3 + 4) >> 3) );
   }
 }
 

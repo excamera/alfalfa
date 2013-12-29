@@ -2,6 +2,7 @@
 #include "frame_header.hh"
 #include "macroblock_header.hh"
 #include "raster.hh"
+#include "loopfilter_filters.hh"
 
 static inline uint8_t clamp63( const int input )
 {
@@ -174,151 +175,136 @@ void NormalLoopFilter::filter( Raster::Macroblock & raster, const bool skip_subb
   }
 }
 
-extern int8_t vp8_filter_mask(uint8_t limit, uint8_t blimit,
-			      uint8_t p3, uint8_t p2, uint8_t p1, uint8_t p0,
-			      uint8_t q0, uint8_t q1, uint8_t q2, uint8_t q3);
-
-extern int8_t vp8_hevmask(uint8_t thresh, uint8_t p1, uint8_t p0, uint8_t q0, uint8_t q1);
-
-extern void vp8_filter( int8_t mask, uint8_t hev,
-			uint8_t & op1, uint8_t & op0, uint8_t & oq0, uint8_t & oq1);
-
-extern void vp8_mbfilter( int8_t mask, uint8_t hev,
-			  uint8_t & op2, uint8_t & op1, uint8_t & op0,
-			  uint8_t & oq0, uint8_t & oq1, uint8_t & oq2 );
-
 template <class BlockType>
 void NormalLoopFilter::filter_mb_vertical( BlockType & block )
 {
-  BlockType * left = const_cast<BlockType *>( block.context().left.get() ); /* XXX */
-
-  const uint8_t size = block.dimension();
+  const uint8_t size = BlockType::dimension;
 
   for ( unsigned int row = 0; row < size; row++ ) {
+    uint8_t *central = &block.at( 0, row );
+
     const int8_t mask = vp8_filter_mask( simple_.interior_limit(),
 					 simple_.macroblock_edge_limit(),
-					 left->at( size - 4, row ),
-					 left->at( size - 3, row ),
-					 left->at( size - 2, row ),
-					 left->at( size - 1, row ),
-					 block.at( 0, row ),
-					 block.at( 1, row ),
-					 block.at( 2, row ),
-					 block.at( 3, row ) );
+					 *(central - 4),
+					 *(central - 3),
+					 *(central - 2),
+					 *(central - 1),
+					 *(central),
+					 *(central + 1),
+					 *(central + 2),
+					 *(central + 3) );
 
     const int8_t hev = vp8_hevmask( high_edge_variance_threshold_,
-				    left->at( size - 2, row ),
-				    left->at( size - 1, row ),
-				    block.at( 0, row ),
-				    block.at( 1, row ) );
+				    *(central - 2),
+				    *(central - 1),
+				    *(central),
+				    *(central + 1) );
 
     vp8_mbfilter( mask, hev,
-		  left->at( size - 3, row ),
-		  left->at( size - 2, row ),
-		  left->at( size - 1, row ),
-		  block.at( 0, row ),
-		  block.at( 1, row ),
-		  block.at( 2, row ) );
-  }
-}
-
-template <class BlockType>
-void NormalLoopFilter::filter_mb_horizontal( BlockType & block )
-{
-  BlockType * above = const_cast<BlockType *>( block.context().above.get() ); /* XXX */
-
-  const uint8_t size = block.dimension();
-
-  for ( unsigned int column = 0; column < size; column++ ) {
-    const int8_t mask = vp8_filter_mask( simple_.interior_limit(),
-					 simple_.macroblock_edge_limit(),
-					 above->at( column, size - 4 ),
-					 above->at( column, size - 3 ),
-					 above->at( column, size - 2 ),
-					 above->at( column, size - 1 ),
-					 block.at( column, 0 ),
-					 block.at( column, 1 ),
-					 block.at( column, 2 ),
-					 block.at( column, 3 ) );
-
-    const int8_t hev = vp8_hevmask( high_edge_variance_threshold_,
-				    above->at( column, size - 2 ),
-				    above->at( column, size - 1 ),
-				    block.at( column, 0 ),
-				    block.at( column, 1 ) );
-
-    vp8_mbfilter( mask, hev,
-		  above->at( column, size - 3 ),
-		  above->at( column, size - 2 ),
-		  above->at( column, size - 1 ),
-		  block.at( column, 0 ),
-		  block.at( column, 1 ),
-		  block.at( column, 2 ) );
+		  *(central - 3), *(central - 2), *(central - 1),
+		  *(central), *(central + 1), *(central + 2) );
   }
 }
 
 template <class BlockType>
 void NormalLoopFilter::filter_sb_vertical( BlockType & block )
 {
-  const uint8_t size = block.dimension();
+  const uint8_t size = BlockType::dimension;
 
-  for ( unsigned int center_column = 4; center_column < size; center_column += 4 ) {
-    for ( unsigned int row = 0; row < size; row++ ) {
-      const int8_t mask = vp8_filter_mask( simple_.interior_limit(),
-					   simple_.subblock_edge_limit(),
-					   block.at( center_column - 4, row ),
-					   block.at( center_column - 3, row ),
-					   block.at( center_column - 2, row ),
-					   block.at( center_column - 1, row ),
-					   block.at( center_column + 0, row ),
-					   block.at( center_column + 1, row ),
-					   block.at( center_column + 2, row ),
-					   block.at( center_column + 3, row ) );
+  for ( unsigned int row = 0; row < size; row++ ) {
+    uint8_t *central = &block.at( 0, row );
 
-      const int8_t hev = vp8_hevmask( high_edge_variance_threshold_,
-				      block.at( center_column - 2, row ),
-				      block.at( center_column - 1, row ),
-				      block.at( center_column + 0, row ),
-				      block.at( center_column + 1, row ) );
+    const int8_t mask = vp8_filter_mask( simple_.interior_limit(),
+					 simple_.subblock_edge_limit(),
+					 *(central - 4),
+					 *(central - 3),
+					 *(central - 2),
+					 *(central - 1),
+					 *(central),
+					 *(central + 1),
+					 *(central + 2),
+					 *(central + 3) );
 
-      vp8_filter( mask, hev,
-		  block.at( center_column - 2, row ),
-		  block.at( center_column - 1, row ),
-		  block.at( center_column + 0, row ),
-		  block.at( center_column + 1, row ) );
-    }
+    const int8_t hev = vp8_hevmask( high_edge_variance_threshold_,
+				    *(central - 2),
+				    *(central - 1),
+				    *(central),
+				    *(central + 1) );
+
+    vp8_filter( mask, hev,
+		*(central - 2), *(central - 1),
+		*(central), *(central + 1) );
+  }
+}
+
+template <class BlockType>
+void NormalLoopFilter::filter_mb_horizontal( BlockType & block )
+{
+  const uint8_t size = BlockType::dimension;
+
+  const unsigned int stride = block.stride();
+
+  for ( unsigned int column = 0; column < size; column++ ) {
+    uint8_t *central = &block.at( column, 0 );
+
+    const int8_t mask = vp8_filter_mask( simple_.interior_limit(),
+					 simple_.macroblock_edge_limit(),
+					 *(central - 4 * stride ),
+					 *(central - 3 * stride ),
+					 *(central - 2 * stride ),
+					 *(central - stride ),
+					 *(central),
+					 *(central + stride ),
+					 *(central + 2 * stride ),
+					 *(central + 3 * stride ) );
+
+    const int8_t hev = vp8_hevmask( high_edge_variance_threshold_,
+				    *(central - 2 * stride ),
+				    *(central - stride ),
+				    *(central),
+				    *(central + stride ) );
+
+    vp8_mbfilter( mask, hev,
+		  *(central - 3 * stride ),
+		  *(central - 2 * stride ),
+		  *(central - stride ),
+		  *(central),
+		  *(central + stride ),
+		  *(central + 2 * stride ) );
   }
 }
 
 template <class BlockType>
 void NormalLoopFilter::filter_sb_horizontal( BlockType & block )
 {
-  const uint8_t size = block.dimension();
+  const uint8_t size = BlockType::dimension;
 
-  for ( unsigned int center_row = 4; center_row < size; center_row += 4 ) {
-    for ( unsigned int column = 0; column < size; column++ ) {
-      const int8_t mask = vp8_filter_mask( simple_.interior_limit(),
-					   simple_.subblock_edge_limit(),
-					   block.at( column, center_row - 4 ),
-					   block.at( column, center_row - 3 ),
-					   block.at( column, center_row - 2 ),
-					   block.at( column, center_row - 1 ),
-					   block.at( column, center_row + 0 ),
-					   block.at( column, center_row + 1 ),
-					   block.at( column, center_row + 2 ),
-					   block.at( column, center_row + 3 ) );
+  const unsigned int stride = block.stride();
 
-      const int8_t hev = vp8_hevmask( high_edge_variance_threshold_,
-				      block.at( column, center_row - 2 ),
-				      block.at( column, center_row - 1 ),
-				      block.at( column, center_row + 0 ),
-				      block.at( column, center_row + 1 ) );
+  for ( unsigned int column = 0; column < size; column++ ) {
+    uint8_t *central = &block.at( column, 0 );
 
-      vp8_filter( mask, hev,
-		  block.at( column, center_row - 2 ),
-		  block.at( column, center_row - 1 ),
-		  block.at( column, center_row + 0 ),
-		  block.at( column, center_row + 1 ) );
-    }
+    const int8_t mask = vp8_filter_mask( simple_.interior_limit(),
+					 simple_.subblock_edge_limit(),
+					 *(central - 4 * stride ),
+					 *(central - 3 * stride ),
+					 *(central - 2 * stride ),
+					 *(central - stride ),
+					 *(central),
+					 *(central + stride ),
+					 *(central + 2 * stride ),
+					 *(central + 3 * stride ) );
+
+    const int8_t hev = vp8_hevmask( high_edge_variance_threshold_,
+				    *(central - 2 * stride ),
+				    *(central - stride ),
+				    *(central),
+				    *(central + stride ) );
+
+    vp8_filter( mask, hev,
+		*(central - 2 * stride ),
+		*(central - stride ),
+		*(central),
+		*(central + stride ) );
   }
 }

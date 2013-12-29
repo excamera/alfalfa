@@ -206,6 +206,8 @@ public:
       }
     }
   }
+
+  unsigned int stride( void ) const { return master_.width(); }
 };
 
 #endif /* TWOD_HH */

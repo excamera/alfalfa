@@ -32,7 +32,7 @@ void VP8Parser::parse_frame( const Chunk & frame, VideoDisplay & display, Raster
 
   display.draw( raster );
 
-  sleep( 1 );
+  // sleep( 1 );
 }
 
 unsigned int VP8Parser::raster_width( void ) const
