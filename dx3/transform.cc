@@ -42,10 +42,10 @@ void Y2Block::walsh_transform( TwoDSubRange< YBlock, 4, 4 > & output )
     int c2 = a1 - b1;
     int d2 = d1 - c1;
 
-    output.at( i, 0 ).set_dc_coefficient( (a2 + 3) >> 3 );
-    output.at( i, 1 ).set_dc_coefficient( (b2 + 3) >> 3 );
-    output.at( i, 2 ).set_dc_coefficient( (c2 + 3) >> 3 );
-    output.at( i, 3 ).set_dc_coefficient( (d2 + 3) >> 3 );
+    output.at( 0, i ).set_dc_coefficient( (a2 + 3) >> 3 );
+    output.at( 1, i ).set_dc_coefficient( (b2 + 3) >> 3 );
+    output.at( 2, i ).set_dc_coefficient( (c2 + 3) >> 3 );
+    output.at( 3, i ).set_dc_coefficient( (d2 + 3) >> 3 );
   }
 }
 
