@@ -1,8 +1,6 @@
 #ifndef RASTER_HH
 #define RASTER_HH
 
-#include <iostream>
-
 #include "2d.hh"
 
 /* For an array of pixels, context and separate construction not necessary */
@@ -156,13 +154,6 @@ public:
   unsigned int height( void ) const { return height_; }
   unsigned int display_width( void ) const { return display_width_; }
   unsigned int display_height( void ) const { return display_height_; }
-
-  void print( void ) const
-  {
-    Y_.forall( [&]( const uint8_t & x ) { std::cout << x; } );
-    U_.forall( [&]( const uint8_t & x ) { std::cout << x; } );
-    V_.forall( [&]( const uint8_t & x ) { std::cout << x; } );
-  }
 };
 
 #endif /* RASTER_HH */
