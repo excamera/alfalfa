@@ -4,7 +4,7 @@
 AC_PREREQ([2.69])
 AC_INIT([alfalfa], [0.1], [alfalfa@mit.edu])
 AM_INIT_AUTOMAKE([foreign])
-AC_CONFIG_SRCDIR([dx2/modemv.hh])
+AC_CONFIG_SRCDIR([src/decoder/prediction.cc])
 AC_CONFIG_HEADERS([config.h])
 
 # Checks for programs.
@@ -27,5 +27,5 @@ PKG_CHECK_MODULES([GLU], [glu])
 
 # Checks for library functions.
 
-AC_CONFIG_FILES([Makefile src/Makefile dx2/Makefile dx3/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile src/decoder/Makefile src/frontend/Makefile])
 AC_OUTPUT

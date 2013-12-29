@@ -1,1 +1,1 @@
-SUBDIRS = dx2 src dx3
+SUBDIRS = src
