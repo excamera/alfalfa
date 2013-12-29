@@ -52,6 +52,7 @@ AC_LANG_POP(C++)
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
+		 src/util/Makefile
                  src/decoder/Makefile
                  src/display/Makefile
                  src/frontend/Makefile])
