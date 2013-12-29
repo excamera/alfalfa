@@ -48,8 +48,10 @@ void KeyFrame::decode( void )
 
 void KeyFrame::loopfilter( void ) {
   /* loop filter */
-  macroblock_headers_.get().forall( [&]( KeyFrameMacroblockHeader & macroblock )
-				    { macroblock.loopfilter( derived_quantities_.get() ); } );
+  if ( header_.loop_filter_level ) {
+    macroblock_headers_.get().forall( [&]( KeyFrameMacroblockHeader & macroblock )
+				      { macroblock.loopfilter( derived_quantities_.get() ); } );
+  }
 }
 
 /* "above" for a Y2 block refers to the first macroblock above that actually has Y2 coded */
