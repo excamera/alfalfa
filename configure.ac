@@ -17,6 +17,13 @@ PICKY_CXXFLAGS="-pedantic -Wall -Wextra -Weffc++ -Werror -Wno-unused-function"
 AC_SUBST([PICKY_CXXFLAGS])
 AC_LANG_PUSH(C++)
 
+AC_ARG_ENABLE([debug],
+  [AS_HELP_STRING([--enable-debug],
+    [Enable assertions and bounds-checking @<:@no@:>@])],
+  [NODEBUG_CXXFLAGS=""],
+  [NODEBUG_CXXFLAGS="-DNDEBUG"])
+AC_SUBST(NODEBUG_CXXFLAGS)
+
 # Checks for libraries.
 PKG_CHECK_MODULES([X11_XCB], [x11-xcb])
 PKG_CHECK_MODULES([GLU], [glu])
