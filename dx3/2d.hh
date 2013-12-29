@@ -134,8 +134,8 @@ public:
     return master_.at( column_ + column, row_ + row );
   }
 
-  unsigned int width( void ) const { return sub_width; }
-  unsigned int height( void ) const { return sub_height; }
+  constexpr unsigned int width( void ) { return sub_width; }
+  constexpr unsigned int height( void ) { return sub_height; }
 
   TwoDSubRange< T, sub_width, 1 > row( const unsigned int num ) const
   {
@@ -180,8 +180,8 @@ public:
   template <class lambda>
   void forall( const lambda & f ) const
   {
-    for ( unsigned int row = 0; row < height(); row++ ) {
-      for ( unsigned int column = 0; column < width(); column++ ) {
+    for ( unsigned int row = 0; row < sub_height; row++ ) {
+      for ( unsigned int column = 0; column < sub_width; column++ ) {
 	f( at( column, row ) );
       }
     }
@@ -190,8 +190,8 @@ public:
   template <class lambda>
   void forall( const lambda & f )
   {
-    for ( unsigned int row = 0; row < height(); row++ ) {
-      for ( unsigned int column = 0; column < width(); column++ ) {
+    for ( unsigned int row = 0; row < sub_height; row++ ) {
+      for ( unsigned int column = 0; column < sub_width; column++ ) {
 	f( at( column, row ) );
       }
     }
@@ -200,8 +200,8 @@ public:
   template <class lambda>
   void forall_ij( const lambda & f )
   {
-    for ( unsigned int row = 0; row < height(); row++ ) {
-      for ( unsigned int column = 0; column < width(); column++ ) {
+    for ( unsigned int row = 0; row < sub_height; row++ ) {
+      for ( unsigned int column = 0; column < sub_width; column++ ) {
 	f( at( column, row ), column, row );
       }
     }
