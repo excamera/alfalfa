@@ -27,13 +27,3 @@ bool Decoder::decode_frame( const Chunk & frame, Raster & raster )
 
   return true;
 }
-
-unsigned int Decoder::raster_width( void ) const
-{
-  return 16 * ((width_ + 15) / 16);
-}
-
-unsigned int Decoder::raster_height( void ) const
-{
-  return 16 * ((height_ + 15) / 16);
-}

@@ -119,15 +119,14 @@ GLContext::GLContext( Display * display, const XWindow & window )
   GLcheck( "glXMakeCurrent" );
 }
 
-VideoDisplay::VideoDisplay( const unsigned int display_width, const unsigned int display_height,
-			    const unsigned int raster_width, const unsigned int raster_height )
-  : display_width_( display_width ), display_height_( display_height ),
-    raster_width_( raster_width ), raster_height_( raster_height ),
+VideoDisplay::VideoDisplay( const Raster & raster )
+  : display_width_( raster.display_width() ), display_height_( raster.display_height() ),
+    raster_width_( raster.width() ), raster_height_( raster.height() ),
     display_( "XOpenDisplay", XOpenDisplay( nullptr ), []( Display *x ) { XCloseDisplay( x ); } ),
     xcb_connection_( "XGetXCBConnection",
 		     ( XSetEventQueueOwner( display_, XCBOwnsEventQueue ),
 		       XGetXCBConnection( display_ ) ) ),
-  window_( xcb_connection_, display_width, display_height ),
+  window_( xcb_connection_, display_width_, display_height_ ),
   context_( display_, window_ ),
   Y_( GL_TEXTURE0, raster_width_, raster_height_ ),
   Cb_( GL_TEXTURE1, raster_width_/2, raster_height_/2 ),
@@ -188,6 +187,9 @@ GLShader::~GLShader()
 
 void VideoDisplay::draw( const Raster & raster )
 {
+  assert( raster.width() == raster_width_ );
+  assert( raster.height() == raster_height_ );
+
   Y_.load( raster.Y() );
   Cb_.load( raster.U() );
   Cr_.load( raster.V() );

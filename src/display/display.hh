@@ -107,8 +107,7 @@ private:
   GLShader shader_;
 
 public:
-  VideoDisplay( const unsigned int display_width, const unsigned int display_height,
-		const unsigned int raster_width, const unsigned int raster_height );
+  VideoDisplay( const Raster & raster );
 
   VideoDisplay( const VideoDisplay & other ) = delete;
   VideoDisplay & operator=( const VideoDisplay & other ) = delete;

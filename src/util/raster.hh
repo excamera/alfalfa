@@ -116,8 +116,9 @@ public:
   };
 
 private:
-  unsigned int width_, height_;
   unsigned int display_width_, display_height_;
+  unsigned int width_ { 16 * macroblock_dimension( display_width_ ) },
+    height_ { 16 * macroblock_dimension( display_height_ ) };
 
   TwoD< uint8_t > Y_ { width_, height_ },
     U_ { width_ / 2, height_ / 2 },
@@ -134,8 +135,7 @@ private:
   TwoD< Macroblock > macroblocks_ { width_ / 16, height_ / 16, *this };
 
 public:
-  Raster( const unsigned int macroblock_width, const unsigned int macroblock_height,
-	  const unsigned int display_width, const unsigned int display_height );
+  Raster( const unsigned int display_width, const unsigned int display_height );
 
   TwoD< uint8_t > & Y( void ) { return Y_; }
   TwoD< uint8_t > & U( void ) { return U_; }
@@ -154,6 +154,8 @@ public:
   unsigned int height( void ) const { return height_; }
   unsigned int display_width( void ) const { return display_width_; }
   unsigned int display_height( void ) const { return display_height_; }
+
+  static unsigned int macroblock_dimension( const unsigned int num ) { return ( num + 15 ) / 16; }
 };
 
 #endif /* RASTER_HH */

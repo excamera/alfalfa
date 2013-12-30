@@ -21,10 +21,8 @@ int main( int argc, char *argv[] )
     }
 
     Decoder decoder( file.width(), file.height() );
-    VideoDisplay display( file.width(), file.height(),
-			  decoder.raster_width(), decoder.raster_height() );
-    Raster raster( decoder.raster_width() / 16, decoder.raster_height() / 16,
-		   file.width(), file.height() );
+    Raster raster( file.width(), file.height() );
+    VideoDisplay display( raster );
 
     for ( uint32_t i = 0; i < file.frame_count(); i++ ) {
       if ( decoder.decode_frame( file.frame( i ), raster ) ) {

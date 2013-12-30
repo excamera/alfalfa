@@ -21,8 +21,7 @@ int main( int argc, char *argv[] )
     }
 
     Decoder decoder( file.width(), file.height() );
-    Raster raster( decoder.raster_width() / 16, decoder.raster_height() / 16,
-		   file.width(), file.height() );
+    Raster raster( file.width(), file.height() );
 
     for ( uint32_t i = 0; i < file.frame_count(); i++ ) {
       if ( UncompressedChunk( file.frame( i ), file.width(), file.height() ).key_frame() ) {
