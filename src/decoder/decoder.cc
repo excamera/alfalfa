@@ -4,8 +4,9 @@
 
 using namespace std;
 
-Decoder::Decoder( uint16_t s_width, uint16_t s_height )
-  : width_( s_width ), height_( s_height )
+Decoder::Decoder( uint16_t s_width, uint16_t s_height, const Chunk & key_frame )
+  : width_( s_width ), height_( s_height ),
+    state_( KeyFrame( UncompressedChunk( key_frame, width_, height_ ), width_, height_ ).header() )
 {}
 
 bool Decoder::decode_frame( const Chunk & frame, Raster & raster )
@@ -19,11 +20,12 @@ bool Decoder::decode_frame( const Chunk & frame, Raster & raster )
   }
 
   KeyFrame myframe( uncompressed_chunk, width_, height_ );
-  myframe.calculate_probability_tables();
-  myframe.parse_macroblock_headers();
+  state_ = DecoderState( myframe.header() );
+
+  myframe.parse_macroblock_headers( state_ );
   myframe.assign_output_raster( raster );
-  myframe.decode();
-  myframe.loopfilter();
+  myframe.decode( state_ );
+  myframe.loopfilter( state_ );
 
   return true;
 }

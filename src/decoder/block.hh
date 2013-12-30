@@ -8,6 +8,8 @@
 #include "quantization.hh"
 #include "safe_array.hh"
 
+class DecoderState;
+
 enum BlockType { Y_after_Y2 = 0, Y2, UV, Y_without_Y2 };
 
 template <BlockType initial_block_type, class PredictionDecoder>
@@ -70,8 +72,7 @@ public:
     }
   }
 
-  void parse_tokens( BoolDecoder & data,
-		     const KeyFrameHeader::DerivedQuantities & probability_tables );
+  void parse_tokens( BoolDecoder & data, const DecoderState & decoder );
 
   BlockType type( void ) const { return type_; }
   bool coded( void ) const { return coded_; }

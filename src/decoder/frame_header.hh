@@ -98,29 +98,6 @@ struct KeyFrameHeader
       throw Unsupported( "VP8 'simple' in-loop deblocking filter" );
     }
   }
-
-  struct DerivedQuantities
-  {
-    ProbabilityArray< num_segments > mb_segment_tree_probs;
-    SafeArray< SafeArray< SafeArray< SafeArray< Probability,
-						ENTROPY_NODES >,
-				     PREV_COEF_CONTEXTS >,
-			  COEF_BANDS >,
-	       BLOCK_TYPES > coeff_probs;
-    
-    Quantizer quantizer;
-    SafeArray< Quantizer, num_segments > segment_quantizers;
-
-    FilterParameters loop_filter;
-    SafeArray< FilterParameters, num_segments > segment_loop_filters;
-
-    SafeArray< int8_t, num_reference_frames > loopfilter_ref_adjustments;
-    SafeArray< int8_t, 4 > loopfilter_mode_adjustments;
-
-    DerivedQuantities( const KeyFrameHeader & header );
-  };
-
-  DerivedQuantities derived_quantities( void ) const { return *this; }
 };
 
 #endif /* FRAME_HEADER_HH */

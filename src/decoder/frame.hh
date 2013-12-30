@@ -25,21 +25,22 @@ class KeyFrame
 
   std::vector< BoolDecoder > dct_partitions_;
 
-  Optional< KeyFrameHeader::DerivedQuantities > derived_quantities_ {};
   Optional< TwoD< KeyFrameMacroblockHeader > > macroblock_headers_ {};
 
   void relink_y2_blocks( void );
 
  public:
-  KeyFrame( UncompressedChunk & chunk,
+  KeyFrame( const UncompressedChunk & chunk,
 	    const unsigned int width,
 	    const unsigned int height );
 
+  const KeyFrameHeader & header( void ) const { return header_; }
+
   void calculate_probability_tables( void );
-  void parse_macroblock_headers( void );
+  void parse_macroblock_headers( const DecoderState & decoder_state );
   void assign_output_raster( Raster & raster );
-  void decode( void );
-  void loopfilter( void );
+  void decode( const DecoderState & decoder_state );
+  void loopfilter( const DecoderState & decoder_state );
 };
 
 #endif /* FRAME_HH */

@@ -3,6 +3,7 @@
 #include "block.hh"
 #include "macroblock_header.hh"
 #include "safe_array.hh"
+#include "decoder.hh"
 
 using namespace std;
 
@@ -111,7 +112,7 @@ void UVBlock::dequantize( const Quantizer & quantizer )
   }
 }
 
-void KeyFrameMacroblockHeader::dequantize( const KeyFrameHeader::DerivedQuantities & derived )
+void KeyFrameMacroblockHeader::dequantize( const DecoderState & decoder_state )
 {
   /* is macroblock skipped? */
   if ( not has_nonzero_ ) {
@@ -120,8 +121,8 @@ void KeyFrameMacroblockHeader::dequantize( const KeyFrameHeader::DerivedQuantiti
 
   /* which quantizer are we using? */
   const Quantizer & the_quantizer( segment_id_.initialized()
-				   ? derived.segment_quantizers.at( segment_id_.get() )
-				   : derived.quantizer );
+				   ? decoder_state.segment_quantizers.at( segment_id_.get() )
+				   : decoder_state.quantizer );
 
   if ( Y2_.coded() ) {
     Y2_.dequantize( the_quantizer );

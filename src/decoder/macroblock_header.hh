@@ -9,6 +9,8 @@
 
 #include "tree.cc"
 
+class DecoderState;
+
 class KeyFrameMacroblockHeader
 {
 private:
@@ -29,22 +31,22 @@ public:
   KeyFrameMacroblockHeader( const TwoD< KeyFrameMacroblockHeader >::Context & c,
 			    BoolDecoder & data,
 			    const KeyFrameHeader & key_frame_header,
-			    const KeyFrameHeader::DerivedQuantities & probability_tables,
+			    const DecoderState & probability_tables,
 			    TwoD< Y2Block > & frame_Y2,
 			    TwoD< YBlock > & frame_Y,
 			    TwoD< UVBlock > & frame_U,
 			    TwoD< UVBlock > & frame_V );
 
   void parse_tokens( BoolDecoder & data,
-		     const KeyFrameHeader::DerivedQuantities & probability_tables );
+		     const DecoderState & decoder_state );
 
-  void dequantize( const KeyFrameHeader::DerivedQuantities & derived );
+  void dequantize( const DecoderState & decoder_state );
 
   void assign_output_raster( Raster::Macroblock & raster ) { raster_.initialize( &raster ); }
 
   void intra_predict_and_inverse_transform( void );
 
-  void loopfilter( const KeyFrameHeader::DerivedQuantities & derived );
+  void loopfilter( const DecoderState & decoder_state );
 };
 
 #endif /* MB_RECORDS_HH */

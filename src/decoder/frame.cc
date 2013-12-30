@@ -6,30 +6,26 @@
 
 using namespace std;
 
-KeyFrame::KeyFrame( UncompressedChunk & chunk,
+KeyFrame::KeyFrame( const UncompressedChunk & chunk,
 		    const unsigned int width,
 		    const unsigned int height )
   : display_width_( width ),
     display_height_( height ),
     first_partition_( chunk.first_partition() ),
     dct_partitions_( chunk.dct_partitions( 1 << header_.log2_number_of_dct_partitions ) )
-{}
-
-void KeyFrame::calculate_probability_tables( void )
 {
-  /* calculate the probability tables from the defaults and any frame-header updates */
-  derived_quantities_ = header_.derived_quantities();
+  assert( chunk.key_frame() );
 }
 
-void KeyFrame::parse_macroblock_headers( void )
+void KeyFrame::parse_macroblock_headers( const DecoderState & decoder_state )
 {
   /* parse the macroblock headers */
   macroblock_headers_.initialize( macroblock_width_, macroblock_height_,
-				  first_partition_, header_, derived_quantities_.get(),
+				  first_partition_, header_, decoder_state,
 				  Y2_, Y_, U_, V_ );
 }
 
-void KeyFrame::decode( void )
+void KeyFrame::decode( const DecoderState & decoder_state )
 {
   /* repoint Y2 above/left pointers to skip missing subblocks */
   relink_y2_blocks();
@@ -40,17 +36,17 @@ void KeyFrame::decode( void )
 					    const unsigned int row )
 				       {
 					 macroblock.parse_tokens( dct_partitions_.at( row % dct_partitions_.size() ),
-								  derived_quantities_.get() );
-					 macroblock.dequantize( derived_quantities_.get() );
+								  decoder_state );
+					 macroblock.dequantize( decoder_state );
 					 macroblock.intra_predict_and_inverse_transform();
 				       } );
 }
 
-void KeyFrame::loopfilter( void ) {
+void KeyFrame::loopfilter( const DecoderState & decoder_state ) {
   /* loop filter */
   if ( header_.loop_filter_level ) {
     macroblock_headers_.get().forall( [&]( KeyFrameMacroblockHeader & macroblock )
-				      { macroblock.loopfilter( derived_quantities_.get() ); } );
+				      { macroblock.loopfilter( decoder_state ); } );
   }
 }
 

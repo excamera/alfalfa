@@ -2,11 +2,12 @@
 #include "tokens.hh"
 #include "bool_decoder.hh"
 #include "safe_array.hh"
+#include "decoder.hh"
 
 using namespace std;
 
 void KeyFrameMacroblockHeader::parse_tokens( BoolDecoder & data,
-					     const KeyFrameHeader::DerivedQuantities & probability_tables )
+					     const DecoderState & decoder_state )
 {
   /* is macroblock skipped? */
   if ( mb_skip_coeff_.get_or( false ) ) {
@@ -15,21 +16,21 @@ void KeyFrameMacroblockHeader::parse_tokens( BoolDecoder & data,
 
   /* parse Y2 block if present */
   if ( Y2_.coded() ) {
-    Y2_.parse_tokens( data, probability_tables );
+    Y2_.parse_tokens( data, decoder_state );
     has_nonzero_ |= Y2_.has_nonzero();
   }
 
   /* parse Y blocks with variable first coefficient */
   Y_.forall( [&]( YBlock & block ) {
-      block.parse_tokens( data, probability_tables );
+      block.parse_tokens( data, decoder_state );
       has_nonzero_ |= block.has_nonzero(); } );
 
   /* parse U and V blocks */
   U_.forall( [&]( UVBlock & block ) {
-      block.parse_tokens( data, probability_tables );
+      block.parse_tokens( data, decoder_state );
       has_nonzero_ |= block.has_nonzero(); } );
   V_.forall( [&]( UVBlock & block ) {
-      block.parse_tokens( data, probability_tables );
+      block.parse_tokens( data, decoder_state );
       has_nonzero_ |= block.has_nonzero(); } );
 }
 
@@ -68,7 +69,7 @@ static const TokenDecoder< 11 > token_decoder_5( 67, { 254, 254, 243, 230, 196, 
 template < BlockType initial_block_type, class PredictionMode >
 void Block< initial_block_type,
 	    PredictionMode >::parse_tokens( BoolDecoder & data,
-					    const KeyFrameHeader::DerivedQuantities & probability_tables )
+					    const DecoderState & decoder_state )
 {
   bool last_was_zero = false;
 
@@ -83,7 +84,7 @@ void Block< initial_block_type,
 	index++ ) {
     /* select the tree probabilities based on the prediction context */
     const ProbabilityArray< MAX_ENTROPY_TOKENS > & prob
-      = probability_tables.coeff_probs.at( type_ ).at( coefficient_to_band.at( index ) ).at( context );
+      = decoder_state.coeff_probs.at( type_ ).at( coefficient_to_band.at( index ) ).at( context );
 
     /* decode the token */
     if ( not last_was_zero ) {

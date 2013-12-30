@@ -1,6 +1,7 @@
 #include <vector>
 
 #include "macroblock_header.hh"
+#include "decoder.hh"
 
 using namespace std;
 
@@ -20,14 +21,14 @@ static intra_bmode implied_subblock_mode( const intra_mbmode y_mode )
 KeyFrameMacroblockHeader::KeyFrameMacroblockHeader( const TwoD< KeyFrameMacroblockHeader >::Context & c,
 						    BoolDecoder & data,
 						    const KeyFrameHeader & key_frame_header,
-						    const KeyFrameHeader::DerivedQuantities & probability_tables,
+						    const DecoderState & decoder_state,
 						    TwoD< Y2Block > & frame_Y2,
 						    TwoD< YBlock > & frame_Y,
 						    TwoD< UVBlock > & frame_U,
 						    TwoD< UVBlock > & frame_V )
   : segment_id_( key_frame_header.update_segmentation.initialized()
 		 and key_frame_header.update_segmentation.get().update_mb_segmentation_map,
-		 data, probability_tables.mb_segment_tree_probs ),
+		 data, decoder_state.mb_segment_tree_probs ),
   mb_skip_coeff_( key_frame_header.prob_skip_false.initialized(),
 		  data, key_frame_header.prob_skip_false.get() ),
   Y2_( frame_Y2.at( c.column, c.row ) ),

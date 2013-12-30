@@ -1,8 +1,9 @@
+#include "decoder.hh"
 #include "frame_header.hh"
 
 using namespace std;
 
-KeyFrameHeader::DerivedQuantities::DerivedQuantities( const KeyFrameHeader & header )
+DecoderState::DecoderState( const KeyFrameHeader & header )
   : mb_segment_tree_probs( {{ 255, 255, 255 }} ),
     coeff_probs( k_default_coeff_probs ),
     quantizer( header.quant_indices ),

@@ -3,6 +3,7 @@
 #include "macroblock_header.hh"
 #include "raster.hh"
 #include "loopfilter_filters.hh"
+#include "decoder.hh"
 
 static inline uint8_t clamp63( const int input )
 {
@@ -102,17 +103,17 @@ NormalLoopFilter::NormalLoopFilter( const bool key_frame,
   }
 }
 
-void KeyFrameMacroblockHeader::loopfilter( const KeyFrameHeader::DerivedQuantities & derived )
+void KeyFrameMacroblockHeader::loopfilter( const DecoderState & decoder_state )
 {
   const bool skip_subblock_edges = ( Y2_.prediction_mode() != B_PRED ) and ( not has_nonzero_ );
 
   /* which filter are we using? */
   FilterParameters filter_parameters( segment_id_.initialized()
-				      ? derived.segment_loop_filters.at( segment_id_.get() )
-				      : derived.loop_filter );
+				      ? decoder_state.segment_loop_filters.at( segment_id_.get() )
+				      : decoder_state.loop_filter );
 
-  filter_parameters.adjust( derived.loopfilter_ref_adjustments,
-			    derived.loopfilter_mode_adjustments,
+  filter_parameters.adjust( decoder_state.loopfilter_ref_adjustments,
+			    decoder_state.loopfilter_mode_adjustments,
 			    CURRENT_FRAME,
 			    Y2_.prediction_mode() );
 
