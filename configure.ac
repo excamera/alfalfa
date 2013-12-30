@@ -55,6 +55,7 @@ AC_CONFIG_FILES([Makefile
 		 src/util/Makefile
                  src/decoder/Makefile
                  src/display/Makefile
-                 src/frontend/Makefile])
+                 src/frontend/Makefile
+		 src/tests/Makefile])
 
 AC_OUTPUT
