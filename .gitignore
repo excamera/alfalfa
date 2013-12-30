@@ -20,3 +20,4 @@ Makefile.in
 /missing
 /alfalfa-*.tar.gz
 /stamp-h1
+/test-driver
