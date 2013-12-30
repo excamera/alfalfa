@@ -93,6 +93,10 @@ struct KeyFrameHeader
     if ( color_space or clamping_type ) {
       throw Unsupported( "VP8 color_space and clamping_type bits" );
     }
+
+    if ( filter_type ) {
+      throw Unsupported( "VP8 'simple' in-loop deblocking filter" );
+    }
   }
 
   struct DerivedQuantities
