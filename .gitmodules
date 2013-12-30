@@ -1,0 +1,3 @@
+[submodule "alfalfa_test_vectors"]
+	path = alfalfa_test_vectors
+	url = ./alfalfa_test_vectors/

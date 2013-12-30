@@ -4,7 +4,7 @@ use strict;
 
 sub check {
   my ( $sha1 ) = @_;
-  my $filename = $ENV{'srcdir'} . '/../../test_vectors/' . ${sha1};
+  my $filename = $ENV{'srcdir'} . '/../../alfalfa_test_vectors/' . ${sha1};
   unless ( -e $filename ) {
       print STDERR "$0: $sha1 not found, skipping test.\n";
       exit 77; # automake error code for test skip
