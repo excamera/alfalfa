@@ -3,6 +3,8 @@
 .deps
 Makefile
 Makefile.in
+*.log
+*.trs
 
 /INSTALL
 /aclocal.m4
