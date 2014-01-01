@@ -76,3 +76,4 @@ void Frame<HeaderType, MacroblockType>::relink_y2_blocks( void )
 }
 
 template class Frame< KeyFrameHeader, KeyFrameMacroblockHeader >;
+template class Frame< InterFrameHeader, KeyFrameMacroblockHeader >;

@@ -44,5 +44,6 @@ class Frame
 };
 
 using KeyFrame = Frame< KeyFrameHeader, KeyFrameMacroblockHeader >;
+using InterFrame = Frame< InterFrameHeader, KeyFrameMacroblockHeader >;
 
 #endif /* FRAME_HH */

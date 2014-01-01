@@ -100,4 +100,54 @@ struct KeyFrameHeader
   }
 };
 
+struct InterFrameHeader
+{
+  Flagged< UpdateSegmentation > update_segmentation;
+  Flag filter_type;
+  Unsigned<6> loop_filter_level;
+  Unsigned<3> sharpness_level;
+  Flagged< Flagged< ModeRefLFDeltaUpdate > > mode_lf_adjustments;
+  Unsigned<2> log2_number_of_dct_partitions;
+  QuantIndices quant_indices;
+  Flag refresh_golden_frame;
+  Flag refresh_alternate_frame;
+  Optional< Unsigned<2> > copy_buffer_to_golden;
+  Optional< Unsigned<2> > copy_buffer_to_alternate;
+  Flag sign_bias_golden;
+  Flag sign_bias_alternate;
+  Flag refresh_entropy_probs;
+  Flag refresh_last;
+  Enumerate< Enumerate< Enumerate< Enumerate< TokenProbUpdate,
+					      ENTROPY_NODES >,
+				   PREV_COEF_CONTEXTS >,
+			COEF_BANDS >,
+	     BLOCK_TYPES > token_prob_update;
+  Flagged< Unsigned<8> > prob_skip_false;
+  Unsigned<8> prob_intra;
+  Unsigned<8> prob_last;
+  Unsigned<8> prob_gf;
+  Flagged< Array< Unsigned<8>, 4 > > intra_16x16_prob;
+  Flagged< Array< Unsigned<8>, 3 > > intra_chroma_prob;
+  Array< Array< Flagged< Unsigned<7> >, 19 >, 2 > mv_prob_update;
+
+  InterFrameHeader( BoolDecoder & data )
+    : update_segmentation( data ), filter_type( data ),
+      loop_filter_level( data ), sharpness_level( data ),
+      mode_lf_adjustments( data ), log2_number_of_dct_partitions( data ),
+      quant_indices( data ), refresh_golden_frame( data ), refresh_alternate_frame( data ),
+      copy_buffer_to_golden( not refresh_golden_frame, data ),
+      copy_buffer_to_alternate( not refresh_alternate_frame, data ),
+      sign_bias_golden( data ), sign_bias_alternate( data ),
+      refresh_entropy_probs( data ), refresh_last( data ),
+    token_prob_update( data ), prob_skip_false( data ),
+    prob_intra( data ), prob_last( data ), prob_gf( data ),
+    intra_16x16_prob( data ), intra_chroma_prob( data ),
+    mv_prob_update( data )
+  {
+    if ( filter_type ) {
+      throw Unsupported( "VP8 'simple' in-loop deblocking filter" );
+    }
+  }
+};
+
 #endif /* FRAME_HEADER_HH */
