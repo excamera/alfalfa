@@ -8,7 +8,8 @@
 #include "modemv_data.hh"
 #include "raster.hh"
 
-class KeyFrame
+template <class HeaderType, class MacroblockType>
+class Frame
 {
  private:
   unsigned int display_width_, display_height_;
@@ -21,25 +22,27 @@ class KeyFrame
   TwoD< UVBlock > V_ { 2 * macroblock_width_, 2 * macroblock_height_ };
 
   BoolDecoder first_partition_;
-  KeyFrameHeader header_ { first_partition_ };
+  HeaderType header_ { first_partition_ };
 
   std::vector< BoolDecoder > dct_partitions_;
 
-  Optional< TwoD< KeyFrameMacroblockHeader > > macroblock_headers_ {};
+  Optional< TwoD< MacroblockType > > macroblock_headers_ {};
 
   void relink_y2_blocks( void );
 
  public:
-  KeyFrame( const UncompressedChunk & chunk,
-	    const unsigned int width,
-	    const unsigned int height );
+  Frame( const UncompressedChunk & chunk,
+	 const unsigned int width,
+	 const unsigned int height );
 
-  const KeyFrameHeader & header( void ) const { return header_; }
+  const HeaderType & header( void ) const { return header_; }
 
   void parse_macroblock_headers( const DecoderState & decoder_state );
   void parse_tokens( const DecoderState & decoder_state );
 
   void decode( const DecoderState & decoder_state, Raster & target ) const;
 };
+
+using KeyFrame = Frame< KeyFrameHeader, KeyFrameMacroblockHeader >;
 
 #endif /* FRAME_HH */

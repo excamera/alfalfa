@@ -7,7 +7,6 @@
 #include "vp8_prob_data.hh"
 #include "quantization.hh"
 
-class KeyFrame;
 class Chunk;
 class Raster;
 
