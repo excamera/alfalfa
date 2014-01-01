@@ -31,6 +31,7 @@ public:
   std::vector< BoolDecoder > dct_partitions( const uint8_t num ) const;
 
   LoopFilterType loop_filter_type( void ) const { return loop_filter_; }
+  bool show_frame( void ) const { return show_frame_; }
 };
 
 #endif /* UNCOMPRESSED_CHUNK_HH */

@@ -29,5 +29,5 @@ bool Decoder::decode_frame( const Chunk & frame, Raster & raster )
 
   myframe.decode( state_, raster );
 
-  return true;
+  return uncompressed_chunk.show_frame();
 }
