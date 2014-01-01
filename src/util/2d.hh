@@ -101,6 +101,16 @@ public:
     }
   }
 
+  template <class lambda>
+  void forall_ij( const lambda & f ) const
+  {
+    for ( unsigned int row = 0; row < height(); row++ ) {
+      for ( unsigned int column = 0; column < width(); column++ ) {
+	f( at( column, row ), column, row );
+      }
+    }
+  }
+
   /* forbid copying */
   TwoD( const TwoD & other ) = delete;
   TwoD & operator=( const TwoD & other ) = delete;
@@ -199,6 +209,16 @@ public:
 
   template <class lambda>
   void forall_ij( const lambda & f )
+  {
+    for ( unsigned int row = 0; row < sub_height; row++ ) {
+      for ( unsigned int column = 0; column < sub_width; column++ ) {
+	f( at( column, row ), column, row );
+      }
+    }
+  }
+
+  template <class lambda>
+  void forall_ij( const lambda & f ) const
   {
     for ( unsigned int row = 0; row < sub_height; row++ ) {
       for ( unsigned int column = 0; column < sub_width; column++ ) {

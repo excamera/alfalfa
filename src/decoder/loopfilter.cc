@@ -103,7 +103,7 @@ NormalLoopFilter::NormalLoopFilter( const bool key_frame,
   }
 }
 
-void KeyFrameMacroblockHeader::loopfilter( const DecoderState & decoder_state )
+void KeyFrameMacroblockHeader::loopfilter( const DecoderState & decoder_state, Raster::Macroblock & raster ) const
 {
   const bool skip_subblock_edges = ( Y2_.prediction_mode() != B_PRED ) and ( not has_nonzero_ );
 
@@ -126,13 +126,13 @@ void KeyFrameMacroblockHeader::loopfilter( const DecoderState & decoder_state )
   case LoopFilterType::Normal:
     {
       NormalLoopFilter filter( true, filter_parameters );
-      filter.filter( *raster_.get(), skip_subblock_edges );
+      filter.filter( raster, skip_subblock_edges );
     }
     break;
   case LoopFilterType::Simple:
     {
       SimpleLoopFilter filter( filter_parameters );
-      filter.filter( *raster_.get(), skip_subblock_edges );
+      filter.filter( raster, skip_subblock_edges );
     }
     break;
   default:

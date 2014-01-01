@@ -10,7 +10,7 @@ void YBlock::set_dc_coefficient( const int16_t & val )
 }
 
 template <>
-void Y2Block::walsh_transform( TwoDSubRange< YBlock, 4, 4 > & output )
+void Y2Block::walsh_transform( TwoDSubRange< YBlock, 4, 4 > & output ) const
 {
   assert( coded_ );
   assert( output.width() == 4 );
@@ -53,7 +53,7 @@ static inline int MUL_20091( const int a ) { return ((((a)*20091) >> 16) + (a));
 static inline int MUL_35468( const int a ) { return (((a)*35468) >> 16); }
 
 template <BlockType initial_block_type, class PredictionMode>
-void Block< initial_block_type, PredictionMode >::idct( Raster::Block4 & output )
+void Block< initial_block_type, PredictionMode >::idct( Raster::Block4 & output ) const
 {
   assert( type_ == UV or type_ == Y_without_Y2 );
 
@@ -91,38 +91,42 @@ void Block< initial_block_type, PredictionMode >::idct( Raster::Block4 & output 
   }
 }
 
-void KeyFrameMacroblockHeader::intra_predict_and_inverse_transform( void )
+void KeyFrameMacroblockHeader::intra_predict_and_inverse_transform( Raster::Macroblock & raster ) const
 {
   const bool do_idct = has_nonzero_;
 
   /* Chroma */
-  raster_.get()->U.intra_predict( uv_prediction_mode() );
-  raster_.get()->V.intra_predict( uv_prediction_mode() );
+  raster.U.intra_predict( uv_prediction_mode() );
+  raster.V.intra_predict( uv_prediction_mode() );
 
   if ( do_idct ) {
-    U_.forall_ij( [&] ( UVBlock & block, const unsigned int column, const unsigned int row )
-		  { block.idct( raster_.get()->U_sub.at( column, row ) ); } );
-    V_.forall_ij( [&] ( UVBlock & block, const unsigned int column, const unsigned int row )
-		  { block.idct( raster_.get()->V_sub.at( column, row ) ); } );
+    U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
+		  { block.idct( raster.U_sub.at( column, row ) ); } );
+    V_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
+		  { block.idct( raster.V_sub.at( column, row ) ); } );
   }
 
   /* Luma */
   if ( Y2_.prediction_mode() == B_PRED ) {
     /* Prediction and inverse transform done in line! */
-    Y_.forall_ij( [&] ( YBlock & block, const unsigned int column, const unsigned int row ) {
-	raster_.get()->Y_sub.at( column, row ).intra_predict( block.prediction_mode() );
-	if ( do_idct ) block.idct( raster_.get()->Y_sub.at( column, row ) ); } );
+    Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row ) {
+	raster.Y_sub.at( column, row ).intra_predict( block.prediction_mode() );
+	if ( do_idct ) block.idct( raster.Y_sub.at( column, row ) ); } );
   } else {
-    raster_.get()->Y.intra_predict( Y2_.prediction_mode() );
+    raster.Y.intra_predict( Y2_.prediction_mode() );
 
     if ( do_idct ) {
       /* transfer the Y2 block with WHT first, if necessary */
-      if ( Y2_.coded() ) {
-	Y2_.walsh_transform( Y_ );
-      }
 
-      Y_.forall_ij( [&] ( YBlock & block, const unsigned int column, const unsigned int row )
-		    { block.idct( raster_.get()->Y_sub.at( column, row ) ); } );
+      if ( Y2_.coded() ) {
+	auto Y_mutable = Y_;
+	Y2_.walsh_transform( Y_mutable );
+	Y_mutable.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
+			     { block.idct( raster.Y_sub.at( column, row ) ); } );
+      } else {
+	Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
+		      { block.idct( raster.Y_sub.at( column, row ) ); } );
+      }
     }
   }
 }

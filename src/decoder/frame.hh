@@ -36,11 +36,10 @@ class KeyFrame
 
   const KeyFrameHeader & header( void ) const { return header_; }
 
-  void calculate_probability_tables( void );
   void parse_macroblock_headers( const DecoderState & decoder_state );
-  void assign_output_raster( Raster & raster );
-  void decode( const DecoderState & decoder_state );
-  void loopfilter( const DecoderState & decoder_state );
+  void parse_tokens( const DecoderState & decoder_state );
+
+  void decode( const DecoderState & decoder_state, Raster & target ) const;
 };
 
 #endif /* FRAME_HH */

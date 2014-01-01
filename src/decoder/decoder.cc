@@ -23,9 +23,9 @@ bool Decoder::decode_frame( const Chunk & frame, Raster & raster )
   state_ = DecoderState( myframe.header() );
 
   myframe.parse_macroblock_headers( state_ );
-  myframe.assign_output_raster( raster );
-  myframe.decode( state_ );
-  myframe.loopfilter( state_ );
+  myframe.parse_tokens( state_ );
+
+  myframe.decode( state_, raster );
 
   return true;
 }

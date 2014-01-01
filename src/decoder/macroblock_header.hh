@@ -21,8 +21,6 @@ private:
   TwoDSubRange< YBlock, 4, 4 > Y_;
   TwoDSubRange< UVBlock, 2, 2 > U_, V_;
 
-  Optional< Raster::Macroblock * > raster_ {};
-
   const intra_mbmode & uv_prediction_mode( void ) const { return U_.at( 0, 0 ).prediction_mode(); }
 
   bool has_nonzero_ { false };
@@ -37,16 +35,13 @@ public:
 			    TwoD< UVBlock > & frame_U,
 			    TwoD< UVBlock > & frame_V );
 
-  void parse_tokens( BoolDecoder & data,
-		     const DecoderState & decoder_state );
+  void parse_tokens( BoolDecoder & data, const DecoderState & decoder_state );
 
   void dequantize( const DecoderState & decoder_state );
 
-  void assign_output_raster( Raster::Macroblock & raster ) { raster_.initialize( &raster ); }
+  void intra_predict_and_inverse_transform( Raster::Macroblock & raster ) const;
 
-  void intra_predict_and_inverse_transform( void );
-
-  void loopfilter( const DecoderState & decoder_state );
+  void loopfilter( const DecoderState & decoder_state, Raster::Macroblock & raster ) const;
 };
 
 #endif /* MB_RECORDS_HH */
