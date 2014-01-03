@@ -103,46 +103,9 @@ NormalLoopFilter::NormalLoopFilter( const bool key_frame,
   }
 }
 
-void KeyFrameMacroblockHeader::loopfilter( const DecoderState & decoder_state, Raster::Macroblock & raster ) const
-{
-  const bool skip_subblock_edges = ( Y2_.prediction_mode() != B_PRED ) and ( not has_nonzero_ );
-
-  /* which filter are we using? */
-  FilterParameters filter_parameters( segment_id_.initialized()
-				      ? decoder_state.segment_loop_filters.at( segment_id_.get() )
-				      : decoder_state.loop_filter );
-
-  filter_parameters.adjust( decoder_state.loopfilter_ref_adjustments,
-			    decoder_state.loopfilter_mode_adjustments,
-			    CURRENT_FRAME,
-			    Y2_.prediction_mode() );
-
-  /* is filter disabled? */
-  if ( filter_parameters.filter_level <= 0 ) {
-    return;
-  }
-
-  switch ( filter_parameters.type ) {
-  case LoopFilterType::Normal:
-    {
-      NormalLoopFilter filter( true, filter_parameters );
-      filter.filter( raster, skip_subblock_edges );
-    }
-    break;
-  case LoopFilterType::Simple:
-    {
-      SimpleLoopFilter filter( filter_parameters );
-      filter.filter( raster, skip_subblock_edges );
-    }
-    break;
-  default:
-    assert( false );
-  }
-}
-
 void SimpleLoopFilter::filter( Raster::Macroblock & , const bool )
 {
-  assert( false );
+  throw Unsupported( "VP8 'simple' in-loop deblocking filter" );
 }
 
 void NormalLoopFilter::filter( Raster::Macroblock & raster, const bool skip_subblock_edges )

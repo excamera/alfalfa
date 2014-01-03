@@ -111,24 +111,3 @@ void UVBlock::dequantize( const Quantizer & quantizer )
     coefficients_.at( i ) *= quantizer.uv_ac;
   }
 }
-
-void KeyFrameMacroblockHeader::dequantize( const DecoderState & decoder_state )
-{
-  /* is macroblock skipped? */
-  if ( not has_nonzero_ ) {
-    return;
-  }
-
-  /* which quantizer are we using? */
-  const Quantizer & the_quantizer( segment_id_.initialized()
-				   ? decoder_state.segment_quantizers.at( segment_id_.get() )
-				   : decoder_state.quantizer );
-
-  if ( Y2_.coded() ) {
-    Y2_.dequantize( the_quantizer );
-  }
-
-  Y_.forall( [&] ( YBlock & block ) { block.dequantize( the_quantizer ); } );
-  U_.forall( [&] ( UVBlock & block ) { block.dequantize( the_quantizer ); } );
-  V_.forall( [&] ( UVBlock & block ) { block.dequantize( the_quantizer ); } );
-}

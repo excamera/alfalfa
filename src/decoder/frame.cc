@@ -6,8 +6,8 @@
 
 using namespace std;
 
-template <class HeaderType, class MacroblockType>
-Frame<HeaderType, MacroblockType>::Frame( const UncompressedChunk & chunk,
+template <class FrameHeaderType, class MacroblockType>
+Frame<FrameHeaderType, MacroblockType>::Frame( const UncompressedChunk & chunk,
 					  const unsigned int width,
 					  const unsigned int height )
   : display_width_( width ),
@@ -16,8 +16,8 @@ Frame<HeaderType, MacroblockType>::Frame( const UncompressedChunk & chunk,
     dct_partitions_( chunk.dct_partitions( 1 << header_.log2_number_of_dct_partitions ) )
 {}
 
-template <class HeaderType, class MacroblockType>
-void Frame<HeaderType, MacroblockType>::parse_macroblock_headers( const DecoderState & decoder_state )
+template <class FrameHeaderType, class MacroblockType>
+void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers( const DecoderState & decoder_state )
 {
   /* parse the macroblock headers */
   macroblock_headers_.initialize( macroblock_width_, macroblock_height_,
@@ -28,8 +28,8 @@ void Frame<HeaderType, MacroblockType>::parse_macroblock_headers( const DecoderS
   relink_y2_blocks();
 }
 
-template <class HeaderType, class MacroblockType>
-void Frame<HeaderType, MacroblockType>::parse_tokens( const DecoderState & decoder_state )
+template <class FrameHeaderType, class MacroblockType>
+void Frame<FrameHeaderType, MacroblockType>::parse_tokens( const DecoderState & decoder_state )
 {
   macroblock_headers_.get().forall_ij( [&]( MacroblockType & macroblock,
 					    const unsigned int column __attribute((unused)),
@@ -39,8 +39,8 @@ void Frame<HeaderType, MacroblockType>::parse_tokens( const DecoderState & decod
 					 macroblock.dequantize( decoder_state ); } );
 }
 
-template <class HeaderType, class MacroblockType>
-void Frame<HeaderType, MacroblockType>::decode( const DecoderState & decoder_state, Raster & raster ) const
+template <class FrameHeaderType, class MacroblockType>
+void Frame<FrameHeaderType, MacroblockType>::decode( const DecoderState & decoder_state, Raster & raster ) const
 {
   /* process each macroblock */
   macroblock_headers_.get().forall_ij( [&]( const MacroblockType & macroblock,
@@ -59,8 +59,8 @@ void Frame<HeaderType, MacroblockType>::decode( const DecoderState & decoder_sta
 /* "above" for a Y2 block refers to the first macroblock above that actually has Y2 coded */
 /* here we relink the "above" and "left" pointers after we learn the prediction mode
    for the block */
-template <class HeaderType, class MacroblockType>
-void Frame<HeaderType, MacroblockType>::relink_y2_blocks( void )
+template <class FrameHeaderType, class MacroblockType>
+void Frame<FrameHeaderType, MacroblockType>::relink_y2_blocks( void )
 {
   vector< Optional< const Y2Block * > > above_coded( macroblock_width_ );
   vector< Optional< const Y2Block * > > left_coded( macroblock_height_ );
@@ -75,5 +75,5 @@ void Frame<HeaderType, MacroblockType>::relink_y2_blocks( void )
     } );
 }
 
-template class Frame< KeyFrameHeader, KeyFrameMacroblockHeader >;
-template class Frame< InterFrameHeader, KeyFrameMacroblockHeader >;
+template class Frame< KeyFrameHeader, KeyFrameMacroblock >;
+template class Frame< InterFrameHeader, InterFrameMacroblock >;

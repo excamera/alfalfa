@@ -6,34 +6,6 @@
 
 using namespace std;
 
-void KeyFrameMacroblockHeader::parse_tokens( BoolDecoder & data,
-					     const DecoderState & decoder_state )
-{
-  /* is macroblock skipped? */
-  if ( mb_skip_coeff_.get_or( false ) ) {
-    return;
-  }
-
-  /* parse Y2 block if present */
-  if ( Y2_.coded() ) {
-    Y2_.parse_tokens( data, decoder_state );
-    has_nonzero_ |= Y2_.has_nonzero();
-  }
-
-  /* parse Y blocks with variable first coefficient */
-  Y_.forall( [&]( YBlock & block ) {
-      block.parse_tokens( data, decoder_state );
-      has_nonzero_ |= block.has_nonzero(); } );
-
-  /* parse U and V blocks */
-  U_.forall( [&]( UVBlock & block ) {
-      block.parse_tokens( data, decoder_state );
-      has_nonzero_ |= block.has_nonzero(); } );
-  V_.forall( [&]( UVBlock & block ) {
-      block.parse_tokens( data, decoder_state );
-      has_nonzero_ |= block.has_nonzero(); } );
-}
-
 static const SafeArray< uint8_t, 16 > coefficient_to_band {{ 0, 1, 2, 3, 6, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 7 }};
 
 static const SafeArray< uint8_t, 16 > zigzag = {{ 0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15 }};
