@@ -78,14 +78,14 @@ public:
   bool coded( void ) const { return coded_; }
   bool has_nonzero( void ) const { return has_nonzero_; }
 
-  void walsh_transform( TwoDSubRange< Block< Y_after_Y2, Tree< intra_bmode, num_intra_b_modes, b_mode_tree > >, 4, 4 > & output ) const;
+  void walsh_transform( TwoDSubRange< Block< Y_after_Y2, Tree< bmode, num_intra_b_modes, b_mode_tree > >, 4, 4 > & output ) const;
   void idct( Raster::Block4 & output ) const;
   void set_dc_coefficient( const int16_t & val );
   void dequantize( const Quantizer & quantizer );
 };
 
-using Y2Block = Block< Y2, Tree< intra_mbmode, num_y_modes, kf_y_mode_tree > >;
-using YBlock = Block< Y_after_Y2, Tree< intra_bmode, num_intra_b_modes, b_mode_tree > >;
-using UVBlock = Block< UV, Tree< intra_mbmode, num_uv_modes, uv_mode_tree > >;
+using Y2Block = Block< Y2, Tree< mbmode, num_y_modes, kf_y_mode_tree > >;
+using YBlock = Block< Y_after_Y2, Tree< bmode, num_intra_b_modes, b_mode_tree > >;
+using UVBlock = Block< UV, Tree< mbmode, num_uv_modes, uv_mode_tree > >;
 
 #endif /* BLOCK_HH */

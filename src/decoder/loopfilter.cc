@@ -43,14 +43,14 @@ FilterParameters::FilterParameters( const uint8_t segment_id,
 
 static int8_t mode_adjustment( const SafeArray< int8_t, 4 > & mode_adjustments,
 			       const reference_frame macroblock_reference_frame,
-			       const intra_mbmode macroblock_y_mode )
+			       const mbmode macroblock_y_mode )
 {
   if ( macroblock_reference_frame == CURRENT_FRAME ) {
     return ( macroblock_y_mode == B_PRED ) ? mode_adjustments.at( 0 ) : 0;
-    /*  } else if ( macroblock_y_mode == ZEROMV ) {
-	return 1;
-	} else if ( macroblock_y_mode == SPLITMV ) {
-	return 3; */
+  } else if ( macroblock_y_mode == ZEROMV ) {
+    return 1;
+  } else if ( macroblock_y_mode == SPLITMV ) {
+    return 3;
   } else {
     return mode_adjustments.at( 2 );
   }
@@ -59,7 +59,7 @@ static int8_t mode_adjustment( const SafeArray< int8_t, 4 > & mode_adjustments,
 void FilterParameters::adjust( const SafeArray< int8_t, num_reference_frames > & ref_adjustments,
 			       const SafeArray< int8_t, 4 > & mode_adjustments,
 			       const reference_frame macroblock_reference_frame,
-			       const intra_mbmode macroblock_y_mode )
+			       const mbmode macroblock_y_mode )
 {
   filter_level += ref_adjustments.at( macroblock_reference_frame )
     + mode_adjustment( mode_adjustments, macroblock_reference_frame, macroblock_y_mode );

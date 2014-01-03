@@ -165,7 +165,7 @@ void Raster::Block<size>::dc_predict( void )
 
 template <>
 template <>
-void Raster::Block8::intra_predict( const intra_mbmode uv_mode )
+void Raster::Block8::intra_predict( const mbmode uv_mode )
 {
   /* Chroma prediction */
 
@@ -174,13 +174,13 @@ void Raster::Block8::intra_predict( const intra_mbmode uv_mode )
   case V_PRED:  vertical_predict();  break;
   case H_PRED:  horizontal_predict();  break;
   case TM_PRED: true_motion_predict(); break;
-  case B_PRED: assert( false ); break; /* tree decoder for uv_mode can't produce this */
+  default: assert( false ); break; /* tree decoder for uv_mode can't produce this */
   }
 }
 
 template <>
 template <>
-void Raster::Block16::intra_predict( const intra_mbmode uv_mode )
+void Raster::Block16::intra_predict( const mbmode uv_mode )
 {
   /* Y prediction for whole macroblock */
 
@@ -189,7 +189,7 @@ void Raster::Block16::intra_predict( const intra_mbmode uv_mode )
   case V_PRED:  vertical_predict();  break;
   case H_PRED:  horizontal_predict();  break;
   case TM_PRED: true_motion_predict(); break;
-  case B_PRED: assert( false ); break; /* need to predict and transform subblocks independently */
+  default: assert( false ); break; /* need to predict and transform subblocks independently */
   }
 }
 
@@ -307,7 +307,7 @@ void Raster::Block4::horizontal_up_predict( void )
 
 template <>
 template <>
-void Raster::Block4::intra_predict( const intra_bmode b_mode )
+void Raster::Block4::intra_predict( const bmode b_mode )
 {
   /* Luma prediction */
 
@@ -322,5 +322,6 @@ void Raster::Block4::intra_predict( const intra_bmode b_mode )
   case B_VL_PRED: vertical_left_predict(); break;
   case B_HD_PRED: horizontal_down_predict(); break;
   case B_HU_PRED: horizontal_up_predict(); break;
+  default: assert( false ); break;
   }
 }

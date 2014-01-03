@@ -11,17 +11,15 @@
 
 using namespace std;
 
-static intra_bmode implied_subblock_mode( const intra_mbmode y_mode )
+static bmode implied_subblock_mode( const mbmode y_mode )
 {
   switch ( y_mode ) {
   case DC_PRED: return B_DC_PRED;
   case V_PRED:  return B_VE_PRED;
   case H_PRED:  return B_HE_PRED;
   case TM_PRED: return B_TM_PRED;
-  case B_PRED:  break;
+  default: assert( false ); return bmode();
   }
-  assert( false );
-  return intra_bmode();  
 }
 
 template <class FrameHeaderType, class MacroblockHeaderType>

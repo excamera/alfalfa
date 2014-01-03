@@ -26,7 +26,7 @@ struct FilterParameters
   void adjust( const SafeArray< int8_t, num_reference_frames > & ref_adjustments,
 	       const SafeArray< int8_t, 4 > & mode_adjustments,
 	       const reference_frame macroblock_reference_frame,
-	       const intra_mbmode macroblock_y_mode );
+	       const mbmode macroblock_y_mode );
 };
 
 class SimpleLoopFilter
