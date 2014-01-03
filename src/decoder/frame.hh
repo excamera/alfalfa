@@ -3,7 +3,7 @@
 
 #include "2d.hh"
 #include "block.hh"
-#include "macroblock_header.hh"
+#include "macroblock.hh"
 #include "uncompressed_chunk.hh"
 #include "modemv_data.hh"
 #include "raster.hh"

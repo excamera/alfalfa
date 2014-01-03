@@ -1,6 +1,6 @@
 #include "loopfilter.hh"
 #include "frame_header.hh"
-#include "macroblock_header.hh"
+#include "macroblock.hh"
 #include "raster.hh"
 #include "loopfilter_filters.hh"
 #include "decoder.hh"

@@ -1,7 +1,7 @@
 #include "quantization.hh"
 #include "frame_header.hh"
 #include "block.hh"
-#include "macroblock_header.hh"
+#include "macroblock.hh"
 #include "safe_array.hh"
 #include "decoder.hh"
 

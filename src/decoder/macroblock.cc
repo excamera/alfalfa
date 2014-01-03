@@ -1,6 +1,6 @@
 #include <vector>
 
-#include "macroblock_header.hh"
+#include "macroblock.hh"
 #include "decoder.hh"
 
 using namespace std;

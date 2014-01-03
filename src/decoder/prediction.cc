@@ -1,6 +1,6 @@
 #include <cmath>
 
-#include "macroblock_header.hh"
+#include "macroblock.hh"
 #include "raster.hh"
 
 template <unsigned int size>
