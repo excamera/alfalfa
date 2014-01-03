@@ -45,18 +45,16 @@ void Block< initial_block_type,
 {
   bool last_was_zero = false;
 
-  Block default_block;
-
   /* prediction context starts with number-not-zero count */
-  char context = above_.get_or( &default_block )->has_nonzero()
-    + left_.get_or( &default_block )->has_nonzero();
+  char token_context = ( context().above.initialized() ? context().above.get()->has_nonzero() : 0 )
+    + ( context().left.initialized() ? context().left.get()->has_nonzero() : 0 );
 
   for ( unsigned int index = (type_ == BlockType::Y_after_Y2) ? 1 : 0;
 	index < 16;
 	index++ ) {
     /* select the tree probabilities based on the prediction context */
     const ProbabilityArray< MAX_ENTROPY_TOKENS > & prob
-      = decoder_state.coeff_probs.at( type_ ).at( coefficient_to_band.at( index ) ).at( context );
+      = decoder_state.coeff_probs.at( type_ ).at( coefficient_to_band.at( index ) ).at( token_context );
 
     /* decode the token */
     if ( not last_was_zero ) {
@@ -68,7 +66,7 @@ void Block< initial_block_type,
 
     if ( not data.get( prob.at( 1 ) ) ) {
       last_was_zero = true;
-      context = 0;
+      token_context = 0;
       continue;
     }
 
@@ -79,9 +77,9 @@ void Block< initial_block_type,
 
     if ( not data.get( prob.at( 2 ) ) ) {
       value = 1;
-      context = 1;
+      token_context = 1;
     } else {
-      context = 2;
+      token_context = 2;
       if ( not data.get( prob.at( 3 ) ) ) {
 	if ( not data.get( prob.at( 4 ) ) ) {
 	  value = 2;

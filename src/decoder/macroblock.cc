@@ -48,14 +48,13 @@ void KeyFrameMacroblock::decode_prediction_modes( BoolDecoder & data )
   Y2_.set_if_coded();
 
   /* Set subblock prediction modes */
-  YBlock default_block;
-  default_block.set_prediction_mode( B_DC_PRED );
-
   Y_.forall( [&]( YBlock & block )
 	     {
 	       if ( Y2_.prediction_mode() == B_PRED ) {
-		 const auto above_mode = block.above().get_or( &default_block )->prediction_mode();
-		 const auto left_mode = block.left().get_or( &default_block )->prediction_mode();
+		 const auto above_mode = block.context().above.initialized()
+		   ? block.context().above.get()->prediction_mode() : B_DC_PRED;
+		 const auto left_mode = block.context().left.initialized()
+		   ? block.context().left.get()->prediction_mode() : B_DC_PRED;
 		 block.set_Y_without_Y2();
 		 block.decode_prediction_mode( data, kf_b_mode_probs.at( above_mode ).at( left_mode ) );
 	       } else {

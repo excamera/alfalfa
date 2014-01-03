@@ -17,8 +17,8 @@ private:
 public:
   struct Context
   {
-    const unsigned int column, row;
-    const Optional< const T * > left, above_left, above, above_right;
+    unsigned int column, row;
+    Optional< const T * > left, above_left, above, above_right;
 
     Context( const unsigned int s_column, const unsigned int s_row, const TwoD & self )
       : column( s_column ), row( s_row ),

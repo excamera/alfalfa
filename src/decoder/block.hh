@@ -16,13 +16,13 @@ template <BlockType initial_block_type, class PredictionDecoder>
 class Block
 {
 private:
+  typename TwoD< Block >::Context context_;
+
   BlockType type_ { initial_block_type };
 
   typedef typename PredictionDecoder::type PredictionMode;
 
   PredictionMode prediction_mode_ {};
-  Optional< const Block * > above_ {};
-  Optional< const Block * > left_ {};
 
   SafeArray< int16_t, 16 > coefficients_ {{}};
 
@@ -31,10 +31,8 @@ private:
   bool has_nonzero_ { false };
 
 public:
-  Block() {}
-
   Block( const typename TwoD< Block >::Context & context )
-    : above_( context.above ), left_( context.left )
+    : context_( context )
   {}
 
   const PredictionMode & prediction_mode( void ) const { return prediction_mode_; }
@@ -50,11 +48,10 @@ public:
     prediction_mode_ = prediction_mode;
   }
 
-  const Optional< const Block * > & above( void ) const { return above_; }
-  const Optional< const Block * > & left( void ) const { return left_; }
+  const typename TwoD< Block >::Context & context( void ) const { return context_; }
 
-  void set_above( const Optional< const Block * > & s_above ) { above_ = s_above; }
-  void set_left( const Optional< const Block * > & s_left ) { left_ = s_left; }
+  void set_above( const Optional< const Block * > & s_above ) { context_.above = s_above; }
+  void set_left( const Optional< const Block * > & s_left ) { context_.left = s_left; }
 
   void set_Y_without_Y2( void )
   {
