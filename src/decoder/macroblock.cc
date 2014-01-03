@@ -44,7 +44,7 @@ template <>
 void KeyFrameMacroblock::decode_prediction_modes( BoolDecoder & data )
 {
   /* Set Y prediction mode */
-  Y2_.decode_prediction_mode( data, kf_y_mode_probs );
+  Y2_.set_prediction_mode( data.tree< num_y_modes, mbmode >( kf_y_mode_tree, kf_y_mode_probs ) );
   Y2_.set_if_coded();
 
   /* Set subblock prediction modes */
@@ -56,14 +56,15 @@ void KeyFrameMacroblock::decode_prediction_modes( BoolDecoder & data )
 		 const auto left_mode = block.context().left.initialized()
 		   ? block.context().left.get()->prediction_mode() : B_DC_PRED;
 		 block.set_Y_without_Y2();
-		 block.decode_prediction_mode( data, kf_b_mode_probs.at( above_mode ).at( left_mode ) );
+		 block.set_prediction_mode( data.tree< num_intra_b_modes, bmode >( b_mode_tree,
+										   kf_b_mode_probs.at( above_mode ).at( left_mode ) ) );
 	       } else {
 		 block.set_prediction_mode( implied_subblock_mode( Y2_.prediction_mode() ) );
 	       }
 	     } );
 
   /* Set chroma prediction modes */
-  U_.at( 0, 0 ).decode_prediction_mode( data, kf_uv_mode_probs );
+  U_.at( 0, 0 ).set_prediction_mode( data.tree< num_uv_modes, mbmode >( uv_mode_tree, kf_uv_mode_probs ) );
 }
 
 template <>

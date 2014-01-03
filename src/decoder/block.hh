@@ -12,15 +12,13 @@ class DecoderState;
 
 enum BlockType { Y_after_Y2 = 0, Y2, UV, Y_without_Y2 };
 
-template <BlockType initial_block_type, class PredictionDecoder>
+template <BlockType initial_block_type, class PredictionMode>
 class Block
 {
 private:
   typename TwoD< Block >::Context context_;
 
   BlockType type_ { initial_block_type };
-
-  typedef typename PredictionDecoder::type PredictionMode;
 
   PredictionMode prediction_mode_ {};
 
@@ -36,12 +34,6 @@ public:
   {}
 
   const PredictionMode & prediction_mode( void ) const { return prediction_mode_; }
-
-  void decode_prediction_mode( BoolDecoder & data,
-			       const typename PredictionDecoder::probability_array_type & probabilities )
-  {
-    prediction_mode_ = PredictionDecoder( data, probabilities );
-  }
 
   void set_prediction_mode( const PredictionMode prediction_mode )
   {
@@ -75,14 +67,14 @@ public:
   bool coded( void ) const { return coded_; }
   bool has_nonzero( void ) const { return has_nonzero_; }
 
-  void walsh_transform( TwoDSubRange< Block< Y_after_Y2, Tree< bmode, num_intra_b_modes, b_mode_tree > >, 4, 4 > & output ) const;
+  void walsh_transform( TwoDSubRange< Block< Y_after_Y2, bmode >, 4, 4 > & output ) const;
   void idct( Raster::Block4 & output ) const;
   void set_dc_coefficient( const int16_t & val );
   void dequantize( const Quantizer & quantizer );
 };
 
-using Y2Block = Block< Y2, Tree< mbmode, num_y_modes, kf_y_mode_tree > >;
-using YBlock = Block< Y_after_Y2, Tree< bmode, num_intra_b_modes, b_mode_tree > >;
-using UVBlock = Block< UV, Tree< mbmode, num_uv_modes, uv_mode_tree > >;
+using Y2Block = Block< Y2, mbmode >;
+using YBlock = Block< Y_after_Y2, bmode >;
+using UVBlock = Block< UV, mbmode >;
 
 #endif /* BLOCK_HH */
