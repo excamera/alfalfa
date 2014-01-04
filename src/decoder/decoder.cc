@@ -16,9 +16,12 @@ bool Decoder::decode_frame( const Chunk & frame, Raster & raster )
 
   /* only parse key frames for now */
   if ( !uncompressed_chunk.key_frame() ) {
-    //    Interframe myframe( uncompressed_chunk, width_, height_ );
+    InterFrame myframe( uncompressed_chunk, width_, height_ );
+    myframe.parse_macroblock_headers( state_ );
+    myframe.parse_tokens( state_ );
+    myframe.decode( state_, raster );
 
-    return false;
+    return uncompressed_chunk.show_frame();
   }
 
   KeyFrame myframe( uncompressed_chunk, width_, height_ );
