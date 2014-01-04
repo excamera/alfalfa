@@ -54,10 +54,23 @@ struct KeyFrameMacroblockHeader
 			    const DecoderState & decoder_state );
 };
 
+struct InterMacroblockInformation
+{
+  Boolean mb_ref_frame_sel1;
+  Optional< Boolean > mb_ref_frame_sel2;
+  //  Tree< mbmode, num_mv_refs, mv_ref_tree > mv_mode;
+
+  InterMacroblockInformation( BoolDecoder & data,
+			      const InterFrameHeader & frame_header,
+			      const DecoderState & decoder_state );
+};
+
 struct InterFrameMacroblockHeader
 {
-  Optional< Tree< uint8_t, 4, segment_id_tree > > segment_id;
+  Optional< Tree< uint8_t, num_segments, segment_id_tree > > segment_id;
   Optional< Boolean > mb_skip_coeff;
+  Boolean is_inter_mb;
+  Optional< InterMacroblockInformation > inter_mb_info;
 
   InterFrameMacroblockHeader( BoolDecoder & data,
 			      const InterFrameHeader & frame_header,

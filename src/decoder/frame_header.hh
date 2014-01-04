@@ -123,9 +123,9 @@ struct InterFrameHeader
 			COEF_BANDS >,
 	     BLOCK_TYPES > token_prob_update;
   Flagged< Unsigned<8> > prob_skip_false;
-  Unsigned<8> prob_intra;
-  Unsigned<8> prob_last;
-  Unsigned<8> prob_gf;
+  Unsigned<8> prob_inter; /* RFC 6386 calls this prob_intra in the text, prob_inter in the code */
+  Unsigned<8> prob_references_last;
+  Unsigned<8> prob_references_golden;
   Flagged< Array< Unsigned<8>, 4 > > intra_16x16_prob;
   Flagged< Array< Unsigned<8>, 3 > > intra_chroma_prob;
   Array< Array< Flagged< Unsigned<7> >, 19 >, 2 > mv_prob_update;
@@ -140,7 +140,7 @@ struct InterFrameHeader
       sign_bias_golden( data ), sign_bias_alternate( data ),
       refresh_entropy_probs( data ), refresh_last( data ),
     token_prob_update( data ), prob_skip_false( data ),
-    prob_intra( data ), prob_last( data ), prob_gf( data ),
+    prob_inter( data ), prob_references_last( data ), prob_references_golden( data ),
     intra_16x16_prob( data ), intra_chroma_prob( data ),
     mv_prob_update( data )
   {

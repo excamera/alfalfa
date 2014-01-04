@@ -88,7 +88,16 @@ InterFrameMacroblockHeader::InterFrameMacroblockHeader( BoolDecoder & data,
 		and frame_header.update_segmentation.get().update_mb_segmentation_map,
 		data, decoder_state.mb_segment_tree_probs ),
     mb_skip_coeff( frame_header.prob_skip_false.initialized(),
-		   data, frame_header.prob_skip_false.get() )
+		   data, frame_header.prob_skip_false.get() ),
+    is_inter_mb( data, frame_header.prob_inter ),
+    inter_mb_info( is_inter_mb, data, frame_header, decoder_state )
+{}
+
+InterMacroblockInformation::InterMacroblockInformation( BoolDecoder & data,
+							const InterFrameHeader & frame_header,
+							const DecoderState & decoder_state __attribute((unused)) )
+  : mb_ref_frame_sel1( data, frame_header.prob_references_last ),
+    mb_ref_frame_sel2( mb_ref_frame_sel1, data, frame_header.prob_references_golden )
 {}
 
 template <class FrameHeaderType, class MacroblockHeaderType>

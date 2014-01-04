@@ -178,8 +178,7 @@ const TreeArray< 8 > small_mv_tree =
   -6, -7
 }};
 
-/*
-const array< int8_t, 8 > mv_ref_tree
+const TreeArray< num_mv_refs > mv_ref_tree =
 {{
   -ZEROMV, 2,
   -NEARESTMV, 4,
@@ -187,22 +186,23 @@ const array< int8_t, 8 > mv_ref_tree
   -NEWMV, -SPLITMV
 }};
 
-const array< int8_t, 6 > submv_ref_tree
+const TreeArray< 4 > submv_ref_tree =
 {{
   -LEFT4X4, 2,
   -ABOVE4X4, 4,
   -ZERO4X4, -NEW4X4
 }};
 
-const array< int8_t, 6 > split_mv_tree
+const TreeArray< 4 > split_mv_tree =
 {{
   -3, 2,
   -2, 4,
   -0, -1
 }};
 
-const array< uint8_t, 9 > default_b_mode_probs {{ 120,  90,  79, 133,  87,  85,  80, 111, 151}};
+const ProbabilityArray< num_intra_b_modes > default_b_mode_probs = {{ 120,  90,  79, 133,  87,  85,  80, 111, 151}};
 
+/*
 const array< array< uint8_t, 4 >, 6 > mv_counts_to_probs[6][4]
 {{{{ 7,   1,   1, 143 }},
   {{  14,  18,  14, 107 }},
