@@ -4,7 +4,7 @@ AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(NODEBUG_CXXFLAGS)
 noinst_LIBRARIES = libalfalfadecoder.a
 
 libalfalfadecoder_a_SOURCES = block.hh bool_decoder.hh decoder.cc decoder.hh \
-	frame.cc frame_header.cc frame_header.hh frame.hh \
+	frame.cc frame_header.hh frame.hh \
 	loopfilter.cc loopfilter_filters.hh loopfilter.hh \
 	macroblock.cc macroblock.hh modemv_data.cc modemv_data.hh \
 	prediction.cc quantization.cc quantization.hh tokens.cc tokens.hh \

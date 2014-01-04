@@ -77,7 +77,7 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
     Y2_.set_prediction_mode( data.tree< num_y_modes, mbmode >( y_mode_tree, decoder_state.y_mode_probs ) );
     Y2_.set_if_coded();
 
-    /* Set subblock prediction modes */
+    /* Set subblock prediction modes. Intra macroblocks in interframes are simpler than in keyframes. */
     Y_.forall( [&]( YBlock & block )
 	       {
 		 if ( Y2_.prediction_mode() == B_PRED ) {

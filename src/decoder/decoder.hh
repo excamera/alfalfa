@@ -9,6 +9,8 @@
 
 class Chunk;
 class Raster;
+struct KeyFrameHeader;
+struct InterFrameHeader;
 
 struct DecoderState
 {
@@ -33,6 +35,11 @@ struct DecoderState
   ProbabilityArray< num_uv_modes > uv_mode_probs;
 
   DecoderState( const KeyFrameHeader & header );
+
+  template <class HeaderType>
+  void common_update( const HeaderType & header );
+
+  void update( const InterFrameHeader & header );
 };
 
 class Decoder
