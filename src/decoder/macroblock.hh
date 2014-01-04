@@ -23,7 +23,7 @@ private:
 
   bool has_nonzero_ { false };
 
-  void decode_prediction_modes( BoolDecoder & data );
+  void decode_prediction_modes( BoolDecoder & data, const DecoderState & decoder_state );
 
 public:
   Macroblock( const typename TwoD< Macroblock >::Context & c,
@@ -54,23 +54,13 @@ struct KeyFrameMacroblockHeader
 			    const DecoderState & decoder_state );
 };
 
-struct InterMacroblockInformation
-{
-  Boolean mb_ref_frame_sel1;
-  Optional< Boolean > mb_ref_frame_sel2;
-  //  Tree< mbmode, num_mv_refs, mv_ref_tree > mv_mode;
-
-  InterMacroblockInformation( BoolDecoder & data,
-			      const InterFrameHeader & frame_header,
-			      const DecoderState & decoder_state );
-};
-
 struct InterFrameMacroblockHeader
 {
   Optional< Tree< uint8_t, num_segments, segment_id_tree > > segment_id;
   Optional< Boolean > mb_skip_coeff;
   Boolean is_inter_mb;
-  Optional< InterMacroblockInformation > inter_mb_info;
+  Optional< Boolean > mb_ref_frame_sel1;
+  Optional< Boolean > mb_ref_frame_sel2;
 
   InterFrameMacroblockHeader( BoolDecoder & data,
 			      const InterFrameHeader & frame_header,

@@ -28,6 +28,10 @@ struct DecoderState
   SafeArray< int8_t, num_reference_frames > loopfilter_ref_adjustments;
   SafeArray< int8_t, 4 > loopfilter_mode_adjustments;
 
+  ProbabilityArray< num_y_modes > y_mode_probs;
+  ProbabilityArray< num_intra_b_modes > b_mode_probs;
+  ProbabilityArray< num_uv_modes > uv_mode_probs;
+
   DecoderState( const KeyFrameHeader & header );
 };
 

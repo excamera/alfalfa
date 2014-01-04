@@ -4,6 +4,7 @@
 #include "safe_array.hh"
 #include "bool_decoder.hh"
 #include "tokens.hh"
+#include "modemv_data.hh"
 
 const unsigned int BLOCK_TYPES         = 4;
 const unsigned int COEF_BANDS         = 8;
@@ -22,5 +23,9 @@ const extern SafeArray< SafeArray< SafeArray< SafeArray< Probability,
 				  PREV_COEF_CONTEXTS >,
 			   COEF_BANDS >,
 		    BLOCK_TYPES > k_default_coeff_probs;
+
+const extern ProbabilityArray< num_y_modes > k_default_y_mode_probs;
+
+const extern ProbabilityArray< num_uv_modes > k_default_uv_mode_probs;
 
 #endif /* VP8_PROB_DATA_HH */

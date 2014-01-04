@@ -177,9 +177,9 @@ const SafeArray< SafeArray< SafeArray< SafeArray< Probability,
 }};
 
 
-const SafeArray< uint8_t, 4 > k_default_y_mode_probs = {{ 112,  86, 140,  37 }};
+const ProbabilityArray< num_y_modes > k_default_y_mode_probs = {{ 112,  86, 140,  37 }};
 
-const SafeArray< uint8_t, 4 > k_default_uv_mode_probs = {{ 162, 101, 204 }};
+const ProbabilityArray< num_uv_modes > k_default_uv_mode_probs = {{ 162, 101, 204 }};
 
 const SafeArray< SafeArray< SafeArray< SafeArray< Probability,
 						  ENTROPY_NODES >,

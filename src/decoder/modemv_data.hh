@@ -50,7 +50,7 @@ const extern SafeArray< SafeArray< Probability, 3 >, 5 > submv_ref_probs2;
 
 const extern SafeArray< SafeArray< Probability, 16 >, 4 > mv_partitions;
 
-const int num_segments = 4;
+const unsigned int num_segments = 4;
 
 const extern TreeArray< num_segments > segment_id_tree;
 

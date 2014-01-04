@@ -37,11 +37,12 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
     U_( frame_U, c.column * 2, c.row * 2 ),
     V_( frame_V, c.column * 2, c.row * 2 )
 {
-  decode_prediction_modes( data );
+  decode_prediction_modes( data, decoder_state );
 }
 
 template <>
-void KeyFrameMacroblock::decode_prediction_modes( BoolDecoder & data )
+void KeyFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
+						  const DecoderState & decoder_state __attribute((unused)) )
 {
   /* Set Y prediction mode */
   Y2_.set_prediction_mode( data.tree< num_y_modes, mbmode >( kf_y_mode_tree, kf_y_mode_probs ) );
@@ -63,13 +64,36 @@ void KeyFrameMacroblock::decode_prediction_modes( BoolDecoder & data )
 	       }
 	     } );
 
-  /* Set chroma prediction modes */
+  /* Set chroma prediction mode */
   U_.at( 0, 0 ).set_prediction_mode( data.tree< num_uv_modes, mbmode >( uv_mode_tree, kf_uv_mode_probs ) );
 }
 
 template <>
-void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & )
-{}
+void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
+						    const DecoderState & decoder_state )
+{
+  if ( not header_.is_inter_mb ) {
+    /* Set Y prediction mode */
+    Y2_.set_prediction_mode( data.tree< num_y_modes, mbmode >( y_mode_tree, decoder_state.y_mode_probs ) );
+    Y2_.set_if_coded();
+
+    /* Set subblock prediction modes */
+    Y_.forall( [&]( YBlock & block )
+	       {
+		 if ( Y2_.prediction_mode() == B_PRED ) {
+		   block.set_Y_without_Y2();
+		   block.set_prediction_mode( data.tree< num_intra_b_modes, bmode >( b_mode_tree,
+										     decoder_state.b_mode_probs ) );
+		 } else {
+		   block.set_prediction_mode( implied_subblock_mode( Y2_.prediction_mode() ) );
+		 }
+	       } );
+
+    /* Set chroma prediction modes */
+    U_.at( 0, 0 ).set_prediction_mode( data.tree< num_uv_modes, mbmode >( uv_mode_tree,
+									  decoder_state.uv_mode_probs ) );
+  }
+}
 
 KeyFrameMacroblockHeader::KeyFrameMacroblockHeader( BoolDecoder & data,
 						    const KeyFrameHeader & frame_header,
@@ -90,14 +114,8 @@ InterFrameMacroblockHeader::InterFrameMacroblockHeader( BoolDecoder & data,
     mb_skip_coeff( frame_header.prob_skip_false.initialized(),
 		   data, frame_header.prob_skip_false.get() ),
     is_inter_mb( data, frame_header.prob_inter ),
-    inter_mb_info( is_inter_mb, data, frame_header, decoder_state )
-{}
-
-InterMacroblockInformation::InterMacroblockInformation( BoolDecoder & data,
-							const InterFrameHeader & frame_header,
-							const DecoderState & decoder_state __attribute((unused)) )
-  : mb_ref_frame_sel1( data, frame_header.prob_references_last ),
-    mb_ref_frame_sel2( mb_ref_frame_sel1, data, frame_header.prob_references_golden )
+    mb_ref_frame_sel1( is_inter_mb, data, frame_header.prob_references_last ),
+    mb_ref_frame_sel2( mb_ref_frame_sel1.get_or( false ), data, frame_header.prob_references_golden )
 {}
 
 template <class FrameHeaderType, class MacroblockHeaderType>

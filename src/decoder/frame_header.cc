@@ -17,7 +17,10 @@ DecoderState::DecoderState( const KeyFrameHeader & header )
 	  FilterParameters( 2, header, header.update_segmentation ),
 	  FilterParameters( 3, header, header.update_segmentation ) }} ),
   loopfilter_ref_adjustments( {{ }} ),
-  loopfilter_mode_adjustments( {{ }} )
+  loopfilter_mode_adjustments( {{ }} ),
+  y_mode_probs( k_default_y_mode_probs ),
+  b_mode_probs( default_b_mode_probs ),
+  uv_mode_probs( k_default_uv_mode_probs )
 {
   /* segmentation tree probabilities (if given in frame header) */
   if ( header.update_segmentation.initialized()
