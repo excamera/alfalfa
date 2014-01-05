@@ -39,8 +39,11 @@ static inline int16_t clamp_q( const int16_t q )
   return q;
 }
 
-Quantizer::Quantizer( const QuantIndices & quant_indices )
-  : y_ac(  ac_qlookup.at( clamp_q( quant_indices.y_ac_qi ) ) ),
+Quantizer::Quantizer( const QuantIndices & quant_indices, const QuantizerAdjustment & adjustment )
+  : y_ac(  ac_qlookup.at( clamp_q( adjustment.value
+				   + adjustment.absolute
+				   ? 0
+				   : static_cast<uint8_t>( quant_indices.y_ac_qi ) ) ) ),
     y_dc(  dc_qlookup.at( clamp_q( quant_indices.y_ac_qi + quant_indices.y_dc.get_or( 0 ) ) ) ),
     y2_ac( ac_qlookup.at( clamp_q( quant_indices.y_ac_qi + quant_indices.y2_ac.get_or( 0 ) ) ) * 155/100 ),
     y2_dc( dc_qlookup.at( clamp_q( quant_indices.y_ac_qi + quant_indices.y2_dc.get_or( 0 ) ) ) * 2 ),
@@ -51,37 +54,30 @@ Quantizer::Quantizer( const QuantIndices & quant_indices )
   if ( uv_dc > 132 ) uv_dc = 132;
 }
 
-static QuantIndices apply_segment_updates( const uint8_t segment_id,
-					   const QuantIndices & quant_indices,
-					   const Optional< UpdateSegmentation > & update_segmentation )
+QuantizerAdjustment::QuantizerAdjustment( const uint8_t segment_id,
+					  const Optional< UpdateSegmentation > & update_segmentation )
+  : absolute( false ), value( 0 )
 {
-  QuantIndices ret( quant_indices );
+  update( segment_id, update_segmentation );
+}
 
+void QuantizerAdjustment::update( const uint8_t segment_id,
+				  const Optional< UpdateSegmentation > & update_segmentation ) {
   if ( update_segmentation.initialized()
        and update_segmentation.get().segment_feature_data.initialized() ) {
     const auto & feature_data = update_segmentation.get().segment_feature_data.get();
     const auto & update = feature_data.quantizer_update.at( segment_id );
 
     if ( update.initialized() ) {
-      if ( feature_data.segment_feature_mode ) { /* absolute value */
-	if ( update.get() < 0 ) {
-	  throw Invalid( "absolute quantizer update with negative value" );
-	}
-	ret.y_ac_qi = static_cast<uint8_t>( update.get() );
-      } else { /* delta */
-	ret.y_ac_qi = ret.y_ac_qi + update.get();
+      absolute = feature_data.segment_feature_mode;
+      value = update.get();
+
+      if ( absolute and (value < 0) ) {
+	throw Invalid( "absolute quantizer update with negative value" );
       }
     }
   }
-
-  return ret;
 }
-
-Quantizer::Quantizer( const uint8_t segment_id,
-		      const QuantIndices & quant_indices,
-		      const Optional< UpdateSegmentation > & update_segmentation )
-  : Quantizer( apply_segment_updates( segment_id, quant_indices, update_segmentation ) )
-{}
 
 template <>
 void Y2Block::dequantize( const Quantizer & quantizer )

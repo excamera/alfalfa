@@ -8,6 +8,12 @@
 #include "modemv_data.hh"
 #include "raster.hh"
 
+struct Quantizers
+{
+  Quantizer quantizer;
+  SafeArray< Quantizer, num_segments > segment_quantizers;
+};
+
 template <class FrameHeaderType, class MacroblockType>
 class Frame
 {

@@ -3,6 +3,7 @@
 
 #include "frame.hh"
 #include "exception.hh"
+#include "decoder.hh"
 
 using namespace std;
 
@@ -31,12 +32,20 @@ void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers( const Dec
 template <class FrameHeaderType, class MacroblockType>
 void Frame<FrameHeaderType, MacroblockType>::parse_tokens( const DecoderState & decoder_state )
 {
+  const Quantizer frame_quantizer( header_.quant_indices );
+
+  const SafeArray< Quantizer, num_segments > segment_quantizers =
+    {{ Quantizer( header_.quant_indices, decoder_state.segment_quantizer_adjustments.at( 0 ) ),
+       Quantizer( header_.quant_indices, decoder_state.segment_quantizer_adjustments.at( 1 ) ),
+       Quantizer( header_.quant_indices, decoder_state.segment_quantizer_adjustments.at( 2 ) ),
+       Quantizer( header_.quant_indices, decoder_state.segment_quantizer_adjustments.at( 3 ) ) }};
+
   macroblock_headers_.get().forall_ij( [&]( MacroblockType & macroblock,
 					    const unsigned int column __attribute((unused)),
 					    const unsigned int row )
 				       { macroblock.parse_tokens( dct_partitions_.at( row % dct_partitions_.size() ),
 								  decoder_state );
-					 macroblock.dequantize( decoder_state ); } );
+					 macroblock.dequantize( frame_quantizer, segment_quantizers ); } );
 }
 
 template <class FrameHeaderType, class MacroblockType>

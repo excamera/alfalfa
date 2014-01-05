@@ -37,7 +37,8 @@ public:
 
   void parse_tokens( BoolDecoder & data, const DecoderState & decoder_state );
 
-  void dequantize( const DecoderState & decoder_state );
+  void dequantize( const Quantizer & frame_quantizer,
+		   const SafeArray< Quantizer, num_segments > & segment_quantizers );
 
   void intra_predict_and_inverse_transform( Raster::Macroblock & raster ) const;
 

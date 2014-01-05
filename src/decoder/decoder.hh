@@ -21,8 +21,7 @@ struct DecoderState
 			COEF_BANDS >,
 	     BLOCK_TYPES > coeff_probs;
 
-  Quantizer quantizer;
-  SafeArray< Quantizer, num_segments > segment_quantizers;
+  SafeArray< QuantizerAdjustment, num_segments > segment_quantizer_adjustments;
 
   FilterParameters loop_filter;
   SafeArray< FilterParameters, num_segments > segment_loop_filters;

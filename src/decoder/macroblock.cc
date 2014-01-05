@@ -148,7 +148,8 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::parse_tokens( BoolDecode
 }
 
 template <class FrameHeaderType, class MacroblockHeaderType>
-void Macroblock<FrameHeaderType, MacroblockHeaderType>::dequantize( const DecoderState & decoder_state )
+void Macroblock<FrameHeaderType, MacroblockHeaderType>::dequantize( const Quantizer & frame_quantizer,
+								    const SafeArray< Quantizer, num_segments > & segment_quantizers )
 {
   /* is macroblock skipped? */
   if ( not has_nonzero_ ) {
@@ -157,8 +158,8 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::dequantize( const Decode
 
   /* which quantizer are we using? */
   const Quantizer & the_quantizer( header_.segment_id.initialized()
-				   ? decoder_state.segment_quantizers.at( header_.segment_id.get() )
-				   : decoder_state.quantizer );
+				   ? segment_quantizers.at( header_.segment_id.get() )
+				   : frame_quantizer );
 
   if ( Y2_.coded() ) {
     Y2_.dequantize( the_quantizer );

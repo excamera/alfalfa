@@ -39,11 +39,10 @@ bool Decoder::decode_frame( const Chunk & frame, Raster & raster )
 DecoderState::DecoderState( const KeyFrameHeader & header )
   : mb_segment_tree_probs( {{ 255, 255, 255 }} ),
     coeff_probs( k_default_coeff_probs ),
-    quantizer( header.quant_indices ),
-    segment_quantizers( {{ Quantizer( 0, header.quant_indices, header.update_segmentation ),
-	    Quantizer( 1, header.quant_indices, header.update_segmentation ),
-	    Quantizer( 2, header.quant_indices, header.update_segmentation ),
-	    Quantizer( 3, header.quant_indices, header.update_segmentation ) }} ),
+    segment_quantizer_adjustments( {{ QuantizerAdjustment( 0, header.update_segmentation ),
+	    QuantizerAdjustment( 1, header.update_segmentation ),
+	    QuantizerAdjustment( 2, header.update_segmentation ),
+	    QuantizerAdjustment( 3, header.update_segmentation ) }} ),
     loop_filter( header ),
   segment_loop_filters( {{ FilterParameters( 0, header, header.update_segmentation ),
 	  FilterParameters( 1, header, header.update_segmentation ),
@@ -95,9 +94,29 @@ void DecoderState::common_update( const HeaderType & header )
   }
 }
 
+template <unsigned int size>
+static void assign( SafeArray< Probability, size > & dest, const Array< Unsigned<8>, size > & src )
+{
+  for ( unsigned int i = 0; i < size; i++ ) {
+    dest.at( i ) = src.at( i );
+  }
+}
+
 void DecoderState::update( const InterFrameHeader & header )
 {
-  common_update( header );
+  /* update per-segment quantizer adjustments */
+  for ( uint8_t i = 0; i < segment_quantizer_adjustments.size(); i++ ) {
+    segment_quantizer_adjustments.at( i ).update( i, header.update_segmentation );
+  }
 
-  quantizer = Quantizer( header.quant_indices );
+  /* update intra-mode probabilities in inter macroblocks */
+  if ( header.intra_16x16_prob.initialized() ) {
+    assign( y_mode_probs, header.intra_16x16_prob.get() );
+  }
+
+  if ( header.intra_chroma_prob.initialized() ) {
+    assign( uv_mode_probs, header.intra_chroma_prob.get() );
+  }
+
+  common_update( header );
 }
