@@ -3,12 +3,11 @@
 
 #include "modemv_data.hh"
 #include "2d.hh"
-#include "frame_header.hh"
 #include "raster.hh"
-#include "quantization.hh"
 #include "safe_array.hh"
 
 class DecoderState;
+class Quantizer;
 
 enum BlockType { Y_after_Y2 = 0, Y2, UV, Y_without_Y2 };
 
