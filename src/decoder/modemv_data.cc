@@ -200,7 +200,7 @@ const TreeArray< 4 > split_mv_tree =
   -0, -1
 }};
 
-const ProbabilityArray< num_intra_b_modes > default_b_mode_probs = {{ 120,  90,  79, 133,  87,  85,  80, 111, 151}};
+const ProbabilityArray< num_intra_b_modes > invariant_b_mode_probs = {{ 120,  90,  79, 133,  87,  85,  80, 111, 151}};
 
 /*
 const array< array< uint8_t, 4 >, 6 > mv_counts_to_probs[6][4]

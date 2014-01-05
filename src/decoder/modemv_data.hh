@@ -40,7 +40,7 @@ const extern TreeArray< 4 > submv_ref_tree;
 
 const extern TreeArray< 4 > split_mv_tree;
 
-const extern ProbabilityArray< num_intra_b_modes > default_b_mode_probs;
+const extern ProbabilityArray< num_intra_b_modes > invariant_b_mode_probs;
 
 const extern SafeArray< SafeArray< Probability, 4 >, 6 > mv_counts_to_probs;
 
