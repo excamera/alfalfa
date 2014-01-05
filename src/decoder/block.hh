@@ -63,7 +63,8 @@ public:
   void parse_tokens( BoolDecoder & data, const DecoderState & decoder );
 
   BlockType type( void ) const { return type_; }
-  bool coded( void ) const { return coded_; }
+  bool coded( void ) const { static_assert( initial_block_type == Y2,
+					    "only Y2 blocks can be omitted" ); return coded_; }
   bool has_nonzero( void ) const { return has_nonzero_; }
 
   void walsh_transform( TwoDSubRange< Block< Y_after_Y2, bmode >, 4, 4 > & output ) const;
