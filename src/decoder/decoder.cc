@@ -14,24 +14,22 @@ bool Decoder::decode_frame( const Chunk & frame, Raster & raster )
   /* parse uncompressed data chunk */
   UncompressedChunk uncompressed_chunk( frame, width_, height_ );
 
-  /* only parse key frames for now */
-  if ( !uncompressed_chunk.key_frame() ) {
-    InterFrame myframe( uncompressed_chunk, width_, height_ );
-    state_.update( myframe.header() );
+  if ( uncompressed_chunk.key_frame() ) {
+    KeyFrame myframe( uncompressed_chunk, width_, height_ );
+    state_ = DecoderState( myframe.header() );
+
     myframe.parse_macroblock_headers( state_ );
     myframe.parse_tokens( state_ );
     myframe.decode( state_, raster );
+  } else {
+    /* interframe */
+    InterFrame myframe( uncompressed_chunk, width_, height_ );
+    state_.update( myframe.header() );
 
-    return uncompressed_chunk.show_frame();
+    myframe.parse_macroblock_headers( state_ );
+    myframe.parse_tokens( state_ );
+    myframe.decode( state_, raster );
   }
-
-  KeyFrame myframe( uncompressed_chunk, width_, height_ );
-  state_ = DecoderState( myframe.header() );
-
-  myframe.parse_macroblock_headers( state_ );
-  myframe.parse_tokens( state_ );
-
-  myframe.decode( state_, raster );
 
   return uncompressed_chunk.show_frame();
 }
