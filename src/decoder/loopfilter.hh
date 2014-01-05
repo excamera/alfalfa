@@ -12,16 +12,30 @@ struct UpdateSegmentation;
 
 enum class LoopFilterType : char { Normal, Simple, NoFilter };
 
+struct SegmentFilterAdjustment
+{
+  bool absolute { false };
+  int8_t value { 0 };
+
+  SegmentFilterAdjustment() {}
+
+  SegmentFilterAdjustment( const uint8_t segment_id,
+			   const Optional< UpdateSegmentation > & update_segmentation );
+
+  void update( const uint8_t segment_id,
+	       const Optional< UpdateSegmentation > & update_segmentation );
+};
+
 struct FilterParameters
 {
   LoopFilterType type;
   int filter_level; /* don't clamp until ready to make the filter */
   uint8_t sharpness_level;
 
-  FilterParameters( const KeyFrameHeader & header );
-  FilterParameters( const uint8_t segment_id,
-		    const KeyFrameHeader & header,
-		    const Optional< UpdateSegmentation > & update_segmentation );
+  FilterParameters( const bool use_simple_filter,
+		    const uint8_t s_filter_level,
+		    const uint8_t s_sharpness_level,
+		    const SegmentFilterAdjustment & segment_adjustment = SegmentFilterAdjustment() );
 
   void adjust( const SafeArray< int8_t, num_reference_frames > & ref_adjustments,
 	       const SafeArray< int8_t, 4 > & mode_adjustments,

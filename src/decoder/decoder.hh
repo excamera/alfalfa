@@ -23,8 +23,7 @@ struct DecoderState
 
   SafeArray< QuantizerAdjustment, num_segments > segment_quantizer_adjustments;
 
-  FilterParameters loop_filter;
-  SafeArray< FilterParameters, num_segments > segment_loop_filters;
+  SafeArray< SegmentFilterAdjustment, num_segments > segment_filter_adjustments;
 
   SafeArray< int8_t, num_reference_frames > loopfilter_ref_adjustments;
   SafeArray< int8_t, 4 > loopfilter_mode_adjustments;

@@ -43,11 +43,10 @@ DecoderState::DecoderState( const KeyFrameHeader & header )
 	    QuantizerAdjustment( 1, header.update_segmentation ),
 	    QuantizerAdjustment( 2, header.update_segmentation ),
 	    QuantizerAdjustment( 3, header.update_segmentation ) }} ),
-    loop_filter( header ),
-  segment_loop_filters( {{ FilterParameters( 0, header, header.update_segmentation ),
-	  FilterParameters( 1, header, header.update_segmentation ),
-	  FilterParameters( 2, header, header.update_segmentation ),
-	  FilterParameters( 3, header, header.update_segmentation ) }} ),
+    segment_filter_adjustments( {{ SegmentFilterAdjustment( 0, header.update_segmentation ),
+	    SegmentFilterAdjustment( 1, header.update_segmentation ),
+	    SegmentFilterAdjustment( 2, header.update_segmentation ),
+	    SegmentFilterAdjustment( 3, header.update_segmentation ) }} ),
   loopfilter_ref_adjustments( {{ }} ),
   loopfilter_mode_adjustments( {{ }} ),
   y_mode_probs( k_default_y_mode_probs ),
@@ -104,9 +103,10 @@ static void assign( SafeArray< Probability, size > & dest, const Array< Unsigned
 
 void DecoderState::update( const InterFrameHeader & header )
 {
-  /* update per-segment quantizer adjustments */
-  for ( uint8_t i = 0; i < segment_quantizer_adjustments.size(); i++ ) {
+  /* update segment adjustments */
+  for ( uint8_t i = 0; i < num_segments; i++ ) {
     segment_quantizer_adjustments.at( i ).update( i, header.update_segmentation );
+    segment_filter_adjustments.at( i ).update( i, header.update_segmentation );
   }
 
   /* update intra-mode probabilities in inter macroblocks */

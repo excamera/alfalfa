@@ -12,16 +12,24 @@ static inline uint8_t clamp63( const int input )
   return input;
 }
 
-FilterParameters::FilterParameters( const KeyFrameHeader & header )
-  : type( header.filter_type ? LoopFilterType::Simple : LoopFilterType::Normal ),
-    filter_level( header.loop_filter_level ),
-    sharpness_level( header.sharpness_level )
+FilterParameters::FilterParameters( const bool use_simple_filter,
+				    const uint8_t s_filter_level,
+				    const uint8_t s_sharpness_level,
+				    const SegmentFilterAdjustment & segment_adjustment )
+  : type( use_simple_filter ? LoopFilterType::Simple : LoopFilterType::Normal ),
+    filter_level( segment_adjustment.value + segment_adjustment.absolute ? 0 : s_filter_level ),
+    sharpness_level( s_sharpness_level )
 {}
 
-FilterParameters::FilterParameters( const uint8_t segment_id,
-				    const KeyFrameHeader & header,
-				    const Optional< UpdateSegmentation > & update_segmentation )
-  : FilterParameters( header )
+SegmentFilterAdjustment::SegmentFilterAdjustment( const uint8_t segment_id,
+						  const Optional< UpdateSegmentation > & update_segmentation )
+  : absolute( false ), value( 0 )
+{
+  update( segment_id, update_segmentation );
+}
+
+void SegmentFilterAdjustment::update( const uint8_t segment_id,
+				      const Optional< UpdateSegmentation > & update_segmentation )
 {
   if ( update_segmentation.initialized()
        and update_segmentation.get().segment_feature_data.initialized() ) {
@@ -29,13 +37,11 @@ FilterParameters::FilterParameters( const uint8_t segment_id,
     const auto & update = feature_data.loop_filter_update.at( segment_id );
 
     if ( update.initialized() ) {
-      if ( feature_data.segment_feature_mode ) { /* absolute value */
-	if ( update.get() < 0 or update.get() > 63 ) {
-	  throw Invalid( "absolute loop-filter update with out-of-bounds value" );
-	}
-	filter_level = update.get();
-      } else { /* delta */
-	filter_level += update.get();
+      absolute = feature_data.segment_feature_mode;
+      value = update.get();
+
+      if ( absolute and (update.get() < 0 or update.get() > 63) ) {
+	throw Invalid( "absolute loop-filter update with out-of-bounds value" );
       }
     }
   }

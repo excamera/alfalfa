@@ -42,7 +42,10 @@ public:
 
   void intra_predict_and_inverse_transform( Raster::Macroblock & raster ) const;
 
-  void loopfilter( const DecoderState & decoder_state, Raster::Macroblock & raster ) const;  
+  void loopfilter( const DecoderState & decoder_state,
+		   const FilterParameters & frame_loopfilter,
+		   const SafeArray< FilterParameters, num_segments > & segment_loopfilters,
+		   Raster::Macroblock & raster ) const;
 };
 
 struct KeyFrameMacroblockHeader

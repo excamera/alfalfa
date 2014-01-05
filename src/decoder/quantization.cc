@@ -62,7 +62,8 @@ QuantizerAdjustment::QuantizerAdjustment( const uint8_t segment_id,
 }
 
 void QuantizerAdjustment::update( const uint8_t segment_id,
-				  const Optional< UpdateSegmentation > & update_segmentation ) {
+				  const Optional< UpdateSegmentation > & update_segmentation )
+{
   if ( update_segmentation.initialized()
        and update_segmentation.get().segment_feature_data.initialized() ) {
     const auto & feature_data = update_segmentation.get().segment_feature_data.get();

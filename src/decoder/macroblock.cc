@@ -213,14 +213,16 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::intra_predict_and_invers
 
 template <class FrameHeaderType, class MacroblockHeaderType>
 void Macroblock<FrameHeaderType, MacroblockHeaderType>::loopfilter( const DecoderState & decoder_state,
+								    const FilterParameters & frame_loopfilter,
+								    const SafeArray< FilterParameters, num_segments > & segment_loopfilters,
 								    Raster::Macroblock & raster ) const
 {
   const bool skip_subblock_edges = ( Y2_.prediction_mode() != B_PRED ) and ( not has_nonzero_ );
 
   /* which filter are we using? */
   FilterParameters filter_parameters( header_.segment_id.initialized()
-				      ? decoder_state.segment_loop_filters.at( header_.segment_id.get() )
-				      : decoder_state.loop_filter );
+				      ? segment_loopfilters.at( header_.segment_id.get() )
+				      : frame_loopfilter );
 
   filter_parameters.adjust( decoder_state.loopfilter_ref_adjustments,
 			    decoder_state.loopfilter_mode_adjustments,

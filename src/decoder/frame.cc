@@ -51,6 +51,20 @@ void Frame<FrameHeaderType, MacroblockType>::parse_tokens( const DecoderState & 
 template <class FrameHeaderType, class MacroblockType>
 void Frame<FrameHeaderType, MacroblockType>::decode( const DecoderState & decoder_state, Raster & raster ) const
 {
+  const FilterParameters frame_loopfilter( header_.filter_type,
+					   header_.loop_filter_level,
+					   header_.sharpness_level );
+
+  const SafeArray< FilterParameters, num_segments > segment_loopfilters =
+    {{ FilterParameters( header_.filter_type, header_.loop_filter_level, header_.sharpness_level,
+			 decoder_state.segment_filter_adjustments.at( 0 ) ),
+       FilterParameters( header_.filter_type, header_.loop_filter_level, header_.sharpness_level,
+			 decoder_state.segment_filter_adjustments.at( 1 ) ),
+       FilterParameters( header_.filter_type, header_.loop_filter_level, header_.sharpness_level,
+			 decoder_state.segment_filter_adjustments.at( 2 ) ),
+       FilterParameters( header_.filter_type, header_.loop_filter_level, header_.sharpness_level,
+			 decoder_state.segment_filter_adjustments.at( 3 ) ) }};
+
   /* process each macroblock */
   macroblock_headers_.get().forall_ij( [&]( const MacroblockType & macroblock,
 					    const unsigned int column,
@@ -61,7 +75,10 @@ void Frame<FrameHeaderType, MacroblockType>::decode( const DecoderState & decode
     macroblock_headers_.get().forall_ij( [&]( const MacroblockType & macroblock,
 					      const unsigned int column,
 					      const unsigned int row )
-					 { macroblock.loopfilter( decoder_state, raster.macroblock( column, row ) ); } );
+					 { macroblock.loopfilter( decoder_state,
+								  frame_loopfilter,
+								  segment_loopfilters,
+								  raster.macroblock( column, row ) ); } );
   }
 }
 
