@@ -50,7 +50,6 @@ DecoderState::DecoderState( const KeyFrameHeader & header )
   loopfilter_ref_adjustments( {{ }} ),
   loopfilter_mode_adjustments( {{ }} ),
   y_mode_probs( k_default_y_mode_probs ),
-  b_mode_probs( default_b_mode_probs ),
   uv_mode_probs( k_default_uv_mode_probs )
 {
   common_update( header );

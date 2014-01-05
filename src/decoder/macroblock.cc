@@ -83,7 +83,7 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 		 if ( Y2_.prediction_mode() == B_PRED ) {
 		   block.set_Y_without_Y2();
 		   block.set_prediction_mode( data.tree< num_intra_b_modes, bmode >( b_mode_tree,
-										     decoder_state.b_mode_probs ) );
+										     default_b_mode_probs ) );
 		 } else {
 		   block.set_prediction_mode( implied_subblock_mode( Y2_.prediction_mode() ) );
 		 }
