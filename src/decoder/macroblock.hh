@@ -13,6 +13,8 @@ template <class FrameHeaderType, class MacroblockHeaderType>
 class Macroblock
 {
 private:
+  typename TwoD< Macroblock >::Context context_;
+
   MacroblockHeaderType header_;
 
   Y2Block & Y2_;
@@ -24,6 +26,8 @@ private:
   bool has_nonzero_ { false };
 
   void decode_prediction_modes( BoolDecoder & data, const DecoderState & decoder_state );
+
+  const MotionVector & base_motion_vector( void );
 
 public:
   Macroblock( const typename TwoD< Macroblock >::Context & c,
@@ -69,6 +73,8 @@ struct InterFrameMacroblockHeader
   InterFrameMacroblockHeader( BoolDecoder & data,
 			      const InterFrameHeader & frame_header,
 			      const DecoderState & decoder_state );
+
+  reference_frame reference( void ) const;
 };
 
 using KeyFrameMacroblock = Macroblock< KeyFrameHeader, KeyFrameMacroblockHeader >;

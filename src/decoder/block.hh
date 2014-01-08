@@ -11,6 +11,8 @@ class Quantizer;
 
 enum BlockType { Y_after_Y2 = 0, Y2, UV, Y_without_Y2 };
 
+using MotionVector = std::pair< int16_t, int16_t >;
+
 template <BlockType initial_block_type, class PredictionMode>
 class Block
 {
@@ -26,6 +28,8 @@ private:
   bool coded_ { true };
 
   bool has_nonzero_ { false };
+
+  MotionVector motion_vector_ {};
 
 public:
   Block( const typename TwoD< Block >::Context & context )
@@ -71,6 +75,9 @@ public:
   void idct( Raster::Block4 & output ) const;
   void set_dc_coefficient( const int16_t & val );
   void dequantize( const Quantizer & quantizer );
+
+  const MotionVector & motion_vector( void ) { return motion_vector_; }
+  void set_motion_vector( const MotionVector & other ) { motion_vector_ = other; }
 };
 
 using Y2Block = Block< Y2, mbmode >;

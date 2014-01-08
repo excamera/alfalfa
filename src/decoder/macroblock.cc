@@ -1,4 +1,5 @@
 #include <vector>
+#include <list>
 
 #include "macroblock.hh"
 #include "decoder.hh"
@@ -31,7 +32,8 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
 							       TwoD< YBlock > & frame_Y,
 							       TwoD< UVBlock > & frame_U,
 							       TwoD< UVBlock > & frame_V )
-  : header_( data, frame_header, decoder_state ),
+  : context_( c ),
+    header_( data, frame_header, decoder_state ),
     Y2_( frame_Y2.at( c.column, c.row ) ),
     Y_( frame_Y, c.column * 4, c.row * 4 ),
     U_( frame_U, c.column * 2, c.row * 2 ),
@@ -69,6 +71,12 @@ void KeyFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 }
 
 template <>
+const MotionVector & InterFrameMacroblock::base_motion_vector( void )
+{
+  return Y_.at( 3, 3 ).motion_vector();
+}
+
+template <>
 void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 						    const DecoderState & decoder_state )
 {
@@ -92,6 +100,8 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
     /* Set chroma prediction modes */
     U_.at( 0, 0 ).set_prediction_mode( data.tree< num_uv_modes, mbmode >( uv_mode_tree,
 									  decoder_state.uv_mode_probs ) );
+  } else {
+    /* motion-vector "census" */
   }
 }
 
@@ -250,6 +260,23 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::loopfilter( const Decode
   default:
     assert( false );
   }
+}
+
+reference_frame InterFrameMacroblockHeader::reference( void ) const
+{
+  if ( not is_inter_mb ) {
+    return CURRENT_FRAME;
+  }
+
+  if ( not mb_ref_frame_sel1.get() ) {
+    return LAST_FRAME;
+  }
+
+  if ( not mb_ref_frame_sel2.get() ) {
+    return GOLDEN_FRAME;
+  }
+
+  return ALTREF_FRAME;
 }
 
 template class Macroblock< KeyFrameHeader, KeyFrameMacroblockHeader >;
