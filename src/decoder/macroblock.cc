@@ -183,7 +183,25 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
     census.add( 1, context_.above_left );
     census.calculate();
 
-    const auto mode_contexts = census.mode_contexts();
+    const auto counts = census.mode_contexts();
+
+    /* census determines lookups into fixed probability table */
+    const ProbabilityArray< 5 > mv_ref_probs = {{ mv_counts_to_probs.at( counts.at( 0 ) ).at( 0 ),
+						  mv_counts_to_probs.at( counts.at( 1 ) ).at( 1 ),
+						  mv_counts_to_probs.at( counts.at( 2 ) ).at( 2 ),
+						  mv_counts_to_probs.at( counts.at( 3 ) ).at( 3 ) }};
+
+    Y2_.set_prediction_mode( data.tree< 5, mbmode >( mv_ref_tree, mv_ref_probs ) );
+    Y2_.set_if_coded();
+
+    /*
+    const int bound_left = 
+
+    switch ( Y2_.prediction_mode() ) {
+    case NEARESTMV:
+      Y2_.set_motion_vector( census.nearest( 
+    }
+    */
   }
 }
 

@@ -59,7 +59,7 @@ public:
   {
     static_assert( initial_block_type == Y2,
 		   "set_if_coded attempted on non-Y2 coded block" );
-    if ( prediction_mode_ == B_PRED ) {
+    if ( (prediction_mode_ == B_PRED) or (prediction_mode_ == SPLITMV) ) {
       coded_ = false;
     }
   }
