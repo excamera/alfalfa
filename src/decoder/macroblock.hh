@@ -21,13 +21,11 @@ private:
   TwoDSubRange< YBlock, 4, 4 > Y_;
   TwoDSubRange< UVBlock, 2, 2 > U_, V_;
 
-  const mbmode & uv_prediction_mode( void ) const { return U_.at( 0, 0 ).prediction_mode(); }
-
   bool has_nonzero_ { false };
 
-  void decode_prediction_modes( BoolDecoder & data, const DecoderState & decoder_state );
-
-  const MotionVector & base_motion_vector( void );
+  void decode_prediction_modes( BoolDecoder & data,
+				const DecoderState & decoder_state,
+				const FrameHeaderType & frame_header );
 
 public:
   Macroblock( const typename TwoD< Macroblock >::Context & c,
@@ -50,6 +48,12 @@ public:
 		   const FilterParameters & frame_loopfilter,
 		   const SafeArray< FilterParameters, num_segments > & segment_loopfilters,
 		   Raster::Macroblock & raster ) const;
+
+  const MacroblockHeaderType & header( void ) const { return header_; }
+  const MotionVector & base_motion_vector( void ) const;
+
+  const mbmode & uv_prediction_mode( void ) const { return U_.at( 0, 0 ).prediction_mode(); }
+  const mbmode & y_prediction_mode( void ) const { return Y2_.prediction_mode(); }
 };
 
 struct KeyFrameMacroblockHeader
@@ -69,6 +73,8 @@ struct InterFrameMacroblockHeader
   Boolean is_inter_mb;
   Optional< Boolean > mb_ref_frame_sel1;
   Optional< Boolean > mb_ref_frame_sel2;
+
+  bool motion_vectors_flipped_; /* derived quantity */
 
   InterFrameMacroblockHeader( BoolDecoder & data,
 			      const InterFrameHeader & frame_header,

@@ -1,5 +1,5 @@
 #include <vector>
-#include <list>
+#include <algorithm>
 
 #include "macroblock.hh"
 #include "decoder.hh"
@@ -39,12 +39,13 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
     U_( frame_U, c.column * 2, c.row * 2 ),
     V_( frame_V, c.column * 2, c.row * 2 )
 {
-  decode_prediction_modes( data, decoder_state );
+  decode_prediction_modes( data, decoder_state, frame_header );
 }
 
 template <>
 void KeyFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
-						  const DecoderState & decoder_state __attribute((unused)) )
+						  const DecoderState &,
+						  const KeyFrameHeader & )
 {
   /* Set Y prediction mode */
   Y2_.set_prediction_mode( data.tree< num_y_modes, mbmode >( kf_y_mode_tree, kf_y_mode_probs ) );
@@ -71,14 +72,88 @@ void KeyFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 }
 
 template <>
-const MotionVector & InterFrameMacroblock::base_motion_vector( void )
+const MotionVector & InterFrameMacroblock::base_motion_vector( void ) const
 {
   return Y_.at( 3, 3 ).motion_vector();
 }
 
+class Scorer
+{
+private:
+  typedef pair< uint8_t, MotionVector > ScoredMV;
+
+  vector< ScoredMV > scores_ {};
+  uint8_t splitmv_score_ {};
+  ScoredMV best_ {}, nearest_ {}, near_ {};
+  bool motion_vectors_flipped_;
+
+  void add( const uint8_t score, const MotionVector & mv )
+  {
+    for ( auto & x : scores_ ) {
+      if ( mv == x.second ) {
+	x.first += score;
+	return;
+      }
+    }
+
+    scores_.emplace_back( score, mv );
+  }
+
+public:
+  Scorer( const bool motion_vectors_flipped ) : motion_vectors_flipped_( motion_vectors_flipped ) {}
+
+  void add( const uint8_t score, const Optional< const InterFrameMacroblock * > & mb )
+  {
+    if ( mb.initialized() ) {
+      if ( mb.get()->header().is_inter_mb ) {
+	MotionVector mv = mb.get()->base_motion_vector();
+	if ( mb.get()->header().motion_vectors_flipped_ != motion_vectors_flipped_ ) {
+	  mv = { -mv.first, -mv.second };
+	}
+	add( score, mv );
+	if ( mb.get()->y_prediction_mode() == SPLITMV ) {
+	  splitmv_score_ += score;
+	}
+      }
+    } else {
+      add( score, MotionVector() );
+    }
+  }
+
+  void calculate( void )
+  {
+    std::sort( scores_.begin(), scores_.end(),
+	       [] ( const ScoredMV & a,
+		    const ScoredMV & b )
+	       { return a.first > b.first; } );
+
+    while ( scores_.size() < 3 ) {
+      scores_.emplace_back();
+    }
+
+    /* best */
+    best_ = scores_.at( 0 );
+
+    /* nearest and near must be nonzero */
+    if ( scores_.at( 0 ).second == MotionVector() ) {
+      nearest_ = scores_.at( 1 );
+      near_ = scores_.at( 2 );
+    } else {
+      nearest_ = scores_.at( 0 );
+      near_ = scores_.at( 1 );
+    }
+  }
+
+  SafeArray< uint8_t, 4 > mode_contexts( void ) const
+  {
+    return { best_.first, nearest_.first, near_.first, splitmv_score_ };
+  }
+};
+
 template <>
 void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
-						    const DecoderState & decoder_state )
+						    const DecoderState & decoder_state,
+						    const InterFrameHeader &  )
 {
   if ( not header_.is_inter_mb ) {
     /* Set Y prediction mode */
@@ -102,6 +177,13 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 									  decoder_state.uv_mode_probs ) );
   } else {
     /* motion-vector "census" */
+    Scorer census( header_.motion_vectors_flipped_ );
+    census.add( 2, context_.above );
+    census.add( 2, context_.left );
+    census.add( 1, context_.above_left );
+    census.calculate();
+
+    const auto mode_contexts = census.mode_contexts();
   }
 }
 
@@ -125,7 +207,9 @@ InterFrameMacroblockHeader::InterFrameMacroblockHeader( BoolDecoder & data,
 		   data, frame_header.prob_skip_false.get() ),
     is_inter_mb( data, frame_header.prob_inter ),
     mb_ref_frame_sel1( is_inter_mb, data, frame_header.prob_references_last ),
-    mb_ref_frame_sel2( mb_ref_frame_sel1.get_or( false ), data, frame_header.prob_references_golden )
+  mb_ref_frame_sel2( mb_ref_frame_sel1.get_or( false ), data, frame_header.prob_references_golden ),
+  motion_vectors_flipped_( ( (reference() == GOLDEN_FRAME) and (frame_header.sign_bias_golden) )
+			   or ( (reference() == ALTREF_FRAME) and (frame_header.sign_bias_alternate) ) )
 {}
 
 template <class FrameHeaderType, class MacroblockHeaderType>

@@ -76,7 +76,7 @@ public:
   void set_dc_coefficient( const int16_t & val );
   void dequantize( const Quantizer & quantizer );
 
-  const MotionVector & motion_vector( void ) { return motion_vector_; }
+  const MotionVector & motion_vector( void ) const { return motion_vector_; }
   void set_motion_vector( const MotionVector & other ) { motion_vector_ = other; }
 };
 
