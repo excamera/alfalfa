@@ -28,4 +28,8 @@ const extern ProbabilityArray< num_y_modes > k_default_y_mode_probs;
 
 const extern ProbabilityArray< num_uv_modes > k_default_uv_mode_probs;
 
+const extern SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > k_mv_entropy_update_probs;
+
+const extern SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > k_default_mv_probs;
+
 #endif /* VP8_PROB_DATA_HH */

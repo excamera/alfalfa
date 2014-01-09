@@ -128,7 +128,7 @@ struct InterFrameHeader
   Unsigned<8> prob_references_golden;
   Flagged< Array< Unsigned<8>, 4 > > intra_16x16_prob;
   Flagged< Array< Unsigned<8>, 3 > > intra_chroma_prob;
-  Array< Array< Flagged< Unsigned<7> >, 19 >, 2 > mv_prob_update;
+  Array< Array< Flagged< Unsigned<7> >, MV_PROB_CNT >, 2 > mv_prob_update;
 
   InterFrameHeader( BoolDecoder & data )
     : update_segmentation( data ), filter_type( data ),

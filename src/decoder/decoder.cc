@@ -48,7 +48,8 @@ DecoderState::DecoderState( const KeyFrameHeader & header )
   loopfilter_ref_adjustments( {{ }} ),
   loopfilter_mode_adjustments( {{ }} ),
   y_mode_probs( k_default_y_mode_probs ),
-  uv_mode_probs( k_default_uv_mode_probs )
+  uv_mode_probs( k_default_uv_mode_probs ),
+  motion_vector_probs( k_default_mv_probs )
 {
   common_update( header );
 }
@@ -113,6 +114,16 @@ void DecoderState::update( const InterFrameHeader & header )
 
   if ( header.intra_chroma_prob.initialized() ) {
     assign( uv_mode_probs, header.intra_chroma_prob.get() );
+  }
+
+  /* update motion vector component probabilities */
+  for ( uint8_t i = 0; i < header.mv_prob_update.size(); i++ ) {
+    for ( uint8_t j = 0; j < header.mv_prob_update.at( i ).size(); j++ ) {
+      const auto & prob = header.mv_prob_update.at( i ).at( j );
+      if ( prob.initialized() ) {
+	motion_vector_probs.at( i ).at( j ) = prob.get();
+      }
+    }
   }
 
   common_update( header );

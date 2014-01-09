@@ -5,13 +5,12 @@
 #include "2d.hh"
 #include "raster.hh"
 #include "safe_array.hh"
+#include "vp8_header_structures.hh"
 
 class DecoderState;
 class Quantizer;
 
 enum BlockType { Y_after_Y2 = 0, Y2, UV, Y_without_Y2 };
-
-using MotionVector = std::pair< int16_t, int16_t >;
 
 template <BlockType initial_block_type, class PredictionMode>
 class Block
@@ -76,8 +75,20 @@ public:
   void set_dc_coefficient( const int16_t & val );
   void dequantize( const Quantizer & quantizer );
 
-  const MotionVector & motion_vector( void ) const { return motion_vector_; }
-  void set_motion_vector( const MotionVector & other ) { motion_vector_ = other; }
+  const MotionVector & motion_vector( void ) const
+  {
+    static_assert( initial_block_type != Y2, "Y2 blocks do not have motion vectors" );
+    return motion_vector_;
+  }
+
+  void set_motion_vector( const MotionVector & other )
+  {
+    static_assert( initial_block_type != Y2, "Y2 blocks do not have motion vectors" );
+    motion_vector_ = other;
+  }
+
+  void read_subblock_inter_prediction( BoolDecoder & data, const MotionVector & best_mv,
+				       const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > & motion_vector_probs );
 };
 
 using Y2Block = Block< Y2, mbmode >;

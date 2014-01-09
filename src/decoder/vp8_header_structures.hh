@@ -6,6 +6,7 @@
 
 #include "optional.hh"
 #include "bool_decoder.hh"
+#include "vp8_prob_data.hh"
 
 template <int width>
 class Unsigned
@@ -145,6 +146,35 @@ public:
   Tree( const enumeration & x ) : value_( x ) {}
 
   operator const enumeration & () const { return value_; }
+};
+
+class MotionVector
+{
+private:
+  int16_t y_, x_; /* y is sent before x in the bitstream */
+
+  static int16_t read_component( BoolDecoder & data,
+				 const SafeArray< Probability, MV_PROB_CNT > & component_probs );
+
+public:
+  MotionVector() : y_(), x_() {}
+  MotionVector( const int16_t x, const int16_t y ) : y_( y ), x_( x ) {};
+
+  const int16_t & x( void ) const { return x_; }
+  const int16_t & y( void ) const { return y_; }
+
+  bool operator==( const MotionVector & other ) const { return x_ == other.x_ and y_ == other.y_; }
+  void operator+=( const MotionVector & other ) { x_ += other.x_; y_ += other.y_; }
+
+  MotionVector operator-() const { return MotionVector( -x(), -y() ); }
+
+  MotionVector( BoolDecoder & data,
+		const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > & motion_vector_probs );
+
+  void clamp( const int16_t to_left, const int16_t to_right,
+	      const int16_t to_top, const int16_t to_bottom );
+
+  bool empty( void ) const { return x_ == 0 and y_ == 0; }
 };
 
 #endif /* VP8_HEADER_STRUCTURES_HH */

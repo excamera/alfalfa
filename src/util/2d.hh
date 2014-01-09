@@ -18,10 +18,14 @@ public:
   struct Context
   {
     unsigned int column, row;
+    unsigned int width, height;
     Optional< const T * > left, above_left, above, above_right;
 
-    Context( const unsigned int s_column, const unsigned int s_row, const TwoD & self )
+    Context( const unsigned int s_column, const unsigned int s_row,
+	     const unsigned int width, const unsigned int height,
+	     const TwoD & self )
       : column( s_column ), row( s_row ),
+	width( width ), height( height ),
 	left(        self.maybe_at( column - 1, row ) ),
 	above_left(  self.maybe_at( column - 1, row - 1 ) ),
 	above(       self.maybe_at( column,     row - 1 ) ),
@@ -41,7 +45,7 @@ public:
     /* we want to construct each member separately */
     for ( unsigned int row = 0; row < height; row++ ) {
       for ( unsigned int column = 0; column < width; column++ ) {
-	const Context c( column, row, *this );
+	const Context c( column, row, width, height, *this );
 	storage_.emplace_back( c, Fargs... );
       }
     }

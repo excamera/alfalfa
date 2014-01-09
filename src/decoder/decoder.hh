@@ -31,6 +31,8 @@ struct DecoderState
   ProbabilityArray< num_y_modes > y_mode_probs;
   ProbabilityArray< num_uv_modes > uv_mode_probs;
 
+  SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > motion_vector_probs;
+
   DecoderState( const KeyFrameHeader & header );
 
   template <class HeaderType>

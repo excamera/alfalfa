@@ -357,7 +357,7 @@ const SafeArray< SafeArray< SafeArray< SafeArray< Probability,
     }}
 }};
 
-const SafeArray< SafeArray< uint8_t, MV_PROB_CNT >, 2 > k_mv_entropy_update_probs =
+const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > k_mv_entropy_update_probs =
 {{
     {{
         237,
@@ -373,7 +373,7 @@ const SafeArray< SafeArray< uint8_t, MV_PROB_CNT >, 2 > k_mv_entropy_update_prob
     }}
 }};
 
-const SafeArray< SafeArray< uint8_t, MV_PROB_CNT >, 2 > k_default_mv_probs =
+const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > k_default_mv_probs =
 {{
     {{                                                    /* row */
         162,                                             /* is short */

@@ -71,6 +71,13 @@ void KeyFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
   U_.at( 0, 0 ).set_prediction_mode( data.tree< num_uv_modes, mbmode >( uv_mode_tree, kf_uv_mode_probs ) );
 }
 
+
+template <>
+void InterFrameMacroblock::set_base_motion_vector( const MotionVector & mv )
+{
+  Y_.at( 3, 3 ).set_motion_vector( mv );
+}
+
 template <>
 const MotionVector & InterFrameMacroblock::base_motion_vector( void ) const
 {
@@ -102,13 +109,17 @@ private:
 public:
   Scorer( const bool motion_vectors_flipped ) : motion_vectors_flipped_( motion_vectors_flipped ) {}
 
+  const MotionVector & best( void ) const { return best_.second; }
+  const MotionVector & nearest( void ) const { return nearest_.second; }
+  const MotionVector & near( void ) const { return near_.second; }
+
   void add( const uint8_t score, const Optional< const InterFrameMacroblock * > & mb )
   {
     if ( mb.initialized() ) {
       if ( mb.get()->header().is_inter_mb ) {
 	MotionVector mv = mb.get()->base_motion_vector();
 	if ( mb.get()->header().motion_vectors_flipped_ != motion_vectors_flipped_ ) {
-	  mv = { -mv.first, -mv.second };
+	  mv = -mv;
 	}
 	add( score, mv );
 	if ( mb.get()->y_prediction_mode() == SPLITMV ) {
@@ -135,7 +146,7 @@ public:
     best_ = scores_.at( 0 );
 
     /* nearest and near must be nonzero */
-    if ( scores_.at( 0 ).second == MotionVector() ) {
+    if ( scores_.at( 0 ).second.empty() ) {
       nearest_ = scores_.at( 1 );
       near_ = scores_.at( 2 );
     } else {
@@ -149,6 +160,118 @@ public:
     return { best_.first, nearest_.first, near_.first, splitmv_score_ };
   }
 };
+
+void MotionVector::clamp( const int16_t to_left, const int16_t to_right,
+			  const int16_t to_top, const int16_t to_bottom )
+{
+  x_ = min( max( x_, to_left ), to_right );
+  y_ = min( max( y_, to_top ), to_bottom );
+}
+
+MotionVector clamp( const MotionVector & mv, const typename TwoD< InterFrameMacroblock >::Context & c )
+{
+  MotionVector ret( mv );
+
+  const int16_t to_left = -((c.column * 16) << 3) - 128;
+  const int16_t to_right = (((c.width - 1 - c.column) * 16) << 3) + 128;
+  const int16_t to_top = (-((c.row * 16)) << 3) - 128;
+  const int16_t to_bottom = (((c.height - 1 - c.row) * 16) << 3) + 128;
+
+  ret.clamp( to_left, to_right, to_top, to_bottom );
+
+  return ret;
+}
+
+/* Taken from libvpx dixie read_mv_component() */
+int16_t MotionVector::read_component( BoolDecoder & data,
+				      const SafeArray< Probability, MV_PROB_CNT > & component_probs )
+{
+  enum { IS_SHORT, SIGN, SHORT, BITS = SHORT + 8 - 1, LONG_WIDTH = 10 };
+  int16_t x = 0;
+
+  if ( data.get( component_probs.at( IS_SHORT ) ) ) { /* Large */
+    for ( uint8_t i = 0; i < 3; i++ ) {
+      x += data.get( component_probs.at( BITS + i ) ) << i;
+    }
+
+    /* Skip bit 3, which is sometimes implicit */
+    for ( uint8_t i = LONG_WIDTH - 1; i > 3; i-- ) {
+      x += data.get( component_probs.at( BITS + i ) ) << i;
+    }
+
+    if ( !(x & 0xFFF0) or data.get( component_probs.at( BITS + 3 ) ) ) {
+      x += 8;
+    }
+  } else {  /* small */
+    const ProbabilityArray< 8 > & small_mv_probs = component_probs.slice<SHORT, 7>();
+
+    x = data.tree< 8, uint8_t >( small_mv_tree, small_mv_probs );
+  }
+
+  if ( x && data.get( component_probs.at( SIGN ) ) ) {
+    x = -x;
+  }
+
+  return x << 1;
+}
+
+template <>
+void YBlock::read_subblock_inter_prediction( BoolDecoder & data,
+					     const MotionVector & best_mv,
+					     const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > & motion_vector_probs )
+{
+  const MotionVector default_mv;
+
+  const MotionVector & left_mv = context().left.initialized() ? context().left.get()->motion_vector() : default_mv;
+
+  const MotionVector & above_mv = context().above.initialized() ? context().above.get()->motion_vector() : default_mv;
+
+  const bool left_is_zero = left_mv.empty();
+  const bool above_is_zero = above_mv.empty();
+  const bool left_eq_above = left_mv == above_mv;
+
+  uint8_t submv_ref_index = 0;
+
+  if ( left_eq_above and left_is_zero ) {
+    submv_ref_index = 4;
+  } else if ( left_eq_above ) {
+    submv_ref_index = 3;
+  } else if ( above_is_zero ) {
+    submv_ref_index = 2;
+  } else if ( left_is_zero ) {
+    submv_ref_index = 1;
+  }
+
+  prediction_mode_ = data.tree< num_inter_b_modes, bmode >( submv_ref_tree,
+							    submv_ref_probs2.at( submv_ref_index ) );
+
+  switch ( prediction_mode_ ) {
+  case LEFT4X4:
+    motion_vector_ = left_mv;
+    break;
+  case ABOVE4X4:
+    motion_vector_ = above_mv;
+    break;
+  case ZERO4X4: /* zero by default */
+    break;
+  case NEW4X4:
+    {
+      MotionVector new_mv( data, motion_vector_probs );
+      new_mv += best_mv;
+      motion_vector_ = new_mv;
+    }
+    break;
+  default:
+    assert( false );
+    break;
+  }
+}
+
+MotionVector::MotionVector( BoolDecoder & data,
+			    const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > & motion_vector_probs )
+  : y_( read_component( data, motion_vector_probs.at( 0 ) ) ),
+    x_( read_component( data, motion_vector_probs.at( 1 ) ) )
+{}
 
 template <>
 void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
@@ -194,14 +317,61 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
     Y2_.set_prediction_mode( data.tree< 5, mbmode >( mv_ref_tree, mv_ref_probs ) );
     Y2_.set_if_coded();
 
-    /*
-    const int bound_left = 
-
     switch ( Y2_.prediction_mode() ) {
     case NEARESTMV:
-      Y2_.set_motion_vector( census.nearest( 
+      set_base_motion_vector( clamp( census.nearest(), context_ ) );
+      break;
+    case NEARMV:
+      set_base_motion_vector( clamp( census.near(), context_ ) );
+      break;
+    case ZEROMV:
+      set_base_motion_vector( MotionVector() );
+      break;
+    case NEWMV:
+      {
+	MotionVector new_mv( data, decoder_state.motion_vector_probs );
+	new_mv += clamp( census.best(), context_ );
+	set_base_motion_vector( new_mv );
+      }
+      break;
+    case SPLITMV:
+      {
+	const uint8_t partition_id = data.tree< 4, uint8_t >( split_mv_tree, split_mv_probs );
+	const SafeArray< uint8_t, 16 > & partition = mv_partitions.at( partition_id );
+
+	for ( uint8_t partition_num = 0; partition_num < partition.last(); partition_num++ ) {
+	  /* find the first sublock in the partition */
+	  for ( uint8_t subblock_num = 0; subblock_num < Y_.width() * Y_.height(); subblock_num++ ) {
+	    if ( partition.at( subblock_num ) == partition_num ) {
+	      /* decode the motion vector */
+	      YBlock & subblock = Y_.at( subblock_num % Y_.width(), subblock_num / Y_.width() );
+	      subblock.read_subblock_inter_prediction( data,
+						       clamp( census.best(), context_ ),
+						       decoder_state.motion_vector_probs );
+
+	      /* fill in the rest of the matching subblocks */
+	      for ( uint8_t new_subblock_num = subblock_num + 1;
+		    new_subblock_num < Y_.width() * Y_.height();
+		    new_subblock_num++ ) {
+		if ( partition.at( new_subblock_num ) == partition_num ) {
+		  YBlock & new_subblock = Y_.at( new_subblock_num % Y_.width(),
+						 new_subblock_num / Y_.width() );
+		  new_subblock.set_prediction_mode( subblock.prediction_mode() );
+		  new_subblock.set_motion_vector( subblock.motion_vector() );
+		}
+	      }
+	    }
+	  }
+	}
+
+	/* set chroma motion vectors */
+	/* XXX */
+      }
+      break;
+    default:
+      assert( false );
+      break;
     }
-    */
   }
 }
 

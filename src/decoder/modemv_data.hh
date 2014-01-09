@@ -13,6 +13,7 @@ enum bmode { B_DC_PRED, B_TM_PRED, B_VE_PRED, B_HE_PRED, B_LD_PRED,
 	     B_RD_PRED, B_VR_PRED, B_VL_PRED, B_HD_PRED, B_HU_PRED,
 	     LEFT4X4, ABOVE4X4, ZERO4X4, NEW4X4 };
 const unsigned int num_intra_b_modes = B_HU_PRED + 1;
+const unsigned int num_inter_b_modes = NEW4X4 - B_HU_PRED;
 
 enum reference_frame { CURRENT_FRAME, LAST_FRAME, GOLDEN_FRAME, ALTREF_FRAME };
 const unsigned int num_reference_frames = ALTREF_FRAME + 1;
@@ -46,9 +47,9 @@ const extern SafeArray< SafeArray< Probability, 4 >, 6 > mv_counts_to_probs;
 
 const extern ProbabilityArray< 4 > split_mv_probs;
 
-const extern SafeArray< SafeArray< Probability, 3 >, 5 > submv_ref_probs2;
+const extern SafeArray< ProbabilityArray< 4 >, 5 > submv_ref_probs2;
 
-const extern SafeArray< SafeArray< Probability, 16 >, 4 > mv_partitions;
+const extern SafeArray< SafeArray< uint8_t, 16 >, 4 > mv_partitions;
 
 const unsigned int num_segments = 4;
 

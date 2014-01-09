@@ -27,6 +27,8 @@ private:
 				const DecoderState & decoder_state,
 				const FrameHeaderType & frame_header );
 
+  void set_base_motion_vector( const MotionVector & mv );
+
 public:
   Macroblock( const typename TwoD< Macroblock >::Context & c,
 	      BoolDecoder & data,

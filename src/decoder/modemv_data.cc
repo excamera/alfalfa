@@ -203,29 +203,27 @@ const TreeArray< 4 > split_mv_tree =
 const ProbabilityArray< num_intra_b_modes > invariant_b_mode_probs = {{ 120,  90,  79, 133,  87,  85,  80, 111, 151}};
 
 const extern SafeArray< SafeArray< Probability, 4 >, 6 > mv_counts_to_probs =
-{{{{ 7,   1,   1, 143 }},
-  {{  14,  18,  14, 107 }},
-  {{ 135,  64,  57,  68 }},
-  {{  60,  56, 128,  65 }},
-  {{ 159, 134, 128,  34 }},
-  {{ 234, 188, 128,  28 }}}};
+  {{{{   7,   1,   1, 143 }},
+    {{  14,  18,  14, 107 }},
+    {{ 135,  64,  57,  68 }},
+    {{  60,  56, 128,  65 }},
+    {{ 159, 134, 128,  34 }},
+    {{ 234, 188, 128,  28 }}}};
 
-/*
-const array< uint8_t, 3 > split_mv_probs {{ 110, 111, 150}};
+const ProbabilityArray< 4 > split_mv_probs = {{ 110, 111, 150 }};
 
-const array< array< uint8_t, 3 >, 5 > split_mv_probs2
-{{{{ 147, 136, 18 }},
-  {{ 106, 145,  1 }},
-  {{ 179, 121,  1 }},
-  {{ 223,   1, 34 }},
-  {{ 208,   1,  1 }}}};
+const extern SafeArray< ProbabilityArray< 4 >, 5 > submv_ref_probs2 =
+  {{{{ 147, 136, 18 }},
+    {{ 106, 145,  1 }},
+    {{ 179, 121,  1 }},
+    {{ 223,   1, 34 }},
+    {{ 208,   1,  1 }}}};
 
-const array< array< uint8_t, 16 >, 4 > mv_partitions
-{{{{0, 0, 0, 0, 0, 0, 0, 0, 1, 1,  1,  1,  1,  1,  1,  1 }},
-  {{0, 0, 1, 1, 0, 0, 1, 1, 0, 0,  1,  1,  0,  0,  1,  1 }},
-  {{0, 0, 1, 1, 0, 0, 1, 1, 2, 2,  3,  3,  2,  2,  3,  3 }},
-  {{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }};
-*/
+const extern SafeArray< SafeArray< uint8_t, 16 >, 4 > mv_partitions =
+  {{{{0, 0, 0, 0, 0, 0, 0, 0, 1, 1,  1,  1,  1,  1,  1,  1 }},
+    {{0, 0, 1, 1, 0, 0, 1, 1, 0, 0,  1,  1,  0,  0,  1,  1 }},
+    {{0, 0, 1, 1, 0, 0, 1, 1, 2, 2,  3,  3,  2,  2,  3,  3 }},
+    {{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }}}};
 
 /* not in original modemv_data.h */
 const TreeArray< num_segments > segment_id_tree = {{ 2, 4, -0, -1, -2, -3 }};
