@@ -44,7 +44,7 @@ public:
   void dequantize( const Quantizer & frame_quantizer,
 		   const SafeArray< Quantizer, num_segments > & segment_quantizers );
 
-  void intra_predict_and_inverse_transform( Raster::Macroblock & raster ) const;
+  void predict_and_inverse_transform( Raster::Macroblock & raster ) const;
 
   void loopfilter( const DecoderState & decoder_state,
 		   const FilterParameters & frame_loopfilter,
@@ -56,6 +56,8 @@ public:
 
   const mbmode & uv_prediction_mode( void ) const { return U_.at( 0, 0 ).prediction_mode(); }
   const mbmode & y_prediction_mode( void ) const { return Y2_.prediction_mode(); }
+
+  bool inter_coded( void ) const;
 };
 
 struct KeyFrameMacroblockHeader

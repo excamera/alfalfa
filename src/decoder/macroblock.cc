@@ -452,9 +452,25 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::dequantize( const Quanti
   V_.forall( [&] ( UVBlock & block ) { block.dequantize( the_quantizer ); } );
 }
 
-template <class FrameHeaderType, class MacroblockHeaderType>
-void Macroblock<FrameHeaderType, MacroblockHeaderType>::intra_predict_and_inverse_transform( Raster::Macroblock & raster ) const
+template <>
+bool KeyFrameMacroblock::inter_coded( void ) const
 {
+  return false;
+}
+
+template <>
+bool InterFrameMacroblock::inter_coded( void ) const
+{
+  return header_.is_inter_mb;
+}
+
+template <class FrameHeaderType, class MacroblockHeaderType>
+void Macroblock<FrameHeaderType, MacroblockHeaderType>::predict_and_inverse_transform( Raster::Macroblock & raster ) const
+{
+  if ( inter_coded() ) {
+    return;
+  }
+
   const bool do_idct = has_nonzero_;
 
   /* Chroma */

@@ -69,7 +69,7 @@ void Frame<FrameHeaderType, MacroblockType>::decode( const DecoderState & decode
   macroblock_headers_.get().forall_ij( [&]( const MacroblockType & macroblock,
 					    const unsigned int column,
 					    const unsigned int row )
-				       { macroblock.intra_predict_and_inverse_transform( raster.macroblock( column, row ) ); } );
+				       { macroblock.predict_and_inverse_transform( raster.macroblock( column, row ) ); } );
 
   if ( header_.loop_filter_level ) {
     macroblock_headers_.get().forall_ij( [&]( const MacroblockType & macroblock,
