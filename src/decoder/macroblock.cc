@@ -510,7 +510,7 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::loopfilter( const Decode
 								    const SafeArray< FilterParameters, num_segments > & segment_loopfilters,
 								    Raster::Macroblock & raster ) const
 {
-  const bool skip_subblock_edges = ( Y2_.prediction_mode() != B_PRED ) and ( not has_nonzero_ );
+  const bool skip_subblock_edges = Y2_.coded() and ( not has_nonzero_ );
 
   /* which filter are we using? */
   FilterParameters filter_parameters( header_.segment_id.initialized()

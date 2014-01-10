@@ -96,7 +96,7 @@ void Frame<FrameHeaderType, MacroblockType>::relink_y2_blocks( void )
   Y2_.forall_ij( [&]( Y2Block & block, const unsigned int column, const unsigned int row ) {
       block.set_above( above_coded.at( column ) );
       block.set_left( left_coded.at( row ) );
-      if ( block.prediction_mode() != B_PRED ) {
+      if ( block.coded() ) {
 	above_coded.at( column ) = &block;
 	left_coded.at( row ) = &block;
       }
