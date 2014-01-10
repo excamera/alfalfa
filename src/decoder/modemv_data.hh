@@ -1,6 +1,8 @@
 #ifndef MODEMV_DATA_HH
 #define MODEMV_DATA_HH
 
+#include <vector>
+
 #include "safe_array.hh"
 #include "bool_decoder.hh"
 
@@ -49,7 +51,7 @@ const extern ProbabilityArray< 4 > split_mv_probs;
 
 const extern SafeArray< ProbabilityArray< 4 >, 5 > submv_ref_probs2;
 
-const extern SafeArray< SafeArray< uint8_t, 16 >, 4 > mv_partitions;
+const extern SafeArray< std::vector< std::vector< std::pair< uint8_t, uint8_t > > >, 4 > mv_partitions;
 
 const unsigned int num_segments = 4;
 

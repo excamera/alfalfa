@@ -260,6 +260,7 @@ void YBlock::read_subblock_inter_prediction( BoolDecoder & data,
     motion_vector_ = above_mv;
     break;
   case ZERO4X4: /* zero by default */
+    assert( motion_vector_.empty() );
     break;
   case NEW4X4:
     {
@@ -344,30 +345,22 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
     case SPLITMV:
       {
 	const uint8_t partition_id = data.tree< 4, uint8_t >( split_mv_tree, split_mv_probs );
-	const SafeArray< uint8_t, 16 > & partition = mv_partitions.at( partition_id );
+	const auto & partition_scheme = mv_partitions.at( partition_id );
 
-	for ( uint8_t partition_num = 0; partition_num < partition.last(); partition_num++ ) {
-	  /* find the first sublock in the partition */
-	  for ( uint8_t subblock_num = 0; subblock_num < Y_.width() * Y_.height(); subblock_num++ ) {
-	    if ( partition.at( subblock_num ) == partition_num ) {
-	      /* decode the motion vector */
-	      YBlock & subblock = Y_.at( subblock_num % Y_.width(), subblock_num / Y_.width() );
-	      subblock.read_subblock_inter_prediction( data,
-						       clamp( census.best(), context_ ),
-						       decoder_state.motion_vector_probs );
+	for ( const auto & this_partition : partition_scheme ) {
+	  YBlock & first_subblock = Y_.at( this_partition.front().first,
+					   this_partition.front().second );
 
-	      /* fill in the rest of the matching subblocks */
-	      for ( uint8_t new_subblock_num = subblock_num + 1;
-		    new_subblock_num < Y_.width() * Y_.height();
-		    new_subblock_num++ ) {
-		if ( partition.at( new_subblock_num ) == partition_num ) {
-		  YBlock & new_subblock = Y_.at( new_subblock_num % Y_.width(),
-						 new_subblock_num / Y_.width() );
-		  new_subblock.set_prediction_mode( subblock.prediction_mode() );
-		  new_subblock.set_motion_vector( subblock.motion_vector() );
-		}
-	      }
-	    }
+	  first_subblock.read_subblock_inter_prediction( data,
+							 clamp( census.best(), context_ ),
+							 decoder_state.motion_vector_probs );	  
+
+	  /* copy to rest of subblocks */
+
+	  for ( auto it = this_partition.begin() + 1; it != this_partition.end(); it++ ) {
+	    YBlock & other_subblock = Y_.at( it->first, it->second );
+	    other_subblock.set_prediction_mode( first_subblock.prediction_mode() );
+	    other_subblock.set_motion_vector( first_subblock.motion_vector() );
 	  }
 	}
 
@@ -378,6 +371,10 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
     default:
       assert( false );
       break;
+    }
+
+    if ( Y2_.prediction_mode() != SPLITMV ) {
+      Y_.forall( [&] ( YBlock & block ) { block.set_motion_vector( base_motion_vector() ); } );
     }
   }
 }
