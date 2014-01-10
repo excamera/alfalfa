@@ -63,6 +63,21 @@ struct TokenProbUpdate
     : coeff_prob( data, k_coeff_entropy_update_probs.at( i ).at( j ).at( k ).at( l ) ) {}
 };
 
+class MVProbUpdate
+{
+private:
+  Flagged< Unsigned<7> > mv_prob;
+
+public:
+  bool initialized( void ) const { return mv_prob.initialized(); }
+  uint8_t get( void ) const { const uint8_t ret = mv_prob.get(); return ret ? ret << 1 : ret; }
+
+  MVProbUpdate( BoolDecoder & data,
+		const unsigned int j, const unsigned int i )
+    : mv_prob( data, k_mv_entropy_update_probs.at( i ).at( j ) )
+  {}
+};
+
 struct KeyFrameHeader
 {
   Flag color_space;
@@ -128,7 +143,7 @@ struct InterFrameHeader
   Unsigned<8> prob_references_golden;
   Flagged< Array< Unsigned<8>, 4 > > intra_16x16_prob;
   Flagged< Array< Unsigned<8>, 3 > > intra_chroma_prob;
-  Array< Array< Flagged< Unsigned<7> >, MV_PROB_CNT >, 2 > mv_prob_update;
+  Enumerate< Enumerate< MVProbUpdate, MV_PROB_CNT >, 2 > mv_prob_update;
 
   InterFrameHeader( BoolDecoder & data )
     : update_segmentation( data ), filter_type( data ),

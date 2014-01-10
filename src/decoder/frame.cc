@@ -20,6 +20,8 @@ Frame<FrameHeaderType, MacroblockType>::Frame( const UncompressedChunk & chunk,
 template <class FrameHeaderType, class MacroblockType>
 void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers( const DecoderState & decoder_state )
 {
+  fprintf( stderr, "New frame.\n" );
+
   /* parse the macroblock headers */
   macroblock_headers_.initialize( macroblock_width_, macroblock_height_,
 				  first_partition_, header_, decoder_state,

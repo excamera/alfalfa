@@ -84,80 +84,87 @@ const MotionVector & InterFrameMacroblock::base_motion_vector( void ) const
   return Y_.at( 3, 3 ).motion_vector();
 }
 
+template <>
+bool KeyFrameMacroblock::inter_coded( void ) const
+{
+  return false;
+}
+
+template <>
+bool InterFrameMacroblock::inter_coded( void ) const
+{
+  return header_.is_inter_mb;
+}
+
 class Scorer
 {
 private:
-  typedef pair< uint8_t, MotionVector > ScoredMV;
-
-  vector< ScoredMV > scores_ {};
-  uint8_t splitmv_score_ {};
-  ScoredMV best_ {}, nearest_ {}, near_ {};
   bool motion_vectors_flipped_;
+
+  SafeArray< uint8_t, 4 > scores_ {{}};
+  SafeArray< MotionVector, 4 > motion_vectors_ {{}};
+
+  uint8_t splitmv_score_ {};
+
+  uint8_t index_ {};
 
   void add( const uint8_t score, const MotionVector & mv )
   {
-    for ( auto & x : scores_ ) {
-      if ( mv == x.second ) {
-	x.first += score;
-	return;
+    if ( mv.empty() ) {
+      scores_.at( 0 ) += score;
+    } else {
+      if ( not ( mv == motion_vectors_.at( index_ ) ) ) {
+	index_++;
+	motion_vectors_.at( index_ ) = mv;
       }
-    }
 
-    scores_.emplace_back( score, mv );
+      scores_.at( index_ ) += score;
+    }
   }
 
 public:
   Scorer( const bool motion_vectors_flipped ) : motion_vectors_flipped_( motion_vectors_flipped ) {}
 
-  const MotionVector & best( void ) const { return best_.second; }
-  const MotionVector & nearest( void ) const { return nearest_.second; }
-  const MotionVector & near( void ) const { return near_.second; }
+  const MotionVector & best( void ) const { return motion_vectors_.at( 0 ); }
+  const MotionVector & nearest( void ) const { return motion_vectors_.at( 1 ); }
+  const MotionVector & near( void ) const { return motion_vectors_.at( 2 ); }
 
   void add( const uint8_t score, const Optional< const InterFrameMacroblock * > & mb )
   {
-    if ( mb.initialized() ) {
-      if ( mb.get()->header().is_inter_mb ) {
-	MotionVector mv = mb.get()->base_motion_vector();
-	if ( mb.get()->header().motion_vectors_flipped_ != motion_vectors_flipped_ ) {
-	  mv = -mv;
-	}
-	add( score, mv );
-	if ( mb.get()->y_prediction_mode() == SPLITMV ) {
-	  splitmv_score_ += score;
-	}
+    if ( mb.initialized() and mb.get()->inter_coded() ) {
+      MotionVector mv = mb.get()->base_motion_vector();
+      if ( mb.get()->header().motion_vectors_flipped_ != motion_vectors_flipped_ ) {
+	mv = -mv;
       }
-    } else {
-      add( score, MotionVector() );
+      add( score, mv );
+      if ( mb.get()->y_prediction_mode() == SPLITMV ) {
+	splitmv_score_ += score;
+      }
     }
   }
 
   void calculate( void )
   {
-    std::sort( scores_.begin(), scores_.end(),
-	       [] ( const ScoredMV & a,
-		    const ScoredMV & b )
-	       { return a.first > b.first; } );
-
-    while ( scores_.size() < 3 ) {
-      scores_.emplace_back();
+    if ( scores_.at( 3 ) ) {
+      if ( motion_vectors_.at( index_ ) == motion_vectors_.at( 1 ) ) {
+	scores_.at( 1 ) += scores_.at( 3 );
+      }
     }
 
-    /* best */
-    best_ = scores_.at( 0 );
+    if ( scores_.at( 2 ) > scores_.at( 1 ) ) {
+      tie( scores_.at( 1 ), scores_.at( 2 ) ) = make_pair( scores_.at( 2 ), scores_.at( 1 ) );
+      tie( motion_vectors_.at( 1 ), motion_vectors_.at( 2 ) )
+	= make_pair( motion_vectors_.at( 2 ), motion_vectors_.at( 1 ) );
+    }
 
-    /* nearest and near must be nonzero */
-    if ( scores_.at( 0 ).second.empty() ) {
-      nearest_ = scores_.at( 1 );
-      near_ = scores_.at( 2 );
-    } else {
-      nearest_ = scores_.at( 0 );
-      near_ = scores_.at( 1 );
+    if ( scores_.at( 1 ) >= scores_.at( 0 ) ) {
+      motion_vectors_.at( 0 ) = motion_vectors_.at( 1 );
     }
   }
 
   SafeArray< uint8_t, 4 > mode_contexts( void ) const
   {
-    return { best_.first, nearest_.first, near_.first, splitmv_score_ };
+    return { scores_.at( 0 ), scores_.at( 1 ), scores_.at( 2 ), splitmv_score_ };
   }
 };
 
@@ -278,7 +285,7 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 						    const DecoderState & decoder_state,
 						    const InterFrameHeader &  )
 {
-  if ( not header_.is_inter_mb ) {
+  if ( not inter_coded() ) {
     /* Set Y prediction mode */
     Y2_.set_prediction_mode( data.tree< num_y_modes, mbmode >( y_mode_tree, decoder_state.y_mode_probs ) );
     Y2_.set_if_coded();
@@ -450,18 +457,6 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::dequantize( const Quanti
   Y_.forall( [&] ( YBlock & block ) { block.dequantize( the_quantizer ); } );
   U_.forall( [&] ( UVBlock & block ) { block.dequantize( the_quantizer ); } );
   V_.forall( [&] ( UVBlock & block ) { block.dequantize( the_quantizer ); } );
-}
-
-template <>
-bool KeyFrameMacroblock::inter_coded( void ) const
-{
-  return false;
-}
-
-template <>
-bool InterFrameMacroblock::inter_coded( void ) const
-{
-  return header_.is_inter_mb;
 }
 
 template <class FrameHeaderType, class MacroblockHeaderType>
