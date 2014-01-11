@@ -376,8 +376,8 @@ void Raster::Block<size>::inter_predict( const MotionVector & mv, const TwoD< ui
 
   SafeArray< SafeArray< uint8_t, size >, size + 5 > intermediate;
 
-  for ( int8_t row = 0; row < size + 5; row++ ) {
-    for ( int8_t column = 0; column < size; column++ ) {
+  for ( uint8_t row = 0; row < size + 5; row++ ) {
+    for ( uint8_t column = 0; column < size; column++ ) {
       const int real_row = row - 2;
       intermediate.at( row ).at( column ) =
 	clamp255( ( ( prediction_block.at( column - 2,   real_row ) * horizontal_filter.at( 0 ) )
@@ -393,8 +393,8 @@ void Raster::Block<size>::inter_predict( const MotionVector & mv, const TwoD< ui
   /* filter vertically */
   const auto & vertical_filter = sixtap_filters.at( mv.y() & 7 );
 
-  for ( int8_t row = 0; row < size; row++ ) {
-    for ( int8_t column = 0; column < size; column++ ) {
+  for ( uint8_t row = 0; row < size; row++ ) {
+    for ( uint8_t column = 0; column < size; column++ ) {
       contents_.at( column, row ) =
 	clamp255( ( ( intermediate.at( row ).at( column ) * vertical_filter.at( 0 ) )
 		    + ( intermediate.at( row + 1 ).at( column ) * vertical_filter.at( 1 ) )
