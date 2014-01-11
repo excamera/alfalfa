@@ -396,10 +396,6 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 						 Y_.at( column * 2, row * 2 + 1 ).motion_vector(),
 						 Y_.at( column * 2 + 1, row * 2 + 1 ).motion_vector() ) );
       } );
-
-    V_.forall_ij( [&]( UVBlock & block, const unsigned int column, const unsigned int row ) {
-	block.set_motion_vector( U_.at( column, row ).motion_vector() );
-      } );
   }
 }
 
@@ -519,9 +515,14 @@ void InterFrameMacroblock::inter_predict_and_inverse_transform( const References
   const Raster & reference = references.at( header_.reference() );
 
   if ( Y2_.prediction_mode() == SPLITMV ) {
-    raster.Y_sub.forall( [&] ( Raster::Block4 & block ) { block.inter_predict( reference ); } );
-    raster.U_sub.forall( [&] ( Raster::Block4 & block ) { block.inter_predict( reference ); } );
-    raster.V_sub.forall( [&] ( Raster::Block4 & block ) { block.inter_predict( reference ); } );
+    Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
+		  { raster.Y_sub.at( column, row ).inter_predict( block.motion_vector(),
+								  reference.Y() ); } );
+    U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
+		  { raster.U_sub.at( column, row ).inter_predict( block.motion_vector(),
+								  reference.U() );
+		    raster.V_sub.at( column, row ).inter_predict( block.motion_vector(),
+								  reference.V() ); } );
 
     if ( has_nonzero_ ) {
       Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
@@ -532,9 +533,9 @@ void InterFrameMacroblock::inter_predict_and_inverse_transform( const References
 		    { block.idct( raster.V_sub.at( column, row ) ); } );
     }
   } else {
-    raster.Y.inter_predict( reference );
-    raster.U.inter_predict( reference );
-    raster.V.inter_predict( reference );
+    raster.Y.inter_predict( base_motion_vector(), reference.Y() );
+    raster.U.inter_predict( U_.at( 0, 0 ).motion_vector(), reference.U() );
+    raster.V.inter_predict( U_.at( 0, 0 ).motion_vector(), reference.V() );
 
     if ( has_nonzero_ ) {
       auto Y_mutable = Y_;

@@ -1,14 +1,15 @@
 #include <cmath>
+#include <algorithm>
 
 #include "macroblock.hh"
 #include "raster.hh"
 
+using namespace std;
+
 template <unsigned int size>
 Raster::Block<size>::Block( const typename TwoD< Block >::Context & c,
-			    const Plane plane,
 			    TwoD< uint8_t > & raster_component )
-  : plane_( plane ),
-    contents_( raster_component, size * c.column, size * c.row ),
+  : contents_( raster_component, size * c.column, size * c.row ),
     context_( c ),
     predictors_( context_ )
 {}
@@ -328,10 +329,80 @@ void Raster::Block4::intra_predict( const bmode b_mode )
   }
 }
 
-template <unsigned int size>
-void Raster::Block<size>::inter_predict( const Raster & reference )
+class PredictionBlock
 {
-  contents_.forall_ij( [&] ( uint8_t & val, const unsigned int column, const unsigned int row )
-		       { val = reference.plane( plane_ ).at( context().column * size + column,
-							     context().row * size + row ); } );
+private:
+  const TwoD< uint8_t > & master_;
+
+  unsigned int column_, row_;
+
+public:
+  PredictionBlock( const TwoD< uint8_t > & master, const unsigned int column, const unsigned int row )
+    : master_( master ), column_( column ), row_( row ) {}
+
+  uint8_t at( const int column, const int row ) const
+  {
+    int bounded_column = column_ + column;
+    if ( bounded_column < 0 ) bounded_column = 0;
+    if ( bounded_column > int(master_.width() - 1) ) bounded_column = master_.width() - 1;
+
+    int bounded_row = row_ + row;
+    if ( bounded_row < 0 ) bounded_row = 0;
+    if ( bounded_row > int(master_.height() - 1) ) bounded_row = master_.height() - 1;
+
+    return master_.at( bounded_column, bounded_row );
+  }
+};
+
+static const SafeArray< SafeArray< int16_t, 6 >, 8 > sixtap_filters =
+  {{ { 0,  0,  128,    0,   0,  0 },
+     { 0, -6,  123,   12,  -1,  0 },
+     { 2, -11, 108,   36,  -8,  1 },
+     { 0, -9,   93,   50,  -6,  0 },
+     { 3, -16,  77,   77, -16,  3 },
+     { 0, -6,   50,   93,  -9,  0 },
+     { 1, -8,   36,  108, -11,  2 },
+     { 0, -1,   12,  123,  -6,  0 } }};
+
+template <unsigned int size>
+void Raster::Block<size>::inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference )
+{
+  PredictionBlock prediction_block( reference,
+				    context().column * size + (mv.x() >> 3),
+				    context().row * size + (mv.y() >> 3) );
+
+  /* filter horizontally */
+  const auto & horizontal_filter = sixtap_filters.at( mv.x() & 7 );
+
+  SafeArray< SafeArray< uint8_t, size >, size + 5 > intermediate;
+
+  for ( int8_t row = 0; row < size + 5; row++ ) {
+    for ( int8_t column = 0; column < size; column++ ) {
+      const int real_row = row - 2;
+      intermediate.at( row ).at( column ) =
+	clamp255( ( ( prediction_block.at( column - 2,   real_row ) * horizontal_filter.at( 0 ) )
+		    + ( prediction_block.at( column - 1, real_row ) * horizontal_filter.at( 1 ) )
+		    + ( prediction_block.at( column,     real_row ) * horizontal_filter.at( 2 ) )
+		    + ( prediction_block.at( column + 1, real_row ) * horizontal_filter.at( 3 ) )
+		    + ( prediction_block.at( column + 2, real_row ) * horizontal_filter.at( 4 ) )
+		    + ( prediction_block.at( column + 3, real_row ) * horizontal_filter.at( 5 ) )
+		    + 64 ) >> 7 );
+    }
+  }
+
+  /* filter vertically */
+  const auto & vertical_filter = sixtap_filters.at( mv.y() & 7 );
+
+  for ( int8_t row = 0; row < size; row++ ) {
+    for ( int8_t column = 0; column < size; column++ ) {
+      contents_.at( column, row ) =
+	clamp255( ( ( intermediate.at( row ).at( column ) * vertical_filter.at( 0 ) )
+		    + ( intermediate.at( row + 1 ).at( column ) * vertical_filter.at( 1 ) )
+		    + ( intermediate.at( row + 2 ).at( column ) * vertical_filter.at( 2 ) )
+		    + ( intermediate.at( row + 3 ).at( column ) * vertical_filter.at( 3 ) )
+		    + ( intermediate.at( row + 4 ).at( column ) * vertical_filter.at( 4 ) )
+		    + ( intermediate.at( row + 5 ).at( column ) * vertical_filter.at( 5 ) )
+		    + 64 ) >> 7 );
+    }
+  }
 }
