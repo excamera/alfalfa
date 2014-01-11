@@ -367,9 +367,17 @@ static const SafeArray< SafeArray< int16_t, 6 >, 8 > sixtap_filters =
 template <unsigned int size>
 void Raster::Block<size>::inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference )
 {
+  assert( size == 4 );
+
   PredictionBlock prediction_block( reference,
 				    context().column * size + (mv.x() >> 3),
 				    context().row * size + (mv.y() >> 3) );
+
+  if ( (mv.x() & 7) == 0 and (mv.y() & 7) == 0 ) {
+    contents_.forall_ij( [&] ( uint8_t & val, unsigned int column, unsigned int row )
+			 { val = prediction_block.at( column, row ); } );
+    return;
+  }
 
   /* filter horizontally */
   const auto & horizontal_filter = sixtap_filters.at( mv.x() & 7 );

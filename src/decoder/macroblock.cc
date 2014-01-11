@@ -352,6 +352,7 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 	MotionVector new_mv( data, decoder_state.motion_vector_probs );
 	new_mv += clamp( census.best(), context_ );
 	set_base_motion_vector( new_mv );
+	fprintf( stderr, "NEWMV: (%d,%d)\n", new_mv.x(), new_mv.y() );
       }
       break;
     case SPLITMV:
@@ -367,6 +368,9 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 	  first_subblock.read_subblock_inter_prediction( data,
 							 clamp( census.best(), context_ ),
 							 decoder_state.motion_vector_probs );
+
+	  fprintf( stderr, "SPLITMV: (%d,%d)\n", first_subblock.motion_vector().x(),
+		   first_subblock.motion_vector().y() );
 
 	  /* copy to rest of subblocks */
 
