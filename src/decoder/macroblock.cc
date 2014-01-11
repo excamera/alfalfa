@@ -281,6 +281,18 @@ MotionVector::MotionVector( BoolDecoder & data,
     x_( read_component( data, motion_vector_probs.at( 1 ) ) )
 {}
 
+MotionVector luma_to_chroma( const MotionVector & s1,
+			     const MotionVector & s2,
+			     const MotionVector & s3,
+			     const MotionVector & s4 )
+{
+  const int16_t x = s1.x() + s2.x() + s3.x() + s4.x();
+  const int16_t y = s1.y() + s2.y() + s3.y() + s4.y();
+
+  return MotionVector( x >= 0 ?  (x + 4) >> 3 : -((-x + 4) >> 3),
+		       y >= 0 ?  (y + 4) >> 3 : -((-y + 4) >> 3) );
+}
+
 template <>
 void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 						    const DecoderState & decoder_state,
@@ -363,9 +375,6 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 	    other_subblock.set_motion_vector( first_subblock.motion_vector() );
 	  }
 	}
-
-	/* set chroma motion vectors */
-	/* XXX */
       }
       break;
     default:
@@ -373,9 +382,22 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
       break;
     }
 
+    /* set motion vectors of Y subblocks */
     if ( Y2_.prediction_mode() != SPLITMV ) {
       Y_.forall( [&] ( YBlock & block ) { block.set_motion_vector( base_motion_vector() ); } );
     }
+
+    /* set motion vectors of chroma subblocks */
+    U_.forall_ij( [&]( UVBlock & block, const unsigned int column, const unsigned int row ) {
+	block.set_motion_vector( luma_to_chroma( Y_.at( column * 2, row * 2 ).motion_vector(),
+						 Y_.at( column * 2 + 1, row * 2 ).motion_vector(),
+						 Y_.at( column * 2, row * 2 + 1 ).motion_vector(),
+						 Y_.at( column * 2 + 1, row * 2 + 1 ).motion_vector() ) );
+      } );
+
+    V_.forall_ij( [&]( UVBlock & block, const unsigned int column, const unsigned int row ) {
+	block.set_motion_vector( U_.at( column, row ).motion_vector() );
+      } );
   }
 }
 
