@@ -542,6 +542,10 @@ void InterFrameMacroblock::inter_predict_and_inverse_transform( const References
       Y2_.walsh_transform( Y_mutable );
       Y_mutable.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
 			   { block.idct( raster.Y_sub.at( column, row ) ); } );
+      U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
+		    { block.idct( raster.U_sub.at( column, row ) ); } );
+      V_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
+		    { block.idct( raster.V_sub.at( column, row ) ); } );
     }
   }
 }
