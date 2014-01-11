@@ -93,6 +93,8 @@ public:
     template <class PredictionMode>
     void intra_predict( const PredictionMode mb_mode );
 
+    void inter_predict( const Raster & reference );
+
     void set_above_right_bottom_row_predictor( const typename Predictors::AboveRightBottomRowPredictor & replacement );
 
     const typename TwoD< Block >::Context & context( void ) const { return context_; }

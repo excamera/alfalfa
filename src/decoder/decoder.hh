@@ -47,7 +47,7 @@ struct References
 
   References( const uint16_t width, const uint16_t height );
 
-  Raster & at( const uint8_t reference_id )
+  const Raster & at( const reference_frame reference_id ) const
   {
     switch ( reference_id ) {
     case LAST_FRAME: return last;

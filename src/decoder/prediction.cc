@@ -325,3 +325,8 @@ void Raster::Block4::intra_predict( const bmode b_mode )
   default: assert( false ); break;
   }
 }
+
+template <unsigned int size>
+void Raster::Block<size>::inter_predict( const Raster & )
+{
+}
