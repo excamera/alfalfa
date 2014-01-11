@@ -479,12 +479,8 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::dequantize( const Quanti
 }
 
 template <class FrameHeaderType, class MacroblockHeaderType>
-void Macroblock<FrameHeaderType, MacroblockHeaderType>::predict_and_inverse_transform( Raster::Macroblock & raster ) const
+void Macroblock<FrameHeaderType, MacroblockHeaderType>::intra_predict_and_inverse_transform( Raster::Macroblock & raster ) const
 {
-  if ( inter_coded() ) {
-    return;
-  }
-
   const bool do_idct = has_nonzero_;
 
   /* Chroma */
@@ -521,6 +517,13 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::predict_and_inverse_tran
       }
     }
   }
+}
+
+template <>
+void InterFrameMacroblock::inter_predict_and_inverse_transform( const References & ,
+								Raster::Macroblock &  ) const
+{
+
 }
 
 template <class FrameHeaderType, class MacroblockHeaderType>

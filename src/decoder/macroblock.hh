@@ -8,6 +8,7 @@
 #include "raster.hh"
 
 class DecoderState;
+class References;
 
 template <class FrameHeaderType, class MacroblockHeaderType>
 class Macroblock
@@ -44,7 +45,9 @@ public:
   void dequantize( const Quantizer & frame_quantizer,
 		   const SafeArray< Quantizer, num_segments > & segment_quantizers );
 
-  void predict_and_inverse_transform( Raster::Macroblock & raster ) const;
+  void intra_predict_and_inverse_transform( Raster::Macroblock & raster ) const;
+  void inter_predict_and_inverse_transform( const References & references,
+					    Raster::Macroblock & raster ) const;
 
   void loopfilter( const DecoderState & decoder_state,
 		   const FilterParameters & frame_loopfilter,

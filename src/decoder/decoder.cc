@@ -29,7 +29,7 @@ bool Decoder::decode_frame( const Chunk & frame, Raster & raster )
 
     myframe.parse_macroblock_headers( state_ );
     myframe.parse_tokens( state_ );
-    myframe.decode( state_, raster );
+    myframe.decode( state_, references_, raster );
   }
 
   return uncompressed_chunk.show_frame();

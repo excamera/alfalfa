@@ -8,6 +8,8 @@
 #include "modemv_data.hh"
 #include "raster.hh"
 
+struct References;
+
 struct Quantizers
 {
   Quantizer quantizer;
@@ -36,6 +38,8 @@ class Frame
 
   void relink_y2_blocks( void );
 
+  void loopfilter( const DecoderState & decoder_state, Raster & target ) const;
+
  public:
   Frame( const UncompressedChunk & chunk,
 	 const unsigned int width,
@@ -47,6 +51,7 @@ class Frame
   void parse_tokens( const DecoderState & decoder_state );
 
   void decode( const DecoderState & decoder_state, Raster & target ) const;
+  void decode( const DecoderState & decoder_state, const References & references, Raster & target ) const;
 };
 
 using KeyFrame = Frame< KeyFrameHeader, KeyFrameMacroblock >;
