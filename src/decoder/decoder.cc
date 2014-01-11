@@ -4,9 +4,10 @@
 
 using namespace std;
 
-Decoder::Decoder( uint16_t s_width, uint16_t s_height, const Chunk & key_frame )
-  : width_( s_width ), height_( s_height ),
-    state_( KeyFrame( UncompressedChunk( key_frame, width_, height_ ), width_, height_ ).header() )
+Decoder::Decoder( const uint16_t width, const uint16_t height, const Chunk & key_frame )
+  : width_( width ), height_( height ),
+    state_( KeyFrame( UncompressedChunk( key_frame, width_, height_ ), width_, height_ ).header() ),
+    references_( width_, height_ )
 {}
 
 bool Decoder::decode_frame( const Chunk & frame, Raster & raster )
@@ -33,6 +34,12 @@ bool Decoder::decode_frame( const Chunk & frame, Raster & raster )
 
   return uncompressed_chunk.show_frame();
 }
+
+References::References( const uint16_t width, const uint16_t height )
+  : last( width, height ),
+    golden( width, height ),
+    alternative_reference( width, height )
+{}
 
 DecoderState::DecoderState( const KeyFrameHeader & header )
   : mb_segment_tree_probs( {{ 255, 255, 255 }} ),

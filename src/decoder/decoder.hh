@@ -41,15 +41,33 @@ struct DecoderState
   void update( const InterFrameHeader & header );
 };
 
+struct References
+{
+  Raster last, golden, alternative_reference;
+
+  References( const uint16_t width, const uint16_t height );
+
+  Raster & at( const uint8_t reference_id )
+  {
+    switch ( reference_id ) {
+    case LAST_FRAME: return last;
+    case GOLDEN_FRAME: return golden;
+    case ALTREF_FRAME: return alternative_reference;
+    default: assert( false ); return last;
+    }
+  }
+};
+
 class Decoder
 {
 private:
   uint16_t width_, height_;
 
   DecoderState state_;
+  References references_;
 
 public:
-  Decoder( uint16_t s_width, uint16_t s_height, const Chunk & key_frame );
+  Decoder( const uint16_t width, const uint16_t height, const Chunk & key_frame );
 
   bool decode_frame( const Chunk & frame, Raster & raster );
 };
