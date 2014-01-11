@@ -50,8 +50,10 @@ class Frame
   void parse_macroblock_headers( const DecoderState & decoder_state );
   void parse_tokens( const DecoderState & decoder_state );
 
-  void decode( const DecoderState & decoder_state, Raster & target ) const;
-  void decode( const DecoderState & decoder_state, const References & references, Raster & target ) const;
+  void decode( const DecoderState & decoder_state, Raster & raster ) const;
+  void decode( const DecoderState & decoder_state, const References & references, Raster & raster ) const;
+
+  void copy_to( const Raster & raster, References & references ) const;
 };
 
 using KeyFrame = Frame< KeyFrameHeader, KeyFrameMacroblock >;

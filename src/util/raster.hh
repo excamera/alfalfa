@@ -23,6 +23,8 @@ static inline uint8_t clamp255( const int16_t value )
 class Raster
 {
 public:
+  enum class Plane { Y, U, V };
+
   template <unsigned int size>
   class Block
   {
@@ -31,6 +33,8 @@ public:
     typedef TwoDSubRange< uint8_t, 1, size > Column;
 
   private:
+    Plane plane_;
+
     TwoDSubRange< uint8_t, size, size > contents_;
     typename TwoD< Block >::Context context_;
 
@@ -77,7 +81,9 @@ public:
     uint8_t east( const int column ) const { return predictors_.east( column ); }
 
   public:
-    Block( const typename TwoD< Block >::Context & c, TwoD< uint8_t > & macroblock_component );
+    Block( const typename TwoD< Block >::Context & c,
+	   const Plane plane,
+	   TwoD< uint8_t > & macroblock_component );
 
     uint8_t & at( const unsigned int column, const unsigned int row )
     { return contents_.at( column, row ); }
@@ -126,18 +132,29 @@ private:
     U_ { width_ / 2, height_ / 2 },
     V_ { width_ / 2, height_ / 2 };
 
-  TwoD< Block4 > Y_subblocks_ { width_ / 4, height_ / 4, Y_ },
-    U_subblocks_ { width_ / 8, height_ / 8, U_ },
-    V_subblocks_ { width_ / 8, height_ / 8, V_ };
+  TwoD< Block4 > Y_subblocks_ { width_ / 4, height_ / 4, Plane::Y, Y_ },
+    U_subblocks_ { width_ / 8, height_ / 8, Plane::U, U_ },
+    V_subblocks_ { width_ / 8, height_ / 8, Plane::V, V_ };
 
-  TwoD< Block16 > Y_bigblocks_ { width_ / 16, height_ / 16, Y_ };
-  TwoD< Block8 >  U_bigblocks_ { width_ / 16, height_ / 16, U_ };
-  TwoD< Block8 >  V_bigblocks_ { width_ / 16, height_ / 16, V_ };
+  TwoD< Block16 > Y_bigblocks_ { width_ / 16, height_ / 16, Plane::Y, Y_ };
+  TwoD< Block8 >  U_bigblocks_ { width_ / 16, height_ / 16, Plane::U, U_ };
+  TwoD< Block8 >  V_bigblocks_ { width_ / 16, height_ / 16, Plane::V, V_ };
 
   TwoD< Macroblock > macroblocks_ { width_ / 16, height_ / 16, *this };
 
 public:
   Raster( const unsigned int display_width, const unsigned int display_height );
+
+  const TwoD< uint8_t > & plane( const Plane get_plane ) const
+  {
+    switch ( get_plane ) {
+    case Plane::Y: return Y();
+    case Plane::U: return U();
+    case Plane::V: return V();
+    }
+    assert( false );
+    return Y();
+  }
 
   TwoD< uint8_t > & Y( void ) { return Y_; }
   TwoD< uint8_t > & U( void ) { return U_; }
@@ -158,6 +175,8 @@ public:
   unsigned int display_height( void ) const { return display_height_; }
 
   static unsigned int macroblock_dimension( const unsigned int num ) { return ( num + 15 ) / 16; }
+
+  void copy( const Raster & other );
 };
 
 #endif /* RASTER_HH */

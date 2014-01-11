@@ -22,6 +22,8 @@ bool Decoder::decode_frame( const Chunk & frame, Raster & raster )
     myframe.parse_macroblock_headers( state_ );
     myframe.parse_tokens( state_ );
     myframe.decode( state_, raster );
+
+    myframe.copy_to( raster, references_ );
   } else {
     /* interframe */
     InterFrame myframe( uncompressed_chunk, width_, height_ );
@@ -30,6 +32,8 @@ bool Decoder::decode_frame( const Chunk & frame, Raster & raster )
     myframe.parse_macroblock_headers( state_ );
     myframe.parse_tokens( state_ );
     myframe.decode( state_, references_, raster );
+
+    myframe.copy_to( raster, references_ );
   }
 
   return uncompressed_chunk.show_frame();

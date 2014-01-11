@@ -5,8 +5,10 @@
 
 template <unsigned int size>
 Raster::Block<size>::Block( const typename TwoD< Block >::Context & c,
+			    const Plane plane,
 			    TwoD< uint8_t > & raster_component )
-  : contents_( raster_component, size * c.column, size * c.row ),
+  : plane_( plane ),
+    contents_( raster_component, size * c.column, size * c.row ),
     context_( c ),
     predictors_( context_ )
 {}
@@ -327,6 +329,9 @@ void Raster::Block4::intra_predict( const bmode b_mode )
 }
 
 template <unsigned int size>
-void Raster::Block<size>::inter_predict( const Raster & )
+void Raster::Block<size>::inter_predict( const Raster & reference )
 {
+  contents_.forall_ij( [&] ( uint8_t & val, const unsigned int column, const unsigned int row )
+		       { val = reference.plane( plane_ ).at( context().column * size + column,
+							     context().row * size + row ); } );
 }

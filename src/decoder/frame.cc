@@ -125,5 +125,51 @@ void Frame<FrameHeaderType, MacroblockType>::relink_y2_blocks( void )
     } );
 }
 
+void Raster::copy( const Raster & other )
+{
+  assert( display_width_ == other.display_width_ );
+  assert( display_height_ == other.display_height_ );
+
+  Y_.copy( other.Y_ );
+  U_.copy( other.U_ );
+  V_.copy( other.V_ );
+}
+
+template <>
+void KeyFrame::copy_to( const Raster & raster, References & references ) const
+{
+  references.last.copy( raster );
+  references.golden.copy( raster );
+  references.alternative_reference.copy( raster );
+}
+
+template <>
+void InterFrame::copy_to( const Raster & raster, References & references ) const
+{
+  if ( header_.refresh_last ) {
+    references.last.copy( raster );
+  }
+
+  if ( header_.copy_buffer_to_golden.initialized() ) {
+    if ( header_.copy_buffer_to_golden.get() == 1 ) {
+      references.golden.copy( references.last );
+    } else if ( header_.copy_buffer_to_golden.get() == 2 ) {
+      references.golden.copy( references.alternative_reference );
+    }
+  } else {
+    references.golden.copy( raster );
+  }
+
+  if ( header_.copy_buffer_to_alternate.initialized() ) {
+    if ( header_.copy_buffer_to_alternate.get() == 1 ) {
+      references.alternative_reference.copy( references.last );
+    } else if ( header_.copy_buffer_to_alternate.get() == 2 ) {
+      references.alternative_reference.copy( references.golden );
+    }
+  } else {
+    references.alternative_reference.copy( raster );
+  }
+}
+
 template class Frame< KeyFrameHeader, KeyFrameMacroblock >;
 template class Frame< InterFrameHeader, InterFrameMacroblock >;
