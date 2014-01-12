@@ -74,6 +74,7 @@ void Frame<FrameHeaderType, MacroblockType>::loopfilter( const QuantizerFilterAd
 					      const unsigned int column,
 					      const unsigned int row )
 					 { macroblock.loopfilter( quantizer_filter_adjustments,
+								  header_.mode_lf_adjustments.initialized(),
 								  frame_loopfilter,
 								  segment_loopfilters,
 								  raster.macroblock( column, row ) ); } );

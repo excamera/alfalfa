@@ -51,6 +51,7 @@ public:
 					    Raster::Macroblock & raster ) const;
 
   void loopfilter( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
+		   const bool adjust_for_mode_and_ref,
 		   const FilterParameters & frame_loopfilter,
 		   const SafeArray< FilterParameters, num_segments > & segment_loopfilters,
 		   Raster::Macroblock & raster ) const;

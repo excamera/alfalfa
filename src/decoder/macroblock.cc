@@ -551,6 +551,7 @@ void InterFrameMacroblock::inter_predict_and_inverse_transform( const References
 
 template <class FrameHeaderType, class MacroblockHeaderType>
 void Macroblock<FrameHeaderType, MacroblockHeaderType>::loopfilter( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
+								    const bool adjust_for_mode_and_ref,
 								    const FilterParameters & frame_loopfilter,
 								    const SafeArray< FilterParameters, num_segments > & segment_loopfilters,
 								    Raster::Macroblock & raster ) const
@@ -562,10 +563,12 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::loopfilter( const Quanti
 				      ? segment_loopfilters.at( header_.segment_id.get() )
 				      : frame_loopfilter );
 
-  filter_parameters.adjust( quantizer_filter_adjustments.loopfilter_ref_adjustments,
-			    quantizer_filter_adjustments.loopfilter_mode_adjustments,
-			    header_.reference(),
-			    Y2_.prediction_mode() );
+  if ( adjust_for_mode_and_ref ) {
+    filter_parameters.adjust( quantizer_filter_adjustments.loopfilter_ref_adjustments,
+			      quantizer_filter_adjustments.loopfilter_mode_adjustments,
+			      header_.reference(),
+			      Y2_.prediction_mode() );
+  }
 
   /* is filter disabled? */
   if ( filter_parameters.filter_level <= 0 ) {
