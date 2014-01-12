@@ -72,6 +72,8 @@ struct KeyFrameMacroblockHeader
   KeyFrameMacroblockHeader( BoolDecoder & data,
 			    const KeyFrameHeader & frame_header,
 			    const QuantizerFilterAdjustments & quantizer_filter_adjustments );
+
+  reference_frame reference( void ) const { return CURRENT_FRAME; }
 };
 
 struct InterFrameMacroblockHeader

@@ -564,7 +564,7 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::loopfilter( const Quanti
 
   filter_parameters.adjust( quantizer_filter_adjustments.loopfilter_ref_adjustments,
 			    quantizer_filter_adjustments.loopfilter_mode_adjustments,
-			    CURRENT_FRAME,
+			    header_.reference(),
 			    Y2_.prediction_mode() );
 
   /* is filter disabled? */
