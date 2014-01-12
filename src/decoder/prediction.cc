@@ -329,24 +329,22 @@ void Raster::Block4::intra_predict( const bmode b_mode )
   }
 }
 
-class PredictionBlock
+class EdgeExtendedRaster
 {
 private:
   const TwoD< uint8_t > & master_;
 
-  unsigned int column_, row_;
-
 public:
-  PredictionBlock( const TwoD< uint8_t > & master, const unsigned int column, const unsigned int row )
-    : master_( master ), column_( column ), row_( row ) {}
+  EdgeExtendedRaster( const TwoD< uint8_t > & master )
+    : master_( master ) {}
 
   uint8_t at( const int column, const int row ) const
   {
-    int bounded_column = column_ + column;
+    int bounded_column = column;
     if ( bounded_column < 0 ) bounded_column = 0;
     if ( bounded_column > int(master_.width() - 1) ) bounded_column = master_.width() - 1;
 
-    int bounded_row = row_ + row;
+    int bounded_row = row;
     if ( bounded_row < 0 ) bounded_row = 0;
     if ( bounded_row > int(master_.height() - 1) ) bounded_row = master_.height() - 1;
 
@@ -365,15 +363,33 @@ static const SafeArray< SafeArray< int16_t, 6 >, 8 > sixtap_filters =
      { 0, -1,   12,  123,  -6,  0 } }};
 
 template <unsigned int size>
-void Raster::Block<size>::inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference )
+void Raster::Block<size>::safe_inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference )
 {
-  PredictionBlock prediction_block( reference,
-				    context().column * size + (mv.x() >> 3),
-				    context().row * size + (mv.y() >> 3) );
+  const int source_column = context().column * size + (mv.x() >> 3);
+  const int source_row = context().row * size + (mv.y() >> 3);
 
+  if ( source_column - 2 < 0
+       or source_column + size + 3 > reference.width()
+       or source_row - 2 < 0
+       or source_row + size + 3 > reference.height() ) {
+
+    EdgeExtendedRaster safe_reference( reference );
+
+    inter_predict( mv, safe_reference, source_column, source_row );
+  } else {
+    inter_predict( mv, reference, source_column, source_row );
+  }
+}
+
+template <unsigned int size>
+template <class ReferenceType>
+void Raster::Block<size>::inter_predict( const MotionVector & mv, const ReferenceType & reference,
+					 const int source_column, const int source_row )
+{
   if ( (mv.x() & 7) == 0 and (mv.y() & 7) == 0 ) {
     contents_.forall_ij( [&] ( uint8_t & val, unsigned int column, unsigned int row )
-			 { val = prediction_block.at( column, row ); } );
+			 { val = reference.at( source_column + column,
+					       source_row + row ); } );
     return;
   }
 
@@ -384,14 +400,15 @@ void Raster::Block<size>::inter_predict( const MotionVector & mv, const TwoD< ui
 
   for ( uint8_t row = 0; row < size + 5; row++ ) {
     for ( uint8_t column = 0; column < size; column++ ) {
-      const int real_row = row - 2;
+      const int real_row = source_row + row - 2;
+      const int real_column = source_column + column;
       intermediate.at( row ).at( column ) =
-	clamp255( ( ( prediction_block.at( column - 2,   real_row ) * horizontal_filter.at( 0 ) )
-		    + ( prediction_block.at( column - 1, real_row ) * horizontal_filter.at( 1 ) )
-		    + ( prediction_block.at( column,     real_row ) * horizontal_filter.at( 2 ) )
-		    + ( prediction_block.at( column + 1, real_row ) * horizontal_filter.at( 3 ) )
-		    + ( prediction_block.at( column + 2, real_row ) * horizontal_filter.at( 4 ) )
-		    + ( prediction_block.at( column + 3, real_row ) * horizontal_filter.at( 5 ) )
+	clamp255( ( ( reference.at( real_column - 2,   real_row ) * horizontal_filter.at( 0 ) )
+		    + ( reference.at( real_column - 1, real_row ) * horizontal_filter.at( 1 ) )
+		    + ( reference.at( real_column,     real_row ) * horizontal_filter.at( 2 ) )
+		    + ( reference.at( real_column + 1, real_row ) * horizontal_filter.at( 3 ) )
+		    + ( reference.at( real_column + 2, real_row ) * horizontal_filter.at( 4 ) )
+		    + ( reference.at( real_column + 3, real_row ) * horizontal_filter.at( 5 ) )
 		    + 64 ) >> 7 );
     }
   }
