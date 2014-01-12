@@ -41,7 +41,7 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
 		 ? static_cast< uint8_t >( segment_id_update_.get_or( segmentation_map.map.at( c.column, c.row ) ) )
 		 : 0 ),
     mb_skip_coeff_( frame_header.prob_skip_false.initialized(),
-		    data, frame_header.prob_skip_false.get() ),
+		    data, frame_header.prob_skip_false.get_or( 0 ) ),
     header_( data, frame_header ),
     Y2_( frame_Y2.at( c.column, c.row ) ),
     Y_( frame_Y, c.column * 4, c.row * 4 ),
