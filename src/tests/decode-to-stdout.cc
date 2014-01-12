@@ -36,13 +36,13 @@ int main( int argc, char *argv[] )
 
     for ( uint32_t i = frame_no; i < file.frame_count(); i++ ) {
       if ( decoder.decode_frame( file.frame( i ), raster ) ) {
-	for ( unsigned int row = 0; row < raster.Y().height(); row++ ) {
+	for ( unsigned int row = 0; row < raster.display_height(); row++ ) {
 	  fwrite( &raster.Y().at( 0, row ), raster.display_width(), 1, stdout );
 	}
-	for ( unsigned int row = 0; row < raster.U().height(); row++ ) {
+	for ( unsigned int row = 0; row < raster.display_height() / 2; row++ ) {
 	  fwrite( &raster.U().at( 0, row ), raster.display_width() / 2, 1, stdout );
 	}
-	for ( unsigned int row = 0; row < raster.V().height(); row++ ) {
+	for ( unsigned int row = 0; row < raster.display_height() / 2; row++ ) {
 	  fwrite( &raster.V().at( 0, row ), raster.display_width() / 2, 1, stdout );
 	}
       }
