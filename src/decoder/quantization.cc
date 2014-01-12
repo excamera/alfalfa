@@ -79,13 +79,11 @@ void QuantizerAdjustment::update( const uint8_t segment_id,
     const auto & feature_data = update_segmentation.get().segment_feature_data.get();
     const auto & update = feature_data.quantizer_update.at( segment_id );
 
-    if ( update.initialized() ) {
-      absolute = feature_data.segment_feature_mode;
-      value = update.get();
+    absolute = feature_data.segment_feature_mode;
+    value = update.get_or( 0 );
 
-      if ( absolute and (value < 0) ) {
-	throw Invalid( "absolute quantizer update with negative value" );
-      }
+    if ( absolute and (value < 0) ) {
+      throw Invalid( "absolute quantizer update with negative value" );
     }
   }
 }

@@ -36,13 +36,11 @@ void SegmentFilterAdjustment::update( const uint8_t segment_id,
     const auto & feature_data = update_segmentation.get().segment_feature_data.get();
     const auto & update = feature_data.loop_filter_update.at( segment_id );
 
-    if ( update.initialized() ) {
-      absolute = feature_data.segment_feature_mode;
-      value = update.get();
+    absolute = feature_data.segment_feature_mode;
+    value = update.get_or( 0 );
 
-      if ( absolute and (update.get() < 0 or update.get() > 63) ) {
-	throw Invalid( "absolute loop-filter update with out-of-bounds value" );
-      }
+    if ( absolute and (value < 0 or value > 63) ) {
+      throw Invalid( "absolute loop-filter update with out-of-bounds value" );
     }
   }
 }
