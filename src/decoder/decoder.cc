@@ -31,6 +31,7 @@ bool Decoder::decode_frame( const Chunk & frame, Raster & raster )
     InterFrame myframe( uncompressed_chunk, width_, height_ );
 
     state_.quantizer_filter_adjustments.update( myframe.header() );
+    state_.segmentation_map.update( myframe.header() );
 
     ProbabilityTables frame_probability_tables( state_.probability_tables );
     frame_probability_tables.update( myframe.header() );
@@ -118,7 +119,7 @@ SegmentationMap::SegmentationMap( const KeyFrameHeader & header,
 				  const unsigned int macroblock_width,
 				  const unsigned int macroblock_height )
   : mb_segment_tree_probs( {{ 255, 255, 255 }} ),
-    segmentation_map( macroblock_width, macroblock_height )
+    map( macroblock_width, macroblock_height )
 {
   update( header );
 }

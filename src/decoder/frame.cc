@@ -49,7 +49,9 @@ void Frame<FrameHeaderType, MacroblockType>::parse_tokens( const QuantizerFilter
 					    const unsigned int row )
 				       { macroblock.parse_tokens( dct_partitions_.at( row % dct_partitions_.size() ),
 								  probability_tables );
-					 macroblock.dequantize( frame_quantizer, segment_quantizers ); } );
+					 macroblock.dequantize( header_.update_segmentation.initialized()
+								? segment_quantizers.at( macroblock.segment_id() )
+								: frame_quantizer ); } );
 }
 
 template <class FrameHeaderType, class MacroblockType>
@@ -75,8 +77,9 @@ void Frame<FrameHeaderType, MacroblockType>::loopfilter( const QuantizerFilterAd
 					      const unsigned int row )
 					 { macroblock.loopfilter( quantizer_filter_adjustments,
 								  header_.mode_lf_adjustments.initialized(),
-								  frame_loopfilter,
-								  segment_loopfilters,
+								  header_.update_segmentation.initialized()
+								  ? segment_loopfilters.at( macroblock.segment_id() )
+								  : frame_loopfilter,
 								  raster.macroblock( column, row ) ); } );
   }
 }

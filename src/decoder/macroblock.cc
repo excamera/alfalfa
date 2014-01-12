@@ -34,12 +34,25 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
 							       TwoD< UVBlock > & frame_U,
 							       TwoD< UVBlock > & frame_V )
   : context_( c ),
-    header_( data, frame_header, segmentation_map ),
+    segment_id_update_( frame_header.update_segmentation.initialized()
+			and frame_header.update_segmentation.get().update_mb_segmentation_map,
+			data, segmentation_map.mb_segment_tree_probs ),
+    segment_id_( frame_header.update_segmentation.initialized()
+		 ? static_cast< uint8_t >( segment_id_update_.get_or( segmentation_map.map.at( c.column, c.row ) ) )
+		 : 0 ),
+    mb_skip_coeff_( frame_header.prob_skip_false.initialized(),
+		    data, frame_header.prob_skip_false.get() ),
+    header_( data, frame_header ),
     Y2_( frame_Y2.at( c.column, c.row ) ),
     Y_( frame_Y, c.column * 4, c.row * 4 ),
     U_( frame_U, c.column * 2, c.row * 2 ),
     V_( frame_V, c.column * 2, c.row * 2 )
 {
+  /* update persistent segmentation map */
+  if ( segment_id_update_.initialized() ) {
+    segmentation_map.map.at( c.column, c.row ) = segment_id_update_.get();
+  }
+
   decode_prediction_modes( data, probability_tables );
 }
 
@@ -398,29 +411,13 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
   }
 }
 
-KeyFrameMacroblockHeader::KeyFrameMacroblockHeader( BoolDecoder & data,
-						    const KeyFrameHeader & frame_header,
-						    SegmentationMap & segmentation_map )
-  : segment_id( frame_header.update_segmentation.initialized()
-		and frame_header.update_segmentation.get().update_mb_segmentation_map,
-		data, segmentation_map.mb_segment_tree_probs ),
-    mb_skip_coeff( frame_header.prob_skip_false.initialized(),
-		   data, frame_header.prob_skip_false.get() )
-{}
-
 InterFrameMacroblockHeader::InterFrameMacroblockHeader( BoolDecoder & data,
-							const InterFrameHeader & frame_header,
-							SegmentationMap & segmentation_map )
-  : segment_id( frame_header.update_segmentation.initialized()
-		and frame_header.update_segmentation.get().update_mb_segmentation_map,
-		data, segmentation_map.mb_segment_tree_probs ),
-    mb_skip_coeff( frame_header.prob_skip_false.initialized(),
-		   data, frame_header.prob_skip_false.get() ),
-    is_inter_mb( data, frame_header.prob_inter ),
+							const InterFrameHeader & frame_header )
+  : is_inter_mb( data, frame_header.prob_inter ),
     mb_ref_frame_sel1( is_inter_mb, data, frame_header.prob_references_last ),
-  mb_ref_frame_sel2( mb_ref_frame_sel1.get_or( false ), data, frame_header.prob_references_golden ),
-  motion_vectors_flipped_( ( (reference() == GOLDEN_FRAME) and (frame_header.sign_bias_golden) )
-			   or ( (reference() == ALTREF_FRAME) and (frame_header.sign_bias_alternate) ) )
+    mb_ref_frame_sel2( mb_ref_frame_sel1.get_or( false ), data, frame_header.prob_references_golden ),
+    motion_vectors_flipped_( ( (reference() == GOLDEN_FRAME) and (frame_header.sign_bias_golden) )
+			     or ( (reference() == ALTREF_FRAME) and (frame_header.sign_bias_alternate) ) )
 {}
 
 template <class FrameHeaderType, class MacroblockHeaderType>
@@ -428,7 +425,7 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::parse_tokens( BoolDecode
 								      const ProbabilityTables & probability_tables )
 {
   /* is macroblock skipped? */
-  if ( header_.mb_skip_coeff.get_or( false ) ) {
+  if ( mb_skip_coeff_.get_or( false ) ) {
     return;
   }
 
@@ -453,26 +450,20 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::parse_tokens( BoolDecode
 }
 
 template <class FrameHeaderType, class MacroblockHeaderType>
-void Macroblock<FrameHeaderType, MacroblockHeaderType>::dequantize( const Quantizer & frame_quantizer,
-								    const SafeArray< Quantizer, num_segments > & segment_quantizers )
+void Macroblock<FrameHeaderType, MacroblockHeaderType>::dequantize( const Quantizer & quantizer )
 {
   /* is macroblock skipped? */
   if ( not has_nonzero_ ) {
     return;
   }
 
-  /* which quantizer are we using? */
-  const Quantizer & the_quantizer( header_.segment_id.initialized()
-				   ? segment_quantizers.at( header_.segment_id.get() )
-				   : frame_quantizer );
-
   if ( Y2_.coded() ) {
-    Y2_.dequantize( the_quantizer );
+    Y2_.dequantize( quantizer );
   }
 
-  Y_.forall( [&] ( YBlock & block ) { block.dequantize( the_quantizer ); } );
-  U_.forall( [&] ( UVBlock & block ) { block.dequantize( the_quantizer ); } );
-  V_.forall( [&] ( UVBlock & block ) { block.dequantize( the_quantizer ); } );
+  Y_.forall( [&] ( YBlock & block ) { block.dequantize( quantizer ); } );
+  U_.forall( [&] ( UVBlock & block ) { block.dequantize( quantizer ); } );
+  V_.forall( [&] ( UVBlock & block ) { block.dequantize( quantizer ); } );
 }
 
 template <class FrameHeaderType, class MacroblockHeaderType>
@@ -552,39 +543,36 @@ void InterFrameMacroblock::inter_predict_and_inverse_transform( const References
 template <class FrameHeaderType, class MacroblockHeaderType>
 void Macroblock<FrameHeaderType, MacroblockHeaderType>::loopfilter( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
 								    const bool adjust_for_mode_and_ref,
-								    const FilterParameters & frame_loopfilter,
-								    const SafeArray< FilterParameters, num_segments > & segment_loopfilters,
+								    const FilterParameters & loopfilter,
 								    Raster::Macroblock & raster ) const
 {
   const bool skip_subblock_edges = Y2_.coded() and ( not has_nonzero_ );
 
   /* which filter are we using? */
-  FilterParameters filter_parameters( header_.segment_id.initialized()
-				      ? segment_loopfilters.at( header_.segment_id.get() )
-				      : frame_loopfilter );
+  FilterParameters loopfilter_in_use( loopfilter );
 
   if ( adjust_for_mode_and_ref ) {
-    filter_parameters.adjust( quantizer_filter_adjustments.loopfilter_ref_adjustments,
+    loopfilter_in_use.adjust( quantizer_filter_adjustments.loopfilter_ref_adjustments,
 			      quantizer_filter_adjustments.loopfilter_mode_adjustments,
 			      header_.reference(),
 			      Y2_.prediction_mode() );
   }
 
   /* is filter disabled? */
-  if ( filter_parameters.filter_level <= 0 ) {
+  if ( loopfilter_in_use.filter_level <= 0 ) {
     return;
   }
 
-  switch ( filter_parameters.type ) {
+  switch ( loopfilter_in_use.type ) {
   case LoopFilterType::Normal:
     {
-      NormalLoopFilter filter( FrameHeaderType::key_frame(), filter_parameters );
+      NormalLoopFilter filter( FrameHeaderType::key_frame(), loopfilter_in_use );
       filter.filter( raster, skip_subblock_edges );
     }
     break;
   case LoopFilterType::Simple:
     {
-      SimpleLoopFilter filter( filter_parameters );
+      SimpleLoopFilter filter( loopfilter_in_use );
       filter.filter( raster, skip_subblock_edges );
     }
     break;

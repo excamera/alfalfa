@@ -18,6 +18,11 @@ class Macroblock
 private:
   typename TwoD< Macroblock >::Context context_;
 
+  Optional< Tree< uint8_t, 4, segment_id_tree > > segment_id_update_;
+  uint8_t segment_id_;
+
+  Optional< Boolean > mb_skip_coeff_;
+
   MacroblockHeaderType header_;
 
   Y2Block & Y2_;
@@ -44,8 +49,7 @@ public:
 
   void parse_tokens( BoolDecoder & data, const ProbabilityTables & probability_tables );
 
-  void dequantize( const Quantizer & frame_quantizer,
-		   const SafeArray< Quantizer, num_segments > & segment_quantizers );
+  void dequantize( const Quantizer & quantizer );
 
   void intra_predict_and_inverse_transform( Raster::Macroblock & raster ) const;
   void inter_predict_and_inverse_transform( const References & references,
@@ -53,8 +57,7 @@ public:
 
   void loopfilter( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
 		   const bool adjust_for_mode_and_ref,
-		   const FilterParameters & frame_loopfilter,
-		   const SafeArray< FilterParameters, num_segments > & segment_loopfilters,
+		   const FilterParameters & loopfilter,
 		   Raster::Macroblock & raster ) const;
 
   const MacroblockHeaderType & header( void ) const { return header_; }
@@ -64,33 +67,28 @@ public:
   const mbmode & y_prediction_mode( void ) const { return Y2_.prediction_mode(); }
 
   bool inter_coded( void ) const;
+
+  uint8_t segment_id( void ) const { return segment_id_; }
 };
 
 struct KeyFrameMacroblockHeader
 {
-  Optional< Tree< uint8_t, 4, segment_id_tree > > segment_id;
-  Optional< Boolean > mb_skip_coeff;
+  /* no fields beyond what's in every macroblock */
 
-  KeyFrameMacroblockHeader( BoolDecoder & data,
-			    const KeyFrameHeader & frame_header,
-			    SegmentationMap & segmentation_map );
+  KeyFrameMacroblockHeader( BoolDecoder &, const KeyFrameHeader & ) {}
 
   reference_frame reference( void ) const { return CURRENT_FRAME; }
 };
 
 struct InterFrameMacroblockHeader
 {
-  Optional< Tree< uint8_t, num_segments, segment_id_tree > > segment_id;
-  Optional< Boolean > mb_skip_coeff;
   Boolean is_inter_mb;
   Optional< Boolean > mb_ref_frame_sel1;
   Optional< Boolean > mb_ref_frame_sel2;
 
   bool motion_vectors_flipped_; /* derived quantity */
 
-  InterFrameMacroblockHeader( BoolDecoder & data,
-			      const InterFrameHeader & frame_header,
-			      SegmentationMap & segmentation_map );
+  InterFrameMacroblockHeader( BoolDecoder & data, const InterFrameHeader & frame_header );
 
   reference_frame reference( void ) const;
 };
