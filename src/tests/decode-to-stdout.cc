@@ -36,13 +36,14 @@ int main( int argc, char *argv[] )
 
     for ( uint32_t i = frame_no; i < file.frame_count(); i++ ) {
       if ( decoder.decode_frame( file.frame( i ), raster ) ) {
-	unsigned int num_written =
-	  fwrite( &raster.Y().at( 0, 0 ), raster.Y().width() * raster.Y().height(), 1, stdout )
-	  + fwrite( &raster.U().at( 0, 0 ), raster.U().width() * raster.U().height(), 1, stdout )
-	  + fwrite( &raster.V().at( 0, 0 ), raster.V().width() * raster.V().height(), 1, stdout );
-
-	if ( num_written != 3 ) {
-	  throw Exception( "fwrite", "short write" );
+	for ( unsigned int row = 0; row < raster.Y().height(); row++ ) {
+	  fwrite( &raster.Y().at( 0, row ), raster.display_width(), 1, stdout );
+	}
+	for ( unsigned int row = 0; row < raster.U().height(); row++ ) {
+	  fwrite( &raster.U().at( 0, row ), raster.display_width() / 2, 1, stdout );
+	}
+	for ( unsigned int row = 0; row < raster.V().height(); row++ ) {
+	  fwrite( &raster.V().at( 0, row ), raster.display_width() / 2, 1, stdout );
 	}
       }
     }
