@@ -150,16 +150,6 @@ void InterFrame::copy_to( const Raster & raster, References & references ) const
     references.last.copy( raster );
   }
 
-  if ( header_.copy_buffer_to_golden.initialized() ) {
-    if ( header_.copy_buffer_to_golden.get() == 1 ) {
-      references.golden.copy( references.last );
-    } else if ( header_.copy_buffer_to_golden.get() == 2 ) {
-      references.golden.copy( references.alternative_reference );
-    }
-  } else {
-    references.golden.copy( raster );
-  }
-
   if ( header_.copy_buffer_to_alternate.initialized() ) {
     if ( header_.copy_buffer_to_alternate.get() == 1 ) {
       references.alternative_reference.copy( references.last );
@@ -168,6 +158,16 @@ void InterFrame::copy_to( const Raster & raster, References & references ) const
     }
   } else {
     references.alternative_reference.copy( raster );
+  }
+
+  if ( header_.copy_buffer_to_golden.initialized() ) {
+    if ( header_.copy_buffer_to_golden.get() == 1 ) {
+      references.golden.copy( references.last );
+    } else if ( header_.copy_buffer_to_golden.get() == 2 ) {
+      references.golden.copy( references.alternative_reference );
+    }
+  } else {
+    references.golden.copy( raster );
   }
 }
 
