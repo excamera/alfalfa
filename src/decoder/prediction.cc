@@ -377,7 +377,87 @@ void Raster::Block<size>::safe_inter_predict( const MotionVector & mv, const Two
 
     inter_predict( mv, safe_reference, source_column, source_row );
   } else {
-    inter_predict( mv, reference, source_column, source_row );
+    unsafe_inter_predict( mv, reference, source_column, source_row );
+  }
+}
+
+template <unsigned int size>
+void Raster::Block<size>::unsafe_inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference,
+						const int source_column,
+						const int source_row )
+{
+  assert( contents_.stride() == reference.width() );
+
+  const unsigned int stride = contents_.stride();
+
+  const uint8_t mx = mv.x() & 7, my = mv.y() & 7;
+
+  if ( (mx & 7) == 0 and (my & 7) == 0 ) {
+    uint8_t *dest_row_start = &contents_.at( 0, 0 );
+    const uint8_t *src_row_start = &reference.at( source_column, source_row );
+    const uint8_t *dest_last_row_start = dest_row_start + size * contents_.stride();
+    while ( dest_row_start != dest_last_row_start ) {
+      memcpy( dest_row_start, src_row_start, size );
+      dest_row_start += stride;
+      src_row_start += stride;
+    }
+    return;
+  }
+
+  SafeArray< SafeArray< uint8_t, size >, size + 5 > intermediate;
+
+  {
+    uint8_t *intermediate_row_start = &intermediate.at( 0 ).at( 0 );
+    const uint8_t *intermediate_last_row_start = intermediate_row_start + size * (size + 5);
+    const uint8_t *src_row_start = &reference.at( source_column - 2, source_row - 2 );
+
+    const auto & horizontal_filter = sixtap_filters.at( mx );
+
+    while ( intermediate_row_start != intermediate_last_row_start ) {
+      const uint8_t *intermediate_row_end = intermediate_row_start + size;
+
+      while ( intermediate_row_start != intermediate_row_end ) {
+	*( intermediate_row_start ) =
+	  clamp255( ( (   *( src_row_start )     * horizontal_filter.at( 0 ) )
+		      + ( *( src_row_start + 1 ) * horizontal_filter.at( 1 ) )
+		      + ( *( src_row_start + 2 ) * horizontal_filter.at( 2 ) )
+		      + ( *( src_row_start + 3 ) * horizontal_filter.at( 3 ) )
+		      + ( *( src_row_start + 4 ) * horizontal_filter.at( 4 ) )
+		      + ( *( src_row_start + 5 ) * horizontal_filter.at( 5 ) )
+		      + 64 ) >> 7 );
+
+	intermediate_row_start++;
+	src_row_start++;
+      }
+      src_row_start += stride - size;
+    }
+  }
+
+  {
+    uint8_t *dest_row_start = &contents_.at( 0, 0 );
+    const uint8_t *dest_last_row_start = dest_row_start + size * stride;
+    const uint8_t *intermediate_row_start = &intermediate.at( 0 ).at( 0 );
+
+    const auto & vertical_filter = sixtap_filters.at( my );
+
+    while ( dest_row_start != dest_last_row_start ) {
+      const uint8_t *dest_row_end = dest_row_start + size;
+
+      while ( dest_row_start != dest_row_end ) {
+	*dest_row_start =
+	  clamp255( ( (   *( intermediate_row_start )            * vertical_filter.at( 0 ) )
+		      + ( *( intermediate_row_start + size )     * vertical_filter.at( 1 ) )
+		      + ( *( intermediate_row_start + size * 2 ) * vertical_filter.at( 2 ) )
+		      + ( *( intermediate_row_start + size * 3 ) * vertical_filter.at( 3 ) )
+		      + ( *( intermediate_row_start + size * 4 ) * vertical_filter.at( 4 ) )
+		      + ( *( intermediate_row_start + size * 5 ) * vertical_filter.at( 5 ) )
+		      + 64 ) >> 7 );
+
+	dest_row_start++;
+	intermediate_row_start++;
+      }
+      dest_row_start += stride - size;
+    }
   }
 }
 

@@ -102,6 +102,9 @@ public:
     void inter_predict( const MotionVector & mv, const ReferenceType & reference,
 			const int source_column, const int source_row );
 
+    void unsafe_inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference,
+			       const int source_column, const int source_row );
+
     void set_above_right_bottom_row_predictor( const typename Predictors::AboveRightBottomRowPredictor & replacement );
 
     const typename TwoD< Block >::Context & context( void ) const { return context_; }
