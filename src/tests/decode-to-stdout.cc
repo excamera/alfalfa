@@ -35,13 +35,10 @@ int main( int argc, char *argv[] )
     Raster raster( file.width(), file.height() );
 
     for ( uint32_t i = frame_no; i < file.frame_count(); i++ ) {
-      if ( UncompressedChunk( file.frame( i ), file.width(), file.height() ).key_frame() ) {
-
-	if ( decoder.decode_frame( file.frame( i ), raster ) ) {
-	  raster.Y().forall( [&] ( const uint8_t & pixel ) { cout << pixel; } );
-	  raster.U().forall( [&] ( const uint8_t & pixel ) { cout << pixel; } );
-	  raster.V().forall( [&] ( const uint8_t & pixel ) { cout << pixel; } );
-	}
+      if ( decoder.decode_frame( file.frame( i ), raster ) ) {
+	raster.Y().forall( [&] ( const uint8_t & pixel ) { cout << pixel; } );
+	raster.U().forall( [&] ( const uint8_t & pixel ) { cout << pixel; } );
+	raster.V().forall( [&] ( const uint8_t & pixel ) { cout << pixel; } );
       }
     }
   } catch ( const Exception & e ) {
