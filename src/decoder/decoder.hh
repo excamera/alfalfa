@@ -12,33 +12,48 @@ class Raster;
 struct KeyFrameHeader;
 struct InterFrameHeader;
 
-struct DecoderState
+struct ProbabilityTables
 {
-  ProbabilityArray< num_segments > mb_segment_tree_probs;
   SafeArray< SafeArray< SafeArray< SafeArray< Probability,
 					      ENTROPY_NODES >,
 				   PREV_COEF_CONTEXTS >,
 			COEF_BANDS >,
 	     BLOCK_TYPES > coeff_probs;
 
-  SafeArray< QuantizerAdjustment, num_segments > segment_quantizer_adjustments;
-
-  SafeArray< SegmentFilterAdjustment, num_segments > segment_filter_adjustments;
-
-  SafeArray< int8_t, num_reference_frames > loopfilter_ref_adjustments;
-  SafeArray< int8_t, 4 > loopfilter_mode_adjustments;
-
   ProbabilityArray< num_y_modes > y_mode_probs;
   ProbabilityArray< num_uv_modes > uv_mode_probs;
 
   SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > motion_vector_probs;
 
-  DecoderState( const KeyFrameHeader & header );
+  ProbabilityTables( const KeyFrameHeader & header );
 
   template <class HeaderType>
-  void common_update( const HeaderType & header );
+  void coeff_prob_update( const HeaderType & header );
 
   void update( const InterFrameHeader & header );
+};
+
+struct QuantizerFilterAdjustments
+{
+  /* Probability table to select macroblock segment_id */
+  ProbabilityArray< num_segments > mb_segment_tree_probs;
+
+  /* Segment-based adjustments to the quantizer */
+  SafeArray< QuantizerAdjustment, num_segments > segment_quantizer_adjustments;
+
+  /* Segment-based adjustments to the in-loop deblocking filter */
+  SafeArray< SegmentFilterAdjustment, num_segments > segment_filter_adjustments;
+
+  /* Adjustments to the deblocking filter based on the macroblock's reference frame */
+  SafeArray< int8_t, num_reference_frames > loopfilter_ref_adjustments;
+
+  /* Adjustments based on the macroblock's prediction mode */
+  SafeArray< int8_t, 4 > loopfilter_mode_adjustments;
+
+  QuantizerFilterAdjustments( const KeyFrameHeader & header );
+
+  template <class HeaderType>
+  void update( const HeaderType & header );
 };
 
 struct References
@@ -58,12 +73,23 @@ struct References
   }
 };
 
+struct DecoderState
+{
+  QuantizerFilterAdjustments quantizer_filter_adjustments;  
+  ProbabilityTables probability_tables;
+
+  DecoderState( const KeyFrameHeader & header )
+    : quantizer_filter_adjustments( header ),
+      probability_tables( header )
+  {}
+};
+
 class Decoder
 {
 private:
   uint16_t width_, height_;
 
-  DecoderState state_;
+  DecoderState state_;  
   References references_;
 
 public:

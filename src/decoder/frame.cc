@@ -9,8 +9,8 @@ using namespace std;
 
 template <class FrameHeaderType, class MacroblockType>
 Frame<FrameHeaderType, MacroblockType>::Frame( const UncompressedChunk & chunk,
-					  const unsigned int width,
-					  const unsigned int height )
+					       const unsigned int width,
+					       const unsigned int height )
   : display_width_( width ),
     display_height_( height ),
     first_partition_( chunk.first_partition() ),
@@ -18,11 +18,14 @@ Frame<FrameHeaderType, MacroblockType>::Frame( const UncompressedChunk & chunk,
 {}
 
 template <class FrameHeaderType, class MacroblockType>
-void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers( const DecoderState & decoder_state )
+void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
+								       const ProbabilityTables & probability_tables )
 {
   /* parse the macroblock headers */
   macroblock_headers_.initialize( macroblock_width_, macroblock_height_,
-				  first_partition_, header_, decoder_state,
+				  first_partition_, header_,
+				  quantizer_filter_adjustments,
+				  probability_tables,
 				  Y2_, Y_, U_, V_ );
 
   /* repoint Y2 above/left pointers to skip missing subblocks */
@@ -30,26 +33,27 @@ void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers( const Dec
 }
 
 template <class FrameHeaderType, class MacroblockType>
-void Frame<FrameHeaderType, MacroblockType>::parse_tokens( const DecoderState & decoder_state )
+void Frame<FrameHeaderType, MacroblockType>::parse_tokens( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
+							   const ProbabilityTables & probability_tables )
 {
   const Quantizer frame_quantizer( header_.quant_indices );
 
   const SafeArray< Quantizer, num_segments > segment_quantizers =
-    {{ Quantizer( header_.quant_indices, decoder_state.segment_quantizer_adjustments.at( 0 ) ),
-       Quantizer( header_.quant_indices, decoder_state.segment_quantizer_adjustments.at( 1 ) ),
-       Quantizer( header_.quant_indices, decoder_state.segment_quantizer_adjustments.at( 2 ) ),
-       Quantizer( header_.quant_indices, decoder_state.segment_quantizer_adjustments.at( 3 ) ) }};
+    {{ Quantizer( header_.quant_indices, quantizer_filter_adjustments.segment_quantizer_adjustments.at( 0 ) ),
+       Quantizer( header_.quant_indices, quantizer_filter_adjustments.segment_quantizer_adjustments.at( 1 ) ),
+       Quantizer( header_.quant_indices, quantizer_filter_adjustments.segment_quantizer_adjustments.at( 2 ) ),
+       Quantizer( header_.quant_indices, quantizer_filter_adjustments.segment_quantizer_adjustments.at( 3 ) ) }};
 
   macroblock_headers_.get().forall_ij( [&]( MacroblockType & macroblock,
 					    const unsigned int column __attribute((unused)),
 					    const unsigned int row )
 				       { macroblock.parse_tokens( dct_partitions_.at( row % dct_partitions_.size() ),
-								  decoder_state );
+								  probability_tables );
 					 macroblock.dequantize( frame_quantizer, segment_quantizers ); } );
 }
 
 template <class FrameHeaderType, class MacroblockType>
-void Frame<FrameHeaderType, MacroblockType>::loopfilter( const DecoderState & decoder_state, Raster & raster ) const
+void Frame<FrameHeaderType, MacroblockType>::loopfilter( const QuantizerFilterAdjustments & quantizer_filter_adjustments, Raster & raster ) const
 {
   if ( header_.loop_filter_level ) {
     const FilterParameters frame_loopfilter( header_.filter_type,
@@ -58,18 +62,18 @@ void Frame<FrameHeaderType, MacroblockType>::loopfilter( const DecoderState & de
 
     const SafeArray< FilterParameters, num_segments > segment_loopfilters =
       {{ FilterParameters( header_.filter_type, header_.loop_filter_level, header_.sharpness_level,
-			   decoder_state.segment_filter_adjustments.at( 0 ) ),
+			   quantizer_filter_adjustments.segment_filter_adjustments.at( 0 ) ),
 	 FilterParameters( header_.filter_type, header_.loop_filter_level, header_.sharpness_level,
-			   decoder_state.segment_filter_adjustments.at( 1 ) ),
+			   quantizer_filter_adjustments.segment_filter_adjustments.at( 1 ) ),
 	 FilterParameters( header_.filter_type, header_.loop_filter_level, header_.sharpness_level,
-			   decoder_state.segment_filter_adjustments.at( 2 ) ),
+			   quantizer_filter_adjustments.segment_filter_adjustments.at( 2 ) ),
 	 FilterParameters( header_.filter_type, header_.loop_filter_level, header_.sharpness_level,
-			   decoder_state.segment_filter_adjustments.at( 3 ) ) }};
+			   quantizer_filter_adjustments.segment_filter_adjustments.at( 3 ) ) }};
 
     macroblock_headers_.get().forall_ij( [&]( const MacroblockType & macroblock,
 					      const unsigned int column,
 					      const unsigned int row )
-					 { macroblock.loopfilter( decoder_state,
+					 { macroblock.loopfilter( quantizer_filter_adjustments,
 								  frame_loopfilter,
 								  segment_loopfilters,
 								  raster.macroblock( column, row ) ); } );
@@ -77,7 +81,8 @@ void Frame<FrameHeaderType, MacroblockType>::loopfilter( const DecoderState & de
 }
 
 template <>
-void KeyFrame::decode( const DecoderState & decoder_state, Raster & raster ) const
+void KeyFrame::decode( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
+		       Raster & raster ) const
 {
   /* process each macroblock */
   macroblock_headers_.get().forall_ij( [&]( const KeyFrameMacroblock & macroblock,
@@ -85,11 +90,11 @@ void KeyFrame::decode( const DecoderState & decoder_state, Raster & raster ) con
 					    const unsigned int row )
 				       { macroblock.intra_predict_and_inverse_transform( raster.macroblock( column, row ) ); } );
 
-  loopfilter( decoder_state, raster );
+  loopfilter( quantizer_filter_adjustments, raster );
 }
 
 template <>
-void InterFrame::decode( const DecoderState & decoder_state,
+void InterFrame::decode( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
 			 const References & references,
 			 Raster & raster ) const
 {
@@ -103,7 +108,7 @@ void InterFrame::decode( const DecoderState & decoder_state,
 					   macroblock.intra_predict_and_inverse_transform( raster.macroblock( column, row ) );
 					 } } );
 
-  loopfilter( decoder_state, raster );
+  loopfilter( quantizer_filter_adjustments, raster );
 }
 
 /* "above" for a Y2 block refers to the first macroblock above that actually has Y2 coded */

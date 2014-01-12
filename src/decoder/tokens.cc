@@ -41,7 +41,7 @@ static const TokenDecoder< 11 > token_decoder_5( 67, { 254, 254, 243, 230, 196, 
 template < BlockType initial_block_type, class PredictionMode >
 void Block< initial_block_type,
 	    PredictionMode >::parse_tokens( BoolDecoder & data,
-					    const DecoderState & decoder_state )
+					    const ProbabilityTables & probability_tables )
 {
   bool last_was_zero = false;
 
@@ -54,7 +54,7 @@ void Block< initial_block_type,
 	index++ ) {
     /* select the tree probabilities based on the prediction context */
     const ProbabilityArray< MAX_ENTROPY_TOKENS > & prob
-      = decoder_state.coeff_probs.at( type_ ).at( coefficient_to_band.at( index ) ).at( token_context );
+      = probability_tables.coeff_probs.at( type_ ).at( coefficient_to_band.at( index ) ).at( token_context );
 
     /* decode the token */
     if ( not last_was_zero ) {

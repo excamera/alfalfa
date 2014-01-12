@@ -7,7 +7,8 @@
 #include "block.hh"
 #include "raster.hh"
 
-class DecoderState;
+class QuantizerFilterAdjustments;
+class ProbabilityTables;
 class References;
 
 template <class FrameHeaderType, class MacroblockHeaderType>
@@ -25,8 +26,7 @@ private:
   bool has_nonzero_ { false };
 
   void decode_prediction_modes( BoolDecoder & data,
-				const DecoderState & decoder_state,
-				const FrameHeaderType & frame_header );
+				const ProbabilityTables & probability_tables );
 
   void set_base_motion_vector( const MotionVector & mv );
 
@@ -34,13 +34,14 @@ public:
   Macroblock( const typename TwoD< Macroblock >::Context & c,
 	      BoolDecoder & data,
 	      const FrameHeaderType & key_frame_header,
-	      const DecoderState & decoder_state,
+	      const QuantizerFilterAdjustments & quantizer_filter_adjustments,
+	      const ProbabilityTables & probability_tables,
 	      TwoD< Y2Block > & frame_Y2,
 	      TwoD< YBlock > & frame_Y,
 	      TwoD< UVBlock > & frame_U,
 	      TwoD< UVBlock > & frame_V );
 
-  void parse_tokens( BoolDecoder & data, const DecoderState & decoder_state );
+  void parse_tokens( BoolDecoder & data, const ProbabilityTables & probability_tables );
 
   void dequantize( const Quantizer & frame_quantizer,
 		   const SafeArray< Quantizer, num_segments > & segment_quantizers );
@@ -49,7 +50,7 @@ public:
   void inter_predict_and_inverse_transform( const References & references,
 					    Raster::Macroblock & raster ) const;
 
-  void loopfilter( const DecoderState & decoder_state,
+  void loopfilter( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
 		   const FilterParameters & frame_loopfilter,
 		   const SafeArray< FilterParameters, num_segments > & segment_loopfilters,
 		   Raster::Macroblock & raster ) const;
@@ -70,7 +71,7 @@ struct KeyFrameMacroblockHeader
 
   KeyFrameMacroblockHeader( BoolDecoder & data,
 			    const KeyFrameHeader & frame_header,
-			    const DecoderState & decoder_state );
+			    const QuantizerFilterAdjustments & quantizer_filter_adjustments );
 };
 
 struct InterFrameMacroblockHeader
@@ -85,7 +86,7 @@ struct InterFrameMacroblockHeader
 
   InterFrameMacroblockHeader( BoolDecoder & data,
 			      const InterFrameHeader & frame_header,
-			      const DecoderState & decoder_state );
+			      const QuantizerFilterAdjustments & quantizer_filter_adjustments );
 
   reference_frame reference( void ) const;
 };

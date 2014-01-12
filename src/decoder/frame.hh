@@ -38,7 +38,7 @@ class Frame
 
   void relink_y2_blocks( void );
 
-  void loopfilter( const DecoderState & decoder_state, Raster & target ) const;
+  void loopfilter( const QuantizerFilterAdjustments & quantizer_filter_adjustments, Raster & target ) const;
 
  public:
   Frame( const UncompressedChunk & chunk,
@@ -47,11 +47,14 @@ class Frame
 
   const FrameHeaderType & header( void ) const { return header_; }
 
-  void parse_macroblock_headers( const DecoderState & decoder_state );
-  void parse_tokens( const DecoderState & decoder_state );
+  void parse_macroblock_headers( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
+				 const ProbabilityTables & probability_tables );
+  void parse_tokens( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
+		     const ProbabilityTables & probability_tables );
 
-  void decode( const DecoderState & decoder_state, Raster & raster ) const;
-  void decode( const DecoderState & decoder_state, const References & references, Raster & raster ) const;
+  void decode( const QuantizerFilterAdjustments & quantizer_filter_adjustments, Raster & raster ) const;
+  void decode( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
+	       const References & references, Raster & raster ) const;
 
   void copy_to( const Raster & raster, References & references ) const;
 };

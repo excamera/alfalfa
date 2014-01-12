@@ -7,7 +7,7 @@
 #include "safe_array.hh"
 #include "vp8_header_structures.hh"
 
-class DecoderState;
+class ProbabilityTables;
 class Quantizer;
 
 enum BlockType { Y_after_Y2 = 0, Y2, UV, Y_without_Y2 };
@@ -63,7 +63,7 @@ public:
     }
   }
 
-  void parse_tokens( BoolDecoder & data, const DecoderState & decoder );
+  void parse_tokens( BoolDecoder & data, const ProbabilityTables & probability_tables );
 
   BlockType type( void ) const { return type_; }
   bool coded( void ) const { static_assert( initial_block_type == Y2,

@@ -27,25 +27,25 @@ template <class FrameHeaderType, class MacroblockHeaderType>
 Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename TwoD< Macroblock >::Context & c,
 							       BoolDecoder & data,
 							       const FrameHeaderType & frame_header,
-							       const DecoderState & decoder_state,
+							       const QuantizerFilterAdjustments & quantizer_filter_adjustments,
+							       const ProbabilityTables & probability_tables,
 							       TwoD< Y2Block > & frame_Y2,
 							       TwoD< YBlock > & frame_Y,
 							       TwoD< UVBlock > & frame_U,
 							       TwoD< UVBlock > & frame_V )
   : context_( c ),
-    header_( data, frame_header, decoder_state ),
+    header_( data, frame_header, quantizer_filter_adjustments ),
     Y2_( frame_Y2.at( c.column, c.row ) ),
     Y_( frame_Y, c.column * 4, c.row * 4 ),
     U_( frame_U, c.column * 2, c.row * 2 ),
     V_( frame_V, c.column * 2, c.row * 2 )
 {
-  decode_prediction_modes( data, decoder_state, frame_header );
+  decode_prediction_modes( data, probability_tables );
 }
 
 template <>
 void KeyFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
-						  const DecoderState &,
-						  const KeyFrameHeader & )
+						  const ProbabilityTables & )
 {
   /* Set Y prediction mode */
   Y2_.set_prediction_mode( data.tree< num_y_modes, mbmode >( kf_y_mode_tree, kf_y_mode_probs ) );
@@ -295,12 +295,11 @@ MotionVector luma_to_chroma( const MotionVector & s1,
 
 template <>
 void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
-						    const DecoderState & decoder_state,
-						    const InterFrameHeader &  )
+						    const ProbabilityTables & probability_tables )
 {
   if ( not inter_coded() ) {
     /* Set Y prediction mode */
-    Y2_.set_prediction_mode( data.tree< num_y_modes, mbmode >( y_mode_tree, decoder_state.y_mode_probs ) );
+    Y2_.set_prediction_mode( data.tree< num_y_modes, mbmode >( y_mode_tree, probability_tables.y_mode_probs ) );
     Y2_.set_if_coded();
 
     /* Set subblock prediction modes. Intra macroblocks in interframes are simpler than in keyframes. */
@@ -317,7 +316,7 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 
     /* Set chroma prediction modes */
     U_.at( 0, 0 ).set_prediction_mode( data.tree< num_uv_modes, mbmode >( uv_mode_tree,
-									  decoder_state.uv_mode_probs ) );
+									  probability_tables.uv_mode_probs ) );
   } else {
     /* motion-vector "census" */
     Scorer census( header_.motion_vectors_flipped_ );
@@ -349,7 +348,7 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
       break;
     case NEWMV:
       {
-	MotionVector new_mv( data, decoder_state.motion_vector_probs );
+	MotionVector new_mv( data, probability_tables.motion_vector_probs );
 	new_mv += clamp( census.best(), context_ );
 	set_base_motion_vector( new_mv );
       }
@@ -366,7 +365,7 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 
 	  first_subblock.read_subblock_inter_prediction( data,
 							 clamp( census.best(), context_ ),
-							 decoder_state.motion_vector_probs );
+							 probability_tables.motion_vector_probs );
 
 	  /* copy to rest of subblocks */
 
@@ -401,20 +400,20 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 
 KeyFrameMacroblockHeader::KeyFrameMacroblockHeader( BoolDecoder & data,
 						    const KeyFrameHeader & frame_header,
-						    const DecoderState & decoder_state )
+						    const QuantizerFilterAdjustments & quantizer_filter_adjustments )
   : segment_id( frame_header.update_segmentation.initialized()
 		and frame_header.update_segmentation.get().update_mb_segmentation_map,
-		data, decoder_state.mb_segment_tree_probs ),
+		data, quantizer_filter_adjustments.mb_segment_tree_probs ),
     mb_skip_coeff( frame_header.prob_skip_false.initialized(),
 		   data, frame_header.prob_skip_false.get() )
 {}
 
 InterFrameMacroblockHeader::InterFrameMacroblockHeader( BoolDecoder & data,
 							const InterFrameHeader & frame_header,
-							const DecoderState & decoder_state )
+							const QuantizerFilterAdjustments & quantizer_filter_adjustments )
   : segment_id( frame_header.update_segmentation.initialized()
 		and frame_header.update_segmentation.get().update_mb_segmentation_map,
-		data, decoder_state.mb_segment_tree_probs ),
+		data, quantizer_filter_adjustments.mb_segment_tree_probs ),
     mb_skip_coeff( frame_header.prob_skip_false.initialized(),
 		   data, frame_header.prob_skip_false.get() ),
     is_inter_mb( data, frame_header.prob_inter ),
@@ -426,7 +425,7 @@ InterFrameMacroblockHeader::InterFrameMacroblockHeader( BoolDecoder & data,
 
 template <class FrameHeaderType, class MacroblockHeaderType>
 void Macroblock<FrameHeaderType, MacroblockHeaderType>::parse_tokens( BoolDecoder & data,
-								      const DecoderState & decoder_state )
+								      const ProbabilityTables & probability_tables )
 {
   /* is macroblock skipped? */
   if ( header_.mb_skip_coeff.get_or( false ) ) {
@@ -435,21 +434,21 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::parse_tokens( BoolDecode
 
   /* parse Y2 block if present */
   if ( Y2_.coded() ) {
-    Y2_.parse_tokens( data, decoder_state );
+    Y2_.parse_tokens( data, probability_tables );
     has_nonzero_ |= Y2_.has_nonzero();
   }
 
   /* parse Y blocks with variable first coefficient */
   Y_.forall( [&]( YBlock & block ) {
-      block.parse_tokens( data, decoder_state );
+      block.parse_tokens( data, probability_tables );
       has_nonzero_ |= block.has_nonzero(); } );
 
   /* parse U and V blocks */
   U_.forall( [&]( UVBlock & block ) {
-      block.parse_tokens( data, decoder_state );
+      block.parse_tokens( data, probability_tables );
       has_nonzero_ |= block.has_nonzero(); } );
   V_.forall( [&]( UVBlock & block ) {
-      block.parse_tokens( data, decoder_state );
+      block.parse_tokens( data, probability_tables );
       has_nonzero_ |= block.has_nonzero(); } );
 }
 
@@ -551,7 +550,7 @@ void InterFrameMacroblock::inter_predict_and_inverse_transform( const References
 }
 
 template <class FrameHeaderType, class MacroblockHeaderType>
-void Macroblock<FrameHeaderType, MacroblockHeaderType>::loopfilter( const DecoderState & decoder_state,
+void Macroblock<FrameHeaderType, MacroblockHeaderType>::loopfilter( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
 								    const FilterParameters & frame_loopfilter,
 								    const SafeArray< FilterParameters, num_segments > & segment_loopfilters,
 								    Raster::Macroblock & raster ) const
@@ -563,8 +562,8 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::loopfilter( const Decode
 				      ? segment_loopfilters.at( header_.segment_id.get() )
 				      : frame_loopfilter );
 
-  filter_parameters.adjust( decoder_state.loopfilter_ref_adjustments,
-			    decoder_state.loopfilter_mode_adjustments,
+  filter_parameters.adjust( quantizer_filter_adjustments.loopfilter_ref_adjustments,
+			    quantizer_filter_adjustments.loopfilter_mode_adjustments,
 			    CURRENT_FRAME,
 			    Y2_.prediction_mode() );
 
