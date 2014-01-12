@@ -36,9 +36,14 @@ int main( int argc, char *argv[] )
 
     for ( uint32_t i = frame_no; i < file.frame_count(); i++ ) {
       if ( decoder.decode_frame( file.frame( i ), raster ) ) {
-	raster.Y().forall( [&] ( const uint8_t & pixel ) { cout << pixel; } );
-	raster.U().forall( [&] ( const uint8_t & pixel ) { cout << pixel; } );
-	raster.V().forall( [&] ( const uint8_t & pixel ) { cout << pixel; } );
+	unsigned int num_written =
+	  fwrite( &raster.Y().at( 0, 0 ), raster.Y().width() * raster.Y().height(), 1, stdout )
+	  + fwrite( &raster.U().at( 0, 0 ), raster.U().width() * raster.U().height(), 1, stdout )
+	  + fwrite( &raster.V().at( 0, 0 ), raster.V().width() * raster.V().height(), 1, stdout );
+
+	if ( num_written != 3 ) {
+	  throw Exception( "fwrite", "short write" );
+	}
       }
     }
   } catch ( const Exception & e ) {
