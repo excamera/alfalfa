@@ -54,9 +54,9 @@ static int8_t mode_adjustment( const SafeArray< int8_t, 4 > & mode_adjustments,
   if ( macroblock_reference_frame == CURRENT_FRAME ) {
     return ( macroblock_y_mode == B_PRED ) ? mode_adjustments.at( 0 ) : 0;
   } else if ( macroblock_y_mode == ZEROMV ) {
-    return 1;
+    return mode_adjustments.at( 1 );
   } else if ( macroblock_y_mode == SPLITMV ) {
-    return 3;
+    return mode_adjustments.at( 3 );
   } else {
     return mode_adjustments.at( 2 );
   }
