@@ -7,7 +7,7 @@
 
 using namespace std;
 
-static const SafeArray< int16_t, 128 > dc_qlookup =
+static const SafeArray< uint16_t, 128 > dc_qlookup =
   {{ 4,   5,   6,   7,   8,   9,  10,  10,   11,  12,  13,  14,  15,
      16,  17,  17,  18,  19,  20,  20,  21,   21,  22,  22,  23,  23,
      24,  25,  25,  26,  27,  28,  29,  30,   31,  32,  33,  34,  35,
@@ -19,7 +19,7 @@ static const SafeArray< int16_t, 128 > dc_qlookup =
      104, 106, 108, 110, 112, 114, 116, 118, 122, 124, 126, 128, 130,
      132, 134, 136, 138, 140, 143, 145, 148, 151, 154, 157 }};
 
-static const SafeArray< int16_t, 128 > ac_qlookup =
+static const SafeArray< uint16_t, 128 > ac_qlookup =
   {{ 4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,
      17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29,
      30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,
@@ -39,11 +39,8 @@ static inline int16_t clamp_q( const int16_t q )
   return q;
 }
 
-Quantizer::Quantizer( const QuantIndices & quant_indices, const QuantizerAdjustment & adjustment )
-  : y_ac(  ac_qlookup.at( clamp_q( adjustment.value
-				   + adjustment.absolute
-				   ? 0
-				   : static_cast<uint8_t>( quant_indices.y_ac_qi ) ) ) ),
+Quantizer::Quantizer( const QuantIndices & quant_indices )
+  : y_ac(  ac_qlookup.at( clamp_q( quant_indices.y_ac_qi ) ) ),
     y_dc(  dc_qlookup.at( clamp_q( quant_indices.y_ac_qi + quant_indices.y_dc.get_or( 0 ) ) ) ),
     y2_ac( ac_qlookup.at( clamp_q( quant_indices.y_ac_qi + quant_indices.y2_ac.get_or( 0 ) ) ) * 155/100 ),
     y2_dc( dc_qlookup.at( clamp_q( quant_indices.y_ac_qi + quant_indices.y2_dc.get_or( 0 ) ) ) * 2 ),
@@ -59,6 +56,19 @@ QuantizerAdjustment::QuantizerAdjustment( const uint8_t segment_id,
   : absolute( false ), value( 0 )
 {
   update( segment_id, update_segmentation );
+}
+
+QuantIndices QuantizerAdjustment::adjust( const QuantIndices & quant_indices ) const
+{
+  QuantIndices ret( quant_indices );
+
+  if ( absolute ) {
+    ret.y_ac_qi = value;
+  } else {
+    ret.y_ac_qi = ret.y_ac_qi + value;
+  }
+
+  return ret;
 }
 
 void QuantizerAdjustment::update( const uint8_t segment_id,

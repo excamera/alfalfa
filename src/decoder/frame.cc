@@ -39,10 +39,10 @@ void Frame<FrameHeaderType, MacroblockType>::parse_tokens( const QuantizerFilter
   const Quantizer frame_quantizer( header_.quant_indices );
 
   const SafeArray< Quantizer, num_segments > segment_quantizers =
-    {{ Quantizer( header_.quant_indices, quantizer_filter_adjustments.segment_quantizer_adjustments.at( 0 ) ),
-       Quantizer( header_.quant_indices, quantizer_filter_adjustments.segment_quantizer_adjustments.at( 1 ) ),
-       Quantizer( header_.quant_indices, quantizer_filter_adjustments.segment_quantizer_adjustments.at( 2 ) ),
-       Quantizer( header_.quant_indices, quantizer_filter_adjustments.segment_quantizer_adjustments.at( 3 ) ) }};
+    {{ Quantizer( quantizer_filter_adjustments.segment_quantizer_adjustments.at( 0 ).adjust( header_.quant_indices ) ),
+       Quantizer( quantizer_filter_adjustments.segment_quantizer_adjustments.at( 1 ).adjust( header_.quant_indices ) ),
+       Quantizer( quantizer_filter_adjustments.segment_quantizer_adjustments.at( 2 ).adjust( header_.quant_indices ) ),
+       Quantizer( quantizer_filter_adjustments.segment_quantizer_adjustments.at( 3 ).adjust( header_.quant_indices ) ) }};
 
   macroblock_headers_.get().forall_ij( [&]( MacroblockType & macroblock,
 					    const unsigned int column __attribute((unused)),

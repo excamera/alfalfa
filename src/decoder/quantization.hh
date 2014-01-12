@@ -20,14 +20,15 @@ struct QuantizerAdjustment
 
   void update( const uint8_t segment_id,
 	       const Optional< UpdateSegmentation > & update_segmentation );
+
+  QuantIndices adjust( const QuantIndices & quant_indices ) const;
 };
 
 struct Quantizer
 {
-  uint8_t y_ac, y_dc, y2_ac, y2_dc, uv_ac, uv_dc;
+  uint16_t y_ac, y_dc, y2_ac, y2_dc, uv_ac, uv_dc;
 
-  Quantizer( const QuantIndices & quant_indices,
-	     const QuantizerAdjustment & adjustment = QuantizerAdjustment() );
+  Quantizer( const QuantIndices & quant_indices );
 };
 
 #endif /* QUANTIZATION_HH */
