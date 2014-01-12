@@ -6,7 +6,9 @@ using namespace std;
 
 Decoder::Decoder( const uint16_t width, const uint16_t height, const Chunk & key_frame )
   : width_( width ), height_( height ),
-    state_( KeyFrame( UncompressedChunk( key_frame, width_, height_ ), width_, height_ ).header() ),
+    state_( KeyFrame( UncompressedChunk( key_frame, width_, height_ ),
+		      width_, height_ ).header(),
+	    width_, height_ ),
     references_( width_, height_ )
 {}
 
@@ -17,7 +19,7 @@ bool Decoder::decode_frame( const Chunk & frame, Raster & raster )
 
   if ( uncompressed_chunk.key_frame() ) {
     KeyFrame myframe( uncompressed_chunk, width_, height_ );
-    state_ = DecoderState( myframe.header() );
+    state_ = DecoderState( myframe.header(), width_, height_ );
 
     myframe.parse_macroblock_headers( state_.quantizer_filter_adjustments, state_.probability_tables );
     myframe.parse_tokens( state_.quantizer_filter_adjustments, state_.probability_tables );
@@ -130,11 +132,11 @@ void QuantizerFilterAdjustments::update( const HeaderType & header )
        and header.update_segmentation.get().mb_segmentation_map.initialized() ) {
     const auto & seg_map = header.update_segmentation.get().mb_segmentation_map.get();
     for ( unsigned int i = 0; i < mb_segment_tree_probs.size(); i++ ) {
-      if ( seg_map.at( i ).initialized() ) {
-	mb_segment_tree_probs.at( i ) = seg_map.at( i ).get();
-      }
+      mb_segment_tree_probs.at( i ) = seg_map.at( i ).get_or( 255 );
     }
   }
+
+  /* leave segmentation_map alone -- this needs to be updated by the macroblock */
 
   /* update segment adjustments */
   for ( uint8_t i = 0; i < num_segments; i++ ) {

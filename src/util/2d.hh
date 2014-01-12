@@ -128,6 +128,22 @@ public:
     forall_ij( [&] ( T & x, const unsigned int column, const unsigned int row )
 	       { x = other.at( column, row ); } );
   }
+
+  /* allow moving */
+  TwoD( const TwoD && other )
+    : width_( other.width_ ),
+      height_( other.height_ ),
+      storage_( move( other.storage_ ) )
+  {}
+
+  TwoD & operator=( const TwoD && other )
+  {
+    width_ = other.width_;
+    height_ = other.height_;
+    storage_ = move( other.storage_ );
+
+    return *this;
+  }
 };
 
 template< class T, unsigned int sub_width, unsigned int sub_height >

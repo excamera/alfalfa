@@ -73,14 +73,18 @@ struct References
   }
 };
 
+using SegmentationMap = TwoD< uint8_t >;
+
 struct DecoderState
 {
   QuantizerFilterAdjustments quantizer_filter_adjustments;  
   ProbabilityTables probability_tables;
+  SegmentationMap segmentation_map;
 
-  DecoderState( const KeyFrameHeader & header )
+  DecoderState( const KeyFrameHeader & header, const unsigned int width, const unsigned int height )
     : quantizer_filter_adjustments( header ),
-      probability_tables( header )
+      probability_tables( header ),
+      segmentation_map( width, height )
   {}
 };
 
