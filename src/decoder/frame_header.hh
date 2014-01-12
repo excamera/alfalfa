@@ -113,6 +113,8 @@ struct KeyFrameHeader
       throw Unsupported( "VP8 'simple' in-loop deblocking filter" );
     }
   }
+
+  static constexpr bool key_frame( void ) { return true; }
 };
 
 struct InterFrameHeader
@@ -163,6 +165,8 @@ struct InterFrameHeader
       throw Unsupported( "VP8 'simple' in-loop deblocking filter" );
     }
   }
+
+  static constexpr bool key_frame( void ) { return false; }
 };
 
 #endif /* FRAME_HEADER_HH */

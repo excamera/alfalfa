@@ -578,7 +578,7 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::loopfilter( const Quanti
   switch ( filter_parameters.type ) {
   case LoopFilterType::Normal:
     {
-      NormalLoopFilter filter( true, filter_parameters );
+      NormalLoopFilter filter( FrameHeaderType::key_frame(), filter_parameters );
       filter.filter( raster, skip_subblock_edges );
     }
     break;
