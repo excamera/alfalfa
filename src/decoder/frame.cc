@@ -18,13 +18,13 @@ Frame<FrameHeaderType, MacroblockType>::Frame( const UncompressedChunk & chunk,
 {}
 
 template <class FrameHeaderType, class MacroblockType>
-void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
+void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers( SegmentationMap & segmentation_map,
 								       const ProbabilityTables & probability_tables )
 {
   /* parse the macroblock headers */
   macroblock_headers_.initialize( macroblock_width_, macroblock_height_,
 				  first_partition_, header_,
-				  quantizer_filter_adjustments,
+				  segmentation_map,
 				  probability_tables,
 				  Y2_, Y_, U_, V_ );
 

@@ -21,7 +21,7 @@ bool Decoder::decode_frame( const Chunk & frame, Raster & raster )
     KeyFrame myframe( uncompressed_chunk, width_, height_ );
     state_ = DecoderState( myframe.header(), width_, height_ );
 
-    myframe.parse_macroblock_headers( state_.quantizer_filter_adjustments, state_.probability_tables );
+    myframe.parse_macroblock_headers( state_.segmentation_map, state_.probability_tables );
     myframe.parse_tokens( state_.quantizer_filter_adjustments, state_.probability_tables );
     myframe.decode( state_.quantizer_filter_adjustments, raster );
 
@@ -35,7 +35,7 @@ bool Decoder::decode_frame( const Chunk & frame, Raster & raster )
     ProbabilityTables frame_probability_tables( state_.probability_tables );
     frame_probability_tables.update( myframe.header() );
 
-    myframe.parse_macroblock_headers( state_.quantizer_filter_adjustments, frame_probability_tables );
+    myframe.parse_macroblock_headers( state_.segmentation_map, frame_probability_tables );
     myframe.parse_tokens( state_.quantizer_filter_adjustments, frame_probability_tables );
     myframe.decode( state_.quantizer_filter_adjustments, references_, raster );
 
@@ -114,18 +114,17 @@ void ProbabilityTables::coeff_prob_update( const HeaderType & header )
   }
 }
 
-QuantizerFilterAdjustments::QuantizerFilterAdjustments( const KeyFrameHeader & header )
+SegmentationMap::SegmentationMap( const KeyFrameHeader & header,
+				  const unsigned int macroblock_width,
+				  const unsigned int macroblock_height )
   : mb_segment_tree_probs( {{ 255, 255, 255 }} ),
-    segment_quantizer_adjustments( {{ }} ),
-    segment_filter_adjustments( {{ }} ),
-    loopfilter_ref_adjustments( {{ }} ),
-    loopfilter_mode_adjustments( {{ }} )
+    segmentation_map( macroblock_width, macroblock_height )
 {
   update( header );
 }
 
 template <class HeaderType>
-void QuantizerFilterAdjustments::update( const HeaderType & header )
+void SegmentationMap::update( const HeaderType & header )
 {
   /* segmentation tree probabilities (if given in frame header) */
   if ( header.update_segmentation.initialized()
@@ -137,7 +136,20 @@ void QuantizerFilterAdjustments::update( const HeaderType & header )
   }
 
   /* leave segmentation_map alone -- this needs to be updated by the macroblock */
+}
 
+QuantizerFilterAdjustments::QuantizerFilterAdjustments( const KeyFrameHeader & header )
+  : segment_quantizer_adjustments( {{ }} ),
+    segment_filter_adjustments( {{ }} ),
+    loopfilter_ref_adjustments( {{ }} ),
+    loopfilter_mode_adjustments( {{ }} )
+{
+  update( header );
+}
+
+template <class HeaderType>
+void QuantizerFilterAdjustments::update( const HeaderType & header )
+{
   /* update segment adjustments */
   for ( uint8_t i = 0; i < num_segments; i++ ) {
     segment_quantizer_adjustments.at( i ).update( i, header.update_segmentation );
@@ -153,3 +165,13 @@ void QuantizerFilterAdjustments::update( const HeaderType & header )
     }
   }
 }
+
+DecoderState::DecoderState( const KeyFrameHeader & header,
+			    const unsigned int width,
+			    const unsigned int height )
+  : quantizer_filter_adjustments( header ),
+    probability_tables( header ),
+    segmentation_map( header,
+		      Raster::macroblock_dimension( width ),
+		      Raster::macroblock_dimension( height ) )
+{}

@@ -27,14 +27,14 @@ template <class FrameHeaderType, class MacroblockHeaderType>
 Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename TwoD< Macroblock >::Context & c,
 							       BoolDecoder & data,
 							       const FrameHeaderType & frame_header,
-							       const QuantizerFilterAdjustments & quantizer_filter_adjustments,
+							       SegmentationMap & segmentation_map,
 							       const ProbabilityTables & probability_tables,
 							       TwoD< Y2Block > & frame_Y2,
 							       TwoD< YBlock > & frame_Y,
 							       TwoD< UVBlock > & frame_U,
 							       TwoD< UVBlock > & frame_V )
   : context_( c ),
-    header_( data, frame_header, quantizer_filter_adjustments ),
+    header_( data, frame_header, segmentation_map ),
     Y2_( frame_Y2.at( c.column, c.row ) ),
     Y_( frame_Y, c.column * 4, c.row * 4 ),
     U_( frame_U, c.column * 2, c.row * 2 ),
@@ -400,20 +400,20 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 
 KeyFrameMacroblockHeader::KeyFrameMacroblockHeader( BoolDecoder & data,
 						    const KeyFrameHeader & frame_header,
-						    const QuantizerFilterAdjustments & quantizer_filter_adjustments )
+						    SegmentationMap & segmentation_map )
   : segment_id( frame_header.update_segmentation.initialized()
 		and frame_header.update_segmentation.get().update_mb_segmentation_map,
-		data, quantizer_filter_adjustments.mb_segment_tree_probs ),
+		data, segmentation_map.mb_segment_tree_probs ),
     mb_skip_coeff( frame_header.prob_skip_false.initialized(),
 		   data, frame_header.prob_skip_false.get() )
 {}
 
 InterFrameMacroblockHeader::InterFrameMacroblockHeader( BoolDecoder & data,
 							const InterFrameHeader & frame_header,
-							const QuantizerFilterAdjustments & quantizer_filter_adjustments )
+							SegmentationMap & segmentation_map )
   : segment_id( frame_header.update_segmentation.initialized()
 		and frame_header.update_segmentation.get().update_mb_segmentation_map,
-		data, quantizer_filter_adjustments.mb_segment_tree_probs ),
+		data, segmentation_map.mb_segment_tree_probs ),
     mb_skip_coeff( frame_header.prob_skip_false.initialized(),
 		   data, frame_header.prob_skip_false.get() ),
     is_inter_mb( data, frame_header.prob_inter ),

@@ -35,9 +35,6 @@ struct ProbabilityTables
 
 struct QuantizerFilterAdjustments
 {
-  /* Probability table to select macroblock segment_id */
-  ProbabilityArray< num_segments > mb_segment_tree_probs;
-
   /* Segment-based adjustments to the quantizer */
   SafeArray< QuantizerAdjustment, num_segments > segment_quantizer_adjustments;
 
@@ -73,7 +70,21 @@ struct References
   }
 };
 
-using SegmentationMap = TwoD< uint8_t >;
+struct SegmentationMap
+{
+  /* Probability table to select macroblock segment_id */
+  ProbabilityArray< num_segments > mb_segment_tree_probs;
+
+  /* Map of which segment each macroblock belongs to */
+  TwoD< uint8_t > segmentation_map;
+
+  SegmentationMap( const KeyFrameHeader & header,
+		   const unsigned int macroblock_width,
+		   const unsigned int macroblock_height );
+
+  template <class HeaderType>
+  void update( const HeaderType & header );
+};
 
 struct DecoderState
 {
@@ -81,11 +92,7 @@ struct DecoderState
   ProbabilityTables probability_tables;
   SegmentationMap segmentation_map;
 
-  DecoderState( const KeyFrameHeader & header, const unsigned int width, const unsigned int height )
-    : quantizer_filter_adjustments( header ),
-      probability_tables( header ),
-      segmentation_map( width, height )
-  {}
+  DecoderState( const KeyFrameHeader & header, const unsigned int width, const unsigned int height );
 };
 
 class Decoder

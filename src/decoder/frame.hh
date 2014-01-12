@@ -47,7 +47,7 @@ class Frame
 
   const FrameHeaderType & header( void ) const { return header_; }
 
-  void parse_macroblock_headers( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
+  void parse_macroblock_headers( SegmentationMap & segmentation_map,
 				 const ProbabilityTables & probability_tables );
   void parse_tokens( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
 		     const ProbabilityTables & probability_tables );

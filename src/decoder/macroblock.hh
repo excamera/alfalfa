@@ -9,6 +9,7 @@
 
 class QuantizerFilterAdjustments;
 class ProbabilityTables;
+class SegmentationMap;
 class References;
 
 template <class FrameHeaderType, class MacroblockHeaderType>
@@ -34,7 +35,7 @@ public:
   Macroblock( const typename TwoD< Macroblock >::Context & c,
 	      BoolDecoder & data,
 	      const FrameHeaderType & key_frame_header,
-	      const QuantizerFilterAdjustments & quantizer_filter_adjustments,
+	      SegmentationMap & segmentation_map,
 	      const ProbabilityTables & probability_tables,
 	      TwoD< Y2Block > & frame_Y2,
 	      TwoD< YBlock > & frame_Y,
@@ -72,7 +73,7 @@ struct KeyFrameMacroblockHeader
 
   KeyFrameMacroblockHeader( BoolDecoder & data,
 			    const KeyFrameHeader & frame_header,
-			    const QuantizerFilterAdjustments & quantizer_filter_adjustments );
+			    SegmentationMap & segmentation_map );
 
   reference_frame reference( void ) const { return CURRENT_FRAME; }
 };
@@ -89,7 +90,7 @@ struct InterFrameMacroblockHeader
 
   InterFrameMacroblockHeader( BoolDecoder & data,
 			      const InterFrameHeader & frame_header,
-			      const QuantizerFilterAdjustments & quantizer_filter_adjustments );
+			      SegmentationMap & segmentation_map );
 
   reference_frame reference( void ) const;
 };
