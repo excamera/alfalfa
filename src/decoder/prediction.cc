@@ -369,9 +369,9 @@ void Raster::Block<size>::safe_inter_predict( const MotionVector & mv, const Two
   const int source_row = context().row * size + (mv.y() >> 3);
 
   if ( source_column - 2 < 0
-       or source_column + size + 3 >= reference.width()
+       or source_column + size + 3 > reference.width()
        or source_row - 2 < 0
-       or source_row + size + 3 >= reference.height() ) {
+       or source_row + size + 3 > reference.height() ) {
 
     EdgeExtendedRaster safe_reference( reference );
 
