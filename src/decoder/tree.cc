@@ -6,8 +6,7 @@ using namespace std;
 
 template < uint8_t alphabet_size, class T >
 T BoolDecoder::tree( const TreeArray< alphabet_size > & nodes,
-		     const ProbabilityArray< alphabet_size > & probabilities,
-		     const uint8_t starting_node )
+		     const ProbabilityArray< alphabet_size > & probabilities )
 {
 #if 0
   /* verify correctness of tree -- XXX */
@@ -19,9 +18,7 @@ T BoolDecoder::tree( const TreeArray< alphabet_size > & nodes,
   }
 #endif
 
-  assert( starting_node < nodes.size() );
-
-  int i = starting_node;
+  int i = 0;
 
   while ( ( i = nodes.at( i + get( probabilities.at( i >> 1 ) ) ) ) > 0 ) {}
 
