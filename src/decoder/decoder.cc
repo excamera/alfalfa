@@ -21,11 +21,18 @@ bool Decoder::decode_frame( const Chunk & frame, Raster & raster )
     KeyFrame myframe( uncompressed_chunk, width_, height_ );
     state_ = DecoderState( myframe.header(), width_, height_ );
 
-    myframe.parse_macroblock_headers( state_.segmentation_map, state_.probability_tables );
-    myframe.parse_tokens( state_.quantizer_filter_adjustments, state_.probability_tables );
+    ProbabilityTables frame_probability_tables( state_.probability_tables );
+    frame_probability_tables.coeff_prob_update( myframe.header() );
+
+    myframe.parse_macroblock_headers( state_.segmentation_map, frame_probability_tables );
+    myframe.parse_tokens( state_.quantizer_filter_adjustments, frame_probability_tables );
     myframe.decode( state_.quantizer_filter_adjustments, raster );
 
     myframe.copy_to( raster, references_ );
+
+    if ( myframe.header().refresh_entropy_probs ) {
+      state_.probability_tables = frame_probability_tables;
+    }
   } else {
     /* interframe */
     InterFrame myframe( uncompressed_chunk, width_, height_ );
@@ -55,15 +62,6 @@ References::References( const uint16_t width, const uint16_t height )
     golden( width, height ),
     alternative_reference( width, height )
 {}
-
-ProbabilityTables::ProbabilityTables( const KeyFrameHeader & header )
-  : coeff_probs( k_default_coeff_probs ),
-    y_mode_probs( k_default_y_mode_probs ),
-    uv_mode_probs( k_default_uv_mode_probs ),
-    motion_vector_probs( k_default_mv_probs )
-{
-  coeff_prob_update( header );
-}
 
 template <unsigned int size>
 static void assign( SafeArray< Probability, size > & dest, const Array< Unsigned<8>, size > & src )
@@ -180,7 +178,6 @@ DecoderState::DecoderState( const KeyFrameHeader & header,
 			    const unsigned int width,
 			    const unsigned int height )
   : quantizer_filter_adjustments( header ),
-    probability_tables( header ),
     segmentation_map( header,
 		      Raster::macroblock_dimension( width ),
 		      Raster::macroblock_dimension( height ) )

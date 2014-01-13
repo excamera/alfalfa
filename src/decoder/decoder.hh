@@ -18,14 +18,14 @@ struct ProbabilityTables
 					      ENTROPY_NODES >,
 				   PREV_COEF_CONTEXTS >,
 			COEF_BANDS >,
-	     BLOCK_TYPES > coeff_probs;
+	     BLOCK_TYPES > coeff_probs = k_default_coeff_probs;
 
-  ProbabilityArray< num_y_modes > y_mode_probs;
-  ProbabilityArray< num_uv_modes > uv_mode_probs;
+  ProbabilityArray< num_y_modes > y_mode_probs = k_default_y_mode_probs;
+  ProbabilityArray< num_uv_modes > uv_mode_probs = k_default_uv_mode_probs;
 
-  SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > motion_vector_probs;
+  SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > motion_vector_probs = k_default_mv_probs;
 
-  ProbabilityTables( const KeyFrameHeader & header );
+  ProbabilityTables() {}
 
   template <class HeaderType>
   void coeff_prob_update( const HeaderType & header );
@@ -92,7 +92,7 @@ struct SegmentationMap
 struct DecoderState
 {
   QuantizerFilterAdjustments quantizer_filter_adjustments;  
-  ProbabilityTables probability_tables;
+  ProbabilityTables probability_tables {};
   SegmentationMap segmentation_map;
 
   DecoderState( const KeyFrameHeader & header, const unsigned int width, const unsigned int height );
