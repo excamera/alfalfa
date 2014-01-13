@@ -17,7 +17,7 @@ FilterParameters::FilterParameters( const bool use_simple_filter,
 				    const uint8_t s_sharpness_level,
 				    const SegmentFilterAdjustment & segment_adjustment )
   : type( use_simple_filter ? LoopFilterType::Simple : LoopFilterType::Normal ),
-    filter_level( segment_adjustment.value + segment_adjustment.absolute ? 0 : s_filter_level ),
+    filter_level( segment_adjustment.value + ( segment_adjustment.absolute ? 0 : s_filter_level ) ),
     sharpness_level( s_sharpness_level )
 {}
 
