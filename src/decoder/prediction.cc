@@ -39,11 +39,7 @@ Raster::Macroblock::Macroblock( const TwoD< Macroblock >::Context & c, Raster & 
 
 Raster::Raster( const unsigned int display_width, const unsigned int display_height )
   : display_width_( display_width ), display_height_( display_height )
-{
-  if ( (display_width_ % 2) or (display_height_ % 2) ) {
-    throw Unsupported( "display dimensions must be even" );
-  }
-}
+{}
 
 template <unsigned int size>
 const typename Raster::Block<size>::Row & Raster::Block<size>::Predictors::row127( void )
