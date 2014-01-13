@@ -36,21 +36,21 @@ struct ProbabilityTables
 struct QuantizerFilterAdjustments
 {
   /* Whether segment-based adjustments are absolute or relative */
-  bool absolute_segment_adjustments;
+  bool absolute_segment_adjustments {};
 
   /* Segment-based adjustments to the quantizer */
-  SafeArray< int8_t, num_segments > segment_quantizer_adjustments;
+  SafeArray< int8_t, num_segments > segment_quantizer_adjustments {{}};
 
   /* Segment-based adjustments to the in-loop deblocking filter */
-  SafeArray< int8_t, num_segments > segment_filter_adjustments;
+  SafeArray< int8_t, num_segments > segment_filter_adjustments {{}};
 
   /* Adjustments to the deblocking filter based on the macroblock's reference frame */
-  SafeArray< int8_t, num_reference_frames > loopfilter_ref_adjustments;
+  SafeArray< int8_t, num_reference_frames > loopfilter_ref_adjustments {{}};
 
   /* Adjustments based on the macroblock's prediction mode */
-  SafeArray< int8_t, 4 > loopfilter_mode_adjustments;
+  SafeArray< int8_t, 4 > loopfilter_mode_adjustments {{}};
 
-  QuantizerFilterAdjustments( const KeyFrameHeader & header );
+  QuantizerFilterAdjustments( const KeyFrameHeader & header ) { update( header ); }
 
   template <class HeaderType>
   void update( const HeaderType & header );

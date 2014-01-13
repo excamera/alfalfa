@@ -120,16 +120,6 @@ void ProbabilityTables::coeff_prob_update( const HeaderType & header )
   }
 }
 
-QuantizerFilterAdjustments::QuantizerFilterAdjustments( const KeyFrameHeader & header )
-  : absolute_segment_adjustments( false ),
-    segment_quantizer_adjustments( {{ }} ),
-    segment_filter_adjustments( {{ }} ),
-    loopfilter_ref_adjustments( {{ }} ),
-    loopfilter_mode_adjustments( {{ }} )
-{
-  update( header );
-}
-
 template <class HeaderType>
 void QuantizerFilterAdjustments::update( const HeaderType & header )
 {
