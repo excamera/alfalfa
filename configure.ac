@@ -10,6 +10,9 @@ AC_CONFIG_HEADERS([config.h])
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_RANLIB
+AC_PATH_PROG([PERL], [perl], [])
+AS_IF([test x"$PERL" = x],
+  [AC_MSG_ERROR([cannot find perl])])
 
 # Add picky CXXFLAGS
 CPPFLAGS="-std=c++11"
