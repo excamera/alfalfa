@@ -12,7 +12,7 @@ Decoder::Decoder( const uint16_t width, const uint16_t height, const Chunk & key
     references_( width_, height_ )
 {}
 
-bool Decoder::decode_frame( const Chunk & frame, Raster & raster )
+bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
 {
   /* parse uncompressed data chunk */
   UncompressedChunk uncompressed_chunk( frame, width_, height_ );

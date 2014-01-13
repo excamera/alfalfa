@@ -148,53 +148,41 @@ void Frame<FrameHeaderType, MacroblockType>::relink_y2_blocks( void )
     } );
 }
 
-void Raster::copy( const Raster & other )
+template <>
+void KeyFrame::copy_to( const RasterHandle & raster, References & references ) const
 {
-  assert( display_width_ == other.display_width_ );
-  assert( display_height_ == other.display_height_ );
-
-  Y_.copy( other.Y_ );
-  U_.copy( other.U_ );
-  V_.copy( other.V_ );
+  references.last = references.golden = references.alternative_reference = raster;
 }
 
 template <>
-void KeyFrame::copy_to( const Raster & raster, References & references ) const
-{
-  references.last.copy( raster );
-  references.golden.copy( raster );
-  references.alternative_reference.copy( raster );
-}
-
-template <>
-void InterFrame::copy_to( const Raster & raster, References & references ) const
+void InterFrame::copy_to( const RasterHandle & raster, References & references ) const
 {
   if ( header_.copy_buffer_to_alternate.initialized() ) {
     if ( header_.copy_buffer_to_alternate.get() == 1 ) {
-      references.alternative_reference.copy( references.last );
+      references.alternative_reference = references.last;
     } else if ( header_.copy_buffer_to_alternate.get() == 2 ) {
-      references.alternative_reference.copy( references.golden );
+      references.alternative_reference = references.golden;
     }
   }
 
   if ( header_.copy_buffer_to_golden.initialized() ) {
     if ( header_.copy_buffer_to_golden.get() == 1 ) {
-      references.golden.copy( references.last );
+      references.golden = references.last;
     } else if ( header_.copy_buffer_to_golden.get() == 2 ) {
-      references.golden.copy( references.alternative_reference );
+      references.golden = references.alternative_reference;
     }
   }
 
   if ( header_.refresh_golden_frame ) {
-    references.golden.copy( raster );
+    references.golden = raster;
   }
 
   if ( header_.refresh_alternate_frame ) {
-    references.alternative_reference.copy( raster );
+    references.alternative_reference = raster;
   }
 
   if ( header_.refresh_last ) {
-    references.last.copy( raster );
+    references.last = raster;
   }
 }
 

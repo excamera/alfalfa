@@ -32,10 +32,13 @@ int main( int argc, char *argv[] )
     }
 
     Decoder decoder( file.width(), file.height(), file.frame( frame_no ) );
-    Raster raster( file.width(), file.height() );
 
     for ( uint32_t i = frame_no; i < file.frame_count(); i++ ) {
-      if ( decoder.decode_frame( file.frame( i ), raster ) ) {
+      RasterHandle raster_handle( file.width(), file.height() );
+
+      if ( decoder.decode_frame( file.frame( i ), raster_handle ) ) {
+	const Raster & raster = raster_handle;
+
 	for ( unsigned int row = 0; row < raster.display_height(); row++ ) {
 	  fwrite( &raster.Y().at( 0, row ), raster.display_width(), 1, stdout );
 	}

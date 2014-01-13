@@ -33,10 +33,10 @@ int main( int argc, char *argv[] )
     }
 
     Decoder decoder( file.width(), file.height(), file.frame( frame_no ) );
-    Raster raster( file.width(), file.height() );
-    VideoDisplay display( raster );
+    VideoDisplay display( decoder.example_raster() );
 
     for ( uint32_t i = frame_no; i < file.frame_count(); i++ ) {
+      RasterHandle raster( file.width(), file.height() );
       if ( decoder.decode_frame( file.frame( i ), raster ) ) {
 	display.draw( raster );
       }

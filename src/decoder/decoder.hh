@@ -58,7 +58,7 @@ struct QuantizerFilterAdjustments
 
 struct References
 {
-  Raster last, golden, alternative_reference;
+  RasterHandle last, golden, alternative_reference;
 
   References( const uint16_t width, const uint16_t height );
 
@@ -109,7 +109,9 @@ private:
 public:
   Decoder( const uint16_t width, const uint16_t height, const Chunk & key_frame );
 
-  bool decode_frame( const Chunk & frame, Raster & raster );
+  const Raster & example_raster( void ) const { return references_.last; }
+
+  bool decode_frame( const Chunk & frame, RasterHandle & raster );
 };
 
 #endif /* DECODER_HH */

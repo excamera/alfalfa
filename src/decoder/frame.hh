@@ -56,7 +56,7 @@ class Frame
   void decode( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
 	       const References & references, Raster & raster ) const;
 
-  void copy_to( const Raster & raster, References & references ) const;
+  void copy_to( const RasterHandle & raster, References & references ) const;
 };
 
 using KeyFrame = Frame< KeyFrameHeader, KeyFrameMacroblock >;

@@ -119,16 +119,6 @@ public:
   TwoD( const TwoD & other ) = delete;
   TwoD & operator=( const TwoD & other ) = delete;
 
-  /* explicit copy method */
-  void copy( const TwoD & other )
-  {
-    assert( width() == other.width() );
-    assert( height() == other.height() );
-
-    forall_ij( [&] ( T & x, const unsigned int column, const unsigned int row )
-	       { x = other.at( column, row ); } );
-  }
-
   /* allow moving */
   TwoD( const TwoD && other )
     : width_( other.width_ ),
