@@ -38,11 +38,19 @@ void Frame<FrameHeaderType, MacroblockType>::parse_tokens( const QuantizerFilter
 {
   const Quantizer frame_quantizer( header_.quant_indices );
 
-  const SafeArray< Quantizer, num_segments > segment_quantizers =
-    {{ Quantizer( quantizer_filter_adjustments.segment_quantizer_adjustments.at( 0 ).adjust( header_.quant_indices ) ),
-       Quantizer( quantizer_filter_adjustments.segment_quantizer_adjustments.at( 1 ).adjust( header_.quant_indices ) ),
-       Quantizer( quantizer_filter_adjustments.segment_quantizer_adjustments.at( 2 ).adjust( header_.quant_indices ) ),
-       Quantizer( quantizer_filter_adjustments.segment_quantizer_adjustments.at( 3 ).adjust( header_.quant_indices ) ) }};
+  SafeArray< Quantizer, num_segments > segment_quantizers;
+
+  if ( header_.update_segmentation.initialized() ) {
+    for ( uint8_t i = 0; i < num_segments; i++ ) {
+      QuantIndices segment_indices( header_.quant_indices );
+      segment_indices.y_ac_qi = quantizer_filter_adjustments.segment_quantizer_adjustments.at( i )
+	+ ( quantizer_filter_adjustments.absolute_segment_adjustments
+	    ? static_cast<Unsigned<7>>( 0 )
+	    : segment_indices.y_ac_qi );
+
+      segment_quantizers.at( i ) = Quantizer( segment_indices );
+    }
+  }
 
   macroblock_headers_.get().forall_ij( [&]( MacroblockType & macroblock,
 					    const unsigned int column __attribute((unused)),
@@ -62,15 +70,21 @@ void Frame<FrameHeaderType, MacroblockType>::loopfilter( const QuantizerFilterAd
 					     header_.loop_filter_level,
 					     header_.sharpness_level );
 
-    const SafeArray< FilterParameters, num_segments > segment_loopfilters =
-      {{ FilterParameters( header_.filter_type, header_.loop_filter_level, header_.sharpness_level,
-			   quantizer_filter_adjustments.segment_filter_adjustments.at( 0 ) ),
-	 FilterParameters( header_.filter_type, header_.loop_filter_level, header_.sharpness_level,
-			   quantizer_filter_adjustments.segment_filter_adjustments.at( 1 ) ),
-	 FilterParameters( header_.filter_type, header_.loop_filter_level, header_.sharpness_level,
-			   quantizer_filter_adjustments.segment_filter_adjustments.at( 2 ) ),
-	 FilterParameters( header_.filter_type, header_.loop_filter_level, header_.sharpness_level,
-			   quantizer_filter_adjustments.segment_filter_adjustments.at( 3 ) ) }};
+    SafeArray< FilterParameters, num_segments > segment_loopfilters;
+
+    if ( header_.update_segmentation.initialized() ) {
+      for ( uint8_t i = 0; i < num_segments; i++ ) {
+	FilterParameters segment_filter( header_.filter_type,
+					 header_.loop_filter_level,
+					 header_.sharpness_level );
+	segment_filter.filter_level = quantizer_filter_adjustments.segment_filter_adjustments.at( i )
+	  + ( quantizer_filter_adjustments.absolute_segment_adjustments
+	      ? 0
+	      : segment_filter.filter_level );
+
+	segment_loopfilters.at( i ) = segment_filter;
+      }
+    }
 
     macroblock_headers_.get().forall_ij( [&]( const MacroblockType & macroblock,
 					      const unsigned int column,

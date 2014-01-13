@@ -14,36 +14,17 @@ static inline uint8_t clamp63( const int input )
 
 FilterParameters::FilterParameters( const bool use_simple_filter,
 				    const uint8_t s_filter_level,
-				    const uint8_t s_sharpness_level,
-				    const SegmentFilterAdjustment & segment_adjustment )
+				    const uint8_t s_sharpness_level )
   : type( use_simple_filter ? LoopFilterType::Simple : LoopFilterType::Normal ),
-    filter_level( segment_adjustment.value + ( segment_adjustment.absolute ? 0 : s_filter_level ) ),
+    filter_level( s_filter_level ),
     sharpness_level( s_sharpness_level )
 {}
 
-SegmentFilterAdjustment::SegmentFilterAdjustment( const uint8_t segment_id,
-						  const Optional< UpdateSegmentation > & update_segmentation )
-  : absolute( false ), value( 0 )
-{
-  update( segment_id, update_segmentation );
-}
-
-void SegmentFilterAdjustment::update( const uint8_t segment_id,
-				      const Optional< UpdateSegmentation > & update_segmentation )
-{
-  if ( update_segmentation.initialized()
-       and update_segmentation.get().segment_feature_data.initialized() ) {
-    const auto & feature_data = update_segmentation.get().segment_feature_data.get();
-    const auto & update = feature_data.loop_filter_update.at( segment_id );
-
-    absolute = feature_data.segment_feature_mode;
-    value = update.get_or( 0 );
-
-    if ( absolute and (value < 0 or value > 63) ) {
-      throw Invalid( "absolute loop-filter update with out-of-bounds value" );
-    }
-  }
-}
+FilterParameters::FilterParameters()
+  : type(),
+    filter_level(),
+    sharpness_level()
+{}
 
 static int8_t mode_adjustment( const SafeArray< int8_t, 4 > & mode_adjustments,
 			       const reference_frame macroblock_reference_frame,

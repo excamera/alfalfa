@@ -140,7 +140,8 @@ void SegmentationMap::update( const HeaderType & header )
 }
 
 QuantizerFilterAdjustments::QuantizerFilterAdjustments( const KeyFrameHeader & header )
-  : segment_quantizer_adjustments( {{ }} ),
+  : absolute_segment_adjustments( false ),
+    segment_quantizer_adjustments( {{ }} ),
     segment_filter_adjustments( {{ }} ),
     loopfilter_ref_adjustments( {{ }} ),
     loopfilter_mode_adjustments( {{ }} )
@@ -152,9 +153,17 @@ template <class HeaderType>
 void QuantizerFilterAdjustments::update( const HeaderType & header )
 {
   /* update segment adjustments */
-  for ( uint8_t i = 0; i < num_segments; i++ ) {
-    segment_quantizer_adjustments.at( i ).update( i, header.update_segmentation );
-    segment_filter_adjustments.at( i ).update( i, header.update_segmentation );
+  if ( header.update_segmentation.initialized() ) {
+    if ( header.update_segmentation.get().segment_feature_data.initialized() ) {
+      const auto & feature_data = header.update_segmentation.get().segment_feature_data.get();
+
+      absolute_segment_adjustments = feature_data.segment_feature_mode;
+
+      for ( uint8_t i = 0; i < num_segments; i++ ) {
+	segment_quantizer_adjustments.at( i ) = feature_data.quantizer_update.at( i ).get_or( 0 );
+	segment_filter_adjustments.at( i ) = feature_data.loop_filter_update.at( i ).get_or( 0 );
+      }
+    }
   }
 
   /* update additional in-loop deblocking filter adjustments */

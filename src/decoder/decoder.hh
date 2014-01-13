@@ -35,11 +35,14 @@ struct ProbabilityTables
 
 struct QuantizerFilterAdjustments
 {
+  /* Whether segment-based adjustments are absolute or relative */
+  bool absolute_segment_adjustments;
+
   /* Segment-based adjustments to the quantizer */
-  SafeArray< QuantizerAdjustment, num_segments > segment_quantizer_adjustments;
+  SafeArray< int8_t, num_segments > segment_quantizer_adjustments;
 
   /* Segment-based adjustments to the in-loop deblocking filter */
-  SafeArray< SegmentFilterAdjustment, num_segments > segment_filter_adjustments;
+  SafeArray< int8_t, num_segments > segment_filter_adjustments;
 
   /* Adjustments to the deblocking filter based on the macroblock's reference frame */
   SafeArray< int8_t, num_reference_frames > loopfilter_ref_adjustments;
