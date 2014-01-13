@@ -48,6 +48,9 @@ template <class FrameHeaderType, class MacroblockType>
 void Frame<FrameHeaderType, MacroblockType>::parse_tokens( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
 							   const ProbabilityTables & probability_tables )
 {
+  /* calculate per-segment quantizer adjustments if
+     segmentation is enabled */
+
   const Quantizer frame_quantizer( header_.quant_indices );
 
   SafeArray< Quantizer, num_segments > segment_quantizers;
@@ -64,6 +67,7 @@ void Frame<FrameHeaderType, MacroblockType>::parse_tokens( const QuantizerFilter
     }
   }
 
+  /* parse and dequantize every macroblock's tokens */
   macroblock_headers_.get().forall_ij( [&]( MacroblockType & macroblock,
 					    const unsigned int column __attribute((unused)),
 					    const unsigned int row )
@@ -78,6 +82,9 @@ template <class FrameHeaderType, class MacroblockType>
 void Frame<FrameHeaderType, MacroblockType>::loopfilter( const QuantizerFilterAdjustments & quantizer_filter_adjustments, Raster & raster ) const
 {
   if ( header_.loop_filter_level ) {
+    /* calculate per-segment filter adjustments if
+       segmentation is enabled */
+
     const FilterParameters frame_loopfilter( header_.filter_type,
 					     header_.loop_filter_level,
 					     header_.sharpness_level );
@@ -97,6 +104,9 @@ void Frame<FrameHeaderType, MacroblockType>::loopfilter( const QuantizerFilterAd
 	segment_loopfilters.at( i ) = segment_filter;
       }
     }
+
+    /* the macroblock needs to know whether the mode- and reference-based
+       filter adjustments are enabled */
 
     macroblock_headers_.get().forall_ij( [&]( const MacroblockType & macroblock,
 					      const unsigned int column,
