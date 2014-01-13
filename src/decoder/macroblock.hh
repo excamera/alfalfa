@@ -6,10 +6,10 @@
 #include "2d.hh"
 #include "block.hh"
 #include "raster.hh"
+#include "decoder.hh"
 
 class QuantizerFilterAdjustments;
 class ProbabilityTables;
-class SegmentationMap;
 class References;
 
 template <class FrameHeaderType, class MacroblockHeaderType>
@@ -40,7 +40,8 @@ public:
   Macroblock( const typename TwoD< Macroblock >::Context & c,
 	      BoolDecoder & data,
 	      const FrameHeaderType & key_frame_header,
-	      SegmentationMap & segmentation_map,
+	      const ProbabilityArray< num_segments > & mb_segment_tree_probs,
+	      SegmentationMap & mutable_segmentation_map,
 	      const ProbabilityTables & probability_tables,
 	      TwoD< Y2Block > & frame_Y2,
 	      TwoD< YBlock > & frame_Y,

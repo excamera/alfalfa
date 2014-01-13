@@ -73,21 +73,7 @@ struct References
   }
 };
 
-struct SegmentationMap
-{
-  /* Probability table to select macroblock segment_id */
-  ProbabilityArray< num_segments > mb_segment_tree_probs;
-
-  /* Map of which segment each macroblock belongs to */
-  TwoD< uint8_t > map;
-
-  SegmentationMap( const KeyFrameHeader & header,
-		   const unsigned int macroblock_width,
-		   const unsigned int macroblock_height );
-
-  template <class HeaderType>
-  void update( const HeaderType & header );
-};
+using SegmentationMap = TwoD< uint8_t >;
 
 struct DecoderState
 {

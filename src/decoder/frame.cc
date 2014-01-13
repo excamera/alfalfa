@@ -18,12 +18,24 @@ Frame<FrameHeaderType, MacroblockType>::Frame( const UncompressedChunk & chunk,
 {}
 
 template <class FrameHeaderType, class MacroblockType>
-void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers( SegmentationMap & segmentation_map,
-								       const ProbabilityTables & probability_tables )
+void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers_and_update_segmentation_map( SegmentationMap & segmentation_map,
+												   const ProbabilityTables & probability_tables )
 {
+  /* calculate segment tree probabilities if map is updated by this frame */
+  ProbabilityArray< num_segments > mb_segment_tree_probs;
+
+  if ( header_.update_segmentation.initialized()
+       and header_.update_segmentation.get().mb_segmentation_map.initialized() ) {
+    const auto & seg_map = header_.update_segmentation.get().mb_segmentation_map.get();
+    for ( unsigned int i = 0; i < mb_segment_tree_probs.size(); i++ ) {
+      mb_segment_tree_probs.at( i ) = seg_map.at( i ).get_or( 255 );
+    }
+  }
+
   /* parse the macroblock headers */
   macroblock_headers_.initialize( macroblock_width_, macroblock_height_,
 				  first_partition_, header_,
+				  mb_segment_tree_probs,
 				  segmentation_map,
 				  probability_tables,
 				  Y2_, Y_, U_, V_ );
