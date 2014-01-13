@@ -6,6 +6,6 @@ check_PROGRAMS = extract-key-frames decode-to-stdout
 extract_key_frames_SOURCES = extract-key-frames.cc
 decode_to_stdout_SOURCES = decode-to-stdout.cc
 
-dist_check_SCRIPTS = keyframe-decoding-test
+dist_check_SCRIPTS = decoding-test
 
-TESTS = keyframe-decoding-test
+TESTS = decoding-test

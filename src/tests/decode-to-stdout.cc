@@ -39,11 +39,11 @@ int main( int argc, char *argv[] )
 	for ( unsigned int row = 0; row < raster.display_height(); row++ ) {
 	  fwrite( &raster.Y().at( 0, row ), raster.display_width(), 1, stdout );
 	}
-	for ( unsigned int row = 0; row < raster.display_height() / 2; row++ ) {
-	  fwrite( &raster.U().at( 0, row ), raster.display_width() / 2, 1, stdout );
+	for ( unsigned int row = 0; row < (1 + raster.display_height()) / 2; row++ ) {
+	  fwrite( &raster.U().at( 0, row ), (1 + raster.display_width()) / 2, 1, stdout );
 	}
-	for ( unsigned int row = 0; row < raster.display_height() / 2; row++ ) {
-	  fwrite( &raster.V().at( 0, row ), raster.display_width() / 2, 1, stdout );
+	for ( unsigned int row = 0; row < (1 + raster.display_height()) / 2; row++ ) {
+	  fwrite( &raster.V().at( 0, row ), (1 + raster.display_width()) / 2, 1, stdout );
 	}
       }
     }
