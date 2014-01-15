@@ -12,6 +12,8 @@ class File
 {
 private:
   FileDescriptor fd_;
+  size_t size_;
+  uint8_t * const buffer_;
   Chunk chunk_;
 
 public:
@@ -23,6 +25,9 @@ public:
   {
     return chunk_( offset, length );
   }
+
+  File( const File & other ) = delete;
+  File & operator=( const File & other ) = delete;
 };
 
 #endif /* FILE_HH */

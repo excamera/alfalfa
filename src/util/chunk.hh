@@ -7,7 +7,7 @@
 class Chunk
 {
 private:
-  uint8_t *buffer_;
+  const uint8_t *buffer_;
   uint64_t size_;
 
   void bounds_check( const uint64_t & length ) const
@@ -26,13 +26,12 @@ private:
   }
 
 public:
-  Chunk( uint8_t * const s_buffer, const uint64_t & s_size )
+  Chunk( const uint8_t *s_buffer, const uint64_t & s_size )
     : buffer_( s_buffer ),
       size_( s_size )
   {}
 
   const uint8_t * buffer( void ) const { return buffer_; }
-  uint8_t * mutable_buffer( void ) { return buffer_; }
   const uint64_t & size( void ) const { return size_; }
 
   Chunk operator() ( const uint64_t & offset ) const
@@ -49,7 +48,7 @@ public:
 
   std::string to_string( void ) const
   {
-    return std::string( reinterpret_cast<char *>( buffer_ ), size_ );
+    return std::string( reinterpret_cast<const char *>( buffer_ ), size_ );
   }
 
   const uint8_t & octet( void ) const
