@@ -8,6 +8,17 @@
 #include "bool_decoder.hh"
 #include "vp8_prob_data.hh"
 
+class Boolean
+{
+private:
+  bool i_;
+
+public:
+  Boolean( BoolDecoder & data, const Probability probability = 128 ) : i_( data.get( probability ) ) {}
+  Boolean( const bool & val ) : i_( val ) {}
+  operator const bool & () const { return i_; }
+};
+
 template <int width>
 class Unsigned
 {
@@ -15,7 +26,7 @@ private:
   uint8_t i_;
 
 public:
-  Unsigned( BoolDecoder & data ) : i_( data.uint( width ) )
+  Unsigned( BoolDecoder & data ) : i_( (Boolean( data ) << (width-1)) | Unsigned<width-1>( data ) )
   {
     static_assert( width <= 8, "Unsigned width must be <= 8" );
   }
@@ -24,6 +35,9 @@ public:
   operator const uint8_t & () const { return i_; }
 };
 
+template <>
+inline Unsigned< 0 >::Unsigned( BoolDecoder & ) : i_() {}
+
 template <int width>
 class Signed
 {
@@ -31,7 +45,7 @@ private:
   int8_t i_;
 
 public:
-  Signed( BoolDecoder & data ) : i_( data.sint( width ) )
+  Signed( BoolDecoder & data ) : i_( Unsigned<width>( data ) * (Boolean( data ) ? -1 : 1) )
   {
     static_assert( width <= 7, "Signed width must be <= 7" );
   }
@@ -40,23 +54,12 @@ public:
   operator const int8_t & () const { return i_; }
 };
 
-class Boolean
-{
-private:
-  bool i_;
-
-public:
-  Boolean( BoolDecoder & data, const Probability probability ) : i_( data.get( probability ) ) {}
-  Boolean( const bool & val ) : i_( val ) {}
-  operator const bool & () const { return i_; }
-};
-
 class Flag
 {
   bool i_;
 
 public:
-  Flag( BoolDecoder & data ) : i_( data.bit() ) {}
+  Flag( BoolDecoder & data ) : i_( Boolean( data ) ) {}
   Flag( const bool & val ) : i_( val ) {}
   operator const bool & () const { return i_; }
 };

@@ -72,25 +72,6 @@ public:
 
   bool bit( void ) { return get( 128 ); }
 
-  uint32_t uint( const unsigned int num_bits )
-  {
-    uint32_t ret = 0;
-
-    assert( num_bits < 32 );
-
-    for ( int bit = num_bits - 1; bit >= 0; bit-- ) {
-      ret |= (BoolDecoder::bit() << bit);
-    }
-
-    return ret;
-  }
-
-  int32_t sint( const unsigned int num_bits )
-  {
-    uint32_t ret = uint( num_bits );
-    return bit() ? -ret : ret;
-  }
-
   template < uint8_t alphabet_size, class T >
   T tree( const TreeArray< alphabet_size > & nodes,
 	  const ProbabilityArray< alphabet_size > & probabilities );
