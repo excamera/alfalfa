@@ -57,6 +57,8 @@ class Frame
 	       const References & references, Raster & raster ) const;
 
   void copy_to( const RasterHandle & raster, References & references ) const;
+
+  std::vector< uint8_t > serialize_first_partition( void ) const;
 };
 
 using KeyFrame = Frame< KeyFrameHeader, KeyFrameMacroblock >;

@@ -33,6 +33,8 @@ vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
     /* decode the frame (and update the persistent segmentation map) */
     myframe.parse_macroblock_headers_and_update_segmentation_map( state_.segmentation_map, frame_probability_tables );
     myframe.parse_tokens( state_.quantizer_filter_adjustments, frame_probability_tables );
+
+    return myframe.serialize_first_partition();
   } else {
     /* parse interframe header */
     InterFrame myframe( uncompressed_chunk, width_, height_ );
@@ -52,5 +54,11 @@ vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
     myframe.parse_tokens( state_.quantizer_filter_adjustments, frame_probability_tables );
   }
 
+  return vector< uint8_t >();
+}
+
+template <class FrameHeaderType, class MacroblockType>
+vector< uint8_t > Frame< FrameHeaderType, MacroblockType >::serialize_first_partition( void ) const
+{
   return vector< uint8_t >();
 }
