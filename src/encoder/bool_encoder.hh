@@ -5,6 +5,8 @@
 
 #include "bool_decoder.hh"
 
+/* Routines taken from RFC 6386 */
+
 class BoolEncoder
 {
 private:

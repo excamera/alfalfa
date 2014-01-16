@@ -98,6 +98,7 @@ public:
   const Raster & example_raster( void ) const { return references_.last; }
 
   bool decode_frame( const Chunk & frame, RasterHandle & raster );
+  std::string encode_frame( const Chunk & ) { return ""; }
 };
 
 #endif /* DECODER_HH */
