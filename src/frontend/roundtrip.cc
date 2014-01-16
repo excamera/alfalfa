@@ -1,8 +1,7 @@
 #include <iostream>
 
 #include "ivf.hh"
-#include "decoder.hh"
-#include "display.hh"
+#include "encoder.hh"
 #include "uncompressed_chunk.hh"
 
 using namespace std;
@@ -32,10 +31,10 @@ int main( int argc, char *argv[] )
       frame_no++;
     }
 
-    Decoder decoder( file.width(), file.height(), file.frame( frame_no ) );
+    Encoder encoder( file.width(), file.height(), file.frame( frame_no ) );
 
     for ( uint32_t i = frame_no; i < file.frame_count(); i++ ) {
-      string frame = decoder.encode_frame( file.frame( i ) );
+      const auto frame = encoder.encode_frame( file.frame( i ) );
     }
   } catch ( const Exception & e ) {
     e.perror( argv[ 0 ] );
