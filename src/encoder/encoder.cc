@@ -7,7 +7,7 @@
 
 #include "encode_tree.cc"
 
-#include "decoder.cc"
+#include "decoder_state.cc"
 
 using namespace std;
 
