@@ -271,6 +271,44 @@ static void encode( BoolEncoder & encoder,
 }
 
 template <>
+void YBlock::write_subblock_inter_prediction( BoolEncoder & encoder,
+					      const MotionVector & best_mv,
+					      const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > & motion_vector_probs ) const
+{
+  const MotionVector default_mv;
+
+  const MotionVector & left_mv = context().left.initialized() ? context().left.get()->motion_vector() : default_mv;
+
+  const MotionVector & above_mv = context().above.initialized() ? context().above.get()->motion_vector() : default_mv;
+
+  const bool left_is_zero = left_mv.empty();
+  const bool above_is_zero = above_mv.empty();
+  const bool left_eq_above = left_mv == above_mv;
+
+  uint8_t submv_ref_index = 0;
+
+  if ( left_eq_above and left_is_zero ) {
+    submv_ref_index = 4;
+  } else if ( left_eq_above ) {
+    submv_ref_index = 3;
+  } else if ( above_is_zero ) {
+    submv_ref_index = 2;
+  } else if ( left_is_zero ) {
+    submv_ref_index = 1;
+  }
+
+  encode( encoder,
+	  Tree< bmode, num_inter_b_modes, submv_ref_tree >( prediction_mode_ ),
+	  submv_ref_probs2.at( submv_ref_index ) );
+
+  if ( prediction_mode_ == NEW4X4 ) {
+    MotionVector the_mv( motion_vector_ );
+    the_mv -= best_mv;
+    encode( encoder, the_mv, motion_vector_probs );
+  }
+}
+
+template <>
 void KeyFrameMacroblock::encode_prediction_modes( BoolEncoder & encoder,
 						  const ProbabilityTables & ) const
 {
@@ -335,23 +373,22 @@ void InterFrameMacroblock::encode_prediction_modes( BoolEncoder & encoder,
 	    Tree< mbmode, num_mv_refs, mv_ref_tree >( Y2_.prediction_mode() ),
 	    mv_ref_probs );
 
-    switch ( Y2_.prediction_mode() ) {
-    case NEARESTMV:
-    case NEARMV:
-    case ZEROMV:
-      break;
-    case NEWMV:
-      {
-	MotionVector the_mv( base_motion_vector() );
-	the_mv -= Scorer::clamp( census.best(), context_ );
-	encode( encoder, the_mv, probability_tables.motion_vector_probs );
+    if ( Y2_.prediction_mode() == NEWMV ) {
+      MotionVector the_mv( base_motion_vector() );
+      the_mv -= Scorer::clamp( census.best(), context_ );
+      encode( encoder, the_mv, probability_tables.motion_vector_probs );
+    } else if ( Y2_.prediction_mode() == SPLITMV ) {
+      encode( encoder, header_.partition_id.get(), split_mv_probs );
+      const auto & partition_scheme = mv_partitions.at( header_.partition_id.get() );
+
+      for ( const auto & this_partition : partition_scheme ) {
+	const YBlock & first_subblock = Y_.at( this_partition.front().first,
+					       this_partition.front().second );
+
+	first_subblock.write_subblock_inter_prediction( encoder,
+							Scorer::clamp( census.best(), context_ ),
+							probability_tables.motion_vector_probs );
       }
-      break;
-    case SPLITMV:
-      
-    default:
-      assert( false );
-      break;
     }
   }
 }

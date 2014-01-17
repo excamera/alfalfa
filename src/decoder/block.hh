@@ -9,6 +9,7 @@
 
 class ProbabilityTables;
 class Quantizer;
+class BoolEncoder;
 
 enum BlockType { Y_after_Y2 = 0, Y2, UV, Y_without_Y2 };
 
@@ -89,6 +90,9 @@ public:
 
   void read_subblock_inter_prediction( BoolDecoder & data, const MotionVector & best_mv,
 				       const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > & motion_vector_probs );
+
+  void write_subblock_inter_prediction( BoolEncoder & encoder, const MotionVector & best_mv,
+					const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > & motion_vector_probs ) const;
 };
 
 using Y2Block = Block< Y2, mbmode >;
