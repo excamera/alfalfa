@@ -19,7 +19,7 @@ public:
   operator const bool & () const { return i_; }
 };
 
-template <int width>
+template <unsigned int width>
 class Unsigned
 {
 private:
@@ -38,7 +38,7 @@ public:
 template <>
 inline Unsigned< 0 >::Unsigned( BoolDecoder & ) : i_() {}
 
-template <int width>
+template <unsigned int width>
 class Signed
 {
 private:

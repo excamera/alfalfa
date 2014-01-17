@@ -49,7 +49,7 @@ private:
 public:
   BoolEncoder() {}
 
-  void put( const Probability probability, const bool value )
+  void put( const bool value, const Probability probability = 128 )
   {
     uint32_t split = 1 + (((range_ - 1) * probability) >> 8);
 

@@ -116,7 +116,7 @@ void Block< initial_block_type,
     }
 
     /* decode sign bit if absolute value is nonzero */
-    if ( data.bit() ) {
+    if ( data.get() ) {
       value = -value;
     }
 

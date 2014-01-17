@@ -43,7 +43,7 @@ public:
   }
 
   /* based on dixie bool_decoder.h */
-  bool get( const Probability probability )
+  bool get( const Probability probability = 128 )
   {
     const uint32_t split = 1 + (((range_ - 1) * probability) >> 8);
     const uint32_t SPLIT = split << 8;
@@ -69,8 +69,6 @@ public:
 
     return ret;
   }
-
-  bool bit( void ) { return get( 128 ); }
 
   template < uint8_t alphabet_size, class T >
   T tree( const TreeArray< alphabet_size > & nodes,

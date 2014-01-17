@@ -12,7 +12,7 @@ vector< uint8_t > encode( const vector< pair< Probability, bool > > & bitlist )
   BoolEncoder encoder;
 
   for ( const auto & x : bitlist ) {
-    encoder.put( x.first, x.second );
+    encoder.put( x.second, x.first );
   }
 
   return encoder.finish();
