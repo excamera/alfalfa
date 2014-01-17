@@ -4,6 +4,8 @@
 #include "bool_encoder.hh"
 #include "exception.hh"
 
+#include "encode_tree.cc"
+
 using namespace std;
 
 Encoder::Encoder( const uint16_t width, const uint16_t height, const Chunk & key_frame )
@@ -166,33 +168,6 @@ static void encode( BoolEncoder & encoder, const KeyFrameHeader & header )
   encode( encoder, header.refresh_entropy_probs );
   encode( encoder, header.token_prob_update );
   encode( encoder, header.prob_skip_false );
-}
-
-template <class enumeration, uint8_t alphabet_size, const TreeArray< alphabet_size > & nodes >
-static void encode( BoolEncoder & encoder,
-		    const Tree< enumeration, alphabet_size, nodes > & value,
-		    const ProbabilityArray< alphabet_size > & probs )
-{
-  /* reverse the tree */
-  SafeArray< uint8_t, alphabet_size + nodes.size() > value_to_index;
-  for ( uint8_t i = 0; i < nodes.size(); i++ ) {
-    value_to_index.at( alphabet_size + nodes.at( i ) - 1 ) = i;
-  }
-
-  vector< pair< TreeNode, bool > > bits;
-
-  /* find the path to the node */
-  uint8_t node_index = value_to_index.at( alphabet_size - value - 1 );
-  while ( node_index ) {
-    const bool bit = node_index & 1;
-    node_index = value_to_index.at( alphabet_size + (node_index & 0xfe) - 1 );
-    bits.emplace_back( node_index, bit );
-  }
-
-  /* encode the path */
-  for ( auto it = bits.rbegin(); it != bits.rend(); it++ ) {
-    encoder.put( it->second, probs.at( it->first >> 1 ) );
-  }
 }
 
 template <class FrameHeaderType, class MacroblockheaderType >

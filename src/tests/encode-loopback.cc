@@ -3,6 +3,9 @@
 #include "exception.hh"
 #include "bool_decoder.hh"
 #include "bool_encoder.hh"
+#include "modemv_data.hh"
+
+#include "encode_tree.cc"
 
 using namespace std;
 
@@ -51,6 +54,9 @@ int main( int argc, char *argv[] )
 	}
       }
     }
+
+    /* Now try some trees */
+    
   } catch ( const Exception & e ) {
     e.perror( argv[ 0 ] );
     return EXIT_FAILURE;
