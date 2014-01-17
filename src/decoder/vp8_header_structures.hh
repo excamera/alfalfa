@@ -159,6 +159,7 @@ public:
 
   bool operator==( const MotionVector & other ) const { return x_ == other.x_ and y_ == other.y_; }
   void operator+=( const MotionVector & other ) { x_ += other.x_; y_ += other.y_; }
+  void operator-=( const MotionVector & other ) { *this += -other; }
 
   MotionVector operator-() const { return MotionVector( -x(), -y() ); }
 

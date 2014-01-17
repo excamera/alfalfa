@@ -39,9 +39,10 @@ vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
 
     /* decode the frame (and update the persistent segmentation map) */
     myframe.parse_macroblock_headers_and_update_segmentation_map( state_.segmentation_map, frame_probability_tables );
-    myframe.parse_tokens( state_.quantizer_filter_adjustments, frame_probability_tables );
 
-    first_partition = myframe.serialize_first_partition();
+    first_partition = myframe.serialize_first_partition( frame_probability_tables );
+
+    myframe.parse_tokens( state_.quantizer_filter_adjustments, frame_probability_tables );
   } else {
     /* parse interframe header */
     InterFrame myframe( uncompressed_chunk, width_, height_ );
@@ -58,9 +59,10 @@ vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
 
     /* decode the frame (and update the persistent segmentation map) */
     myframe.parse_macroblock_headers_and_update_segmentation_map( state_.segmentation_map, frame_probability_tables );
-    myframe.parse_tokens( state_.quantizer_filter_adjustments, frame_probability_tables );
 
-    first_partition = myframe.serialize_first_partition();
+    first_partition = myframe.serialize_first_partition( frame_probability_tables );
+
+    myframe.parse_tokens( state_.quantizer_filter_adjustments, frame_probability_tables );
   }
 
   return first_partition;
@@ -217,6 +219,57 @@ static void encode( BoolEncoder & encoder, const InterFrameMacroblockHeader & he
   encode( encoder, header.mb_ref_frame_sel2 );
 }
 
+static void encode( BoolEncoder & encoder,
+		    const int16_t num,
+		    const SafeArray< Probability, MV_PROB_CNT > & component_probs )
+{
+  enum { IS_SHORT, SIGN, SHORT, BITS = SHORT + 8 - 1, LONG_WIDTH = 10 };
+
+  int16_t num_to_encode = num >> 1;
+  uint16_t x = abs( num_to_encode );
+
+  if ( x < 8 ) {
+    encode( encoder, false, component_probs.at( IS_SHORT ) );
+    const ProbabilityArray< 8 > small_mv_probs = {{ component_probs.at( SHORT ),
+						    component_probs.at( SHORT + 1 ),
+						    component_probs.at( SHORT + 2 ),
+						    component_probs.at( SHORT + 3 ),
+						    component_probs.at( SHORT + 4 ),
+						    component_probs.at( SHORT + 5 ),
+						    component_probs.at( SHORT + 6 ) }};
+
+    /* for unknown reasons, using slice here breaks strict aliasing, but is allowed in macroblock.cc */
+
+    encode( encoder, Tree< int16_t, 8, small_mv_tree >( x ), small_mv_probs );
+  } else {
+    encode( encoder, true, component_probs.at( IS_SHORT ) );
+
+    for ( uint8_t i = 0; i < 3; i++ ) {
+      encode( encoder, (x >> i) & 1, component_probs.at( BITS + i ) );
+    }
+
+    for ( uint8_t i = LONG_WIDTH - 1; i > 3; i-- ) {
+      encode( encoder, (x >> i) & 1, component_probs.at( BITS + i ) );
+    }
+
+    if ( x & 0xfff0 ) {
+      encode( encoder, (x >> 3) & 1, component_probs.at( BITS + 3 ) );
+    }
+  }
+
+  if ( x ) {
+    encode( encoder, num_to_encode < 0, component_probs.at( SIGN ) );
+  }
+}
+
+static void encode( BoolEncoder & encoder,
+		    const MotionVector & mv,
+		    const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > & motion_vector_probs )
+{
+  encode( encoder, mv.y(), motion_vector_probs.at( 0 ) );
+  encode( encoder, mv.x(), motion_vector_probs.at( 1 ) );
+}
+
 template <>
 void KeyFrameMacroblock::encode_prediction_modes( BoolEncoder & encoder,
 						  const ProbabilityTables & ) const
@@ -281,13 +334,33 @@ void InterFrameMacroblock::encode_prediction_modes( BoolEncoder & encoder,
     encode( encoder,
 	    Tree< mbmode, num_mv_refs, mv_ref_tree >( Y2_.prediction_mode() ),
 	    mv_ref_probs );
+
+    switch ( Y2_.prediction_mode() ) {
+    case NEARESTMV:
+    case NEARMV:
+    case ZEROMV:
+      break;
+    case NEWMV:
+      {
+	MotionVector the_mv( base_motion_vector() );
+	the_mv -= Scorer::clamp( census.best(), context_ );
+	encode( encoder, the_mv, probability_tables.motion_vector_probs );
+      }
+      break;
+    case SPLITMV:
+      
+    default:
+      assert( false );
+      break;
+    }
   }
 }
 
 template <class FrameHeaderType, class MacroblockheaderType >
 void Macroblock< FrameHeaderType, MacroblockheaderType >::serialize( BoolEncoder & encoder,
 								     const FrameHeaderType & frame_header,
-								     const ProbabilityArray< num_segments > & mb_segment_tree_probs ) const
+								     const ProbabilityArray< num_segments > & mb_segment_tree_probs,
+								     const ProbabilityTables & probability_tables ) const
 {
   if ( segment_id_update_.initialized() ) {
     encode( encoder, segment_id_update_.get(), mb_segment_tree_probs );
@@ -298,10 +371,12 @@ void Macroblock< FrameHeaderType, MacroblockheaderType >::serialize( BoolEncoder
   }
 
   encode( encoder, header_ );
+
+  encode_prediction_modes( encoder, probability_tables );
 }
 
 template <class FrameHeaderType, class MacroblockType>
-vector< uint8_t > Frame< FrameHeaderType, MacroblockType >::serialize_first_partition( void ) const
+vector< uint8_t > Frame< FrameHeaderType, MacroblockType >::serialize_first_partition( const ProbabilityTables & probability_tables ) const
 {
   BoolEncoder encoder;
 
@@ -312,7 +387,10 @@ vector< uint8_t > Frame< FrameHeaderType, MacroblockType >::serialize_first_part
 
   /* encode the macroblock headers */
   macroblock_headers_.get().forall( [&]( const MacroblockType & macroblock )
-				    { macroblock.serialize( encoder, header(), segment_tree_probs ); } );
+				    { macroblock.serialize( encoder,
+							    header(),
+							    segment_tree_probs,
+							    probability_tables ); } );
 
   return encoder.finish();
 }

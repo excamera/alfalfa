@@ -77,7 +77,8 @@ public:
 
   void serialize( BoolEncoder & encoder,
 		  const FrameHeaderType & frame_header,
-		  const ProbabilityArray< num_segments > & mb_segment_tree_probs ) const;
+		  const ProbabilityArray< num_segments > & mb_segment_tree_probs,
+		  const ProbabilityTables & probability_tables ) const;
 };
 
 struct KeyFrameMacroblockHeader

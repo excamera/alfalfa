@@ -154,7 +154,7 @@ void MotionVector::clamp( const int16_t to_left, const int16_t to_right,
   y_ = min( max( y_, to_top ), to_bottom );
 }
 
-MotionVector clamp( const MotionVector & mv, const typename TwoD< InterFrameMacroblock >::Context & c )
+MotionVector Scorer::clamp( const MotionVector & mv, const typename TwoD< InterFrameMacroblock >::Context & c )
 {
   MotionVector ret( mv );
 
@@ -189,9 +189,7 @@ int16_t MotionVector::read_component( BoolDecoder & data,
       x += 8;
     }
   } else {  /* small */
-    const ProbabilityArray< 8 > & small_mv_probs = component_probs.slice<SHORT, 7>();
-
-    x = Tree< int16_t, 8, small_mv_tree >( data, small_mv_probs );
+    x = Tree< int16_t, 8, small_mv_tree >( data, component_probs.slice<SHORT, 7>() );
   }
 
   if ( x && data.get( component_probs.at( SIGN ) ) ) {
@@ -317,10 +315,10 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 
     switch ( Y2_.prediction_mode() ) {
     case NEARESTMV:
-      set_base_motion_vector( clamp( census.nearest(), context_ ) );
+      set_base_motion_vector( Scorer::clamp( census.nearest(), context_ ) );
       break;
     case NEARMV:
-      set_base_motion_vector( clamp( census.near(), context_ ) );
+      set_base_motion_vector( Scorer::clamp( census.near(), context_ ) );
       break;
     case ZEROMV:
       set_base_motion_vector( MotionVector() );
@@ -328,7 +326,7 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
     case NEWMV:
       {
 	MotionVector new_mv( data, probability_tables.motion_vector_probs );
-	new_mv += clamp( census.best(), context_ );
+	new_mv += Scorer::clamp( census.best(), context_ );
 	set_base_motion_vector( new_mv );
       }
       break;
@@ -343,7 +341,7 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 	  first_subblock.set_Y_without_Y2();
 
 	  first_subblock.read_subblock_inter_prediction( data,
-							 clamp( census.best(), context_ ),
+							 Scorer::clamp( census.best(), context_ ),
 							 probability_tables.motion_vector_probs );
 
 	  /* copy to rest of subblocks */
