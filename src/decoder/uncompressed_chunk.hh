@@ -30,6 +30,8 @@ public:
   BoolDecoder first_partition( void ) const { return first_partition_; }
   std::vector< BoolDecoder > dct_partitions( const uint8_t num ) const;
 
+  const Chunk & first_partition_raw( void ) const { return first_partition_; }
+
   LoopFilterType loop_filter_type( void ) const { return loop_filter_; }
   bool show_frame( void ) const { return show_frame_; }
 };

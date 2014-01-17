@@ -9,18 +9,18 @@ static void encode( BoolEncoder & encoder,
 		    const ProbabilityArray< alphabet_size > & probs )
 {
   /* reverse the tree */
-  SafeArray< uint8_t, alphabet_size + nodes.size() > value_to_index;
+  SafeArray< uint8_t, 128 + nodes.size() > value_to_index;
   for ( uint8_t i = 0; i < nodes.size(); i++ ) {
-    value_to_index.at( alphabet_size + nodes.at( i ) - 1 ) = i;
+    value_to_index.at( 128 + nodes.at( i ) - 1 ) = i;
   }
 
   std::vector< std::pair< bool, Probability > > bits;
 
   /* find the path to the node */
-  uint8_t node_index = value_to_index.at( alphabet_size - value - 1 );
+  uint8_t node_index = value_to_index.at( 128 - value - 1 );
   bits.emplace_back( node_index & 1, probs.at( node_index >> 1 ) );
   while ( node_index > 1 ) {
-    node_index = value_to_index.at( alphabet_size + (node_index & 0xfe) - 1 );
+    node_index = value_to_index.at( 128 + (node_index & 0xfe) - 1 );
     bits.emplace_back( node_index & 1, probs.at( node_index >> 1 ) );
   }
 

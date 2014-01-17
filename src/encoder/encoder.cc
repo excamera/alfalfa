@@ -44,7 +44,7 @@ vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
 
     first_partition = myframe.serialize_first_partition( frame_probability_tables );
 
-    myframe.parse_tokens( state_.quantizer_filter_adjustments, frame_probability_tables );
+    //    myframe.parse_tokens( state_.quantizer_filter_adjustments, frame_probability_tables );
   } else {
     /* parse interframe header */
     InterFrame myframe( uncompressed_chunk, width_, height_ );
@@ -64,8 +64,25 @@ vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
 
     first_partition = myframe.serialize_first_partition( frame_probability_tables );
 
-    myframe.parse_tokens( state_.quantizer_filter_adjustments, frame_probability_tables );
+    //    myframe.parse_tokens( state_.quantizer_filter_adjustments, frame_probability_tables );
   }
+
+  bool equal = true;
+  if ( uncompressed_chunk.first_partition_raw().size() != first_partition.size() ) {
+    equal = false;
+  }
+
+  if ( equal ) {
+    for ( unsigned int i = 0; i < first_partition.size(); i++ ) {
+      if ( uncompressed_chunk.first_partition_raw()( i ).octet()
+	   != first_partition.at( i ) ) {
+	equal = false;
+	break;
+      }
+    }
+  }
+
+  printf( "equal = %d\n", equal );
 
   return first_partition;
 }
@@ -75,11 +92,11 @@ static void encode( BoolEncoder & encoder, const Boolean & flag, const Probabili
   encoder.put( flag, probability );
 }
 
-template <class T>
-static void encode( BoolEncoder & encoder, const Optional<T> & obj )
+template <class T, typename... Targs>
+static void encode( BoolEncoder & encoder, const Optional<T> & obj, Targs&&... Fargs )
 {
   if ( obj.initialized() ) {
-    encode( encoder, obj.get() );
+    encode( encoder, obj.get(), forward<Targs>( Fargs )... );
   }
 }
 
@@ -212,13 +229,17 @@ static void encode( BoolEncoder & encoder, const InterFrameHeader & header )
   encode( encoder, header.mv_prob_update );
 }
 
-static void encode( BoolEncoder &, const KeyFrameMacroblockHeader & ) {}
+static void encode( BoolEncoder &,
+		    const KeyFrameMacroblockHeader &,
+		    const KeyFrameHeader & ) {}
 
-static void encode( BoolEncoder & encoder, const InterFrameMacroblockHeader & header )
+static void encode( BoolEncoder & encoder,
+		    const InterFrameMacroblockHeader & header,
+		    const InterFrameHeader & frame_header )
 {
-  encode( encoder, header.is_inter_mb );
-  encode( encoder, header.mb_ref_frame_sel1 );
-  encode( encoder, header.mb_ref_frame_sel2 );
+  encode( encoder, header.is_inter_mb, frame_header.prob_inter );
+  encode( encoder, header.mb_ref_frame_sel1, frame_header.prob_references_last );
+  encode( encoder, header.mb_ref_frame_sel2, frame_header.prob_references_golden );
 }
 
 static void encode( BoolEncoder & encoder,
@@ -401,16 +422,9 @@ void Macroblock< FrameHeaderType, MacroblockheaderType >::serialize( BoolEncoder
 								     const ProbabilityArray< num_segments > & mb_segment_tree_probs,
 								     const ProbabilityTables & probability_tables ) const
 {
-  if ( segment_id_update_.initialized() ) {
-    encode( encoder, segment_id_update_.get(), mb_segment_tree_probs );
-  }
-
-  if ( mb_skip_coeff_.initialized() ) {
-    encode( encoder, mb_skip_coeff_.get(), frame_header.prob_skip_false.get_or( 0 ) );
-  }
-
-  encode( encoder, header_ );
-
+  encode( encoder, segment_id_update_, mb_segment_tree_probs );
+  encode( encoder, mb_skip_coeff_, frame_header.prob_skip_false.get_or( 0 ) );
+  encode( encoder, header_, frame_header );
   encode_prediction_modes( encoder, probability_tables );
 }
 
