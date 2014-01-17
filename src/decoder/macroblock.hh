@@ -35,6 +35,9 @@ private:
   void decode_prediction_modes( BoolDecoder & data,
 				const ProbabilityTables & probability_tables );
 
+  void encode_prediction_modes( BoolEncoder & encoder,
+				const ProbabilityTables & probability_tables ) const;
+
   void set_base_motion_vector( const MotionVector & mv );
 
 public:
@@ -72,9 +75,9 @@ public:
 
   uint8_t segment_id( void ) const { return segment_id_; }
 
-  void encode( BoolEncoder & encoder,
-	       const FrameHeaderType & frame_header,
-	       const ProbabilityArray< num_segments > & mb_segment_tree_probs ) const;
+  void serialize( BoolEncoder & encoder,
+		  const FrameHeaderType & frame_header,
+		  const ProbabilityArray< num_segments > & mb_segment_tree_probs ) const;
 };
 
 struct KeyFrameMacroblockHeader

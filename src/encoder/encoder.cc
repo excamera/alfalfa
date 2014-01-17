@@ -3,6 +3,7 @@
 #include "frame.hh"
 #include "bool_encoder.hh"
 #include "exception.hh"
+#include "scorer.hh"
 
 #include "encode_tree.cc"
 
@@ -216,20 +217,87 @@ static void encode( BoolEncoder & encoder, const InterFrameMacroblockHeader & he
   encode( encoder, header.mb_ref_frame_sel2 );
 }
 
+template <>
+void KeyFrameMacroblock::encode_prediction_modes( BoolEncoder & encoder,
+						  const ProbabilityTables & ) const
+{
+  encode( encoder,
+	  Tree< mbmode, num_y_modes, kf_y_mode_tree >( Y2_.prediction_mode() ),
+	  kf_y_mode_probs );
+
+  if ( Y2_.prediction_mode() == B_PRED ) {
+    Y_.forall( [&]( const YBlock & block ) {
+	const auto above_mode = block.context().above.initialized()
+	  ? block.context().above.get()->prediction_mode() : B_DC_PRED;
+	const auto left_mode = block.context().left.initialized()
+	  ? block.context().left.get()->prediction_mode() : B_DC_PRED;
+	encode( encoder,
+		Tree< bmode, num_intra_b_modes, b_mode_tree >( block.prediction_mode() ),
+		kf_b_mode_probs.at( above_mode ).at( left_mode ) );
+      } );
+  }
+
+  encode( encoder,
+	  Tree< mbmode, num_uv_modes, uv_mode_tree >( uv_prediction_mode() ),
+	  kf_uv_mode_probs );
+}
+
+template <>
+void InterFrameMacroblock::encode_prediction_modes( BoolEncoder & encoder,
+						    const ProbabilityTables & probability_tables ) const
+{
+  if ( not inter_coded() ) {
+    encode( encoder,
+	    Tree< mbmode, num_y_modes, y_mode_tree >( Y2_.prediction_mode() ),
+	    probability_tables.y_mode_probs );
+
+    if ( Y2_.prediction_mode() == B_PRED ) {
+      Y_.forall( [&]( const YBlock & block ) {
+	  encode( encoder,
+		  Tree< bmode, num_intra_b_modes, b_mode_tree >( block.prediction_mode() ),
+		  invariant_b_mode_probs );
+	} );
+    }
+
+    encode( encoder,
+	    Tree< mbmode, num_uv_modes, uv_mode_tree >( uv_prediction_mode() ),
+	    probability_tables.uv_mode_probs );
+  } else {
+    /* motion-vector "census" */
+    Scorer census( header_.motion_vectors_flipped_ );
+    census.add( 2, context_.above );
+    census.add( 2, context_.left );
+    census.add( 1, context_.above_left );
+    census.calculate();
+
+    const auto counts = census.mode_contexts();
+
+    /* census determines lookups into fixed probability table */
+    const ProbabilityArray< num_mv_refs > mv_ref_probs = {{ mv_counts_to_probs.at( counts.at( 0 ) ).at( 0 ),
+							    mv_counts_to_probs.at( counts.at( 1 ) ).at( 1 ),
+							    mv_counts_to_probs.at( counts.at( 2 ) ).at( 2 ),
+							    mv_counts_to_probs.at( counts.at( 3 ) ).at( 3 ) }};
+
+    encode( encoder,
+	    Tree< mbmode, num_mv_refs, mv_ref_tree >( Y2_.prediction_mode() ),
+	    mv_ref_probs );
+  }
+}
+
 template <class FrameHeaderType, class MacroblockheaderType >
-void Macroblock< FrameHeaderType, MacroblockheaderType >::encode( BoolEncoder & encoder,
-								  const FrameHeaderType & frame_header,
-								  const ProbabilityArray< num_segments > & mb_segment_tree_probs ) const
+void Macroblock< FrameHeaderType, MacroblockheaderType >::serialize( BoolEncoder & encoder,
+								     const FrameHeaderType & frame_header,
+								     const ProbabilityArray< num_segments > & mb_segment_tree_probs ) const
 {
   if ( segment_id_update_.initialized() ) {
-    ::encode( encoder, segment_id_update_.get(), mb_segment_tree_probs );
+    encode( encoder, segment_id_update_.get(), mb_segment_tree_probs );
   }
 
   if ( mb_skip_coeff_.initialized() ) {
-    ::encode( encoder, mb_skip_coeff_.get(), frame_header.prob_skip_false.get_or( 0 ) );
+    encode( encoder, mb_skip_coeff_.get(), frame_header.prob_skip_false.get_or( 0 ) );
   }
 
-  ::encode( encoder, header_ );
+  encode( encoder, header_ );
 }
 
 template <class FrameHeaderType, class MacroblockType>
@@ -244,7 +312,7 @@ vector< uint8_t > Frame< FrameHeaderType, MacroblockType >::serialize_first_part
 
   /* encode the macroblock headers */
   macroblock_headers_.get().forall( [&]( const MacroblockType & macroblock )
-				    { macroblock.encode( encoder, header(), segment_tree_probs ); } );
+				    { macroblock.serialize( encoder, header(), segment_tree_probs ); } );
 
   return encoder.finish();
 }

@@ -3,6 +3,7 @@
 
 #include "macroblock.hh"
 #include "decoder.hh"
+#include "scorer.hh"
 
 #include "tree.cc"
 #include "tokens.cc"
@@ -113,77 +114,38 @@ bool InterFrameMacroblock::inter_coded( void ) const
   return header_.is_inter_mb;
 }
 
-class Scorer
+void Scorer::add( const uint8_t score, const Optional< const InterFrameMacroblock * > & mb )
 {
-private:
-  bool motion_vectors_flipped_;
+  if ( mb.initialized() and mb.get()->inter_coded() ) {
+    MotionVector mv = mb.get()->base_motion_vector();
+    if ( mb.get()->header().motion_vectors_flipped_ != motion_vectors_flipped_ ) {
+      mv = -mv;
+    }
+    add( score, mv );
+    if ( mb.get()->y_prediction_mode() == SPLITMV ) {
+      splitmv_score_ += score;
+    }
+  }
+}
 
-  SafeArray< uint8_t, 4 > scores_ {{}};
-  SafeArray< MotionVector, 4 > motion_vectors_ {{}};
-
-  uint8_t splitmv_score_ {};
-
-  uint8_t index_ {};
-
-  void add( const uint8_t score, const MotionVector & mv )
-  {
-    if ( mv.empty() ) {
-      scores_.at( 0 ) += score;
-    } else {
-      if ( not ( mv == motion_vectors_.at( index_ ) ) ) {
-	index_++;
-	motion_vectors_.at( index_ ) = mv;
-      }
-
-      scores_.at( index_ ) += score;
+void Scorer::calculate( void )
+{
+  if ( scores_.at( 3 ) ) {
+    if ( motion_vectors_.at( index_ ) == motion_vectors_.at( 1 ) ) {
+      scores_.at( 1 ) += scores_.at( 3 );
     }
   }
 
-public:
-  Scorer( const bool motion_vectors_flipped ) : motion_vectors_flipped_( motion_vectors_flipped ) {}
-
-  const MotionVector & best( void ) const { return motion_vectors_.at( 0 ); }
-  const MotionVector & nearest( void ) const { return motion_vectors_.at( 1 ); }
-  const MotionVector & near( void ) const { return motion_vectors_.at( 2 ); }
-
-  void add( const uint8_t score, const Optional< const InterFrameMacroblock * > & mb )
-  {
-    if ( mb.initialized() and mb.get()->inter_coded() ) {
-      MotionVector mv = mb.get()->base_motion_vector();
-      if ( mb.get()->header().motion_vectors_flipped_ != motion_vectors_flipped_ ) {
-	mv = -mv;
-      }
-      add( score, mv );
-      if ( mb.get()->y_prediction_mode() == SPLITMV ) {
-	splitmv_score_ += score;
-      }
-    }
+  if ( scores_.at( 2 ) > scores_.at( 1 ) ) {
+    tie( scores_.at( 1 ), scores_.at( 2 ) ) = make_pair( scores_.at( 2 ), scores_.at( 1 ) );
+    tie( motion_vectors_.at( 1 ), motion_vectors_.at( 2 ) )
+      = make_pair( motion_vectors_.at( 2 ), motion_vectors_.at( 1 ) );
   }
 
-  void calculate( void )
-  {
-    if ( scores_.at( 3 ) ) {
-      if ( motion_vectors_.at( index_ ) == motion_vectors_.at( 1 ) ) {
-	scores_.at( 1 ) += scores_.at( 3 );
-      }
-    }
-
-    if ( scores_.at( 2 ) > scores_.at( 1 ) ) {
-      tie( scores_.at( 1 ), scores_.at( 2 ) ) = make_pair( scores_.at( 2 ), scores_.at( 1 ) );
-      tie( motion_vectors_.at( 1 ), motion_vectors_.at( 2 ) )
-	= make_pair( motion_vectors_.at( 2 ), motion_vectors_.at( 1 ) );
-    }
-
-    if ( scores_.at( 1 ) >= scores_.at( 0 ) ) {
-      motion_vectors_.at( 0 ) = motion_vectors_.at( 1 );
-    }
+  if ( scores_.at( 1 ) >= scores_.at( 0 ) ) {
+    motion_vectors_.at( 0 ) = motion_vectors_.at( 1 );
   }
-
-  SafeArray< uint8_t, 4 > mode_contexts( void ) const
-  {
-    return { scores_.at( 0 ), scores_.at( 1 ), scores_.at( 2 ), splitmv_score_ };
-  }
-};
+}
 
 void MotionVector::clamp( const int16_t to_left, const int16_t to_right,
 			  const int16_t to_top, const int16_t to_bottom )
