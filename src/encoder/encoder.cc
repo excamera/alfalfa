@@ -20,6 +20,8 @@ vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
   /* parse uncompressed data chunk */
   UncompressedChunk uncompressed_chunk( frame, width_, height_ );
 
+  vector< uint8_t > first_partition;
+
   if ( uncompressed_chunk.key_frame() ) {
     /* parse keyframe header */
     KeyFrame myframe( uncompressed_chunk, width_, height_ );
@@ -38,7 +40,7 @@ vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
     myframe.parse_macroblock_headers_and_update_segmentation_map( state_.segmentation_map, frame_probability_tables );
     myframe.parse_tokens( state_.quantizer_filter_adjustments, frame_probability_tables );
 
-    return myframe.serialize_first_partition();
+    first_partition = myframe.serialize_first_partition();
   } else {
     /* parse interframe header */
     InterFrame myframe( uncompressed_chunk, width_, height_ );
@@ -56,9 +58,11 @@ vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
     /* decode the frame (and update the persistent segmentation map) */
     myframe.parse_macroblock_headers_and_update_segmentation_map( state_.segmentation_map, frame_probability_tables );
     myframe.parse_tokens( state_.quantizer_filter_adjustments, frame_probability_tables );
+
+    first_partition = myframe.serialize_first_partition();
   }
 
-  return vector< uint8_t >();
+  return first_partition;
 }
 
 static void encode( BoolEncoder & encoder, const Boolean & flag, const Probability probability = 128 )
@@ -116,6 +120,12 @@ static void encode( BoolEncoder & encoder, const TokenProbUpdate & tpu,
   encode( encoder, tpu.coeff_prob, k_coeff_entropy_update_probs.at( i ).at( j ).at( k ).at( l ) );
 }
 
+static void encode( BoolEncoder & encoder, const MVProbUpdate & mv,
+		    const unsigned int j, const unsigned int i )
+{
+  encode( encoder, mv.mv_prob, k_mv_entropy_update_probs.at( i ).at( j ) );
+}
+
 template <class T, unsigned int len, typename... Targs>
 static void encode( BoolEncoder & encoder, const Enumerate<T, len> & obj, Targs&&... Fargs )
 {
@@ -170,33 +180,71 @@ static void encode( BoolEncoder & encoder, const KeyFrameHeader & header )
   encode( encoder, header.prob_skip_false );
 }
 
+static void encode( BoolEncoder & encoder, const InterFrameHeader & header )
+{
+  encode( encoder, header.update_segmentation );
+  encode( encoder, header.filter_type );
+  encode( encoder, header.loop_filter_level );
+  encode( encoder, header.sharpness_level );
+  encode( encoder, header.mode_lf_adjustments );
+  encode( encoder, header.log2_number_of_dct_partitions );
+  encode( encoder, header.quant_indices );
+  encode( encoder, header.refresh_golden_frame );
+  encode( encoder, header.refresh_alternate_frame );
+  encode( encoder, header.copy_buffer_to_golden );
+  encode( encoder, header.copy_buffer_to_alternate );
+  encode( encoder, header.sign_bias_golden );
+  encode( encoder, header.sign_bias_alternate );
+  encode( encoder, header.refresh_entropy_probs );
+  encode( encoder, header.refresh_last );
+  encode( encoder, header.token_prob_update );
+  encode( encoder, header.prob_skip_false );
+  encode( encoder, header.prob_inter );
+  encode( encoder, header.prob_references_last );
+  encode( encoder, header.prob_references_golden );
+  encode( encoder, header.intra_16x16_prob );
+  encode( encoder, header.intra_chroma_prob );
+  encode( encoder, header.mv_prob_update );
+}
+
+static void encode( BoolEncoder &, const KeyFrameMacroblockHeader & ) {}
+
+static void encode( BoolEncoder & encoder, const InterFrameMacroblockHeader & header )
+{
+  encode( encoder, header.is_inter_mb );
+  encode( encoder, header.mb_ref_frame_sel1 );
+  encode( encoder, header.mb_ref_frame_sel2 );
+}
+
 template <class FrameHeaderType, class MacroblockheaderType >
-void Macroblock< FrameHeaderType, MacroblockheaderType >::encode( BoolEncoder & partition,
+void Macroblock< FrameHeaderType, MacroblockheaderType >::encode( BoolEncoder & encoder,
 								  const FrameHeaderType & frame_header,
 								  const ProbabilityArray< num_segments > & mb_segment_tree_probs ) const
 {
   if ( segment_id_update_.initialized() ) {
-    ::encode( partition, segment_id_update_.get(), mb_segment_tree_probs );
+    ::encode( encoder, segment_id_update_.get(), mb_segment_tree_probs );
   }
 
   if ( mb_skip_coeff_.initialized() ) {
-    ::encode( partition, mb_skip_coeff_.get(), frame_header.prob_skip_false.get_or( 0 ) );
+    ::encode( encoder, mb_skip_coeff_.get(), frame_header.prob_skip_false.get_or( 0 ) );
   }
+
+  ::encode( encoder, header_ );
 }
 
 template <class FrameHeaderType, class MacroblockType>
 vector< uint8_t > Frame< FrameHeaderType, MacroblockType >::serialize_first_partition( void ) const
 {
-  BoolEncoder partition;
+  BoolEncoder encoder;
 
   /* encode partition header */
-  encode( partition, header() );
+  encode( encoder, header() );
 
   const auto segment_tree_probs = calculate_mb_segment_tree_probs();
 
   /* encode the macroblock headers */
   macroblock_headers_.get().forall( [&]( const MacroblockType & macroblock )
-				    { macroblock.encode( partition, header(), segment_tree_probs ); } );
+				    { macroblock.encode( encoder, header(), segment_tree_probs ); } );
 
-  return partition.finish();
+  return encoder.finish();
 }

@@ -63,12 +63,10 @@ struct TokenProbUpdate
     : coeff_prob( data, k_coeff_entropy_update_probs.at( i ).at( j ).at( k ).at( l ) ) {}
 };
 
-class MVProbUpdate
+struct MVProbUpdate
 {
-private:
   Flagged< Unsigned<7> > mv_prob;
 
-public:
   bool initialized( void ) const { return mv_prob.initialized(); }
   uint8_t get( void ) const { const uint8_t ret = mv_prob.get(); return ret ? ret << 1 : ret; }
 
