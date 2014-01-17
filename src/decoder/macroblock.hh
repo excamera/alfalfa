@@ -11,6 +11,7 @@
 class QuantizerFilterAdjustments;
 class ProbabilityTables;
 class References;
+class BoolEncoder;
 
 template <class FrameHeaderType, class MacroblockHeaderType>
 class Macroblock
@@ -70,6 +71,10 @@ public:
   bool inter_coded( void ) const;
 
   uint8_t segment_id( void ) const { return segment_id_; }
+
+  void encode( BoolEncoder & encoder,
+	       const FrameHeaderType & frame_header,
+	       const ProbabilityArray< num_segments > & mb_segment_tree_probs ) const;
 };
 
 struct KeyFrameMacroblockHeader

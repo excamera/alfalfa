@@ -40,6 +40,8 @@ class Frame
 
   void loopfilter( const QuantizerFilterAdjustments & quantizer_filter_adjustments, Raster & target ) const;
 
+  ProbabilityArray< num_segments > calculate_mb_segment_tree_probs( void ) const;
+
  public:
   Frame( const UncompressedChunk & chunk,
 	 const unsigned int width,

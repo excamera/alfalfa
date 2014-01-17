@@ -19,6 +19,8 @@ public:
   operator const bool & () const { return i_; }
 };
 
+using Flag = Boolean;
+
 template <unsigned int width>
 class Unsigned
 {
@@ -52,16 +54,6 @@ public:
   Signed( const int8_t & val ) : i_( val ) {}
 
   operator const int8_t & () const { return i_; }
-};
-
-class Flag
-{
-  bool i_;
-
-public:
-  Flag( BoolDecoder & data ) : i_( Boolean( data ) ) {}
-  Flag( const bool & val ) : i_( val ) {}
-  operator const bool & () const { return i_; }
 };
 
 template <class T>
@@ -140,9 +132,8 @@ private:
 
 public:
   typedef enumeration type;
-  typedef const ProbabilityArray< alphabet_size > probability_array_type;
 
-  Tree( BoolDecoder & data, probability_array_type & probabilities )
+  Tree( BoolDecoder & data, const ProbabilityArray< alphabet_size > & probabilities )
     : value_( data.tree< alphabet_size, enumeration >( nodes, probabilities ) )
   {}
 

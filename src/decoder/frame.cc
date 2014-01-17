@@ -18,8 +18,7 @@ Frame<FrameHeaderType, MacroblockType>::Frame( const UncompressedChunk & chunk,
 {}
 
 template <class FrameHeaderType, class MacroblockType>
-void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers_and_update_segmentation_map( SegmentationMap & segmentation_map,
-												   const ProbabilityTables & probability_tables )
+ProbabilityArray< num_segments > Frame<FrameHeaderType, MacroblockType>::calculate_mb_segment_tree_probs( void ) const
 {
   /* calculate segment tree probabilities if map is updated by this frame */
   ProbabilityArray< num_segments > mb_segment_tree_probs;
@@ -31,6 +30,16 @@ void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers_and_update
       mb_segment_tree_probs.at( i ) = seg_map.at( i ).get_or( 255 );
     }
   }
+
+  return mb_segment_tree_probs;
+}
+
+template <class FrameHeaderType, class MacroblockType>
+void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers_and_update_segmentation_map( SegmentationMap & segmentation_map,
+												   const ProbabilityTables & probability_tables )
+{
+  /* calculate segment tree probabilities if map is updated by this frame */
+  const ProbabilityArray< num_segments > mb_segment_tree_probs = calculate_mb_segment_tree_probs();
 
   /* parse the macroblock headers */
   macroblock_headers_.initialize( macroblock_width_, macroblock_height_,
