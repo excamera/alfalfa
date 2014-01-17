@@ -24,6 +24,7 @@ vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
   UncompressedChunk uncompressed_chunk( frame, width_, height_ );
 
   vector< uint8_t > first_partition;
+  vector< vector< uint8_t > > dct_partitions;
 
   if ( uncompressed_chunk.key_frame() ) {
     /* parse keyframe header */
@@ -41,10 +42,11 @@ vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
 
     /* decode the frame (and update the persistent segmentation map) */
     myframe.parse_macroblock_headers_and_update_segmentation_map( state_.segmentation_map, frame_probability_tables );
+    myframe.parse_tokens( state_.quantizer_filter_adjustments, frame_probability_tables );
 
+    /* re-encode the frame */
     first_partition = myframe.serialize_first_partition( frame_probability_tables );
-
-    //    myframe.parse_tokens( state_.quantizer_filter_adjustments, frame_probability_tables );
+    dct_partitions = myframe.serialize_dct_partitions( frame_probability_tables );
   } else {
     /* parse interframe header */
     InterFrame myframe( uncompressed_chunk, width_, height_ );
@@ -61,10 +63,11 @@ vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
 
     /* decode the frame (and update the persistent segmentation map) */
     myframe.parse_macroblock_headers_and_update_segmentation_map( state_.segmentation_map, frame_probability_tables );
+    myframe.parse_tokens( state_.quantizer_filter_adjustments, frame_probability_tables );
 
+    /* re-encode the frame */
     first_partition = myframe.serialize_first_partition( frame_probability_tables );
-
-    //    myframe.parse_tokens( state_.quantizer_filter_adjustments, frame_probability_tables );
+    dct_partitions = myframe.serialize_dct_partitions( frame_probability_tables );
   }
 
   bool equal = true;

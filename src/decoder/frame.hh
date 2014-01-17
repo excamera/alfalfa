@@ -61,6 +61,7 @@ class Frame
   void copy_to( const RasterHandle & raster, References & references ) const;
 
   std::vector< uint8_t > serialize_first_partition( const ProbabilityTables & probability_tables ) const;
+  std::vector< std::vector< uint8_t > > serialize_dct_partitions( const ProbabilityTables & ) const { return std::vector< std::vector< uint8_t > >(); }
 };
 
 using KeyFrame = Frame< KeyFrameHeader, KeyFrameMacroblock >;
