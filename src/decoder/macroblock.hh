@@ -19,7 +19,7 @@ class Macroblock
 private:
   typename TwoD< Macroblock >::Context context_;
 
-  Optional< Tree< uint8_t, 4, segment_id_tree > > segment_id_update_;
+  Optional< Tree< uint8_t, num_segments, segment_id_tree > > segment_id_update_;
   uint8_t segment_id_;
 
   Optional< Boolean > mb_skip_coeff_;

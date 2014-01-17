@@ -14,18 +14,18 @@ static void encode( BoolEncoder & encoder,
     value_to_index.at( alphabet_size + nodes.at( i ) - 1 ) = i;
   }
 
-  std::vector< std::pair< bool, TreeNode > > bits;
+  std::vector< std::pair< bool, Probability > > bits;
 
   /* find the path to the node */
   uint8_t node_index = value_to_index.at( alphabet_size - value - 1 );
-  while ( node_index ) {
-    const bool bit = node_index & 1;
+  bits.emplace_back( node_index & 1, probs.at( node_index >> 1 ) );
+  while ( node_index > 1 ) {
     node_index = value_to_index.at( alphabet_size + (node_index & 0xfe) - 1 );
-    bits.emplace_back( bit, node_index >> 1 );
+    bits.emplace_back( node_index & 1, probs.at( node_index >> 1 ) );
   }
 
   /* encode the path */
   for ( auto it = bits.rbegin(); it != bits.rend(); it++ ) {
-    encoder.put( it->first, probs.at( it->second ) );
+    encoder.put( it->first, it->second );
   }
 }

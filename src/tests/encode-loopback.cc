@@ -56,6 +56,31 @@ int main( int argc, char *argv[] )
     }
 
     /* Now try some trees */
+    for ( unsigned int trial = 0; trial < 200; trial++ ) {
+      for ( mbmode i = mbmode( 0 ); i < num_y_modes; i = mbmode( i + 1 ) ) {
+	Tree< mbmode, num_y_modes, kf_y_mode_tree > test_mode = i;
+
+	BoolEncoder encoder;
+
+	ProbabilityArray< num_y_modes > probabilities;
+	for ( uint8_t j = 0; j < probabilities.size(); j++ ) {
+	  probabilities.at( j ) = probs( gen );
+	}
+
+	encode( encoder, test_mode, probabilities );
+
+	const auto encoded_string = encoder.finish();
+
+	BoolDecoder decoder( Chunk( &encoded_string.front(), encoded_string.size() ) );
+
+	const decltype( test_mode ) decoded_id = { decoder, probabilities };
+
+	if ( decoded_id != i ) {
+	  cerr << "Encoded id of " << int(i) << " and got " << int(decoded_id) << endl;
+	  return EXIT_FAILURE;
+	}
+      }
+    }
     
   } catch ( const Exception & e ) {
     e.perror( argv[ 0 ] );
