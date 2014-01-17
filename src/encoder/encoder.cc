@@ -46,7 +46,7 @@ vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
 
     /* re-encode the frame */
     first_partition = myframe.serialize_first_partition( frame_probability_tables );
-    dct_partitions = myframe.serialize_dct_partitions( frame_probability_tables );
+    dct_partitions = myframe.serialize_tokens( frame_probability_tables );
   } else {
     /* parse interframe header */
     InterFrame myframe( uncompressed_chunk, width_, height_ );
@@ -67,7 +67,7 @@ vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
 
     /* re-encode the frame */
     first_partition = myframe.serialize_first_partition( frame_probability_tables );
-    dct_partitions = myframe.serialize_dct_partitions( frame_probability_tables );
+    dct_partitions = myframe.serialize_tokens( frame_probability_tables );
   }
 
   bool equal = true;
@@ -451,4 +451,31 @@ vector< uint8_t > Frame< FrameHeaderType, MacroblockType >::serialize_first_part
 							    probability_tables ); } );
 
   return encoder.finish();
+}
+
+template <class FrameHeaderType, class MacroblockType>
+vector< vector< uint8_t > > Frame< FrameHeaderType, MacroblockType >::serialize_tokens( const ProbabilityTables & probability_tables ) const
+{
+  vector< BoolEncoder > dct_partitions( 1 << header_.log2_number_of_dct_partitions );
+
+  /* serialize every macroblock's tokens */
+  macroblock_headers_.get().forall_ij( [&]( const MacroblockType & macroblock,
+					    const unsigned int column __attribute((unused)),
+					    const unsigned int row )
+				       { macroblock.serialize_tokens( dct_partitions.at( row % dct_partitions_.size() ),
+								      probability_tables ); } );
+
+  /* finish encoding and return the resulting octet sequences */
+  vector< vector< uint8_t > > ret;
+  for ( auto & x : dct_partitions ) {
+    ret.emplace_back( x.finish() );
+  }
+  return ret;
+}
+
+template <class FrameHeaderType, class MacroblockheaderType >
+void Macroblock< FrameHeaderType, MacroblockheaderType >::serialize_tokens( BoolEncoder & ,
+									    const ProbabilityTables & ) const
+{
+  
 }
