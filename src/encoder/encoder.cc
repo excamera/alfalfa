@@ -82,7 +82,9 @@ vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
     }
   }
 
-  printf( "equal = %d\n", equal );
+  if ( equal == false ) {
+    throw Exception( "roundtrip", "failure to match first partition" );
+  }
 
   return first_partition;
 }
