@@ -7,6 +7,8 @@
 
 #include "encode_tree.cc"
 
+#include "decoder.cc"
+
 using namespace std;
 
 Encoder::Encoder( const uint16_t width, const uint16_t height, const Chunk & key_frame )
