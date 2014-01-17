@@ -98,6 +98,8 @@ struct InterFrameMacroblockHeader
 
   bool motion_vectors_flipped_; /* derived quantity */
 
+  Optional< Tree< uint8_t, 4, split_mv_tree > > partition_id {};
+
   InterFrameMacroblockHeader( BoolDecoder & data, const InterFrameHeader & frame_header );
 
   reference_frame reference( void ) const;

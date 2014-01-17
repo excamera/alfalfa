@@ -332,8 +332,8 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
       break;
     case SPLITMV:
       {
-	const Tree< uint8_t, 4, split_mv_tree > partition_id = { data, split_mv_probs };
-	const auto & partition_scheme = mv_partitions.at( partition_id );
+	header_.partition_id.initialize( data, split_mv_probs );
+	const auto & partition_scheme = mv_partitions.at( header_.partition_id.get() );
 
 	for ( const auto & this_partition : partition_scheme ) {
 	  YBlock & first_subblock = Y_.at( this_partition.front().first,
