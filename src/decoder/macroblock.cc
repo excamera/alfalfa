@@ -65,7 +65,7 @@ void KeyFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 						  const ProbabilityTables & )
 {
   /* Set Y prediction mode */
-  Y2_.set_prediction_mode( data.tree< num_y_modes, mbmode >( kf_y_mode_tree, kf_y_mode_probs ) );
+  Y2_.set_prediction_mode( Tree< mbmode, num_y_modes, kf_y_mode_tree >( data, kf_y_mode_probs ) );
   Y2_.set_if_coded();
 
   /* Set subblock prediction modes */
@@ -77,15 +77,15 @@ void KeyFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 		 const auto left_mode = block.context().left.initialized()
 		   ? block.context().left.get()->prediction_mode() : B_DC_PRED;
 		 block.set_Y_without_Y2();
-		 block.set_prediction_mode( data.tree< num_intra_b_modes, bmode >( b_mode_tree,
-										   kf_b_mode_probs.at( above_mode ).at( left_mode ) ) );
+		 block.set_prediction_mode( Tree< bmode, num_intra_b_modes, b_mode_tree >( data,
+											   kf_b_mode_probs.at( above_mode ).at( left_mode ) ) );
 	       } else {
 		 block.set_prediction_mode( implied_subblock_mode( Y2_.prediction_mode() ) );
 	       }
 	     } );
 
   /* Set chroma prediction mode */
-  U_.at( 0, 0 ).set_prediction_mode( data.tree< num_uv_modes, mbmode >( uv_mode_tree, kf_uv_mode_probs ) );
+  U_.at( 0, 0 ).set_prediction_mode( Tree< mbmode, num_uv_modes, uv_mode_tree >( data, kf_uv_mode_probs ) );
 }
 
 
@@ -229,7 +229,7 @@ int16_t MotionVector::read_component( BoolDecoder & data,
   } else {  /* small */
     const ProbabilityArray< 8 > & small_mv_probs = component_probs.slice<SHORT, 7>();
 
-    x = data.tree< 8, uint8_t >( small_mv_tree, small_mv_probs );
+    x = Tree< int16_t, 8, small_mv_tree >( data, small_mv_probs );
   }
 
   if ( x && data.get( component_probs.at( SIGN ) ) ) {
@@ -266,8 +266,8 @@ void YBlock::read_subblock_inter_prediction( BoolDecoder & data,
     submv_ref_index = 1;
   }
 
-  prediction_mode_ = data.tree< num_inter_b_modes, bmode >( submv_ref_tree,
-							    submv_ref_probs2.at( submv_ref_index ) );
+  prediction_mode_ = Tree< bmode, num_inter_b_modes, submv_ref_tree >( data,
+								       submv_ref_probs2.at( submv_ref_index ) );
 
   switch ( prediction_mode_ ) {
   case LEFT4X4:
@@ -316,7 +316,7 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 {
   if ( not inter_coded() ) {
     /* Set Y prediction mode */
-    Y2_.set_prediction_mode( data.tree< num_y_modes, mbmode >( y_mode_tree, probability_tables.y_mode_probs ) );
+    Y2_.set_prediction_mode( Tree< mbmode, num_y_modes, y_mode_tree >( data, probability_tables.y_mode_probs ) );
     Y2_.set_if_coded();
 
     /* Set subblock prediction modes. Intra macroblocks in interframes are simpler than in keyframes. */
@@ -324,16 +324,16 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 	       {
 		 if ( Y2_.prediction_mode() == B_PRED ) {
 		   block.set_Y_without_Y2();
-		   block.set_prediction_mode( data.tree< num_intra_b_modes, bmode >( b_mode_tree,
-										     invariant_b_mode_probs ) );
+		   block.set_prediction_mode( Tree< bmode, num_intra_b_modes, b_mode_tree >( data,
+											     invariant_b_mode_probs ) );
 		 } else {
 		   block.set_prediction_mode( implied_subblock_mode( Y2_.prediction_mode() ) );
 		 }
 	       } );
 
     /* Set chroma prediction modes */
-    U_.at( 0, 0 ).set_prediction_mode( data.tree< num_uv_modes, mbmode >( uv_mode_tree,
-									  probability_tables.uv_mode_probs ) );
+    U_.at( 0, 0 ).set_prediction_mode( Tree< mbmode, num_uv_modes, uv_mode_tree >( data,
+										   probability_tables.uv_mode_probs ) );
   } else {
     /* motion-vector "census" */
     Scorer census( header_.motion_vectors_flipped_ );
@@ -345,12 +345,12 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
     const auto counts = census.mode_contexts();
 
     /* census determines lookups into fixed probability table */
-    const ProbabilityArray< 5 > mv_ref_probs = {{ mv_counts_to_probs.at( counts.at( 0 ) ).at( 0 ),
-						  mv_counts_to_probs.at( counts.at( 1 ) ).at( 1 ),
-						  mv_counts_to_probs.at( counts.at( 2 ) ).at( 2 ),
-						  mv_counts_to_probs.at( counts.at( 3 ) ).at( 3 ) }};
+    const ProbabilityArray< num_mv_refs > mv_ref_probs = {{ mv_counts_to_probs.at( counts.at( 0 ) ).at( 0 ),
+							    mv_counts_to_probs.at( counts.at( 1 ) ).at( 1 ),
+							    mv_counts_to_probs.at( counts.at( 2 ) ).at( 2 ),
+							    mv_counts_to_probs.at( counts.at( 3 ) ).at( 3 ) }};
 
-    Y2_.set_prediction_mode( data.tree< 5, mbmode >( mv_ref_tree, mv_ref_probs ) );
+    Y2_.set_prediction_mode( Tree< mbmode, num_mv_refs, mv_ref_tree >( data, mv_ref_probs ) );
     Y2_.set_if_coded();
 
     switch ( Y2_.prediction_mode() ) {
@@ -372,7 +372,7 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
       break;
     case SPLITMV:
       {
-	const uint8_t partition_id = data.tree< 4, uint8_t >( split_mv_tree, split_mv_probs );
+	const Tree< uint8_t, 4, split_mv_tree > partition_id = { data, split_mv_probs };
 	const auto & partition_scheme = mv_partitions.at( partition_id );
 
 	for ( const auto & this_partition : partition_scheme ) {
