@@ -42,7 +42,7 @@ vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
 
     /* decode the frame (and update the persistent segmentation map) */
     myframe.parse_macroblock_headers_and_update_segmentation_map( state_.segmentation_map, frame_probability_tables );
-    myframe.parse_tokens( state_.quantizer_filter_adjustments, frame_probability_tables );
+    myframe.parse_tokens( frame_probability_tables );
 
     /* re-encode the frame */
     first_partition = myframe.serialize_first_partition( frame_probability_tables );
@@ -63,7 +63,7 @@ vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
 
     /* decode the frame (and update the persistent segmentation map) */
     myframe.parse_macroblock_headers_and_update_segmentation_map( state_.segmentation_map, frame_probability_tables );
-    myframe.parse_tokens( state_.quantizer_filter_adjustments, frame_probability_tables );
+    myframe.parse_tokens( frame_probability_tables );
 
     /* re-encode the frame */
     first_partition = myframe.serialize_first_partition( frame_probability_tables );

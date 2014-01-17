@@ -120,13 +120,13 @@ public:
   TwoD & operator=( const TwoD & other ) = delete;
 
   /* allow moving */
-  TwoD( const TwoD && other )
+  TwoD( TwoD && other )
     : width_( other.width_ ),
       height_( other.height_ ),
       storage_( move( other.storage_ ) )
   {}
 
-  TwoD & operator=( const TwoD && other )
+  TwoD & operator=( TwoD && other )
   {
     width_ = other.width_;
     height_ = other.height_;
@@ -189,7 +189,6 @@ public:
 
   void set( const TwoDSubRange< T, sub_width, sub_height > & other )
   {
-    //    assert( &master_ == &other.master_ );
     column_ = other.column_;
     row_ = other.row_;
   }

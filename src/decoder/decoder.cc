@@ -35,7 +35,7 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
 
     /* decode the frame (and update the persistent segmentation map) */
     myframe.parse_macroblock_headers_and_update_segmentation_map( state_.segmentation_map, frame_probability_tables );
-    myframe.parse_tokens( state_.quantizer_filter_adjustments, frame_probability_tables );
+    myframe.parse_tokens( frame_probability_tables );
     myframe.decode( state_.quantizer_filter_adjustments, raster );
 
     /* replace all the reference frames */
@@ -56,7 +56,7 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
 
     /* decode the frame (and update the persistent segmentation map) */
     myframe.parse_macroblock_headers_and_update_segmentation_map( state_.segmentation_map, frame_probability_tables );
-    myframe.parse_tokens( state_.quantizer_filter_adjustments, frame_probability_tables );
+    myframe.parse_tokens( frame_probability_tables );
     myframe.decode( state_.quantizer_filter_adjustments, references_, raster );
 
     /* update the reference frames as appropriate */

@@ -414,24 +414,8 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::parse_tokens( BoolDecode
 }
 
 template <class FrameHeaderType, class MacroblockHeaderType>
-void Macroblock<FrameHeaderType, MacroblockHeaderType>::dequantize( const Quantizer & quantizer )
-{
-  /* is macroblock skipped? */
-  if ( not has_nonzero_ ) {
-    return;
-  }
-
-  if ( Y2_.coded() ) {
-    Y2_.dequantize( quantizer );
-  }
-
-  Y_.forall( [&] ( YBlock & block ) { block.dequantize( quantizer ); } );
-  U_.forall( [&] ( UVBlock & block ) { block.dequantize( quantizer ); } );
-  V_.forall( [&] ( UVBlock & block ) { block.dequantize( quantizer ); } );
-}
-
-template <class FrameHeaderType, class MacroblockHeaderType>
-void Macroblock<FrameHeaderType, MacroblockHeaderType>::intra_predict_and_inverse_transform( Raster::Macroblock & raster ) const
+void Macroblock<FrameHeaderType, MacroblockHeaderType>::reconstruct_intra( const Quantizer & quantizer,
+									   Raster::Macroblock & raster ) const
 {
   /* Chroma */
   raster.U.intra_predict( uv_prediction_mode() );
@@ -439,9 +423,9 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::intra_predict_and_invers
 
   if ( has_nonzero_ ) {
     U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-		  { block.idct( raster.U_sub.at( column, row ) ); } );
+		  { block.dequantize( quantizer ).idct( raster.U_sub.at( column, row ) ); } );
     V_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-		  { block.idct( raster.V_sub.at( column, row ) ); } );
+		  { block.dequantize( quantizer ).idct( raster.V_sub.at( column, row ) ); } );
   }
 
   /* Luma */
@@ -449,22 +433,25 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::intra_predict_and_invers
     /* Prediction and inverse transform done in line! */
     Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row ) {
 	raster.Y_sub.at( column, row ).intra_predict( block.prediction_mode() );
-	if ( has_nonzero_ ) block.idct( raster.Y_sub.at( column, row ) ); } );
+	if ( has_nonzero_ ) block.dequantize( quantizer ).idct( raster.Y_sub.at( column, row ) ); } );
   } else {
     raster.Y.intra_predict( Y2_.prediction_mode() );
 
     if ( has_nonzero_ ) {
-      auto Y_mutable = Y_;
-      Y2_.walsh_transform( Y_mutable );
-      Y_mutable.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
-			   { block.idct( raster.Y_sub.at( column, row ) ); } );
+      TwoD< YBlock > Y_dequantized( 4, 4 );
+      Y_dequantized.forall_ij( [&] ( YBlock & block, const unsigned int column, const unsigned int row )
+			       { block = Y_.at( column, row ).dequantize( quantizer ); } );
+      Y2_.dequantize( quantizer ).walsh_transform( Y_dequantized );
+      Y_dequantized.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
+			       { block.idct( raster.Y_sub.at( column, row ) ); } );
     }
   }
 }
 
 template <>
-void InterFrameMacroblock::inter_predict_and_inverse_transform( const References & references,
-								Raster::Macroblock & raster ) const
+void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
+					      const References & references,
+					      Raster::Macroblock & raster ) const
 {
   const Raster & reference = references.at( header_.reference() );
 
@@ -480,11 +467,11 @@ void InterFrameMacroblock::inter_predict_and_inverse_transform( const References
 
     if ( has_nonzero_ ) {
       Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
-		    { block.idct( raster.Y_sub.at( column, row ) ); } );
+		    { block.dequantize( quantizer ).idct( raster.Y_sub.at( column, row ) ); } );
       U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-		    { block.idct( raster.U_sub.at( column, row ) ); } );
+		    { block.dequantize( quantizer ).idct( raster.U_sub.at( column, row ) ); } );
       V_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-		    { block.idct( raster.V_sub.at( column, row ) ); } );
+		    { block.dequantize( quantizer ).idct( raster.V_sub.at( column, row ) ); } );
     }
   } else {
     raster.Y.safe_inter_predict( base_motion_vector(), reference.Y() );
@@ -492,14 +479,16 @@ void InterFrameMacroblock::inter_predict_and_inverse_transform( const References
     raster.V.safe_inter_predict( U_.at( 0, 0 ).motion_vector(), reference.V() );
 
     if ( has_nonzero_ ) {
-      auto Y_mutable = Y_;
-      Y2_.walsh_transform( Y_mutable );
-      Y_mutable.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
-			   { block.idct( raster.Y_sub.at( column, row ) ); } );
+      TwoD< YBlock > Y_dequantized( 4, 4 );
+      Y_dequantized.forall_ij( [&] ( YBlock & block, const unsigned int column, const unsigned int row )
+			       { block = Y_.at( column, row ).dequantize( quantizer ); } );
+      Y2_.dequantize( quantizer ).walsh_transform( Y_dequantized );
+      Y_dequantized.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
+			       { block.idct( raster.Y_sub.at( column, row ) ); } );
       U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-		    { block.idct( raster.U_sub.at( column, row ) ); } );
+		    { block.dequantize( quantizer ).idct( raster.U_sub.at( column, row ) ); } );
       V_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-		    { block.idct( raster.V_sub.at( column, row ) ); } );
+		    { block.dequantize( quantizer ).idct( raster.V_sub.at( column, row ) ); } );
     }
   }
 }

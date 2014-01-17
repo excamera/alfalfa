@@ -41,6 +41,7 @@ class Frame
   void loopfilter( const QuantizerFilterAdjustments & quantizer_filter_adjustments, Raster & target ) const;
 
   ProbabilityArray< num_segments > calculate_mb_segment_tree_probs( void ) const;
+  SafeArray< Quantizer, num_segments > calculate_segment_quantizers( const QuantizerFilterAdjustments & quantizer_filter_adjustments ) const;
 
  public:
   Frame( const UncompressedChunk & chunk,
@@ -51,8 +52,7 @@ class Frame
 
   void parse_macroblock_headers_and_update_segmentation_map( SegmentationMap & segmentation_map,
 							     const ProbabilityTables & probability_tables );
-  void parse_tokens( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
-		     const ProbabilityTables & probability_tables );
+  void parse_tokens( const ProbabilityTables & probability_tables );
 
   void decode( const QuantizerFilterAdjustments & quantizer_filter_adjustments, Raster & raster ) const;
   void decode( const QuantizerFilterAdjustments & quantizer_filter_adjustments,

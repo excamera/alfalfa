@@ -54,37 +54,14 @@ void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers_and_update
 }
 
 template <class FrameHeaderType, class MacroblockType>
-void Frame<FrameHeaderType, MacroblockType>::parse_tokens( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
-							   const ProbabilityTables & probability_tables )
+void Frame<FrameHeaderType, MacroblockType>::parse_tokens( const ProbabilityTables & probability_tables )
 {
-  /* calculate per-segment quantizer adjustments if
-     segmentation is enabled */
-
-  const Quantizer frame_quantizer( header_.quant_indices );
-
-  SafeArray< Quantizer, num_segments > segment_quantizers;
-
-  if ( header_.update_segmentation.initialized() ) {
-    for ( uint8_t i = 0; i < num_segments; i++ ) {
-      QuantIndices segment_indices( header_.quant_indices );
-      segment_indices.y_ac_qi = quantizer_filter_adjustments.segment_quantizer_adjustments.at( i )
-	+ ( quantizer_filter_adjustments.absolute_segment_adjustments
-	    ? static_cast<Unsigned<7>>( 0 )
-	    : segment_indices.y_ac_qi );
-
-      segment_quantizers.at( i ) = Quantizer( segment_indices );
-    }
-  }
-
-  /* parse and dequantize every macroblock's tokens */
+  /* parse every macroblock's tokens */
   macroblock_headers_.get().forall_ij( [&]( MacroblockType & macroblock,
 					    const unsigned int column __attribute((unused)),
 					    const unsigned int row )
 				       { macroblock.parse_tokens( dct_partitions_.at( row % dct_partitions_.size() ),
-								  probability_tables );
-					 macroblock.dequantize( header_.update_segmentation.initialized()
-								? segment_quantizers.at( macroblock.segment_id() )
-								: frame_quantizer ); } );
+								  probability_tables ); } );
 }
 
 template <class FrameHeaderType, class MacroblockType>
@@ -129,15 +106,46 @@ void Frame<FrameHeaderType, MacroblockType>::loopfilter( const QuantizerFilterAd
   }
 }
 
+template <class FrameHeaderType, class MacroblockType>
+SafeArray<Quantizer, num_segments> Frame<FrameHeaderType, MacroblockType>::calculate_segment_quantizers( const QuantizerFilterAdjustments & quantizer_filter_adjustments ) const
+{
+  /* calculate per-segment quantizer adjustments if
+     segmentation is enabled */
+
+  SafeArray< Quantizer, num_segments > segment_quantizers;
+
+  if ( header_.update_segmentation.initialized() ) {
+    for ( uint8_t i = 0; i < num_segments; i++ ) {
+      QuantIndices segment_indices( header_.quant_indices );
+      segment_indices.y_ac_qi = quantizer_filter_adjustments.segment_quantizer_adjustments.at( i )
+	+ ( quantizer_filter_adjustments.absolute_segment_adjustments
+	    ? static_cast<Unsigned<7>>( 0 )
+	    : segment_indices.y_ac_qi );
+
+      segment_quantizers.at( i ) = Quantizer( segment_indices );
+    }
+  }
+
+  return segment_quantizers;
+}
+
 template <>
 void KeyFrame::decode( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
 		       Raster & raster ) const
 {
+  const Quantizer frame_quantizer( header_.quant_indices );
+  const auto segment_quantizers = calculate_segment_quantizers( quantizer_filter_adjustments );
+
   /* process each macroblock */
   macroblock_headers_.get().forall_ij( [&]( const KeyFrameMacroblock & macroblock,
 					    const unsigned int column,
-					    const unsigned int row )
-				       { macroblock.intra_predict_and_inverse_transform( raster.macroblock( column, row ) ); } );
+					    const unsigned int row ) {
+					 const auto & quantizer = header_.update_segmentation.initialized()
+					   ? segment_quantizers.at( macroblock.segment_id() )
+					   : frame_quantizer;
+					 macroblock.reconstruct_intra( quantizer,
+								       raster.macroblock( column, row ) );
+				       } );
 
   loopfilter( quantizer_filter_adjustments, raster );
 }
@@ -147,14 +155,23 @@ void InterFrame::decode( const QuantizerFilterAdjustments & quantizer_filter_adj
 			 const References & references,
 			 Raster & raster ) const
 {
+  const Quantizer frame_quantizer( header_.quant_indices );
+  const auto segment_quantizers = calculate_segment_quantizers( quantizer_filter_adjustments );
+
   /* process each macroblock */
   macroblock_headers_.get().forall_ij( [&]( const InterFrameMacroblock & macroblock,
 					    const unsigned int column,
-					    const unsigned int row )
-				       { if ( macroblock.inter_coded() ) {
-					   macroblock.inter_predict_and_inverse_transform( references, raster.macroblock( column, row ) );
+					    const unsigned int row ) { 
+					 const auto & quantizer = header_.update_segmentation.initialized()
+					   ? segment_quantizers.at( macroblock.segment_id() )
+					   : frame_quantizer;
+					 if ( macroblock.inter_coded() ) {
+					   macroblock.reconstruct_inter( quantizer,
+									 references,
+									 raster.macroblock( column, row ) );
 					 } else {
-					   macroblock.intra_predict_and_inverse_transform( raster.macroblock( column, row ) );
+					   macroblock.reconstruct_intra( quantizer,
+									 raster.macroblock( column, row ) );
 					 } } );
 
   loopfilter( quantizer_filter_adjustments, raster );

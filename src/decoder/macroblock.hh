@@ -54,11 +54,10 @@ public:
 
   void parse_tokens( BoolDecoder & data, const ProbabilityTables & probability_tables );
 
-  void dequantize( const Quantizer & quantizer );
-
-  void intra_predict_and_inverse_transform( Raster::Macroblock & raster ) const;
-  void inter_predict_and_inverse_transform( const References & references,
-					    Raster::Macroblock & raster ) const;
+  void reconstruct_intra( const Quantizer & quantizer, Raster::Macroblock & raster ) const;
+  void reconstruct_inter( const Quantizer & quantizer,
+			  const References & references,
+			  Raster::Macroblock & raster ) const;
 
   void loopfilter( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
 		   const bool adjust_for_mode_and_ref,

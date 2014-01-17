@@ -31,6 +31,8 @@ private:
 
   MotionVector motion_vector_ {};
 
+  Block dequantize_internal( const uint16_t dc_factor, const uint16_t ac_factor ) const;
+
 public:
   Block( const typename TwoD< Block >::Context & context )
     : context_( context )
@@ -71,10 +73,10 @@ public:
 					    "only Y2 blocks can be omitted" ); return coded_; }
   bool has_nonzero( void ) const { return has_nonzero_; }
 
-  void walsh_transform( TwoDSubRange< Block< Y_after_Y2, bmode >, 4, 4 > & output ) const;
+  void walsh_transform( TwoD< Block< Y_after_Y2, bmode > > & output ) const;
   void idct( Raster::Block4 & output ) const;
   void set_dc_coefficient( const int16_t & val );
-  void dequantize( const Quantizer & quantizer );
+  Block dequantize( const Quantizer & quantizer ) const;
 
   const MotionVector & motion_vector( void ) const
   {

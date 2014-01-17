@@ -60,31 +60,35 @@ Quantizer::Quantizer( const QuantIndices & quant_indices )
   if ( uv_dc > 132 ) uv_dc = 132;
 }
 
+template <BlockType initial_block_type, class PredictionMode>
+Block<initial_block_type, PredictionMode> Block<initial_block_type, PredictionMode>::dequantize_internal( const uint16_t dc_factor, const uint16_t ac_factor ) const
+{
+  Block ret = *this;
+
+  ret.coefficients_.at( 0 ) *= dc_factor;
+  for ( uint8_t i = 1; i < 16; i++ ) {
+    ret.coefficients_.at( i ) *= ac_factor;
+  }
+
+  return ret;
+}
+
 template <>
-void Y2Block::dequantize( const Quantizer & quantizer )
+Y2Block Y2Block::dequantize( const Quantizer & quantizer ) const
 {
   assert( coded_ );
 
-  coefficients_.at( 0 ) *= quantizer.y2_dc;
-  for ( uint8_t i = 1; i < 16; i++ ) {
-    coefficients_.at( i ) *= quantizer.y2_ac;
-  }
+  return dequantize_internal( quantizer.y2_dc, quantizer.y2_ac );
 }
 
 template <>
-void YBlock::dequantize( const Quantizer & quantizer )
+YBlock YBlock::dequantize( const Quantizer & quantizer ) const
 {
-  coefficients_.at( 0 ) *= quantizer.y_dc;
-  for ( uint8_t i = 1; i < 16; i++ ) {
-    coefficients_.at( i ) *= quantizer.y_ac;
-  }
+  return dequantize_internal( quantizer.y_dc, quantizer.y_ac );
 }
 
 template <>
-void UVBlock::dequantize( const Quantizer & quantizer )
+UVBlock UVBlock::dequantize( const Quantizer & quantizer ) const
 {
-  coefficients_.at( 0 ) *= quantizer.uv_dc;
-  for ( uint8_t i = 1; i < 16; i++ ) {
-    coefficients_.at( i ) *= quantizer.uv_ac;
-  }
+  return dequantize_internal( quantizer.uv_dc, quantizer.uv_ac );
 }
