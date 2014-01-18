@@ -3,6 +3,8 @@
 
 #include "bool_decoder.hh"
 
+class BoolEncoder;
+
 enum token {
   ZERO_TOKEN,
   ONE_TOKEN,
@@ -21,13 +23,11 @@ enum token {
 const unsigned int ENTROPY_NODES = DCT_VAL_CATEGORY6 + 1;
 const unsigned int MAX_ENTROPY_TOKENS = DCT_EOB_TOKEN + 1;
 
-const extern TreeArray< MAX_ENTROPY_TOKENS > token_tree;
-
 static const SafeArray< uint8_t, 16 > coefficient_to_band {{ 0, 1, 2, 3, 6, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 7 }};
 static const SafeArray< uint8_t, 16 > zigzag = {{ 0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15 }};
 
 template < unsigned int length >
-struct TokenDecoder
+class TokenDecoder
 {
 private:
   const uint16_t base_value_;
@@ -37,12 +37,10 @@ public:
   TokenDecoder( const uint16_t base_value, const SafeArray< Probability, length > & probs )
     : base_value_( base_value ), bit_probabilities_( probs ) {}
 
-  uint16_t decode( BoolDecoder & data ) const
-  {
-    uint16_t increment = 0;
-    for ( uint8_t i = 0; i < length; i++ ) { increment = ( increment << 1 ) + data.get( bit_probabilities_.at( i ) ); }
-    return base_value_ + increment;
-  }
+  uint16_t decode( BoolDecoder & data ) const;
+  void encode( BoolEncoder & encoder, const uint16_t value ) const;
+  uint16_t base_value( void ) const { return base_value_; }
+  uint16_t upper_limit( void ) const { return base_value_ + (1 << length); }
 };
 
 static const TokenDecoder< 2 > token_decoder_1( 7, { 165, 145 } );

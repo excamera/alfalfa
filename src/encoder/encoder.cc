@@ -4,6 +4,7 @@
 #include "bool_encoder.hh"
 #include "exception.hh"
 #include "scorer.hh"
+#include "tokens.hh"
 
 #include "encode_tree.cc"
 
@@ -46,6 +47,7 @@ vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
 
     /* re-encode the frame */
     first_partition = myframe.serialize_first_partition( frame_probability_tables );
+
     dct_partitions = myframe.serialize_tokens( frame_probability_tables );
   } else {
     /* parse interframe header */
@@ -87,6 +89,27 @@ vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
 
   if ( equal == false ) {
     throw Exception( "roundtrip", "failure to match first partition" );
+  }
+
+  vector< Chunk > original_dct_chunks = uncompressed_chunk.dct_partitions_raw( dct_partitions.size() );
+
+  for ( unsigned int i = 0; i < original_dct_chunks.size(); i++ ) {
+    if ( original_dct_chunks.at( i ).size() != dct_partitions.at( i ).size() ) {
+      equal = false;
+    }
+
+    if ( equal ) {
+      for ( unsigned int j = 0; j < original_dct_chunks.at( i ).size(); j++ ) {
+	if ( original_dct_chunks.at( i )( j ).octet() != dct_partitions.at( i ).at( j ) ) {
+	  equal = false;
+	  break;
+	}
+      }
+    }
+  }
+
+  if ( equal == false ) {
+    throw Exception( "roundtrip", "failure to match DCT partition" );
   }
 
   return first_partition;
@@ -490,9 +513,158 @@ void Macroblock< FrameHeaderType, MacroblockheaderType >::serialize_tokens( Bool
   V_.forall( [&]( const UVBlock & block ) { block.serialize_tokens( encoder, probability_tables ); } );
 }
 
-template < BlockType initial_block_type, class PredictionMode >
-void Block< initial_block_type,
-	    PredictionMode >::serialize_tokens( BoolEncoder & ,
-						const ProbabilityTables &  ) const
+template <unsigned int length>
+void TokenDecoder<length>::encode( BoolEncoder & encoder, const uint16_t value ) const
 {
+  assert( value >= base_value_ );
+  uint16_t increment = value - base_value_;
+  for ( uint8_t i = 0; i < length; i++ ) {
+    encoder.put( increment & (1 << (length - 1 - i)), bit_probabilities_.at( i ) );
+  }
+}
+
+template <BlockType initial_block_type, class PredictionMode>
+void Block< initial_block_type,
+	    PredictionMode >::serialize_tokens( BoolEncoder & encoder,
+						const ProbabilityTables & probability_tables ) const
+{
+  uint8_t coded_length = 0;
+
+  /* how many tokens are we going to encode? */
+  for ( unsigned int index = (type_ == BlockType::Y_after_Y2) ? 1 : 0;
+	index < 16;
+	index++ ) {
+    if ( coefficients_.at( zigzag.at( index ) ) ) {
+      coded_length = index + 1;
+    }
+  }
+
+  bool last_was_zero = false;
+
+  /* prediction context starts with number-not-zero count */
+  char token_context = ( context().above.initialized() ? context().above.get()->has_nonzero() : 0 )
+    + ( context().left.initialized() ? context().left.get()->has_nonzero() : 0 );
+
+  unsigned int index = (type_ == BlockType::Y_after_Y2) ? 1 : 0;
+
+  for ( ; index < coded_length; index++ ) {
+    const int16_t coefficient = coefficients_.at( zigzag.at( index ) );
+    const uint16_t token_value = abs( coefficient );
+    const bool coefficient_sign = coefficient < 0;
+
+    /* select the tree probabilities based on the prediction context */
+    const ProbabilityArray< MAX_ENTROPY_TOKENS > & prob
+      = probability_tables.coeff_probs.at( type_ ).at( coefficient_to_band.at( index ) ).at( token_context );
+
+    if ( not last_was_zero ) {
+      encoder.put( true, prob.at( 0 ) );
+    }
+
+    if ( token_value == 0 ) {
+      encoder.put( false, prob.at( 1 ) );
+      last_was_zero = true;
+      token_context = 0;
+      continue;
+    }
+
+    last_was_zero = false;
+    encoder.put( true, prob.at( 1 ) );
+
+    if ( token_value == 1 ) {
+      encoder.put( false, prob.at( 2 ) );
+      encoder.put( coefficient_sign );
+      token_context = 1;
+      continue;
+    }
+
+    token_context = 2;
+    encoder.put( true, prob.at( 2 ) );
+
+    if ( token_value == 2 ) {
+      encoder.put( false, prob.at( 3 ) );
+      encoder.put( false, prob.at( 4 ) );
+      encoder.put( coefficient_sign );
+      continue;
+    }
+
+    if ( token_value == 3 ) {
+      encoder.put( false, prob.at( 3 ) );
+      encoder.put( true, prob.at( 4 ) );
+      encoder.put( false, prob.at( 5 ) );
+      encoder.put( coefficient_sign );
+      continue;
+    }
+
+    if ( token_value == 4 ) {
+      encoder.put( false, prob.at( 3 ) );
+      encoder.put( true, prob.at( 4 ) );
+      encoder.put( true, prob.at( 5 ) );
+      encoder.put( coefficient_sign );
+      continue;
+    }
+
+    encoder.put( true, prob.at( 3 ) );
+
+    if ( token_value < token_decoder_1.base_value() ) { /* category 1, 5..6 */
+      encoder.put( false, prob.at( 6 ) );
+      encoder.put( false, prob.at( 7 ) );
+      encoder.put( token_value == 6, 159 );
+      encoder.put( coefficient_sign );
+      continue;
+    }
+
+    if ( token_value < token_decoder_1.upper_limit() ) { /* category 2, 7..10 */
+      encoder.put( false, prob.at( 6 ) );
+      encoder.put( true, prob.at( 7 ) );
+      token_decoder_1.encode( encoder, token_value );
+      encoder.put( coefficient_sign );
+      continue;
+    }
+
+    encoder.put( true, prob.at( 6 ) );
+
+    if ( token_value < token_decoder_2.upper_limit() ) { /* category 3, 11..18 */
+      encoder.put( false, prob.at( 8 ) );
+      encoder.put( false, prob.at( 9 ) );
+      token_decoder_2.encode( encoder, token_value );
+      encoder.put( coefficient_sign );
+      continue;
+    }
+
+    if ( token_value < token_decoder_3.upper_limit() ) { /* category 4, 19..34 */
+      encoder.put( false, prob.at( 8 ) );
+      encoder.put( true, prob.at( 9 ) );
+      token_decoder_3.encode( encoder, token_value );
+      encoder.put( coefficient_sign );
+      continue;
+    }
+
+    encoder.put( true, prob.at( 8 ) );
+
+    if ( token_value < token_decoder_4.upper_limit() ) { /* category 5, 35..66 */
+      encoder.put( false, prob.at( 10 ) );
+      token_decoder_4.encode( encoder, token_value );
+      encoder.put( coefficient_sign );
+      continue;
+    }
+
+    if ( token_value < token_decoder_5.upper_limit() ) { /* category 6, 67..2048 */
+      encoder.put( true, prob.at( 10 ) );
+      token_decoder_5.encode( encoder, token_value );
+      encoder.put( coefficient_sign );
+      continue;
+    }
+
+    throw Exception( "token encoder", "value too large" );
+  }
+
+  assert( last_was_zero == false );
+
+  /* write end of block */
+  if ( coded_length < 16 ) {
+    const ProbabilityArray< MAX_ENTROPY_TOKENS > & prob
+      = probability_tables.coeff_probs.at( type_ ).at( coefficient_to_band.at( index ) ).at( token_context );
+
+    encoder.put( false, prob.at( 0 ) );
+  }
 }

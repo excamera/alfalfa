@@ -6,6 +6,16 @@
 
 using namespace std;
 
+template <unsigned int length>
+uint16_t TokenDecoder<length>::decode( BoolDecoder & data ) const
+{
+  uint16_t increment = 0;
+  for ( uint8_t i = 0; i < length; i++ ) {
+    increment = ( increment << 1 ) + data.get( bit_probabilities_.at( i ) );
+  }
+  return base_value_ + increment;
+}
+
 /* The unfolded token decoder is not pretty, but it is considerably faster
    than using a tree decoder */
 
