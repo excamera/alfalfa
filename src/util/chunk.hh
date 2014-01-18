@@ -77,7 +77,7 @@ public:
 
   uint64_t bits( const uint64_t & bit_offset, const uint64_t bit_length ) const
   {
-    uint64_t byte_len = 1 + ( bit_offset + bit_length - 1 ) / 8;
+    const uint64_t byte_len = 1 + ( bit_offset + bit_length - 1 ) / 8;
     bounds_check( byte_len );
     if ( byte_len > sizeof( uint64_t ) ) {
       throw std::out_of_range( "bit offset and length not supported" );

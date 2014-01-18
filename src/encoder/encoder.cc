@@ -19,6 +19,63 @@ Encoder::Encoder( const uint16_t width, const uint16_t height, const Chunk & key
 	    width_, height_ )
 {}
 
+static vector< uint8_t > make_frame( const bool key_frame,
+				     const bool show_frame,
+				     const uint16_t width,
+				     const uint16_t height,
+				     const vector< uint8_t > & first_partition,
+				     const vector< vector< uint8_t > > & dct_partitions )
+{
+  if ( width > 16383 or height > 16383 ) {
+    throw Invalid( "VP8 frame dimensions too large." );
+  }
+
+  if ( dct_partitions.empty() ) {
+    throw Invalid( "at least one DCT partition is required." );
+  }
+
+  vector< uint8_t > ret;
+
+  const uint32_t first_partition_length = first_partition.size();
+
+  /* frame tag */
+  ret.emplace_back( (!key_frame) | (show_frame << 4) | (first_partition_length & 0x7) << 5 );
+  ret.emplace_back( (first_partition_length & 0x7f8) >> 3 );
+  ret.emplace_back( (first_partition_length & 0x7f800) >> 11 );
+
+  if ( key_frame ) {
+    /* start code */
+    ret.emplace_back( 0x9d );
+    ret.emplace_back( 0x01 );
+    ret.emplace_back( 0x2a );
+
+    /* width */
+    ret.emplace_back( width & 0xff );
+    ret.emplace_back( (width & 0x3f00) >> 8 );
+
+    /* height */
+    ret.emplace_back( height & 0xff );
+    ret.emplace_back( (height & 0x3f00) >> 8 );
+  }
+
+  /* first partition */
+  ret.insert( ret.end(), first_partition.begin(), first_partition.end() );
+
+  /* DCT partition lengths */
+  for ( unsigned int i = 0; i < dct_partitions.size() - 1; i++ ) {
+    const uint32_t length = dct_partitions.at( i ).size();
+    ret.emplace_back( length & 0xff );
+    ret.emplace_back( (length & 0xff00) >> 8 );
+    ret.emplace_back( (length & 0xff0000) >> 16 );
+  }
+
+  for ( const auto & dct_partition : dct_partitions ) {
+    ret.insert( ret.end(), dct_partition.begin(), dct_partition.end() );
+  }
+
+  return ret;
+}
+
 vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
 {
   /* parse uncompressed data chunk */
@@ -49,6 +106,8 @@ vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
     first_partition = myframe.serialize_first_partition( frame_probability_tables );
 
     dct_partitions = myframe.serialize_tokens( frame_probability_tables );
+
+    assert( dct_partitions.size() == unsigned(1 << myframe.header().log2_number_of_dct_partitions) );
   } else {
     /* parse interframe header */
     InterFrame myframe( uncompressed_chunk, width_, height_ );
@@ -70,49 +129,18 @@ vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
     /* re-encode the frame */
     first_partition = myframe.serialize_first_partition( frame_probability_tables );
     dct_partitions = myframe.serialize_tokens( frame_probability_tables );
+
+    assert( dct_partitions.size() == unsigned(1 << myframe.header().log2_number_of_dct_partitions) );
   }
 
-  bool equal = true;
-  if ( uncompressed_chunk.first_partition_raw().size() != first_partition.size() ) {
-    equal = false;
-  }
+  /* stitch together into a frame */
+  const auto ret = make_frame( uncompressed_chunk.key_frame(),
+			       uncompressed_chunk.show_frame(),
+			       width_, height_,
+			       first_partition,
+			       dct_partitions );
 
-  if ( equal ) {
-    for ( unsigned int i = 0; i < first_partition.size(); i++ ) {
-      if ( uncompressed_chunk.first_partition_raw()( i ).octet()
-	   != first_partition.at( i ) ) {
-	equal = false;
-	break;
-      }
-    }
-  }
-
-  if ( equal == false ) {
-    throw Exception( "roundtrip", "failure to match first partition" );
-  }
-
-  vector< Chunk > original_dct_chunks = uncompressed_chunk.dct_partitions_raw( dct_partitions.size() );
-
-  for ( unsigned int i = 0; i < original_dct_chunks.size(); i++ ) {
-    if ( original_dct_chunks.at( i ).size() != dct_partitions.at( i ).size() ) {
-      equal = false;
-    }
-
-    if ( equal ) {
-      for ( unsigned int j = 0; j < original_dct_chunks.at( i ).size(); j++ ) {
-	if ( original_dct_chunks.at( i )( j ).octet() != dct_partitions.at( i ).at( j ) ) {
-	  equal = false;
-	  break;
-	}
-      }
-    }
-  }
-
-  if ( equal == false ) {
-    throw Exception( "roundtrip", "failure to match DCT partition" );
-  }
-
-  return first_partition;
+  return ret;
 }
 
 static void encode( BoolEncoder & encoder, const Boolean & flag, const Probability probability = 128 )
