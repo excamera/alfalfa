@@ -46,6 +46,9 @@ class Frame
   ProbabilityArray< num_segments > calculate_mb_segment_tree_probs( void ) const;
   SafeArray< Quantizer, num_segments > calculate_segment_quantizers( const QuantizerFilterAdjustments & quantizer_filter_adjustments ) const;
 
+  std::vector< uint8_t > serialize_first_partition( const ProbabilityTables & probability_tables ) const;
+  std::vector< std::vector< uint8_t > > serialize_tokens( const ProbabilityTables & probability_tables ) const;
+
  public:
   Frame( const UncompressedChunk & chunk,
 	 const unsigned int width,
@@ -63,8 +66,7 @@ class Frame
 
   void copy_to( const RasterHandle & raster, References & references ) const;
 
-  std::vector< uint8_t > serialize_first_partition( const ProbabilityTables & probability_tables ) const;
-  std::vector< std::vector< uint8_t > > serialize_tokens( const ProbabilityTables & probability_tables ) const;
+  std::vector< uint8_t > serialize( const ProbabilityTables & probability_tables ) const;
 
   bool show( void ) const { return show_; }
 

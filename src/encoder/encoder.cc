@@ -1,4 +1,3 @@
-#include "encoder.hh"
 #include "uncompressed_chunk.hh"
 #include "frame.hh"
 #include "bool_encoder.hh"
@@ -68,28 +67,30 @@ static vector< uint8_t > make_frame( const bool key_frame,
   return ret;
 }
 
-vector< uint8_t > encode_frame( const KeyFrame & frame, const ProbabilityTables & probability_tables )
+template <>
+vector< uint8_t > KeyFrame::serialize( const ProbabilityTables & probability_tables ) const
 {
   ProbabilityTables frame_probability_tables( probability_tables );
-  frame_probability_tables.coeff_prob_update( frame.header() );
+  frame_probability_tables.coeff_prob_update( header() );
 
   return make_frame( true,
-		     frame.show(),
-		     frame.display_width(), frame.display_height(),
-		     frame.serialize_first_partition( frame_probability_tables ),
-		     frame.serialize_tokens( frame_probability_tables ) );
+		     show(),
+		     display_width(), display_height(),
+		     serialize_first_partition( frame_probability_tables ),
+		     serialize_tokens( frame_probability_tables ) );
 }
 
-vector< uint8_t > encode_frame( const InterFrame & frame, const ProbabilityTables & probability_tables )
+template <>
+vector< uint8_t > InterFrame::serialize( const ProbabilityTables & probability_tables ) const
 {
   ProbabilityTables frame_probability_tables( probability_tables );
-  frame_probability_tables.update( frame.header() );
+  frame_probability_tables.update( header() );
 
   return make_frame( false,
-		     frame.show(),
-		     frame.display_width(), frame.display_height(),
-		     frame.serialize_first_partition( frame_probability_tables ),
-		     frame.serialize_tokens( frame_probability_tables ) );
+		     show(),
+		     display_width(), display_height(),
+		     serialize_first_partition( frame_probability_tables ),
+		     serialize_tokens( frame_probability_tables ) );
 }
 
 static void encode( BoolEncoder & encoder, const Boolean & flag, const Probability probability = 128 )

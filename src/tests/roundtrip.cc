@@ -1,7 +1,6 @@
 #include <iostream>
 
 #include "ivf.hh"
-#include "encoder.hh"
 #include "uncompressed_chunk.hh"
 #include "decoder_state.hh"
 
@@ -57,10 +56,10 @@ int main( int argc, char *argv[] )
       UncompressedChunk whole_frame( file.frame( i ), file.width(), file.height() );
       if ( whole_frame.key_frame() ) {
 	KeyFrame parsed_frame = parse_and_apply<KeyFrame>( whole_frame, decoder_state );
-	serialized_frame = encode_frame( parsed_frame, decoder_state.probability_tables );
+	serialized_frame = parsed_frame.serialize( decoder_state.probability_tables );
       } else {
 	InterFrame parsed_frame = parse_and_apply<InterFrame>( whole_frame, decoder_state );
-	serialized_frame = encode_frame( parsed_frame, decoder_state.probability_tables );
+	serialized_frame = parsed_frame.serialize( decoder_state.probability_tables );
       }
 
       /* verify equality of original and re-encoded frame */
