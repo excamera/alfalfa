@@ -49,57 +49,51 @@ void QuantizerFilterAdjustments::update( const HeaderType & header )
   }
 }
 
-template <class FrameType>
-static FrameType parse_and_apply( const UncompressedChunk & uncompressed_chunk,
-				  DecoderState & state );
-
 template <>
-KeyFrame parse_and_apply<KeyFrame>( const UncompressedChunk & uncompressed_chunk,
-				    DecoderState & state )
+inline KeyFrame DecoderState::parse_and_apply<KeyFrame>( const UncompressedChunk & uncompressed_chunk )
 {
   assert( uncompressed_chunk.key_frame() );
 
   /* parse keyframe header */
-  KeyFrame myframe( uncompressed_chunk, state.width, state.height );
+  KeyFrame myframe( uncompressed_chunk, width, height );
 
   /* reset persistent decoder state to default values */
-  state = DecoderState( myframe.header(), state.width, state.height );
+  *this = DecoderState( myframe.header(), width, height );
 
   /* calculate new probability tables. replace persistent copy if prescribed in header */
-  ProbabilityTables frame_probability_tables( state.probability_tables );
+  ProbabilityTables frame_probability_tables( probability_tables );
   frame_probability_tables.coeff_prob_update( myframe.header() );
   if ( myframe.header().refresh_entropy_probs ) {
-    state.probability_tables = frame_probability_tables;
+    probability_tables = frame_probability_tables;
   }
 
   /* parse the frame (and update the persistent segmentation map) */
-  myframe.parse_macroblock_headers_and_update_segmentation_map( state.segmentation_map, frame_probability_tables );
+  myframe.parse_macroblock_headers_and_update_segmentation_map( segmentation_map, frame_probability_tables );
   myframe.parse_tokens( frame_probability_tables );
 
   return myframe;
 }
 
 template <>
-InterFrame parse_and_apply<InterFrame>( const UncompressedChunk & uncompressed_chunk,
-					DecoderState & state )
+inline InterFrame DecoderState::parse_and_apply<InterFrame>( const UncompressedChunk & uncompressed_chunk )
 {
   assert( not uncompressed_chunk.key_frame() );
 
   /* parse interframe header */
-  InterFrame myframe( uncompressed_chunk, state.width, state.height );
+  InterFrame myframe( uncompressed_chunk, width, height );
 
   /* update adjustments to quantizer and in-loop deblocking filter */
-  state.quantizer_filter_adjustments.update( myframe.header() );
+  quantizer_filter_adjustments.update( myframe.header() );
 
   /* update probability tables. replace persistent copy if prescribed in header */
-  ProbabilityTables frame_probability_tables( state.probability_tables );
+  ProbabilityTables frame_probability_tables( probability_tables );
   frame_probability_tables.update( myframe.header() );
   if ( myframe.header().refresh_entropy_probs ) {
-    state.probability_tables = frame_probability_tables;
+    probability_tables = frame_probability_tables;
   }
 
   /* parse the frame (and update the persistent segmentation map) */
-  myframe.parse_macroblock_headers_and_update_segmentation_map( state.segmentation_map, frame_probability_tables );
+  myframe.parse_macroblock_headers_and_update_segmentation_map( segmentation_map, frame_probability_tables );
   myframe.parse_tokens( frame_probability_tables );
 
   return myframe;

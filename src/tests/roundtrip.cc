@@ -55,10 +55,10 @@ int main( int argc, char *argv[] )
 
       UncompressedChunk whole_frame( file.frame( i ), file.width(), file.height() );
       if ( whole_frame.key_frame() ) {
-	KeyFrame parsed_frame = parse_and_apply<KeyFrame>( whole_frame, decoder_state );
+	const KeyFrame parsed_frame = decoder_state.parse_and_apply<KeyFrame>( whole_frame );
 	serialized_frame = parsed_frame.serialize( decoder_state.probability_tables );
       } else {
-	InterFrame parsed_frame = parse_and_apply<InterFrame>( whole_frame, decoder_state );
+	const InterFrame parsed_frame = decoder_state.parse_and_apply<InterFrame>( whole_frame );
 	serialized_frame = parsed_frame.serialize( decoder_state.probability_tables );
       }
 

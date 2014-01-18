@@ -85,6 +85,9 @@ struct DecoderState
   SegmentationMap segmentation_map;
 
   DecoderState( const KeyFrameHeader & header, const unsigned int s_width, const unsigned int s_height );
+
+  template <class FrameType>
+  FrameType parse_and_apply( const UncompressedChunk & uncompressed_chunk );
 };
 
 class Decoder

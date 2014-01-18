@@ -18,7 +18,7 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
   UncompressedChunk uncompressed_chunk( frame, state_.width, state_.height );
 
   if ( uncompressed_chunk.key_frame() ) {
-    KeyFrame myframe = parse_and_apply<KeyFrame>( uncompressed_chunk, state_ );
+    const KeyFrame myframe = state_.parse_and_apply<KeyFrame>( uncompressed_chunk );
 
     myframe.decode( state_.quantizer_filter_adjustments, raster );
 
@@ -26,7 +26,7 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
 
     return myframe.show();
   } else {
-    InterFrame myframe = parse_and_apply<InterFrame>( uncompressed_chunk, state_ );
+    const InterFrame myframe = state_.parse_and_apply<InterFrame>( uncompressed_chunk );
 
     myframe.decode( state_.quantizer_filter_adjustments, references_, raster );
 
