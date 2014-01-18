@@ -14,7 +14,7 @@ Frame<FrameHeaderType, MacroblockType>::Frame( const UncompressedChunk & chunk,
   : show_( chunk.show_frame() ),
     display_width_( width ),
     display_height_( height ),
-    first_partition_( chunk.first_partition() ),
+    first_partition_decoder_( chunk.first_partition() ),
     dct_partitions_( chunk.dct_partitions( 1 << header_.log2_number_of_dct_partitions ) )
 {}
 
@@ -44,7 +44,7 @@ void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers_and_update
 
   /* parse the macroblock headers */
   macroblock_headers_.initialize( macroblock_width_, macroblock_height_,
-				  first_partition_, header_,
+				  first_partition_decoder_, header_,
 				  mb_segment_tree_probs,
 				  segmentation_map,
 				  probability_tables,
@@ -57,11 +57,17 @@ void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers_and_update
 template <class FrameHeaderType, class MacroblockType>
 void Frame<FrameHeaderType, MacroblockType>::parse_tokens( const ProbabilityTables & probability_tables )
 {
+  vector< BoolDecoder > dct_partition_decoders;
+
+  for ( const auto & x : dct_partitions_ ) {
+    dct_partition_decoders.emplace_back( x );
+  }
+
   /* parse every macroblock's tokens */
   macroblock_headers_.get().forall_ij( [&]( MacroblockType & macroblock,
 					    const unsigned int column __attribute((unused)),
 					    const unsigned int row )
-				       { macroblock.parse_tokens( dct_partitions_.at( row % dct_partitions_.size() ),
+				       { macroblock.parse_tokens( dct_partition_decoders.at( row % dct_partition_decoders.size() ),
 								  probability_tables ); } );
 }
 

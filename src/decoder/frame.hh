@@ -31,10 +31,10 @@ class Frame
   TwoD< UVBlock > U_ { 2 * macroblock_width_, 2 * macroblock_height_ };
   TwoD< UVBlock > V_ { 2 * macroblock_width_, 2 * macroblock_height_ };
 
-  BoolDecoder first_partition_;
-  FrameHeaderType header_ { first_partition_ };
+  BoolDecoder first_partition_decoder_;
+  FrameHeaderType header_ { first_partition_decoder_ };
 
-  std::vector< BoolDecoder > dct_partitions_;
+  std::vector< Chunk > dct_partitions_;
 
   Optional< TwoD< MacroblockType > > macroblock_headers_ {};
 

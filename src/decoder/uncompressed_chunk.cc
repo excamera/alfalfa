@@ -80,18 +80,7 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
   }
 }
 
-vector< BoolDecoder > UncompressedChunk::dct_partitions( const uint8_t num ) const
-{
-  const auto dct_chunks = dct_partitions_raw( num );
-
-  vector< BoolDecoder > dct_partitions;
-  for ( const auto & chunk : dct_chunks ) {
-    dct_partitions.emplace_back( chunk );
-  }
-  return dct_partitions;
-}
-
-const vector< Chunk > UncompressedChunk::dct_partitions_raw( const uint8_t num ) const
+const vector< Chunk > UncompressedChunk::dct_partitions( const uint8_t num ) const
 {
   /* extract the rest of the partitions */
   Chunk rest_of_frame = rest_;
