@@ -20,6 +20,8 @@ template <class FrameHeaderType, class MacroblockType>
 class Frame
 {
  private:
+  bool show_;
+
   unsigned int display_width_, display_height_;
   unsigned int macroblock_width_ { Raster::macroblock_dimension( display_width_ ) },
     macroblock_height_ { Raster::macroblock_dimension( display_height_ ) };

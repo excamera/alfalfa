@@ -11,7 +11,8 @@ template <class FrameHeaderType, class MacroblockType>
 Frame<FrameHeaderType, MacroblockType>::Frame( const UncompressedChunk & chunk,
 					       const unsigned int width,
 					       const unsigned int height )
-  : display_width_( width ),
+  : show_( chunk.show_frame() ),
+    display_width_( width ),
     display_height_( height ),
     first_partition_( chunk.first_partition() ),
     dct_partitions_( chunk.dct_partitions( 1 << header_.log2_number_of_dct_partitions ) )
