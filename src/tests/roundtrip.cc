@@ -65,11 +65,11 @@ int main( int argc, char *argv[] )
 
       /* verify equality of original and re-encoded frame */
       if ( file.frame( i ).size() != serialized_frame.size() ) {
-	cerr << "frame size mismatch. wanted " + to_string( file.frame( i ).size() ) + ", got " + to_string( serialized_frame.size() ) << endl;
+	throw Exception( "roundtrip failure", "frame size mismatch. wanted " + to_string( file.frame( i ).size() ) + ", got " + to_string( serialized_frame.size() ) );
       } else {
 	for ( unsigned int j = 0; j < file.frame( i ).size(); j++ ) {
 	  if ( file.frame( i )( j ).octet() != serialized_frame.at( j ) ) {
-	    cerr << "frame contents mismatch" << endl;
+	    throw Exception( "roundtrip failure", "frame contents mismatch" );
 	  }
 	}
       }
