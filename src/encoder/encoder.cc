@@ -474,8 +474,25 @@ vector< vector< uint8_t > > Frame< FrameHeaderType, MacroblockType >::serialize_
 }
 
 template <class FrameHeaderType, class MacroblockheaderType >
-void Macroblock< FrameHeaderType, MacroblockheaderType >::serialize_tokens( BoolEncoder & ,
-									    const ProbabilityTables & ) const
+void Macroblock< FrameHeaderType, MacroblockheaderType >::serialize_tokens( BoolEncoder & encoder,
+									    const ProbabilityTables & probability_tables ) const
 {
-  
+  if ( mb_skip_coeff_.get_or( false ) ) {
+    return;
+  }
+
+  if ( Y2_.coded() ) {
+    Y2_.serialize_tokens( encoder, probability_tables );
+  }
+
+  Y_.forall( [&]( const YBlock & block ) { block.serialize_tokens( encoder, probability_tables ); } );
+  U_.forall( [&]( const UVBlock & block ) { block.serialize_tokens( encoder, probability_tables ); } );
+  V_.forall( [&]( const UVBlock & block ) { block.serialize_tokens( encoder, probability_tables ); } );
+}
+
+template < BlockType initial_block_type, class PredictionMode >
+void Block< initial_block_type,
+	    PredictionMode >::serialize_tokens( BoolEncoder & ,
+						const ProbabilityTables &  ) const
+{
 }

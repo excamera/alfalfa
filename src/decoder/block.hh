@@ -95,6 +95,8 @@ public:
 
   void write_subblock_inter_prediction( BoolEncoder & encoder, const MotionVector & best_mv,
 					const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > & motion_vector_probs ) const;
+
+  void serialize_tokens( BoolEncoder & data, const ProbabilityTables & probability_tables ) const;
 };
 
 using Y2Block = Block< Y2, mbmode >;
