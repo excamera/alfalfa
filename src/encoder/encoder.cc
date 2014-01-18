@@ -73,9 +73,6 @@ vector< uint8_t > encode_frame( const KeyFrame & frame, const ProbabilityTables 
   ProbabilityTables frame_probability_tables( probability_tables );
   frame_probability_tables.coeff_prob_update( frame.header() );
 
-  vector< uint8_t > first_partition = frame.serialize_first_partition( frame_probability_tables );
-  vector< vector< uint8_t > > dct_partitions = frame.serialize_tokens( frame_probability_tables );
-
   return make_frame( true,
 		     frame.show(),
 		     frame.display_width(), frame.display_height(),
@@ -86,10 +83,7 @@ vector< uint8_t > encode_frame( const KeyFrame & frame, const ProbabilityTables 
 vector< uint8_t > encode_frame( const InterFrame & frame, const ProbabilityTables & probability_tables )
 {
   ProbabilityTables frame_probability_tables( probability_tables );
-  frame_probability_tables.coeff_prob_update( frame.header() );
-
-  vector< uint8_t > first_partition = frame.serialize_first_partition( frame_probability_tables );
-  vector< vector< uint8_t > > dct_partitions = frame.serialize_tokens( frame_probability_tables );
+  frame_probability_tables.update( frame.header() );
 
   return make_frame( false,
 		     frame.show(),

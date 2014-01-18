@@ -63,6 +63,17 @@ int main( int argc, char *argv[] )
 	serialized_frame = encode_frame( parsed_frame, decoder_state.probability_tables );
       }
 
+      /* verify equality of original and re-encoded frame */
+      if ( file.frame( i ).size() != serialized_frame.size() ) {
+	cerr << "frame size mismatch. wanted " + to_string( file.frame( i ).size() ) + ", got " + to_string( serialized_frame.size() ) << endl;
+      } else {
+	for ( unsigned int j = 0; j < file.frame( i ).size(); j++ ) {
+	  if ( file.frame( i )( j ).octet() != serialized_frame.at( j ) ) {
+	    cerr << "frame contents mismatch" << endl;
+	  }
+	}
+      }
+
       /* write size of frame */
       const uint32_t le_size = htole32( serialized_frame.size() );
       cout << string( reinterpret_cast<const char *>( &le_size ), sizeof( le_size ) ); /* size */
