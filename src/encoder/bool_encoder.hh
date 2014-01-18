@@ -27,6 +27,10 @@ private:
 
   void flush( void )
   {
+    for ( uint8_t i = 0; i < 32; i++ ) {
+      put( false ); /* try to match libvpx vp8_stop_encode(), not RFC 6386 */
+    }
+#if 0
     int c = bit_count_;
     uint32_t v = bottom_;
 
@@ -44,6 +48,7 @@ private:
       output_.emplace_back( v >> 24 );
       v <<= 8;
     }
+#endif
   }
 
 public:
