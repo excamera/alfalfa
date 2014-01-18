@@ -10,4 +10,4 @@ libalfalfadecoder_a_SOURCES = block.hh bool_decoder.hh decoder.cc decoder.hh \
 	prediction.cc quantization.cc quantization.hh tokens.cc tokens.hh \
 	transform.cc tree.cc uncompressed_chunk.cc uncompressed_chunk.hh \
 	vp8_header_structures.hh vp8_prob_data.cc vp8_prob_data.hh scorer.hh \
-	decoder_state.cc
+	decoder_state.hh

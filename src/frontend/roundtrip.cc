@@ -3,6 +3,7 @@
 #include "ivf.hh"
 #include "encoder.hh"
 #include "uncompressed_chunk.hh"
+#include "decoder_state.hh"
 
 using namespace std;
 
@@ -31,7 +32,9 @@ int main( int argc, char *argv[] )
       frame_no++;
     }
 
-    Encoder encoder( file.width(), file.height(), file.frame( frame_no ) );
+    DecoderState decoder_state( KeyFrame( UncompressedChunk( file.frame( frame_no ), file.width(), file.height() ),
+					  file.width(), file.height() ).header(),
+				file.width(), file.height() );
 
     /* write IVF header */
     cout << "DKIF";
@@ -49,16 +52,26 @@ int main( int argc, char *argv[] )
     cout << uint8_t(0) << uint8_t(0) << uint8_t(0) << uint8_t(0); /* fill out header */
 
     for ( uint32_t i = frame_no; i < file.frame_count(); i++ ) {
-      const vector< uint8_t > frame = encoder.encode_frame( file.frame( i ) );
+      vector< uint8_t > serialized_frame;
+
+      UncompressedChunk whole_frame( file.frame( i ), file.width(), file.height() );
+      if ( whole_frame.key_frame() ) {
+	KeyFrame parsed_frame = parse_and_apply<KeyFrame>( whole_frame, decoder_state );
+	serialized_frame = encode_frame( parsed_frame, decoder_state.probability_tables );
+      } else {
+	InterFrame parsed_frame = parse_and_apply<InterFrame>( whole_frame, decoder_state );
+	serialized_frame = encode_frame( parsed_frame, decoder_state.probability_tables );
+      }
 
       /* write size of frame */
-      const uint32_t le_size = htole32( frame.size() );
+      const uint32_t le_size = htole32( serialized_frame.size() );
       cout << string( reinterpret_cast<const char *>( &le_size ), sizeof( le_size ) ); /* size */
 
       cout << uint8_t(0) << uint8_t(0) << uint8_t(0) << uint8_t(0); /* fill out header */
       cout << uint8_t(0) << uint8_t(0) << uint8_t(0) << uint8_t(0); /* fill out header */
 
-      fwrite( &frame.at( 0 ), frame.size(), 1, stdout );
+      /* write the frame */
+      fwrite( &serialized_frame.at( 0 ), serialized_frame.size(), 1, stdout );
     }
   } catch ( const Exception & e ) {
     e.perror( argv[ 0 ] );

@@ -9,6 +9,7 @@
 #include "raster.hh"
 
 struct References;
+struct QuantizerFilterAdjustments;
 
 struct Quantizers
 {
@@ -64,6 +65,11 @@ class Frame
 
   std::vector< uint8_t > serialize_first_partition( const ProbabilityTables & probability_tables ) const;
   std::vector< std::vector< uint8_t > > serialize_tokens( const ProbabilityTables & probability_tables ) const;
+
+  bool show( void ) const { return show_; }
+
+  unsigned int display_width( void ) const { return display_width_; }
+  unsigned int display_height( void ) const { return display_height_; }
 };
 
 using KeyFrame = Frame< KeyFrameHeader, KeyFrameMacroblock >;

@@ -9,6 +9,7 @@
 
 class Chunk;
 class Raster;
+class UncompressedChunk;
 struct KeyFrameHeader;
 struct InterFrameHeader;
 
@@ -77,18 +78,18 @@ using SegmentationMap = TwoD< uint8_t >;
 
 struct DecoderState
 {
+  uint16_t width, height;
+
   QuantizerFilterAdjustments quantizer_filter_adjustments;  
   ProbabilityTables probability_tables {};
   SegmentationMap segmentation_map;
 
-  DecoderState( const KeyFrameHeader & header, const unsigned int width, const unsigned int height );
+  DecoderState( const KeyFrameHeader & header, const unsigned int s_width, const unsigned int s_height );
 };
 
 class Decoder
 {
 private:
-  uint16_t width_, height_;
-
   DecoderState state_;  
   References references_;
 

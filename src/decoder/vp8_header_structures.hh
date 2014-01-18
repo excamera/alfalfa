@@ -8,6 +8,8 @@
 #include "bool_decoder.hh"
 #include "vp8_prob_data.hh"
 
+#include "tree.cc"
+
 class Boolean
 {
 private:

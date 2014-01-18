@@ -2,18 +2,9 @@
 #define ENCODER_HH
 
 #include "decoder.hh"
+#include "frame.hh"
 
-class Encoder
-{
-private:
-  uint16_t width_, height_;
-
-  DecoderState state_;  
-
-public:
-  Encoder( const uint16_t width, const uint16_t height, const Chunk & key_frame );
-
-  std::vector< uint8_t > encode_frame( const Chunk & frame );
-};
+std::vector< uint8_t > encode_frame( const KeyFrame & frame, const ProbabilityTables & probability_tables );
+std::vector< uint8_t > encode_frame( const InterFrame & frame, const ProbabilityTables & probability_tables );
 
 #endif /* DECODER_HH */

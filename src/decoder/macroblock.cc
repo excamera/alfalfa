@@ -5,7 +5,6 @@
 #include "decoder.hh"
 #include "scorer.hh"
 
-#include "tree.cc"
 #include "tokens.cc"
 #include "transform.cc"
 #include "prediction.cc"

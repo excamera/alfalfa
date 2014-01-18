@@ -1,69 +1,39 @@
 #include "decoder.hh"
 #include "uncompressed_chunk.hh"
 #include "frame.hh"
-
-#include "decoder_state.cc"
+#include "decoder_state.hh"
 
 using namespace std;
 
 Decoder::Decoder( const uint16_t width, const uint16_t height, const Chunk & key_frame )
-  : width_( width ), height_( height ),
-    state_( KeyFrame( UncompressedChunk( key_frame, width_, height_ ),
-		      width_, height_ ).header(),
-	    width_, height_ ),
-    references_( width_, height_ )
+  : state_( KeyFrame( UncompressedChunk( key_frame, width, height ),
+		      width, height ).header(),
+	    width, height ),
+    references_( width, height )
 {}
 
 bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
 {
   /* parse uncompressed data chunk */
-  UncompressedChunk uncompressed_chunk( frame, width_, height_ );
+  UncompressedChunk uncompressed_chunk( frame, state_.width, state_.height );
 
   if ( uncompressed_chunk.key_frame() ) {
-    /* parse keyframe header */
-    KeyFrame myframe( uncompressed_chunk, width_, height_ );
+    KeyFrame myframe = parse_and_apply<KeyFrame>( uncompressed_chunk, state_ );
 
-    /* reset persistent decoder state to default values */
-    state_ = DecoderState( myframe.header(), width_, height_ );
-
-    /* calculate new probability tables. replace persistent copy if prescribed in header */
-    ProbabilityTables frame_probability_tables( state_.probability_tables );
-    frame_probability_tables.coeff_prob_update( myframe.header() );
-    if ( myframe.header().refresh_entropy_probs ) {
-      state_.probability_tables = frame_probability_tables;
-    }
-
-    /* decode the frame (and update the persistent segmentation map) */
-    myframe.parse_macroblock_headers_and_update_segmentation_map( state_.segmentation_map, frame_probability_tables );
-    myframe.parse_tokens( frame_probability_tables );
     myframe.decode( state_.quantizer_filter_adjustments, raster );
 
-    /* replace all the reference frames */
     myframe.copy_to( raster, references_ );
+
+    return myframe.show();
   } else {
-    /* parse interframe header */
-    InterFrame myframe( uncompressed_chunk, width_, height_ );
+    InterFrame myframe = parse_and_apply<InterFrame>( uncompressed_chunk, state_ );
 
-    /* update adjustments to quantizer and in-loop deblocking filter */
-    state_.quantizer_filter_adjustments.update( myframe.header() );
-
-    /* update probability tables. replace persistent copy if prescribed in header */
-    ProbabilityTables frame_probability_tables( state_.probability_tables );
-    frame_probability_tables.update( myframe.header() );
-    if ( myframe.header().refresh_entropy_probs ) {
-      state_.probability_tables = frame_probability_tables;
-    }
-
-    /* decode the frame (and update the persistent segmentation map) */
-    myframe.parse_macroblock_headers_and_update_segmentation_map( state_.segmentation_map, frame_probability_tables );
-    myframe.parse_tokens( frame_probability_tables );
     myframe.decode( state_.quantizer_filter_adjustments, references_, raster );
 
-    /* update the reference frames as appropriate */
     myframe.copy_to( raster, references_ );
-  }
 
-  return uncompressed_chunk.show_frame();
+    return myframe.show();
+  }
 }
 
 References::References( const uint16_t width, const uint16_t height )
@@ -105,9 +75,11 @@ void ProbabilityTables::update( const InterFrameHeader & header )
 }
 
 DecoderState::DecoderState( const KeyFrameHeader & header,
-			    const unsigned int width,
-			    const unsigned int height )
-  : quantizer_filter_adjustments( header ),
+			    const unsigned int s_width,
+			    const unsigned int s_height )
+  : width( s_width ),
+    height( s_height ),
+    quantizer_filter_adjustments( header ),
     segmentation_map( Raster::macroblock_dimension( width ),
 		      Raster::macroblock_dimension( height ) )
 {}

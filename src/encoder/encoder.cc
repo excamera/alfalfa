@@ -5,19 +5,11 @@
 #include "exception.hh"
 #include "scorer.hh"
 #include "tokens.hh"
+#include "decoder_state.hh"
 
 #include "encode_tree.cc"
 
-#include "decoder_state.cc"
-
 using namespace std;
-
-Encoder::Encoder( const uint16_t width, const uint16_t height, const Chunk & key_frame )
-  : width_( width ), height_( height ),
-    state_( KeyFrame( UncompressedChunk( key_frame, width_, height_ ),
-		      width_, height_ ).header(),
-	    width_, height_ )
-{}
 
 static vector< uint8_t > make_frame( const bool key_frame,
 				     const bool show_frame,
@@ -76,71 +68,34 @@ static vector< uint8_t > make_frame( const bool key_frame,
   return ret;
 }
 
-vector< uint8_t > Encoder::encode_frame( const Chunk & frame )
+vector< uint8_t > encode_frame( const KeyFrame & frame, const ProbabilityTables & probability_tables )
 {
-  /* parse uncompressed data chunk */
-  UncompressedChunk uncompressed_chunk( frame, width_, height_ );
+  ProbabilityTables frame_probability_tables( probability_tables );
+  frame_probability_tables.coeff_prob_update( frame.header() );
 
-  vector< uint8_t > first_partition;
-  vector< vector< uint8_t > > dct_partitions;
+  vector< uint8_t > first_partition = frame.serialize_first_partition( frame_probability_tables );
+  vector< vector< uint8_t > > dct_partitions = frame.serialize_tokens( frame_probability_tables );
 
-  if ( uncompressed_chunk.key_frame() ) {
-    /* parse keyframe header */
-    KeyFrame myframe( uncompressed_chunk, width_, height_ );
+  return make_frame( true,
+		     frame.show(),
+		     frame.display_width(), frame.display_height(),
+		     frame.serialize_first_partition( frame_probability_tables ),
+		     frame.serialize_tokens( frame_probability_tables ) );
+}
 
-    /* reset persistent decoder state to default values */
-    state_ = DecoderState( myframe.header(), width_, height_ );
+vector< uint8_t > encode_frame( const InterFrame & frame, const ProbabilityTables & probability_tables )
+{
+  ProbabilityTables frame_probability_tables( probability_tables );
+  frame_probability_tables.coeff_prob_update( frame.header() );
 
-    /* calculate new probability tables. replace persistent copy if prescribed in header */
-    ProbabilityTables frame_probability_tables( state_.probability_tables );
-    frame_probability_tables.coeff_prob_update( myframe.header() );
-    if ( myframe.header().refresh_entropy_probs ) {
-      state_.probability_tables = frame_probability_tables;
-    }
+  vector< uint8_t > first_partition = frame.serialize_first_partition( frame_probability_tables );
+  vector< vector< uint8_t > > dct_partitions = frame.serialize_tokens( frame_probability_tables );
 
-    /* decode the frame (and update the persistent segmentation map) */
-    myframe.parse_macroblock_headers_and_update_segmentation_map( state_.segmentation_map, frame_probability_tables );
-    myframe.parse_tokens( frame_probability_tables );
-
-    /* re-encode the frame */
-    first_partition = myframe.serialize_first_partition( frame_probability_tables );
-
-    dct_partitions = myframe.serialize_tokens( frame_probability_tables );
-
-    assert( dct_partitions.size() == unsigned(1 << myframe.header().log2_number_of_dct_partitions) );
-  } else {
-    /* parse interframe header */
-    InterFrame myframe( uncompressed_chunk, width_, height_ );
-
-    /* update adjustments to quantizer and in-loop deblocking filter */
-    state_.quantizer_filter_adjustments.update( myframe.header() );
-
-    /* update probability tables. replace persistent copy if prescribed in header */
-    ProbabilityTables frame_probability_tables( state_.probability_tables );
-    frame_probability_tables.update( myframe.header() );
-    if ( myframe.header().refresh_entropy_probs ) {
-      state_.probability_tables = frame_probability_tables;
-    }
-
-    /* decode the frame (and update the persistent segmentation map) */
-    myframe.parse_macroblock_headers_and_update_segmentation_map( state_.segmentation_map, frame_probability_tables );
-    myframe.parse_tokens( frame_probability_tables );
-
-    /* re-encode the frame */
-    first_partition = myframe.serialize_first_partition( frame_probability_tables );
-    dct_partitions = myframe.serialize_tokens( frame_probability_tables );
-
-    assert( dct_partitions.size() == unsigned(1 << myframe.header().log2_number_of_dct_partitions) );
-  }
-
-  /* stitch together into a frame */
-  const auto ret = make_frame( uncompressed_chunk.key_frame(),
-			       uncompressed_chunk.show_frame(),
-			       width_, height_,
-			       first_partition,
-			       dct_partitions );
-
-  return ret;
+  return make_frame( false,
+		     frame.show(),
+		     frame.display_width(), frame.display_height(),
+		     frame.serialize_first_partition( frame_probability_tables ),
+		     frame.serialize_tokens( frame_probability_tables ) );
 }
 
 static void encode( BoolEncoder & encoder, const Boolean & flag, const Probability probability = 128 )
