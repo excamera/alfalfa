@@ -31,9 +31,7 @@ int main( int argc, char *argv[] )
       frame_no++;
     }
 
-    DecoderState decoder_state( KeyFrame( UncompressedChunk( file.frame( frame_no ), file.width(), file.height() ),
-					  file.width(), file.height() ).header(),
-				file.width(), file.height() );
+    DecoderState decoder_state( file.width(), file.height() );
 
     /* write IVF header */
     cout << "DKIF";

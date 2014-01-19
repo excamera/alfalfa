@@ -51,6 +51,8 @@ struct QuantizerFilterAdjustments
   /* Adjustments based on the macroblock's prediction mode */
   SafeArray< int8_t, 4 > loopfilter_mode_adjustments {{}};
 
+  QuantizerFilterAdjustments() {}
+
   QuantizerFilterAdjustments( const KeyFrameHeader & header ) { update( header ); }
 
   template <class HeaderType>
@@ -80,11 +82,19 @@ struct DecoderState
 {
   uint16_t width, height;
 
-  QuantizerFilterAdjustments quantizer_filter_adjustments;  
-  ProbabilityTables probability_tables {};
-  SegmentationMap segmentation_map;
+  QuantizerFilterAdjustments quantizer_filter_adjustments = {};
+  ProbabilityTables probability_tables = {};
+  SegmentationMap segmentation_map = { Raster::macroblock_dimension( width ),
+				       Raster::macroblock_dimension( height ) };
 
-  DecoderState( const KeyFrameHeader & header, const unsigned int s_width, const unsigned int s_height );
+  DecoderState( const unsigned int s_width, const unsigned int s_height )
+    : width( s_width ), height( s_height ) {}
+
+  DecoderState( const KeyFrameHeader & header,
+		const unsigned int s_width,
+		const unsigned int s_height )
+    : width( s_width ), height( s_height ),
+      quantizer_filter_adjustments( header ) {}
 
   template <class FrameType>
   FrameType parse_and_apply( const UncompressedChunk & uncompressed_chunk );
@@ -97,7 +107,7 @@ private:
   References references_;
 
 public:
-  Decoder( const uint16_t width, const uint16_t height, const Chunk & key_frame );
+  Decoder( const uint16_t width, const uint16_t height );
 
   const Raster & example_raster( void ) const { return references_.last; }
 

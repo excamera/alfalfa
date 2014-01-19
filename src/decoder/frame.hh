@@ -4,7 +4,6 @@
 #include "2d.hh"
 #include "block.hh"
 #include "macroblock.hh"
-#include "uncompressed_chunk.hh"
 #include "modemv_data.hh"
 #include "raster.hh"
 
@@ -32,10 +31,7 @@ class Frame
   TwoD< UVBlock > U_ { 2 * macroblock_width_, 2 * macroblock_height_ };
   TwoD< UVBlock > V_ { 2 * macroblock_width_, 2 * macroblock_height_ };
 
-  BoolDecoder first_partition_decoder_;
-  FrameHeaderType header_ { first_partition_decoder_ };
-
-  std::vector< Chunk > dct_partitions_;
+  FrameHeaderType header_;
 
   Optional< TwoD< MacroblockType > > macroblock_headers_ {};
 
@@ -50,15 +46,17 @@ class Frame
   std::vector< std::vector< uint8_t > > serialize_tokens( const ProbabilityTables & probability_tables ) const;
 
  public:
-  Frame( const UncompressedChunk & chunk,
+  Frame( const bool show,
 	 const unsigned int width,
-	 const unsigned int height );
+	 const unsigned int height,
+	 BoolDecoder & first_partition );
 
   const FrameHeaderType & header( void ) const { return header_; }
 
-  void parse_macroblock_headers_and_update_segmentation_map( SegmentationMap & segmentation_map,
+  void parse_macroblock_headers_and_update_segmentation_map( BoolDecoder & rest_of_first_partition,
+							     SegmentationMap & segmentation_map,
 							     const ProbabilityTables & probability_tables );
-  void parse_tokens( const ProbabilityTables & probability_tables );
+  void parse_tokens( std::vector< Chunk > dct_partitions, const ProbabilityTables & probability_tables );
 
   void decode( const QuantizerFilterAdjustments & quantizer_filter_adjustments, Raster & raster ) const;
   void decode( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
@@ -68,10 +66,9 @@ class Frame
 
   std::vector< uint8_t > serialize( const ProbabilityTables & probability_tables ) const;
 
-  bool show( void ) const { return show_; }
+  uint8_t dct_partition_count( void ) const { return 1 << header_.log2_number_of_dct_partitions; }
 
-  unsigned int display_width( void ) const { return display_width_; }
-  unsigned int display_height( void ) const { return display_height_; }
+  bool show_frame( void ) const { return show_; }
 };
 
 using KeyFrame = Frame< KeyFrameHeader, KeyFrameMacroblock >;

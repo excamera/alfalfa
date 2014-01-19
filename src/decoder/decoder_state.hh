@@ -54,8 +54,11 @@ inline KeyFrame DecoderState::parse_and_apply<KeyFrame>( const UncompressedChunk
 {
   assert( uncompressed_chunk.key_frame() );
 
+  /* initialize Boolean decoder for the frame and macroblock headers */
+  BoolDecoder first_partition( uncompressed_chunk.first_partition() );
+
   /* parse keyframe header */
-  KeyFrame myframe( uncompressed_chunk, width, height );
+  KeyFrame myframe( uncompressed_chunk.show_frame(), width, height, first_partition );
 
   /* reset persistent decoder state to default values */
   *this = DecoderState( myframe.header(), width, height );
@@ -68,8 +71,9 @@ inline KeyFrame DecoderState::parse_and_apply<KeyFrame>( const UncompressedChunk
   }
 
   /* parse the frame (and update the persistent segmentation map) */
-  myframe.parse_macroblock_headers_and_update_segmentation_map( segmentation_map, frame_probability_tables );
-  myframe.parse_tokens( frame_probability_tables );
+  myframe.parse_macroblock_headers_and_update_segmentation_map( first_partition, segmentation_map, frame_probability_tables );
+  myframe.parse_tokens( uncompressed_chunk.dct_partitions( myframe.dct_partition_count() ),
+			frame_probability_tables );
 
   return myframe;
 }
@@ -79,8 +83,11 @@ inline InterFrame DecoderState::parse_and_apply<InterFrame>( const UncompressedC
 {
   assert( not uncompressed_chunk.key_frame() );
 
+  /* initialize Boolean decoder for the frame and macroblock headers */
+  BoolDecoder first_partition( uncompressed_chunk.first_partition() );
+
   /* parse interframe header */
-  InterFrame myframe( uncompressed_chunk, width, height );
+  InterFrame myframe( uncompressed_chunk.show_frame(), width, height, first_partition );
 
   /* update adjustments to quantizer and in-loop deblocking filter */
   quantizer_filter_adjustments.update( myframe.header() );
@@ -93,8 +100,9 @@ inline InterFrame DecoderState::parse_and_apply<InterFrame>( const UncompressedC
   }
 
   /* parse the frame (and update the persistent segmentation map) */
-  myframe.parse_macroblock_headers_and_update_segmentation_map( segmentation_map, frame_probability_tables );
-  myframe.parse_tokens( frame_probability_tables );
+  myframe.parse_macroblock_headers_and_update_segmentation_map( first_partition, segmentation_map, frame_probability_tables );
+  myframe.parse_tokens( uncompressed_chunk.dct_partitions( myframe.dct_partition_count() ),
+			frame_probability_tables );
 
   return myframe;
 }

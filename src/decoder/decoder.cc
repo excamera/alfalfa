@@ -5,10 +5,8 @@
 
 using namespace std;
 
-Decoder::Decoder( const uint16_t width, const uint16_t height, const Chunk & key_frame )
-  : state_( KeyFrame( UncompressedChunk( key_frame, width, height ),
-		      width, height ).header(),
-	    width, height ),
+Decoder::Decoder( const uint16_t width, const uint16_t height )
+  : state_( width, height ),
     references_( width, height )
 {}
 
@@ -24,7 +22,7 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
 
     myframe.copy_to( raster, references_ );
 
-    return myframe.show();
+    return myframe.show_frame();
   } else {
     const InterFrame myframe = state_.parse_and_apply<InterFrame>( uncompressed_chunk );
 
@@ -32,7 +30,7 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
 
     myframe.copy_to( raster, references_ );
 
-    return myframe.show();
+    return myframe.show_frame();
   }
 }
 
@@ -73,13 +71,3 @@ void ProbabilityTables::update( const InterFrameHeader & header )
     }
   }
 }
-
-DecoderState::DecoderState( const KeyFrameHeader & header,
-			    const unsigned int s_width,
-			    const unsigned int s_height )
-  : width( s_width ),
-    height( s_height ),
-    quantizer_filter_adjustments( header ),
-    segmentation_map( Raster::macroblock_dimension( width ),
-		      Raster::macroblock_dimension( height ) )
-{}

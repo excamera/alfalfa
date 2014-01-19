@@ -31,7 +31,7 @@ int main( int argc, char *argv[] )
       frame_no++;
     }
 
-    Decoder decoder( file.width(), file.height(), file.frame( frame_no ) );
+    Decoder decoder( file.width(), file.height() );
 
     for ( uint32_t i = frame_no; i < file.frame_count(); i++ ) {
       RasterHandle raster_handle( file.width(), file.height() );

@@ -8,14 +8,14 @@
 using namespace std;
 
 template <class FrameHeaderType, class MacroblockType>
-Frame<FrameHeaderType, MacroblockType>::Frame( const UncompressedChunk & chunk,
+Frame<FrameHeaderType, MacroblockType>::Frame( const bool show,
 					       const unsigned int width,
-					       const unsigned int height )
-  : show_( chunk.show_frame() ),
+					       const unsigned int height,
+					       BoolDecoder & first_partition )
+  : show_( show ),
     display_width_( width ),
     display_height_( height ),
-    first_partition_decoder_( chunk.first_partition() ),
-    dct_partitions_( chunk.dct_partitions( 1 << header_.log2_number_of_dct_partitions ) )
+    header_( first_partition )
 {}
 
 template <class FrameHeaderType, class MacroblockType>
@@ -36,7 +36,8 @@ ProbabilityArray< num_segments > Frame<FrameHeaderType, MacroblockType>::calcula
 }
 
 template <class FrameHeaderType, class MacroblockType>
-void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers_and_update_segmentation_map( SegmentationMap & segmentation_map,
+void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers_and_update_segmentation_map( BoolDecoder & rest_of_first_partition,
+												   SegmentationMap & segmentation_map,
 												   const ProbabilityTables & probability_tables )
 {
   /* calculate segment tree probabilities if map is updated by this frame */
@@ -44,7 +45,7 @@ void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers_and_update
 
   /* parse the macroblock headers */
   macroblock_headers_.initialize( macroblock_width_, macroblock_height_,
-				  first_partition_decoder_, header_,
+				  rest_of_first_partition, header_,
 				  mb_segment_tree_probs,
 				  segmentation_map,
 				  probability_tables,
@@ -55,11 +56,12 @@ void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers_and_update
 }
 
 template <class FrameHeaderType, class MacroblockType>
-void Frame<FrameHeaderType, MacroblockType>::parse_tokens( const ProbabilityTables & probability_tables )
+void Frame<FrameHeaderType, MacroblockType>::parse_tokens( vector< Chunk > dct_partitions,
+							   const ProbabilityTables & probability_tables )
 {
   vector< BoolDecoder > dct_partition_decoders;
 
-  for ( const auto & x : dct_partitions_ ) {
+  for ( const auto & x : dct_partitions ) {
     dct_partition_decoders.emplace_back( x );
   }
 

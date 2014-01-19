@@ -74,8 +74,8 @@ vector< uint8_t > KeyFrame::serialize( const ProbabilityTables & probability_tab
   frame_probability_tables.coeff_prob_update( header() );
 
   return make_frame( true,
-		     show(),
-		     display_width(), display_height(),
+		     show_,
+		     display_width_, display_height_,
 		     serialize_first_partition( frame_probability_tables ),
 		     serialize_tokens( frame_probability_tables ) );
 }
@@ -87,8 +87,8 @@ vector< uint8_t > InterFrame::serialize( const ProbabilityTables & probability_t
   frame_probability_tables.update( header() );
 
   return make_frame( false,
-		     show(),
-		     display_width(), display_height(),
+		     show_,
+		     display_width_, display_height_,
 		     serialize_first_partition( frame_probability_tables ),
 		     serialize_tokens( frame_probability_tables ) );
 }
@@ -457,13 +457,13 @@ vector< uint8_t > Frame< FrameHeaderType, MacroblockType >::serialize_first_part
 template <class FrameHeaderType, class MacroblockType>
 vector< vector< uint8_t > > Frame< FrameHeaderType, MacroblockType >::serialize_tokens( const ProbabilityTables & probability_tables ) const
 {
-  vector< BoolEncoder > dct_partitions( 1 << header_.log2_number_of_dct_partitions );
+  vector< BoolEncoder > dct_partitions( dct_partition_count() );
 
   /* serialize every macroblock's tokens */
   macroblock_headers_.get().forall_ij( [&]( const MacroblockType & macroblock,
 					    const unsigned int column __attribute((unused)),
 					    const unsigned int row )
-				       { macroblock.serialize_tokens( dct_partitions.at( row % dct_partitions_.size() ),
+				       { macroblock.serialize_tokens( dct_partitions.at( row % dct_partition_count() ),
 								      probability_tables ); } );
 
   /* finish encoding and return the resulting octet sequences */
