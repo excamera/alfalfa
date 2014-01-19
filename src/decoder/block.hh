@@ -74,7 +74,7 @@ public:
   bool has_nonzero( void ) const { return has_nonzero_; }
 
   void walsh_transform( TwoD< Block< Y_after_Y2, bmode > > & output ) const;
-  void idct( Raster::Block4 & output ) const;
+  void idct_add( Raster::Block4 & output ) const;
   void set_dc_coefficient( const int16_t & val );
   Block dequantize( const Quantizer & quantizer ) const;
 
