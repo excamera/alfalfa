@@ -363,7 +363,7 @@ static const SafeArray< SafeArray< int16_t, 6 >, 8 > sixtap_filters =
      { 0, -1,   12,  123,  -6,  0 } }};
 
 template <unsigned int size>
-void Raster::Block<size>::safe_inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference )
+void Raster::Block<size>::inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference )
 {
   const int source_column = context().column * size + (mv.x() >> 3);
   const int source_row = context().row * size + (mv.y() >> 3);
@@ -375,7 +375,7 @@ void Raster::Block<size>::safe_inter_predict( const MotionVector & mv, const Two
 
     EdgeExtendedRaster safe_reference( reference );
 
-    inter_predict( mv, safe_reference, source_column, source_row );
+    safe_inter_predict( mv, safe_reference, source_column, source_row );
   } else {
     unsafe_inter_predict( mv, reference, source_column, source_row );
   }
@@ -383,8 +383,7 @@ void Raster::Block<size>::safe_inter_predict( const MotionVector & mv, const Two
 
 template <unsigned int size>
 void Raster::Block<size>::unsafe_inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference,
-						const int source_column,
-						const int source_row )
+						const int source_column, const int source_row )
 {
   assert( contents_.stride() == reference.width() );
 
@@ -463,8 +462,8 @@ void Raster::Block<size>::unsafe_inter_predict( const MotionVector & mv, const T
 
 template <unsigned int size>
 template <class ReferenceType>
-void Raster::Block<size>::inter_predict( const MotionVector & mv, const ReferenceType & reference,
-					 const int source_column, const int source_row )
+void Raster::Block<size>::safe_inter_predict( const MotionVector & mv, const ReferenceType & reference,
+					      const int source_column, const int source_row )
 {
   if ( (mv.x() & 7) == 0 and (mv.y() & 7) == 0 ) {
     contents_.forall_ij( [&] ( uint8_t & val, unsigned int column, unsigned int row )

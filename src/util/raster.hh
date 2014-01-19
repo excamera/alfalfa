@@ -98,11 +98,11 @@ public:
     template <class PredictionMode>
     void intra_predict( const PredictionMode mb_mode );
 
-    void safe_inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference );
+    void inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference );
 
     template <class ReferenceType>
-    void inter_predict( const MotionVector & mv, const ReferenceType & reference,
-			const int source_column, const int source_row );
+    void safe_inter_predict( const MotionVector & mv, const ReferenceType & reference,
+			     const int source_column, const int source_row );
 
     void unsafe_inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference,
 			       const int source_column, const int source_row );

@@ -456,12 +456,12 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
 
   if ( Y2_.prediction_mode() == SPLITMV ) {
     Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
-		  { raster.Y_sub.at( column, row ).safe_inter_predict( block.motion_vector(),
+		  { raster.Y_sub.at( column, row ).inter_predict( block.motion_vector(),
 								       reference.Y() ); } );
     U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-		  { raster.U_sub.at( column, row ).safe_inter_predict( block.motion_vector(),
+		  { raster.U_sub.at( column, row ).inter_predict( block.motion_vector(),
 								       reference.U() );
-		    raster.V_sub.at( column, row ).safe_inter_predict( block.motion_vector(),
+		    raster.V_sub.at( column, row ).inter_predict( block.motion_vector(),
 								       reference.V() ); } );
 
     if ( has_nonzero_ ) {
@@ -473,9 +473,9 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
 		    { block.dequantize( quantizer ).idct_add( raster.V_sub.at( column, row ) ); } );
     }
   } else {
-    raster.Y.safe_inter_predict( base_motion_vector(), reference.Y() );
-    raster.U.safe_inter_predict( U_.at( 0, 0 ).motion_vector(), reference.U() );
-    raster.V.safe_inter_predict( U_.at( 0, 0 ).motion_vector(), reference.V() );
+    raster.Y.inter_predict( base_motion_vector(), reference.Y() );
+    raster.U.inter_predict( U_.at( 0, 0 ).motion_vector(), reference.U() );
+    raster.V.inter_predict( U_.at( 0, 0 ).motion_vector(), reference.V() );
 
     if ( has_nonzero_ ) {
       TwoD< YBlock > Y_dequantized( 4, 4 );
