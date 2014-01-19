@@ -97,6 +97,8 @@ public:
 					const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > & motion_vector_probs ) const;
 
   void serialize_tokens( BoolEncoder & data, const ProbabilityTables & probability_tables ) const;
+
+  SafeArray< int16_t, 16 > & mutable_coefficients( void ) { return coefficients_; }
 };
 
 using Y2Block = Block< Y2, mbmode >;
