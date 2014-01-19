@@ -36,7 +36,7 @@ int main( int argc, char *argv[] )
 	}
     }
 
-      fdct( raster.macroblock( 0, 0 ).Y_sub.at( 0, 0 ), block.at( 0, 0 ) );
+      block.at( 0, 0 ).fdct( raster.macroblock( 0, 0 ).Y_sub.at( 0, 0 ) );
 
       for ( uint8_t i = 0; i < 4; i++ ) {
 	for ( uint8_t j = 0; j < 4; j++ ) {

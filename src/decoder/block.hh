@@ -99,6 +99,9 @@ public:
   void serialize_tokens( BoolEncoder & data, const ProbabilityTables & probability_tables ) const;
 
   SafeArray< int16_t, 16 > & mutable_coefficients( void ) { return coefficients_; }
+  const SafeArray< int16_t, 16 > & coefficients( void ) const { return coefficients_; }
+
+  void fdct( const Raster::Block4 & input );
 };
 
 using Y2Block = Block< Y2, mbmode >;
