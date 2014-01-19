@@ -50,9 +50,7 @@ int main( int argc, char *argv[] )
 	for ( uint8_t j = 0; j < 4; j++ ) {
 	  int this_mismatch = raster.macroblock( 0, 0 ).Y_sub.at( 0, 0 ).at( i, j )
 	    - random_pixels.at( i ).at( j );
-	  if ( abs( this_mismatch ) > 1 ) {
-	    fprintf( stderr, "this mismatch: %d\n", this_mismatch );
-	  }
+	  printf( "this mismatch: %d\n", this_mismatch );
 	}
       }
     }
