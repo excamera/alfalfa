@@ -170,6 +170,11 @@ public:
     return macroblocks_.at( column, row );
   }
 
+  const Macroblock & macroblock( const unsigned int column, const unsigned int row ) const
+  {
+    return macroblocks_.at( column, row );
+  }
+
   unsigned int width( void ) const { return width_; }
   unsigned int height( void ) const { return height_; }
   unsigned int display_width( void ) const { return display_width_; }

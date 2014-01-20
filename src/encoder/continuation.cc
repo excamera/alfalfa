@@ -66,13 +66,34 @@ public:
   {
     raster_.macroblock( 0, 0 ) = source;
   }
+
+  bool operator==( const Raster::Macroblock & other ) const
+  {
+    return raster_.macroblock( 0, 0 ) == other;
+  }
 };
 
 template <>
-void InterFrameMacroblock::rewrite_as_intra( Raster::Macroblock & raster )
+void InterFrameMacroblock::rewrite_as_intra( const Quantizer & quantizer, Raster::Macroblock & raster )
 {
-  /* examine Y first */
+  assert( inter_coded() );
+
   const IsolatedRasterMacroblock target( raster );
+
+  /* set intra coded */
+  header_.is_inter_mb = false;
+  Y2_.set_prediction_mode( B_PRED );
+  Y_.forall( [&] ( YBlock & block ) {
+      block.set_prediction_mode( B_DC_PRED );
+      block.set_Y_without_Y2();
+    } );
+  U_.at( 0, 0 ).set_prediction_mode( DC_PRED );
+
+  /* attempt decoding and measure residue */
+  reconstruct_intra( quantizer, raster );
+
+  /* examine Y first */
+  
 }
 
 template <>
@@ -94,7 +115,7 @@ void InterFrame::rewrite_as_intra( const QuantizerFilterAdjustments & quantizer_
 					   macroblock.reconstruct_inter( quantizer,
 									 references,
 									 raster.macroblock( column, row ) );
-					   macroblock.rewrite_as_intra( raster.macroblock( column, row ) );
+					   macroblock.rewrite_as_intra( quantizer, raster.macroblock( column, row ) );
 					 } else {
 					   macroblock.reconstruct_intra( quantizer,
 									 raster.macroblock( column, row ) );
