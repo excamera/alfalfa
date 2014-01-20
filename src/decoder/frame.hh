@@ -69,6 +69,9 @@ class Frame
   uint8_t dct_partition_count( void ) const { return 1 << header_.log2_number_of_dct_partitions; }
 
   bool show_frame( void ) const { return show_; }
+
+  void rewrite_as_intra( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
+			 const References & references, Raster & raster );
 };
 
 using KeyFrame = Frame< KeyFrameHeader, KeyFrameMacroblock >;
