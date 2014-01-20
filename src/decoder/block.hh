@@ -13,6 +13,8 @@ class BoolEncoder;
 
 enum BlockType { Y_after_Y2 = 0, Y2, UV, Y_without_Y2 };
 
+enum class PixelAdjustment : int8_t { MinusOne = -1, NoAdjustment = 0, PlusOne = 1 };
+
 template <BlockType initial_block_type, class PredictionMode>
 class Block
 {
@@ -24,10 +26,13 @@ private:
   PredictionMode prediction_mode_ {};
 
   SafeArray< int16_t, 16 > coefficients_ {{}};
+  SafeArray< PixelAdjustment, 16 > pixel_adjustments_ {{}}; /* only used for continuation */
 
   bool coded_ { true };
 
   bool has_nonzero_ { false };
+
+  bool has_pixel_adjustment_ { false };
 
   MotionVector motion_vector_ {};
 
@@ -43,6 +48,11 @@ public:
   void set_prediction_mode( const PredictionMode prediction_mode )
   {
     prediction_mode_ = prediction_mode;
+  }
+
+  void set_has_pixel_adjustment( const bool has_pixel_adjustment )
+  {
+    has_pixel_adjustment_ = has_pixel_adjustment;
   }
 
   const typename TwoD< Block >::Context & context( void ) const { return context_; }
@@ -100,6 +110,9 @@ public:
 
   SafeArray< int16_t, 16 > & mutable_coefficients( void ) { return coefficients_; }
   const SafeArray< int16_t, 16 > & coefficients( void ) const { return coefficients_; }
+
+  SafeArray< PixelAdjustment, 16 > & mutable_pixel_adjustments( void ) { return pixel_adjustments_; }
+  const SafeArray< PixelAdjustment, 16 > & pixel_adjustments( void ) const { return pixel_adjustments_; }
 
   void fdct( const SafeArray< SafeArray< int16_t, 4 >, 4 > & input );
 };
