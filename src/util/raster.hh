@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "2d.hh"
+#include "safe_array.hh"
 
 class MotionVector;
 
@@ -82,7 +83,7 @@ public:
     uint8_t east( const int column ) const { return predictors_.east( column ); }
 
   public:
-    Block( const typename TwoD< Block >::Context & c, TwoD< uint8_t > & macroblock_component );
+    Block( const typename TwoD< Block >::Context & c, TwoD< uint8_t > & raster_component );
 
     uint8_t & at( const unsigned int column, const unsigned int row )
     { return contents_.at( column, row ); }
@@ -93,6 +94,7 @@ public:
     unsigned int stride( void ) const { return contents_.stride(); }
 
     const decltype(contents_) & contents( void ) const { return contents_; }
+    decltype(contents_) & mutable_contents( void ) { return contents_; }
     const Predictors & predictors( void ) const { return predictors_; }
 
     template <class PredictionMode>
@@ -115,6 +117,7 @@ public:
 
     Block & operator=( const Block & other );
     bool operator==( const Block & other ) const;
+    SafeArray< SafeArray< int16_t, size >, size > operator-( const Block & other ) const;
   };
 
   using Block4  = Block< 4 >;

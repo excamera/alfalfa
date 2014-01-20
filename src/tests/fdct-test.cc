@@ -34,9 +34,11 @@ int main( int argc, char *argv[] )
 	  random_pixels.at( i ).at( j ) = probs( gen );
 	  raster.macroblock( 0, 0 ).Y_sub.at( 0, 0 ).at( i, j ) = random_pixels.at( i ).at( j );
 	}
-    }
+      }
 
-      block.at( 0, 0 ).fdct( raster.macroblock( 0, 0 ).Y_sub.at( 0, 0 ) );
+      Raster zeros( 16, 16 );
+
+      block.at( 0, 0 ).fdct( raster.macroblock( 0, 0 ).Y_sub.at( 0, 0 ) - zeros.macroblock( 0, 0 ).Y_sub.at( 0, 0 ) );
 
       for ( uint8_t i = 0; i < 4; i++ ) {
 	for ( uint8_t j = 0; j < 4; j++ ) {

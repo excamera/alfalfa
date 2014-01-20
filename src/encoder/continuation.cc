@@ -3,13 +3,13 @@
 
 /* Based on libvpx vp8_short_fdct4x4_c */
 template <BlockType initial_block_type, class PredictionMode>
-void Block<initial_block_type, PredictionMode>::fdct( const Raster::Block4 & input )
+void Block<initial_block_type, PredictionMode>::fdct( const SafeArray< SafeArray< int16_t, 4 >, 4 > & input )
 {
   for ( uint8_t row = 0; row < 4; row++ ) {
-    const int16_t a1 = (input.contents().at( 0, row ) + input.contents().at( 3, row )) * 8;
-    const int16_t b1 = (input.contents().at( 1, row ) + input.contents().at( 2, row )) * 8;
-    const int16_t c1 = (input.contents().at( 1, row ) - input.contents().at( 2, row )) * 8;
-    const int16_t d1 = (input.contents().at( 0, row ) - input.contents().at( 3, row )) * 8;
+    const int16_t a1 = (input.at( row ).at( 0 ) + input.at( row ).at( 3 )) * 8;
+    const int16_t b1 = (input.at( row ).at( 1 ) + input.at( row ).at( 2 )) * 8;
+    const int16_t c1 = (input.at( row ).at( 1 ) - input.at( row ).at( 2 )) * 8;
+    const int16_t d1 = (input.at( row ).at( 0 ) - input.at( row ).at( 3 )) * 8;
 
     coefficients_.at( row * 4 + 0 ) = a1 + b1;
     coefficients_.at( row * 4 + 2 ) = a1 - b1;
@@ -43,6 +43,16 @@ bool Raster::Block<size>::operator==( const Raster::Block<size> & other ) const
   return contents_ == other.contents_;
 }
 
+template <unsigned int size>
+SafeArray< SafeArray< int16_t, size >, size > Raster::Block<size>::operator-( const Raster::Block<size> & other ) const
+{
+  SafeArray< SafeArray< int16_t, size >, size > ret;
+  contents_.forall_ij( [&] ( const uint8_t & val, const unsigned int column, const unsigned int row ) {
+      ret.at( row ).at( column ) = int16_t( val ) - int16_t( other.at( column, row ) );
+    } );
+  return ret;
+}
+
 Raster::Macroblock & Raster::Macroblock::operator=( const Raster::Macroblock & other )
 {
   Y = other.Y;
@@ -62,26 +72,28 @@ private:
   Raster raster_ { 16, 16 };
 
 public:
+  const Raster::Macroblock & mb( void ) const { return raster_.macroblock( 0, 0 ); }
+  Raster::Macroblock & mb( void ) { return raster_.macroblock( 0, 0 ); }
+
   IsolatedRasterMacroblock( const Raster::Macroblock & source )
   {
-    raster_.macroblock( 0, 0 ) = source;
+    mb() = source;
   }
 
   bool operator==( const Raster::Macroblock & other ) const
   {
-    return raster_.macroblock( 0, 0 ) == other;
+    return mb() == other;
   }
 };
 
 template <>
-void InterFrameMacroblock::rewrite_as_intra( const Quantizer & quantizer, Raster::Macroblock & raster )
+void InterFrameMacroblock::rewrite_as_intra( const Quantizer & , Raster::Macroblock & raster )
 {
   assert( inter_coded() );
 
   const IsolatedRasterMacroblock target( raster );
 
-  /* set intra coded */
-  header_.is_inter_mb = false;
+  /* set prediction modes */
   Y2_.set_prediction_mode( B_PRED );
   Y_.forall( [&] ( YBlock & block ) {
       block.set_prediction_mode( B_DC_PRED );
@@ -89,11 +101,43 @@ void InterFrameMacroblock::rewrite_as_intra( const Quantizer & quantizer, Raster
     } );
   U_.at( 0, 0 ).set_prediction_mode( DC_PRED );
 
-  /* attempt decoding and measure residue */
-  reconstruct_intra( quantizer, raster );
+  /* measure the Y residue */
+  Y_.forall_ij( [&] ( YBlock & block, unsigned int column, unsigned int row ) {
+      /* Intra-predict */
+      raster.Y_sub.at( column, row ).intra_predict( block.prediction_mode() );
 
-  /* examine Y first */
-  
+      /* Get the residue */
+      const auto residue = target.mb().Y_sub.at( column, row ) - raster.Y_sub.at( column, row );
+
+      /* Transform the residue */
+      block.fdct( residue );
+
+      /* Question: is the residue now round-trip? */
+      raster.Y_sub.at( column, row ).intra_predict( block.prediction_mode() );
+      block.idct_add( raster.Y_sub.at( column, row ) );
+
+      if ( target.mb().Y_sub.at( column, row ) == raster.Y_sub.at( column, row ) ) {
+	//	printf( "Match.\n" );
+      } else {
+	printf( "Mismatch. Wanted:\n" );
+
+	for ( int i = 0; i < 4; i++ ) {
+	  for ( int j = 0; j < 4; j++ ) {
+	    printf( " %u", target.mb().Y_sub.at( column, row ).at( j, i ) );
+	  }
+	  printf( "\n" );
+	}
+
+	printf( "\n Got:\n" );
+
+	for ( int i = 0; i < 4; i++ ) {
+	  for ( int j = 0; j < 4; j++ ) {
+	    printf( " %u", raster.Y_sub.at( column, row ).at( j, i ) );
+	  }
+	  printf( "\n" );
+	}
+      }
+    } );
 }
 
 template <>

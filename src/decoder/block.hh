@@ -101,7 +101,7 @@ public:
   SafeArray< int16_t, 16 > & mutable_coefficients( void ) { return coefficients_; }
   const SafeArray< int16_t, 16 > & coefficients( void ) const { return coefficients_; }
 
-  void fdct( const Raster::Block4 & input );
+  void fdct( const SafeArray< SafeArray< int16_t, 4 >, 4 > & input );
 };
 
 using Y2Block = Block< Y2, mbmode >;
