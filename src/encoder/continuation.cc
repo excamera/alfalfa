@@ -30,6 +30,20 @@ void Block<initial_block_type, PredictionMode>::fdct( const SafeArray< SafeArray
   }
 }
 
+template <BlockType initial_block_type, class PredictionMode>
+void Block< initial_block_type, PredictionMode >::apply_pixel_adjustment( Raster::Block4 & output ) const
+{
+  assert( type_ == UV or type_ == Y_without_Y2 );
+  assert( has_pixel_adjustment() );
+
+  for ( uint8_t row = 0; row < 4; row++ ) {
+    for ( uint8_t column = 0; column < 4; column++ ) {
+      output.at( column, row ) = clamp255( output.at( column, row )
+					   + static_cast<int8_t>( pixel_adjustments_.at( row * 4 + column ) ) );
+    }
+  }
+}
+
 template <unsigned int size>
 Raster::Block<size> & Raster::Block<size>::operator=( const Raster::Block<size> & other )
 {
@@ -87,7 +101,7 @@ public:
 };
 
 template <>
-void InterFrameMacroblock::rewrite_as_intra( const Quantizer & , Raster::Macroblock & raster )
+void InterFrameMacroblock::rewrite_as_intra( Raster::Macroblock & raster )
 {
   assert( inter_coded() );
 
@@ -112,9 +126,30 @@ void InterFrameMacroblock::rewrite_as_intra( const Quantizer & , Raster::Macrobl
       /* Transform the residue */
       block.fdct( residue );
 
+      /* Find any necessary pixel adjustments */
+      raster.Y_sub.at( column, row ).intra_predict( block.prediction_mode() );
+      block.idct_add( raster.Y_sub.at( column, row ) );
+      for ( uint8_t pixel_row = 0; pixel_row < 4; pixel_row++ ) {
+	for ( uint8_t pixel_col = 0; pixel_col < 4; pixel_col++ ) {
+	  const int8_t adjustment = target.mb().Y_sub.at( column, row ).at( pixel_col, pixel_row )
+	    - raster.Y_sub.at( column, row ).at( pixel_col, pixel_row );
+	  if ( abs( adjustment ) > 1 ) {
+	    throw Exception( "rewrite_as_intra", "pixel adjustment too large: " + to_string( adjustment ) );
+	  }
+
+	  if ( adjustment ) {
+	    block.set_has_pixel_adjustment( true );
+	    block.mutable_pixel_adjustments().at( pixel_row * 4 + pixel_col ) = static_cast<PixelAdjustment>( adjustment );
+	  }
+	}
+      }
+
       /* Question: is the residue now round-trip? */
       raster.Y_sub.at( column, row ).intra_predict( block.prediction_mode() );
       block.idct_add( raster.Y_sub.at( column, row ) );
+      if ( block.has_pixel_adjustment() ) {
+	block.apply_pixel_adjustment( raster.Y_sub.at( column, row ) );
+      }
 
       if ( target.mb().Y_sub.at( column, row ) == raster.Y_sub.at( column, row ) ) {
 	//	printf( "Match.\n" );
@@ -159,7 +194,7 @@ void InterFrame::rewrite_as_intra( const QuantizerFilterAdjustments & quantizer_
 					   macroblock.reconstruct_inter( quantizer,
 									 references,
 									 raster.macroblock( column, row ) );
-					   macroblock.rewrite_as_intra( quantizer, raster.macroblock( column, row ) );
+					   macroblock.rewrite_as_intra( raster.macroblock( column, row ) );
 					 } else {
 					   macroblock.reconstruct_intra( quantizer,
 									 raster.macroblock( column, row ) );

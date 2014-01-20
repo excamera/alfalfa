@@ -50,6 +50,8 @@ public:
     prediction_mode_ = prediction_mode;
   }
 
+  bool has_pixel_adjustment( void ) const { return has_pixel_adjustment_; }
+
   void set_has_pixel_adjustment( const bool has_pixel_adjustment )
   {
     has_pixel_adjustment_ = has_pixel_adjustment;
@@ -85,6 +87,7 @@ public:
 
   void walsh_transform( TwoD< Block< Y_after_Y2, bmode > > & output ) const;
   void idct_add( Raster::Block4 & output ) const;
+  void apply_pixel_adjustment( Raster::Block4 & output ) const;
   void set_dc_coefficient( const int16_t & val );
   Block dequantize( const Quantizer & quantizer ) const;
 
