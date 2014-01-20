@@ -30,11 +30,49 @@ void Block<initial_block_type, PredictionMode>::fdct( const Raster::Block4 & inp
   }
 }
 
+template <unsigned int size>
+Raster::Block<size> & Raster::Block<size>::operator=( const Raster::Block<size> & other )
+{
+  contents_.copy( other.contents_ );
+  return *this;
+}
+
+template <unsigned int size>
+bool Raster::Block<size>::operator==( const Raster::Block<size> & other ) const
+{
+  return contents_ == other.contents_;
+}
+
+Raster::Macroblock & Raster::Macroblock::operator=( const Raster::Macroblock & other )
+{
+  Y = other.Y;
+  U = other.U;
+  V = other.V;
+  return *this;
+}
+
+bool Raster::Macroblock::operator==( const Raster::Macroblock & other ) const
+{
+  return (Y == other.Y) and (U == other.U) and (V == other.V);
+}
+
+class IsolatedRasterMacroblock
+{
+private:
+  Raster raster_ { 16, 16 };
+
+public:
+  IsolatedRasterMacroblock( const Raster::Macroblock & source )
+  {
+    raster_.macroblock( 0, 0 ) = source;
+  }
+};
+
 template <>
-void InterFrameMacroblock::rewrite_as_intra( const Raster::Macroblock &  )
+void InterFrameMacroblock::rewrite_as_intra( Raster::Macroblock & raster )
 {
   /* examine Y first */
-  InterFrameMacroblock intra_alternative = *this;
+  const IsolatedRasterMacroblock target( raster );
 }
 
 template <>

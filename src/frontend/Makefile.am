@@ -1,6 +1,8 @@
-AM_CPPFLAGS = -I$(srcdir)/../util -I$(srcdir)/../decoder -I$(srcdir)/../display $(X11_XCB_CFLAGS) $(GLU_CFLAGS)
+AM_CPPFLAGS = -I$(srcdir)/../util -I$(srcdir)/../decoder -I$(srcdir)/../display -I$(srcdir)/../encoder $(X11_XCB_CFLAGS) $(GLU_CFLAGS)
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(NODEBUG_CXXFLAGS)
-LDADD = ../util/libalfalfautil.a ../decoder/libalfalfadecoder.a ../display/libalfalfadisplay.a $(X11_XCB_LIBS) $(GLU_LIBS)
-bin_PROGRAMS = vp8scan
+LDADD = ../util/libalfalfautil.a ../encoder/libalfalfaencoder.a ../decoder/libalfalfadecoder.a ../display/libalfalfadisplay.a $(X11_XCB_LIBS) $(GLU_LIBS)
+bin_PROGRAMS = vp8scan rewrite-as-intra
 
 vp8scan_SOURCES = vp8scan.cc
+
+rewrite_as_intra_SOURCES = rewrite-as-intra.cc

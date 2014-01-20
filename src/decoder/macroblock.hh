@@ -59,7 +59,7 @@ public:
 			  const References & references,
 			  Raster::Macroblock & raster ) const;
 
-  void rewrite_as_intra( const Raster::Macroblock & raster );
+  void rewrite_as_intra( Raster::Macroblock & raster );
 
   void loopfilter( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
 		   const bool adjust_for_mode_and_ref,

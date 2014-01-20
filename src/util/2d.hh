@@ -193,6 +193,25 @@ public:
     row_ = other.row_;
   }
 
+  void copy( const TwoDSubRange< T, sub_width, sub_height > & other )
+  {
+    forall_ij( [&] ( T & x, const unsigned int column, const unsigned int row )
+	       { x = other.at( column, row ); } );
+  }
+
+  bool operator==( const TwoDSubRange< T, sub_width, sub_height > & other ) const
+  {
+    for ( unsigned int row = 0; row < sub_height; row++ ) {
+      for ( unsigned int column = 0; column < sub_width; column++ ) {
+	if ( at( column, row ) != other.at( column, row ) ) {
+	  return false;
+	}
+      }
+    }
+
+    return true;
+  }
+
   template <class type>
   type sum( const type & initial ) const
   {

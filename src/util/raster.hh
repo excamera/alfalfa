@@ -112,6 +112,9 @@ public:
     const typename TwoD< Block >::Context & context( void ) const { return context_; }
 
     static constexpr unsigned int dimension { size };
+
+    Block & operator=( const Block & other );
+    bool operator==( const Block & other ) const;
   };
 
   using Block4  = Block< 4 >;
@@ -127,6 +130,9 @@ public:
     TwoDSubRange< Block4, 2, 2 > U_sub, V_sub;
 
     Macroblock( const TwoD< Macroblock >::Context & c, Raster & raster );
+
+    Macroblock & operator=( const Macroblock & other );
+    bool operator==( const Macroblock & other ) const;
   };
 
 private:
