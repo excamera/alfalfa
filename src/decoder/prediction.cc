@@ -352,7 +352,7 @@ public:
   }
 };
 
-static const SafeArray< SafeArray< int16_t, 6 >, 8 > sixtap_filters =
+static constexpr SafeArray< SafeArray< int16_t, 6 >, 8 > sixtap_filters =
   {{ { 0,  0,  128,    0,   0,  0 },
      { 0, -6,  123,   12,  -1,  0 },
      { 2, -11, 108,   36,  -8,  1 },

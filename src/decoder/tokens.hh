@@ -20,11 +20,11 @@ enum token {
   DCT_EOB_TOKEN
 };
 
-const unsigned int ENTROPY_NODES = DCT_VAL_CATEGORY6 + 1;
-const unsigned int MAX_ENTROPY_TOKENS = DCT_EOB_TOKEN + 1;
+constexpr unsigned int ENTROPY_NODES = DCT_VAL_CATEGORY6 + 1;
+constexpr unsigned int MAX_ENTROPY_TOKENS = DCT_EOB_TOKEN + 1;
 
-static const SafeArray< uint8_t, 16 > coefficient_to_band {{ 0, 1, 2, 3, 6, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 7 }};
-static const SafeArray< uint8_t, 16 > zigzag = {{ 0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15 }};
+static constexpr SafeArray< uint8_t, 16 > coefficient_to_band {{ 0, 1, 2, 3, 6, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 7 }};
+static constexpr SafeArray< uint8_t, 16 > zigzag = {{ 0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15 }};
 
 template < unsigned int length >
 class TokenDecoder

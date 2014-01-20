@@ -7,7 +7,7 @@
 
 using namespace std;
 
-static const SafeArray< uint16_t, 128 > dc_qlookup =
+static constexpr SafeArray< uint16_t, 128 > dc_qlookup =
   {{ 4,   5,   6,   7,   8,   9,  10,  10,   11,  12,  13,  14,  15,
      16,  17,  17,  18,  19,  20,  20,  21,   21,  22,  22,  23,  23,
      24,  25,  25,  26,  27,  28,  29,  30,   31,  32,  33,  34,  35,
@@ -19,7 +19,7 @@ static const SafeArray< uint16_t, 128 > dc_qlookup =
      104, 106, 108, 110, 112, 114, 116, 118, 122, 124, 126, 128, 130,
      132, 134, 136, 138, 140, 143, 145, 148, 151, 154, 157 }};
 
-static const SafeArray< uint16_t, 128 > ac_qlookup =
+static constexpr SafeArray< uint16_t, 128 > ac_qlookup =
   {{ 4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,
      17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29,
      30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,
