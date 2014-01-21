@@ -90,3 +90,16 @@ void Block< initial_block_type, PredictionMode >::idct_add( Raster::Block4 & out
     *target = clamp255( *target + ((t0 - t3 + 4) >> 3) );
   }
 }
+
+template <BlockType initial_block_type, class PredictionMode>
+void Block< initial_block_type, PredictionMode >::apply_pixel_adjustment( Raster::Block4 & output ) const
+{
+  assert( type_ == UV or type_ == Y_without_Y2 );
+
+  for ( uint8_t row = 0; row < 4; row++ ) {
+    for ( uint8_t column = 0; column < 4; column++ ) {
+      output.at( column, row ) = clamp255( output.at( column, row )
+					   + static_cast<int8_t>( pixel_adjustments_.at( row * 4 + column ) ) );
+    }
+  }
+}

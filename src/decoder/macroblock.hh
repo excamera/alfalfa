@@ -83,7 +83,7 @@ public:
   void reconstruct_inter( const Quantizer & quantizer,
 			  const References & references,
 			  Raster::Macroblock & raster ) const;
-  void reconstruct_continuation( Raster::Macroblock & ) const {}
+  void reconstruct_continuation( Raster::Macroblock & raster ) const;
 
   void rewrite_as_intra( Raster::Macroblock & raster );
 

@@ -120,6 +120,12 @@ public:
   const SafeArray< PixelAdjustment, 16 > & pixel_adjustments( void ) const { return pixel_adjustments_; }
 
   void fdct( const SafeArray< SafeArray< int16_t, 4 >, 4 > & input );
+
+  void idct_add_pixel_adjust( Raster::Block4 & output ) const
+  {
+    idct_add( output );
+    apply_pixel_adjustment( output );
+  }
 };
 
 using Y2Block = Block< Y2, mbmode >;

@@ -110,6 +110,7 @@ void Block< initial_block_type,
     for ( unsigned int i = 0; i < 16; i++ ) {
       bool is_nonzero = data.get( 253 );
       if ( is_nonzero ) {
+	has_nonzero_ = true;
 	pixel_adjustments_.at( i ) = data.get() ? PixelAdjustment::PlusOne : PixelAdjustment::MinusOne;
 	has_pixel_adjustment_ = true;
       }

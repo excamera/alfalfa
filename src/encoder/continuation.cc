@@ -30,20 +30,6 @@ void Block<initial_block_type, PredictionMode>::fdct( const SafeArray< SafeArray
   }
 }
 
-template <BlockType initial_block_type, class PredictionMode>
-void Block< initial_block_type, PredictionMode >::apply_pixel_adjustment( Raster::Block4 & output ) const
-{
-  assert( type_ == UV or type_ == Y_without_Y2 );
-  assert( has_pixel_adjustment() );
-
-  for ( uint8_t row = 0; row < 4; row++ ) {
-    for ( uint8_t column = 0; column < 4; column++ ) {
-      output.at( column, row ) = clamp255( output.at( column, row )
-					   + static_cast<int8_t>( pixel_adjustments_.at( row * 4 + column ) ) );
-    }
-  }
-}
-
 template <unsigned int size>
 Raster::Block<size> & Raster::Block<size>::operator=( const Raster::Block<size> & other )
 {
@@ -128,16 +114,6 @@ static void rewrite_block_as_intra( Block<initial_block_type, PredictionMode> & 
       }
     }
   }
-
-#ifndef NDEBUG
-  /* verify roundtrip */
-  raster = prediction;
-  block.idct_add( raster );
-  if ( block.has_pixel_adjustment() ) {
-    block.apply_pixel_adjustment( raster );
-  }
-  assert( raster == target );
-#endif
 }
 
 template <>
