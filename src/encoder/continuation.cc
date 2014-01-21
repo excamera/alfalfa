@@ -114,6 +114,8 @@ static void rewrite_block_as_intra( Block<initial_block_type, PredictionMode> & 
       }
     }
   }
+
+  raster = target;
 }
 
 template <>
@@ -143,18 +145,19 @@ void InterFrameMacroblock::rewrite_as_intra( Raster::Macroblock & raster )
       raster.Y_sub.at( column, row ).intra_predict( block.prediction_mode() );
     } );
 
-  raster.U.intra_predict( uv_prediction_mode() );
-  raster.V.intra_predict( uv_prediction_mode() );
-
-  const IsolatedRasterMacroblock predicted( raster );
-
   /* rewrite the Y subblocks */
   Y_.forall_ij( [&] ( YBlock & block, unsigned int column, unsigned int row ) {
+      raster.Y_sub.at( column, row ).intra_predict( block.prediction_mode() );
+      const IsolatedRasterMacroblock predicted( raster );
       rewrite_block_as_intra( block,
 			      predicted.mb().Y_sub.at( column, row ),
 			      target.mb().Y_sub.at( column, row ),
 			      raster.Y_sub.at( column, row ) );
     } );
+
+  raster.U.intra_predict( uv_prediction_mode() );
+  raster.V.intra_predict( uv_prediction_mode() );
+  const IsolatedRasterMacroblock predicted( raster );
 
   U_.forall_ij( [&] ( UVBlock & block, unsigned int column, unsigned int row ) {
       rewrite_block_as_intra( block,
