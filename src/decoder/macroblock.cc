@@ -459,6 +459,8 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::reconstruct_intra( const
 template <>
 void InterFrameMacroblock::reconstruct_continuation( Raster::Macroblock & raster ) const
 {
+  assert( continuation_ );
+
   /* Chroma */
   raster.U.intra_predict( uv_prediction_mode() );
   raster.V.intra_predict( uv_prediction_mode() );
@@ -486,6 +488,8 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
 					      const References & references,
 					      Raster::Macroblock & raster ) const
 {
+  assert( not continuation_ );
+
   const Raster & reference = references.at( header_.reference() );
 
   if ( Y2_.prediction_mode() == SPLITMV ) {

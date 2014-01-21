@@ -5,6 +5,8 @@
 template <BlockType initial_block_type, class PredictionMode>
 void Block<initial_block_type, PredictionMode>::fdct( const SafeArray< SafeArray< int16_t, 4 >, 4 > & input )
 {
+  has_nonzero_ = true;
+
   for ( uint8_t row = 0; row < 4; row++ ) {
     const int16_t a1 = (input.at( row ).at( 0 ) + input.at( row ).at( 3 )) * 8;
     const int16_t b1 = (input.at( row ).at( 1 ) + input.at( row ).at( 2 )) * 8;
@@ -135,6 +137,8 @@ void InterFrameMacroblock::rewrite_as_intra( Raster::Macroblock & raster )
   }
 
   continuation_ = true;
+
+  has_nonzero_ = true;
 
   /* set prediction modes */
   Y2_.set_prediction_mode( B_PRED );
