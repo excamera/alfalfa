@@ -184,6 +184,11 @@ public:
   unsigned int display_height( void ) const { return display_height_; }
 
   static unsigned int macroblock_dimension( const unsigned int num ) { return ( num + 15 ) / 16; }
+
+  bool operator==( const Raster & other ) const
+  {
+    return (Y_ == other.Y_) and (U_ == other.U_) and (V_ == other.V_);
+  }
 };
 
 class RasterHandle
@@ -202,6 +207,8 @@ public:
 
   operator const Raster & () const { return *raster_; }
   operator Raster & () { return *raster_; }
+
+  const Raster & get( void ) const { return *raster_; }
 };
 
 #endif /* RASTER_HH */

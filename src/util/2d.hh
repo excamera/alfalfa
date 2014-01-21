@@ -115,6 +115,24 @@ public:
     }
   }
 
+  bool operator==( const TwoD< T > & other ) const
+  {
+    if ( width() != other.width()
+	 or height() != other.height() ) {
+      return false;
+    }
+
+    for ( unsigned int row = 0; row < height(); row++ ) {
+      for ( unsigned int column = 0; column < width(); column++ ) {
+	if ( at( column, row ) != other.at( column, row ) ) {
+	  return false;
+	}
+      }
+    }
+
+    return true;
+  }
+
   /* forbid copying */
   TwoD( const TwoD & other ) = delete;
   TwoD & operator=( const TwoD & other ) = delete;

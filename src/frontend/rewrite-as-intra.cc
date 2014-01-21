@@ -51,6 +51,7 @@ int main( int argc, char *argv[] )
 
     for ( uint32_t i = frame_no; i < file.frame_count(); i++ ) {
       RasterHandle raster( file.width(), file.height() );
+      RasterHandle raster_test( file.width(), file.height() );
       vector< uint8_t > serialized_frame;
 
       UncompressedChunk whole_frame( file.frame( i ), file.width(), file.height() );
@@ -62,8 +63,15 @@ int main( int argc, char *argv[] )
       } else {
 	InterFrame parsed_frame = decoder_state.parse_and_apply<InterFrame>( whole_frame );
 	parsed_frame.rewrite_as_intra( decoder_state.quantizer_filter_adjustments, references, raster );
-	parsed_frame.copy_to( raster, references );
 	serialized_frame = parsed_frame.serialize( decoder_state.probability_tables );
+
+#ifndef NDEBUG
+	/* verify */
+	parsed_frame.decode( decoder_state.quantizer_filter_adjustments, references, raster_test );
+	assert( raster.get() == raster_test.get() );
+#endif
+
+	parsed_frame.copy_to( raster, references );
       }
 
       /* write size of frame */
