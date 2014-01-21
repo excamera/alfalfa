@@ -145,10 +145,15 @@ void InterFrameMacroblock::rewrite_as_intra( Raster::Macroblock & raster )
 {
   assert( inter_coded() );
 
+  if ( mb_skip_coeff_.initialized() ) {
+    mb_skip_coeff_.get() = false;
+  }
+
   const IsolatedRasterMacroblock target( raster );
 
   /* set prediction modes */
   Y2_.set_prediction_mode( B_PRED );
+  Y2_.set_if_coded();
   Y_.forall( [&] ( YBlock & block ) {
       block.set_prediction_mode( B_DC_PRED );
       block.set_Y_without_Y2();
