@@ -28,6 +28,12 @@ struct ContinuationHeader
       missing_alternate_reference_frame( data )
   {}
 
+  ContinuationHeader( const bool s_missing_last, const bool s_missing_golden, const bool s_missing_altref )
+    : missing_last_frame( s_missing_last ),
+      missing_golden_frame( s_missing_golden ),
+      missing_alternate_reference_frame( s_missing_altref )
+  {}
+
   bool is_missing( const reference_frame reference_id ) const;
 };
 

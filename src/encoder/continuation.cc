@@ -193,6 +193,9 @@ void InterFrame::rewrite_as_intra( const QuantizerFilterAdjustments & quantizer_
 				   const References & references,
 				   Raster & raster )
 {
+  assert( not continuation_header_.initialized() );
+  continuation_header_.initialize( true, true, true );
+
   const Quantizer frame_quantizer( header_.quant_indices );
   const auto segment_quantizers = calculate_segment_quantizers( quantizer_filter_adjustments );
 
