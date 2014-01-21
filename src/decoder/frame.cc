@@ -51,6 +51,7 @@ void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers_and_update
 				  mb_segment_tree_probs,
 				  segmentation_map,
 				  probability_tables,
+				  continuation_header_,
 				  Y2_, Y_, U_, V_ );
 
   /* repoint Y2 above/left pointers to skip missing subblocks */
@@ -82,13 +83,9 @@ void Frame<FrameHeaderType, MacroblockType>::parse_tokens( vector< Chunk > dct_p
 					    const unsigned int column __attribute((unused)),
 					    const unsigned int row )
 				       {
-					 const bool continuation_mb = continuation_header_.initialized()
-					   and macroblock.inter_coded()
-					   and continuation_header_.get().is_missing( macroblock.reference() );
-
 					 macroblock.parse_tokens( dct_partition_decoders.at( row % dct_partition_decoders.size() ),
 								  probability_tables,
-								  continuation_mb ); } );
+								  macroblock.continuation( continuation_header_ ) ); } );
 }
 
 template <class FrameHeaderType, class MacroblockType>

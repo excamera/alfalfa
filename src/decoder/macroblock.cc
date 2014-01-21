@@ -30,6 +30,7 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
 							       const ProbabilityArray< num_segments > & mb_segment_tree_probs,
 							       SegmentationMap & mutable_segmentation_map,
 							       const ProbabilityTables & probability_tables,
+							       const Optional< ContinuationHeader > & continuation_header,
 							       TwoD< Y2Block > & frame_Y2,
 							       TwoD< YBlock > & frame_Y,
 							       TwoD< UVBlock > & frame_U,
@@ -57,12 +58,13 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
     segment_id_ = mutable_segmentation_map.at( c.column, c.row );
   }
 
-  decode_prediction_modes( data, probability_tables );
+  decode_prediction_modes( data, probability_tables, continuation( continuation_header ) );
 }
 
 template <>
 void KeyFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
-						  const ProbabilityTables & )
+						  const ProbabilityTables &,
+						  const bool )
 {
   /* Set Y prediction mode */
   Y2_.set_prediction_mode( Tree< mbmode, num_y_modes, kf_y_mode_tree >( data, kf_y_mode_probs ) );
@@ -271,9 +273,10 @@ MotionVector luma_to_chroma( const MotionVector & s1,
 
 template <>
 void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
-						    const ProbabilityTables & probability_tables )
+						    const ProbabilityTables & probability_tables,
+						    const bool continuation )
 {
-  if ( not inter_coded() ) {
+  if ( (not inter_coded()) or continuation ) {
     /* Set Y prediction mode */
     Y2_.set_prediction_mode( Tree< mbmode, num_y_modes, y_mode_tree >( data, probability_tables.y_mode_probs ) );
     Y2_.set_if_coded();

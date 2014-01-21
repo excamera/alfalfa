@@ -16,27 +16,6 @@ struct Quantizers
   SafeArray< Quantizer, num_segments > segment_quantizers;
 };
 
-struct ContinuationHeader
-{
-  Flag missing_last_frame;
-  Flag missing_golden_frame;
-  Flag missing_alternate_reference_frame;
-
-  ContinuationHeader( BoolDecoder & data )
-    : missing_last_frame( data ),
-      missing_golden_frame( data ),
-      missing_alternate_reference_frame( data )
-  {}
-
-  ContinuationHeader( const bool s_missing_last, const bool s_missing_golden, const bool s_missing_altref )
-    : missing_last_frame( s_missing_last ),
-      missing_golden_frame( s_missing_golden ),
-      missing_alternate_reference_frame( s_missing_altref )
-  {}
-
-  bool is_missing( const reference_frame reference_id ) const;
-};
-
 template <class FrameHeaderType, class MacroblockType>
 class Frame
 {

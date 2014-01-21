@@ -349,7 +349,8 @@ void YBlock::write_subblock_inter_prediction( BoolEncoder & encoder,
 
 template <>
 void KeyFrameMacroblock::encode_prediction_modes( BoolEncoder & encoder,
-						  const ProbabilityTables & ) const
+						  const ProbabilityTables &,
+						  const bool ) const
 {
   encode( encoder,
 	  Tree< mbmode, num_y_modes, kf_y_mode_tree >( Y2_.prediction_mode() ),
@@ -374,9 +375,10 @@ void KeyFrameMacroblock::encode_prediction_modes( BoolEncoder & encoder,
 
 template <>
 void InterFrameMacroblock::encode_prediction_modes( BoolEncoder & encoder,
-						    const ProbabilityTables & probability_tables ) const
+						    const ProbabilityTables & probability_tables,
+						    const bool continuation ) const
 {
-  if ( not inter_coded() ) {
+  if ( (not inter_coded()) or continuation ) {
     encode( encoder,
 	    Tree< mbmode, num_y_modes, y_mode_tree >( Y2_.prediction_mode() ),
 	    probability_tables.y_mode_probs );
@@ -436,12 +438,13 @@ template <class FrameHeaderType, class MacroblockheaderType >
 void Macroblock< FrameHeaderType, MacroblockheaderType >::serialize( BoolEncoder & encoder,
 								     const FrameHeaderType & frame_header,
 								     const ProbabilityArray< num_segments > & mb_segment_tree_probs,
-								     const ProbabilityTables & probability_tables ) const
+								     const ProbabilityTables & probability_tables,
+								     const bool continuation) const
 {
   encode( encoder, segment_id_update_, mb_segment_tree_probs );
   encode( encoder, mb_skip_coeff_, frame_header.prob_skip_false.get_or( 0 ) );
   encode( encoder, header_, frame_header );
-  encode_prediction_modes( encoder, probability_tables );
+  encode_prediction_modes( encoder, probability_tables, continuation );
 }
 
 template <class FrameHeaderType, class MacroblockType>
@@ -462,7 +465,8 @@ vector< uint8_t > Frame< FrameHeaderType, MacroblockType >::serialize_first_part
 				    { macroblock.serialize( encoder,
 							    header(),
 							    segment_tree_probs,
-							    probability_tables ); } );
+							    probability_tables,
+							    macroblock.continuation( continuation_header_ ) ); } );
 
   return encoder.finish();
 }
@@ -477,13 +481,9 @@ vector< vector< uint8_t > > Frame< FrameHeaderType, MacroblockType >::serialize_
 					    const unsigned int column __attribute((unused)),
 					    const unsigned int row )
 				       {
-					 const bool continuation_mb = continuation_header_.initialized()
-					   and macroblock.inter_coded()
-					   and continuation_header_.get().is_missing( macroblock.reference() );
-
 					 macroblock.serialize_tokens( dct_partitions.at( row % dct_partition_count() ),
 								      probability_tables,
-								      continuation_mb ); } );
+								      macroblock.continuation( continuation_header_ ) ); } );
 
   /* finish encoding and return the resulting octet sequences */
   vector< vector< uint8_t > > ret;

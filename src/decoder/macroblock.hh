@@ -13,6 +13,27 @@ class ProbabilityTables;
 class References;
 class BoolEncoder;
 
+struct ContinuationHeader
+{
+  Flag missing_last_frame;
+  Flag missing_golden_frame;
+  Flag missing_alternate_reference_frame;
+
+  ContinuationHeader( BoolDecoder & data )
+    : missing_last_frame( data ),
+      missing_golden_frame( data ),
+      missing_alternate_reference_frame( data )
+  {}
+
+  ContinuationHeader( const bool s_missing_last, const bool s_missing_golden, const bool s_missing_altref )
+    : missing_last_frame( s_missing_last ),
+      missing_golden_frame( s_missing_golden ),
+      missing_alternate_reference_frame( s_missing_altref )
+  {}
+
+  bool is_missing( const reference_frame reference_id ) const;
+};
+
 template <class FrameHeaderType, class MacroblockHeaderType>
 class Macroblock
 {
@@ -33,10 +54,12 @@ private:
   bool has_nonzero_ { false };
 
   void decode_prediction_modes( BoolDecoder & data,
-				const ProbabilityTables & probability_tables );
+				const ProbabilityTables & probability_tables,
+				const bool continuation );
 
   void encode_prediction_modes( BoolEncoder & encoder,
-				const ProbabilityTables & probability_tables ) const;
+				const ProbabilityTables & probability_tables,
+				const bool continuation ) const;
 
   void set_base_motion_vector( const MotionVector & mv );
 
@@ -47,6 +70,7 @@ public:
 	      const ProbabilityArray< num_segments > & mb_segment_tree_probs,
 	      SegmentationMap & mutable_segmentation_map,
 	      const ProbabilityTables & probability_tables,
+	      const Optional< ContinuationHeader > & continuation_header,
 	      TwoD< Y2Block > & frame_Y2,
 	      TwoD< YBlock > & frame_Y,
 	      TwoD< UVBlock > & frame_U,
@@ -75,18 +99,25 @@ public:
   const mbmode & y_prediction_mode( void ) const { return Y2_.prediction_mode(); }
 
   bool inter_coded( void ) const;
-  reference_frame reference( void ) const { return header_.reference(); }
 
   uint8_t segment_id( void ) const { return segment_id_; }
 
   void serialize( BoolEncoder & encoder,
 		  const FrameHeaderType & frame_header,
 		  const ProbabilityArray< num_segments > & mb_segment_tree_probs,
-		  const ProbabilityTables & probability_tables ) const;
+		  const ProbabilityTables & probability_tables,
+		  const bool continuation ) const;
 
   void serialize_tokens( BoolEncoder & encoder,
 			 const ProbabilityTables & probability_tables,
 			 const bool continuation ) const;
+
+  bool continuation( const Optional< ContinuationHeader > & continuation_header ) const
+  {
+    return continuation_header.initialized()
+      and inter_coded()
+      and continuation_header.get().is_missing( header_.reference() );
+  }
 };
 
 struct KeyFrameMacroblockHeader

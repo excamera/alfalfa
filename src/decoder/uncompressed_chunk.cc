@@ -39,9 +39,6 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
 
     /* If version = 3, this affects the decoding process by truncating
        chroma motion vectors to full pixels. */
-    if ( version != 0 ) {
-      throw Unsupported( "VP8 version of " + to_string( version ) );
-    }
 
     /* first partition */
     uint32_t first_partition_length = frame.bits( 5, 19 );
