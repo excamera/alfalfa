@@ -78,7 +78,7 @@ public:
     }
   }
 
-  void parse_tokens( BoolDecoder & data, const ProbabilityTables & probability_tables );
+  void parse_tokens( BoolDecoder & data, const ProbabilityTables & probability_tables, const bool continuation );
 
   BlockType type( void ) const { return type_; }
   bool coded( void ) const { static_assert( initial_block_type == Y2,
@@ -109,7 +109,9 @@ public:
   void write_subblock_inter_prediction( BoolEncoder & encoder, const MotionVector & best_mv,
 					const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > & motion_vector_probs ) const;
 
-  void serialize_tokens( BoolEncoder & data, const ProbabilityTables & probability_tables ) const;
+  void serialize_tokens( BoolEncoder & data,
+			 const ProbabilityTables & probability_tables,
+			 const bool continuation ) const;
 
   SafeArray< int16_t, 16 > & mutable_coefficients( void ) { return coefficients_; }
   const SafeArray< int16_t, 16 > & coefficients( void ) const { return coefficients_; }

@@ -52,7 +52,9 @@ public:
 	      TwoD< UVBlock > & frame_U,
 	      TwoD< UVBlock > & frame_V );
 
-  void parse_tokens( BoolDecoder & data, const ProbabilityTables & probability_tables );
+  void parse_tokens( BoolDecoder & data,
+		     const ProbabilityTables & probability_tables,
+		     const bool continuation );
 
   void reconstruct_intra( const Quantizer & quantizer, Raster::Macroblock & raster ) const;
   void reconstruct_inter( const Quantizer & quantizer,
@@ -73,6 +75,7 @@ public:
   const mbmode & y_prediction_mode( void ) const { return Y2_.prediction_mode(); }
 
   bool inter_coded( void ) const;
+  reference_frame reference( void ) const { return header_.reference(); }
 
   uint8_t segment_id( void ) const { return segment_id_; }
 
@@ -81,7 +84,9 @@ public:
 		  const ProbabilityArray< num_segments > & mb_segment_tree_probs,
 		  const ProbabilityTables & probability_tables ) const;
 
-  void serialize_tokens( BoolEncoder & encoder, const ProbabilityTables & probability_tables ) const;
+  void serialize_tokens( BoolEncoder & encoder,
+			 const ProbabilityTables & probability_tables,
+			 const bool continuation ) const;
 };
 
 struct KeyFrameMacroblockHeader

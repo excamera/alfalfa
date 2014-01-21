@@ -57,6 +57,16 @@ void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers_and_update
   relink_y2_blocks();
 }
 
+bool ContinuationHeader::is_missing( const reference_frame reference_id ) const
+{
+  switch ( reference_id ) {
+  case LAST_FRAME: return missing_last_frame;
+  case GOLDEN_FRAME: return missing_golden_frame;
+  case ALTREF_FRAME: return missing_alternate_reference_frame;
+  default: assert( false ); return false;
+  }
+}
+
 template <class FrameHeaderType, class MacroblockType>
 void Frame<FrameHeaderType, MacroblockType>::parse_tokens( vector< Chunk > dct_partitions,
 							   const ProbabilityTables & probability_tables )
@@ -71,8 +81,14 @@ void Frame<FrameHeaderType, MacroblockType>::parse_tokens( vector< Chunk > dct_p
   macroblock_headers_.get().forall_ij( [&]( MacroblockType & macroblock,
 					    const unsigned int column __attribute((unused)),
 					    const unsigned int row )
-				       { macroblock.parse_tokens( dct_partition_decoders.at( row % dct_partition_decoders.size() ),
-								  probability_tables ); } );
+				       {
+					 const bool continuation_mb = continuation_header_.initialized()
+					   and macroblock.inter_coded()
+					   and continuation_header_.get().is_missing( macroblock.reference() );
+
+					 macroblock.parse_tokens( dct_partition_decoders.at( row % dct_partition_decoders.size() ),
+								  probability_tables,
+								  continuation_mb ); } );
 }
 
 template <class FrameHeaderType, class MacroblockType>

@@ -385,7 +385,8 @@ InterFrameMacroblockHeader::InterFrameMacroblockHeader( BoolDecoder & data,
 
 template <class FrameHeaderType, class MacroblockHeaderType>
 void Macroblock<FrameHeaderType, MacroblockHeaderType>::parse_tokens( BoolDecoder & data,
-								      const ProbabilityTables & probability_tables )
+								      const ProbabilityTables & probability_tables,
+								      const bool continuation )
 {
   /* is macroblock skipped? */
   if ( mb_skip_coeff_.get_or( false ) ) {
@@ -394,21 +395,21 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::parse_tokens( BoolDecode
 
   /* parse Y2 block if present */
   if ( Y2_.coded() ) {
-    Y2_.parse_tokens( data, probability_tables );
+    Y2_.parse_tokens( data, probability_tables, false );
     has_nonzero_ |= Y2_.has_nonzero();
   }
 
   /* parse Y blocks with variable first coefficient */
   Y_.forall( [&]( YBlock & block ) {
-      block.parse_tokens( data, probability_tables );
+      block.parse_tokens( data, probability_tables, continuation );
       has_nonzero_ |= block.has_nonzero(); } );
 
   /* parse U and V blocks */
   U_.forall( [&]( UVBlock & block ) {
-      block.parse_tokens( data, probability_tables );
+      block.parse_tokens( data, probability_tables, continuation );
       has_nonzero_ |= block.has_nonzero(); } );
   V_.forall( [&]( UVBlock & block ) {
-      block.parse_tokens( data, probability_tables );
+      block.parse_tokens( data, probability_tables, continuation );
       has_nonzero_ |= block.has_nonzero(); } );
 }
 

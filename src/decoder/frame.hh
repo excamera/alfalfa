@@ -27,6 +27,8 @@ struct ContinuationHeader
       missing_golden_frame( data ),
       missing_alternate_reference_frame( data )
   {}
+
+  bool is_missing( const reference_frame reference_id ) const;
 };
 
 template <class FrameHeaderType, class MacroblockType>

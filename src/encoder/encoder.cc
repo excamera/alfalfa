@@ -476,8 +476,14 @@ vector< vector< uint8_t > > Frame< FrameHeaderType, MacroblockType >::serialize_
   macroblock_headers_.get().forall_ij( [&]( const MacroblockType & macroblock,
 					    const unsigned int column __attribute((unused)),
 					    const unsigned int row )
-				       { macroblock.serialize_tokens( dct_partitions.at( row % dct_partition_count() ),
-								      probability_tables ); } );
+				       {
+					 const bool continuation_mb = continuation_header_.initialized()
+					   and macroblock.inter_coded()
+					   and continuation_header_.get().is_missing( macroblock.reference() );
+
+					 macroblock.serialize_tokens( dct_partitions.at( row % dct_partition_count() ),
+								      probability_tables,
+								      continuation_mb ); } );
 
   /* finish encoding and return the resulting octet sequences */
   vector< vector< uint8_t > > ret;
@@ -489,19 +495,20 @@ vector< vector< uint8_t > > Frame< FrameHeaderType, MacroblockType >::serialize_
 
 template <class FrameHeaderType, class MacroblockheaderType >
 void Macroblock< FrameHeaderType, MacroblockheaderType >::serialize_tokens( BoolEncoder & encoder,
-									    const ProbabilityTables & probability_tables ) const
+									    const ProbabilityTables & probability_tables,
+									    const bool continuation ) const
 {
   if ( mb_skip_coeff_.get_or( false ) ) {
     return;
   }
 
   if ( Y2_.coded() ) {
-    Y2_.serialize_tokens( encoder, probability_tables );
+    Y2_.serialize_tokens( encoder, probability_tables, false );
   }
 
-  Y_.forall( [&]( const YBlock & block ) { block.serialize_tokens( encoder, probability_tables ); } );
-  U_.forall( [&]( const UVBlock & block ) { block.serialize_tokens( encoder, probability_tables ); } );
-  V_.forall( [&]( const UVBlock & block ) { block.serialize_tokens( encoder, probability_tables ); } );
+  Y_.forall( [&]( const YBlock & block ) { block.serialize_tokens( encoder, probability_tables, continuation ); } );
+  U_.forall( [&]( const UVBlock & block ) { block.serialize_tokens( encoder, probability_tables, continuation ); } );
+  V_.forall( [&]( const UVBlock & block ) { block.serialize_tokens( encoder, probability_tables, continuation ); } );
 }
 
 template <unsigned int length>
@@ -517,7 +524,8 @@ void TokenDecoder<length>::encode( BoolEncoder & encoder, const uint16_t value )
 template <BlockType initial_block_type, class PredictionMode>
 void Block< initial_block_type,
 	    PredictionMode >::serialize_tokens( BoolEncoder & encoder,
-						const ProbabilityTables & probability_tables ) const
+						const ProbabilityTables & probability_tables,
+						const bool continuation ) const
 {
   uint8_t coded_length = 0;
 
@@ -657,5 +665,18 @@ void Block< initial_block_type,
       = probability_tables.coeff_probs.at( type_ ).at( coefficient_to_band.at( index ) ).at( token_context );
 
     encoder.put( false, prob.at( 0 ) );
+  }
+
+  /* write pixel adjustment */
+  if ( continuation ) {
+    for ( unsigned int i = 0; i < 16; i++ ) {
+      const bool is_nonzero = !( pixel_adjustments_.at( i ) == PixelAdjustment::NoAdjustment );
+      encoder.put( is_nonzero, 253 );
+
+      if ( is_nonzero ) {
+	const bool bit = (pixel_adjustments_.at( i ) == PixelAdjustment::PlusOne) ? 1 : 0;
+	encoder.put( bit );
+      }
+    }
   }
 }
