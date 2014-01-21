@@ -100,6 +100,46 @@ public:
   }
 };
 
+template <BlockType initial_block_type, class PredictionMode>
+static void rewrite_block_as_intra( Block<initial_block_type, PredictionMode> & block,
+				    const Raster::Block4 & prediction,
+				    const Raster::Block4 & target,
+				    Raster::Block4 & raster )
+{
+  /* Get the residue */
+  const auto residue = target - prediction;
+
+  /* Transform the residue */
+  block.fdct( residue );
+
+  /* Find any necessary pixel adjustments */
+  raster = prediction;
+  block.idct_add( raster );
+  for ( uint8_t pixel_row = 0; pixel_row < 4; pixel_row++ ) {
+    for ( uint8_t pixel_col = 0; pixel_col < 4; pixel_col++ ) {
+      const int8_t adjustment = target.at( pixel_col, pixel_row ) - raster.at( pixel_col, pixel_row );
+      if ( abs( adjustment ) > 1 ) {
+	throw Exception( "rewrite_block_as_intra", "pixel adjustment too large: " + to_string( adjustment ) );
+      }
+
+      if ( adjustment ) {
+	block.set_has_pixel_adjustment( true );
+	block.mutable_pixel_adjustments().at( pixel_row * 4 + pixel_col ) = static_cast<PixelAdjustment>( adjustment );
+      }
+    }
+  }
+
+#ifndef NDEBUG
+  /* verify roundtrip */
+  raster = prediction;
+  block.idct_add( raster );
+  if ( block.has_pixel_adjustment() ) {
+    block.apply_pixel_adjustment( raster );
+  }
+  assert( raster == target );
+#endif
+}
+
 template <>
 void InterFrameMacroblock::rewrite_as_intra( Raster::Macroblock & raster )
 {
@@ -115,63 +155,36 @@ void InterFrameMacroblock::rewrite_as_intra( Raster::Macroblock & raster )
     } );
   U_.at( 0, 0 ).set_prediction_mode( DC_PRED );
 
-  /* measure the Y residue */
+  /* make the predictions */
   Y_.forall_ij( [&] ( YBlock & block, unsigned int column, unsigned int row ) {
-      /* Intra-predict */
       raster.Y_sub.at( column, row ).intra_predict( block.prediction_mode() );
+    } );
 
-      /* Get the residue */
-      const auto residue = target.mb().Y_sub.at( column, row ) - raster.Y_sub.at( column, row );
+  raster.U.intra_predict( uv_prediction_mode() );
+  raster.V.intra_predict( uv_prediction_mode() );
 
-      /* Transform the residue */
-      block.fdct( residue );
+  const IsolatedRasterMacroblock predicted( raster );
 
-      /* Find any necessary pixel adjustments */
-      raster.Y_sub.at( column, row ).intra_predict( block.prediction_mode() );
-      block.idct_add( raster.Y_sub.at( column, row ) );
-      for ( uint8_t pixel_row = 0; pixel_row < 4; pixel_row++ ) {
-	for ( uint8_t pixel_col = 0; pixel_col < 4; pixel_col++ ) {
-	  const int8_t adjustment = target.mb().Y_sub.at( column, row ).at( pixel_col, pixel_row )
-	    - raster.Y_sub.at( column, row ).at( pixel_col, pixel_row );
-	  if ( abs( adjustment ) > 1 ) {
-	    throw Exception( "rewrite_as_intra", "pixel adjustment too large: " + to_string( adjustment ) );
-	  }
+  /* rewrite the Y subblocks */
+  Y_.forall_ij( [&] ( YBlock & block, unsigned int column, unsigned int row ) {
+      rewrite_block_as_intra( block,
+			      predicted.mb().Y_sub.at( column, row ),
+			      target.mb().Y_sub.at( column, row ),
+			      raster.Y_sub.at( column, row ) );
+    } );
 
-	  if ( adjustment ) {
-	    block.set_has_pixel_adjustment( true );
-	    block.mutable_pixel_adjustments().at( pixel_row * 4 + pixel_col ) = static_cast<PixelAdjustment>( adjustment );
-	  }
-	}
-      }
+  U_.forall_ij( [&] ( UVBlock & block, unsigned int column, unsigned int row ) {
+      rewrite_block_as_intra( block,
+			      predicted.mb().U_sub.at( column, row ),
+			      target.mb().U_sub.at( column, row ),
+			      raster.U_sub.at( column, row ) );
+    } );
 
-      /* Question: is the residue now round-trip? */
-      raster.Y_sub.at( column, row ).intra_predict( block.prediction_mode() );
-      block.idct_add( raster.Y_sub.at( column, row ) );
-      if ( block.has_pixel_adjustment() ) {
-	block.apply_pixel_adjustment( raster.Y_sub.at( column, row ) );
-      }
-
-      if ( target.mb().Y_sub.at( column, row ) == raster.Y_sub.at( column, row ) ) {
-	//	printf( "Match.\n" );
-      } else {
-	printf( "Mismatch. Wanted:\n" );
-
-	for ( int i = 0; i < 4; i++ ) {
-	  for ( int j = 0; j < 4; j++ ) {
-	    printf( " %u", target.mb().Y_sub.at( column, row ).at( j, i ) );
-	  }
-	  printf( "\n" );
-	}
-
-	printf( "\n Got:\n" );
-
-	for ( int i = 0; i < 4; i++ ) {
-	  for ( int j = 0; j < 4; j++ ) {
-	    printf( " %u", raster.Y_sub.at( column, row ).at( j, i ) );
-	  }
-	  printf( "\n" );
-	}
-      }
+  V_.forall_ij( [&] ( UVBlock & block, unsigned int column, unsigned int row ) {
+      rewrite_block_as_intra( block,
+			      predicted.mb().V_sub.at( column, row ),
+			      target.mb().V_sub.at( column, row ),
+			      raster.V_sub.at( column, row ) );
     } );
 }
 
