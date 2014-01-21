@@ -111,7 +111,7 @@ public:
 
   void serialize_tokens( BoolEncoder & data,
 			 const ProbabilityTables & probability_tables,
-			 const bool continuation ) const;
+			 const bool with_pixel_adjustment ) const;
 
   SafeArray< int16_t, 16 > & mutable_coefficients( void ) { return coefficients_; }
   const SafeArray< int16_t, 16 > & coefficients( void ) const { return coefficients_; }

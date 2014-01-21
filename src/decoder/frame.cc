@@ -84,8 +84,7 @@ void Frame<FrameHeaderType, MacroblockType>::parse_tokens( vector< Chunk > dct_p
 					    const unsigned int row )
 				       {
 					 macroblock.parse_tokens( dct_partition_decoders.at( row % dct_partition_decoders.size() ),
-								  probability_tables,
-								  macroblock.continuation( continuation_header_ ) ); } );
+								  probability_tables ); } );
 }
 
 template <class FrameHeaderType, class MacroblockType>

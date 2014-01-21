@@ -349,8 +349,7 @@ void YBlock::write_subblock_inter_prediction( BoolEncoder & encoder,
 
 template <>
 void KeyFrameMacroblock::encode_prediction_modes( BoolEncoder & encoder,
-						  const ProbabilityTables &,
-						  const bool ) const
+						  const ProbabilityTables & ) const
 {
   encode( encoder,
 	  Tree< mbmode, num_y_modes, kf_y_mode_tree >( Y2_.prediction_mode() ),
@@ -375,10 +374,9 @@ void KeyFrameMacroblock::encode_prediction_modes( BoolEncoder & encoder,
 
 template <>
 void InterFrameMacroblock::encode_prediction_modes( BoolEncoder & encoder,
-						    const ProbabilityTables & probability_tables,
-						    const bool continuation ) const
+						    const ProbabilityTables & probability_tables ) const
 {
-  if ( (not inter_coded()) or continuation ) {
+  if ( (not inter_coded()) or continuation_ ) {
     encode( encoder,
 	    Tree< mbmode, num_y_modes, y_mode_tree >( Y2_.prediction_mode() ),
 	    probability_tables.y_mode_probs );
@@ -438,13 +436,12 @@ template <class FrameHeaderType, class MacroblockheaderType >
 void Macroblock< FrameHeaderType, MacroblockheaderType >::serialize( BoolEncoder & encoder,
 								     const FrameHeaderType & frame_header,
 								     const ProbabilityArray< num_segments > & mb_segment_tree_probs,
-								     const ProbabilityTables & probability_tables,
-								     const bool continuation) const
+								     const ProbabilityTables & probability_tables ) const
 {
   encode( encoder, segment_id_update_, mb_segment_tree_probs );
   encode( encoder, mb_skip_coeff_, frame_header.prob_skip_false.get_or( 0 ) );
   encode( encoder, header_, frame_header );
-  encode_prediction_modes( encoder, probability_tables, continuation );
+  encode_prediction_modes( encoder, probability_tables );
 }
 
 template <class FrameHeaderType, class MacroblockType>
@@ -465,8 +462,7 @@ vector< uint8_t > Frame< FrameHeaderType, MacroblockType >::serialize_first_part
 				    { macroblock.serialize( encoder,
 							    header(),
 							    segment_tree_probs,
-							    probability_tables,
-							    macroblock.continuation( continuation_header_ ) ); } );
+							    probability_tables ); } );
 
   return encoder.finish();
 }
@@ -482,8 +478,7 @@ vector< vector< uint8_t > > Frame< FrameHeaderType, MacroblockType >::serialize_
 					    const unsigned int row )
 				       {
 					 macroblock.serialize_tokens( dct_partitions.at( row % dct_partition_count() ),
-								      probability_tables,
-								      macroblock.continuation( continuation_header_ ) ); } );
+								      probability_tables ); } );
 
   /* finish encoding and return the resulting octet sequences */
   vector< vector< uint8_t > > ret;
@@ -495,9 +490,13 @@ vector< vector< uint8_t > > Frame< FrameHeaderType, MacroblockType >::serialize_
 
 template <class FrameHeaderType, class MacroblockheaderType >
 void Macroblock< FrameHeaderType, MacroblockheaderType >::serialize_tokens( BoolEncoder & encoder,
-									    const ProbabilityTables & probability_tables,
-									    const bool continuation ) const
+									    const ProbabilityTables & probability_tables ) const
 {
+  if ( continuation_ ) {
+    assert( mb_skip_coeff_.get_or( false ) == false );
+    assert( not Y2_.coded() );
+  }
+
   if ( mb_skip_coeff_.get_or( false ) ) {
     return;
   }
@@ -506,9 +505,9 @@ void Macroblock< FrameHeaderType, MacroblockheaderType >::serialize_tokens( Bool
     Y2_.serialize_tokens( encoder, probability_tables, false );
   }
 
-  Y_.forall( [&]( const YBlock & block ) { block.serialize_tokens( encoder, probability_tables, continuation ); } );
-  U_.forall( [&]( const UVBlock & block ) { block.serialize_tokens( encoder, probability_tables, continuation ); } );
-  V_.forall( [&]( const UVBlock & block ) { block.serialize_tokens( encoder, probability_tables, continuation ); } );
+  Y_.forall( [&]( const YBlock & block ) { block.serialize_tokens( encoder, probability_tables, continuation_ ); } );
+  U_.forall( [&]( const UVBlock & block ) { block.serialize_tokens( encoder, probability_tables, continuation_ ); } );
+  V_.forall( [&]( const UVBlock & block ) { block.serialize_tokens( encoder, probability_tables, continuation_ ); } );
 }
 
 template <unsigned int length>
@@ -525,7 +524,7 @@ template <BlockType initial_block_type, class PredictionMode>
 void Block< initial_block_type,
 	    PredictionMode >::serialize_tokens( BoolEncoder & encoder,
 						const ProbabilityTables & probability_tables,
-						const bool continuation ) const
+						const bool with_pixel_adjustment ) const
 {
   uint8_t coded_length = 0;
 
@@ -668,7 +667,7 @@ void Block< initial_block_type,
   }
 
   /* write pixel adjustment */
-  if ( continuation ) {
+  if ( with_pixel_adjustment ) {
     for ( unsigned int i = 0; i < 16; i++ ) {
       const bool is_nonzero = !( pixel_adjustments_.at( i ) == PixelAdjustment::NoAdjustment );
       encoder.put( is_nonzero, 253 );

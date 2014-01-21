@@ -43,6 +43,9 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
     mb_skip_coeff_( frame_header.prob_skip_false.initialized(),
 		    data, frame_header.prob_skip_false.get_or( 0 ) ),
     header_( data, frame_header ),
+    continuation_( continuation_header.initialized()
+		   and inter_coded()
+		   and continuation_header.get().is_missing( header_.reference() ) ),
     Y2_( frame_Y2.at( c.column, c.row ) ),
     Y_( frame_Y, c.column * 4, c.row * 4 ),
     U_( frame_U, c.column * 2, c.row * 2 ),
@@ -58,13 +61,12 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
     segment_id_ = mutable_segmentation_map.at( c.column, c.row );
   }
 
-  decode_prediction_modes( data, probability_tables, continuation( continuation_header ) );
+  decode_prediction_modes( data, probability_tables );
 }
 
 template <>
 void KeyFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
-						  const ProbabilityTables &,
-						  const bool )
+						  const ProbabilityTables & )
 {
   /* Set Y prediction mode */
   Y2_.set_prediction_mode( Tree< mbmode, num_y_modes, kf_y_mode_tree >( data, kf_y_mode_probs ) );
@@ -273,10 +275,9 @@ MotionVector luma_to_chroma( const MotionVector & s1,
 
 template <>
 void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
-						    const ProbabilityTables & probability_tables,
-						    const bool continuation )
+						    const ProbabilityTables & probability_tables )
 {
-  if ( (not inter_coded()) or continuation ) {
+  if ( (not inter_coded()) or continuation_ ) {
     /* Set Y prediction mode */
     Y2_.set_prediction_mode( Tree< mbmode, num_y_modes, y_mode_tree >( data, probability_tables.y_mode_probs ) );
     Y2_.set_if_coded();
@@ -388,9 +389,13 @@ InterFrameMacroblockHeader::InterFrameMacroblockHeader( BoolDecoder & data,
 
 template <class FrameHeaderType, class MacroblockHeaderType>
 void Macroblock<FrameHeaderType, MacroblockHeaderType>::parse_tokens( BoolDecoder & data,
-								      const ProbabilityTables & probability_tables,
-								      const bool continuation )
+								      const ProbabilityTables & probability_tables )
 {
+  if ( continuation_ ) {
+    assert( mb_skip_coeff_.get_or( false ) == false );
+    assert( not Y2_.coded() );
+  }
+
   /* is macroblock skipped? */
   if ( mb_skip_coeff_.get_or( false ) ) {
     return;
@@ -404,15 +409,15 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::parse_tokens( BoolDecode
 
   /* parse Y blocks with variable first coefficient */
   Y_.forall( [&]( YBlock & block ) {
-      block.parse_tokens( data, probability_tables, continuation );
+      block.parse_tokens( data, probability_tables, continuation_ );
       has_nonzero_ |= block.has_nonzero(); } );
 
   /* parse U and V blocks */
   U_.forall( [&]( UVBlock & block ) {
-      block.parse_tokens( data, probability_tables, continuation );
+      block.parse_tokens( data, probability_tables, continuation_ );
       has_nonzero_ |= block.has_nonzero(); } );
   V_.forall( [&]( UVBlock & block ) {
-      block.parse_tokens( data, probability_tables, continuation );
+      block.parse_tokens( data, probability_tables, continuation_ );
       has_nonzero_ |= block.has_nonzero(); } );
 }
 
@@ -456,6 +461,11 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
 					      const References & references,
 					      Raster::Macroblock & raster ) const
 {
+  if ( continuation_ ) {
+    reconstruct_continuation( raster );
+    return;
+  }
+
   const Raster & reference = references.at( header_.reference() );
 
   if ( Y2_.prediction_mode() == SPLITMV ) {

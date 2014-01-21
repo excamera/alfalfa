@@ -149,7 +149,7 @@ void InterFrameMacroblock::rewrite_as_intra( Raster::Macroblock & raster )
     mb_skip_coeff_.get() = false;
   }
 
-  const IsolatedRasterMacroblock target( raster );
+  continuation_ = true;
 
   /* set prediction modes */
   Y2_.set_prediction_mode( B_PRED );
@@ -159,6 +159,8 @@ void InterFrameMacroblock::rewrite_as_intra( Raster::Macroblock & raster )
       block.set_Y_without_Y2();
     } );
   U_.at( 0, 0 ).set_prediction_mode( DC_PRED );
+
+  const IsolatedRasterMacroblock target( raster );
 
   /* make the predictions */
   Y_.forall_ij( [&] ( YBlock & block, unsigned int column, unsigned int row ) {

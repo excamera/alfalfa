@@ -47,6 +47,8 @@ private:
 
   MacroblockHeaderType header_;
 
+  bool continuation_;
+
   Y2Block & Y2_;
   TwoDSubRange< YBlock, 4, 4 > Y_;
   TwoDSubRange< UVBlock, 2, 2 > U_, V_;
@@ -54,12 +56,10 @@ private:
   bool has_nonzero_ { false };
 
   void decode_prediction_modes( BoolDecoder & data,
-				const ProbabilityTables & probability_tables,
-				const bool continuation );
+				const ProbabilityTables & probability_tables );
 
   void encode_prediction_modes( BoolEncoder & encoder,
-				const ProbabilityTables & probability_tables,
-				const bool continuation ) const;
+				const ProbabilityTables & probability_tables ) const;
 
   void set_base_motion_vector( const MotionVector & mv );
 
@@ -77,13 +77,13 @@ public:
 	      TwoD< UVBlock > & frame_V );
 
   void parse_tokens( BoolDecoder & data,
-		     const ProbabilityTables & probability_tables,
-		     const bool continuation );
+		     const ProbabilityTables & probability_tables );
 
   void reconstruct_intra( const Quantizer & quantizer, Raster::Macroblock & raster ) const;
   void reconstruct_inter( const Quantizer & quantizer,
 			  const References & references,
 			  Raster::Macroblock & raster ) const;
+  void reconstruct_continuation( Raster::Macroblock & ) const {}
 
   void rewrite_as_intra( Raster::Macroblock & raster );
 
@@ -105,19 +105,10 @@ public:
   void serialize( BoolEncoder & encoder,
 		  const FrameHeaderType & frame_header,
 		  const ProbabilityArray< num_segments > & mb_segment_tree_probs,
-		  const ProbabilityTables & probability_tables,
-		  const bool continuation ) const;
+		  const ProbabilityTables & probability_tables ) const;
 
   void serialize_tokens( BoolEncoder & encoder,
-			 const ProbabilityTables & probability_tables,
-			 const bool continuation ) const;
-
-  bool continuation( const Optional< ContinuationHeader > & continuation_header ) const
-  {
-    return continuation_header.initialized()
-      and inter_coded()
-      and continuation_header.get().is_missing( header_.reference() );
-  }
+			 const ProbabilityTables & probability_tables ) const;
 };
 
 struct KeyFrameMacroblockHeader
