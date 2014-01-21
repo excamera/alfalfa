@@ -60,14 +60,40 @@ int main( int argc, char *argv[] )
 	parsed_frame.decode( decoder_state.quantizer_filter_adjustments, raster );
 	parsed_frame.copy_to( raster, references );
 	serialized_frame = parsed_frame.serialize( decoder_state.probability_tables );
+
+	fprintf( stderr, "Frame %u, original length: %lu bytes. Serialized length: %lu bytes.\n",
+		 i, file.frame( i ).size(), serialized_frame.size() );
       } else {
+	fprintf( stderr, "Parsing frame the first time.\n" );
 	InterFrame parsed_frame = decoder_state.parse_and_apply<InterFrame>( whole_frame );
 	parsed_frame.rewrite_as_intra( decoder_state.quantizer_filter_adjustments, references, raster );
+
 	serialized_frame = parsed_frame.serialize( decoder_state.probability_tables );
+
+	fprintf( stderr, "Frame %u, original length: %lu bytes. Intra length: %lu bytes.\n",
+		 i, file.frame( i ).size(), serialized_frame.size() );
 
 #ifndef NDEBUG
 	/* verify */
 	parsed_frame.decode( decoder_state.quantizer_filter_adjustments, references, raster_test );
+	assert( raster.get() == raster_test.get() );
+
+	Chunk frame_chunk_2( &serialized_frame.at( 0 ), serialized_frame.size() );
+
+	UncompressedChunk whole_frame_2( frame_chunk_2, file.width(), file.height() );
+
+	fprintf( stderr, "Parsing frame the second time.\n" );
+
+	InterFrame parsed_frame_2 = decoder_state.parse_and_apply<InterFrame>( whole_frame_2 );
+
+	//	assert( parsed_frame == parsed_frame_2 );
+
+	vector< uint8_t > serialized_frame_2 = parsed_frame_2.serialize( decoder_state.probability_tables );
+
+	assert( serialized_frame == serialized_frame_2 );
+
+	parsed_frame_2.decode( decoder_state.quantizer_filter_adjustments, references, raster_test );
+
 	assert( raster.get() == raster_test.get() );
 #endif
 

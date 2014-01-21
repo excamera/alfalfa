@@ -465,12 +465,10 @@ void InterFrameMacroblock::reconstruct_continuation( Raster::Macroblock & raster
   raster.U.intra_predict( uv_prediction_mode() );
   raster.V.intra_predict( uv_prediction_mode() );
 
-  if ( has_nonzero_ ) {
-    U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-		  { block.idct_add_pixel_adjust( raster.U_sub.at( column, row ) ); } );
-    V_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-		  { block.idct_add_pixel_adjust( raster.V_sub.at( column, row ) ); } );
-  }
+  U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
+		{ block.idct_add_pixel_adjust( raster.U_sub.at( column, row ) ); } );
+  V_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
+		{ block.idct_add_pixel_adjust( raster.V_sub.at( column, row ) ); } );
 
   /* Luma */
   if ( Y2_.prediction_mode() != B_PRED ) {
@@ -480,7 +478,7 @@ void InterFrameMacroblock::reconstruct_continuation( Raster::Macroblock & raster
   /* Prediction and inverse transform done in line! */
   Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row ) {
       raster.Y_sub.at( column, row ).intra_predict( block.prediction_mode() );
-      if ( has_nonzero_ ) block.idct_add_pixel_adjust( raster.Y_sub.at( column, row ) ); } );
+      block.idct_add_pixel_adjust( raster.Y_sub.at( column, row ) ); } );
 }
 
 template <>

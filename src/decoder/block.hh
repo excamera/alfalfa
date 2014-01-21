@@ -132,6 +132,8 @@ public:
       }
     }
   }
+
+  void recalculate_has_nonzero();
 };
 
 using Y2Block = Block< Y2, mbmode >;

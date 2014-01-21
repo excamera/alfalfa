@@ -89,6 +89,18 @@ public:
 };
 
 template <BlockType initial_block_type, class PredictionMode>
+void Block<initial_block_type, PredictionMode>::recalculate_has_nonzero( void )
+{
+  has_nonzero_ = false;
+  for ( uint8_t i = 0; i < 16; i++ ) {
+    if ( coefficients_.at( i ) ) {
+      has_nonzero_ = true;
+      return;
+    }
+  }
+}
+
+template <BlockType initial_block_type, class PredictionMode>
 static void rewrite_block_as_intra( Block<initial_block_type, PredictionMode> & block,
 				    const Raster::Block4 & prediction,
 				    const Raster::Block4 & target,
@@ -117,6 +129,8 @@ static void rewrite_block_as_intra( Block<initial_block_type, PredictionMode> & 
     }
   }
 
+  block.recalculate_has_nonzero();
+
   raster = target;
 }
 
@@ -136,6 +150,11 @@ void InterFrameMacroblock::rewrite_as_intra( Raster::Macroblock & raster )
   /* set prediction modes */
   Y2_.set_prediction_mode( B_PRED );
   Y2_.set_if_coded();
+
+  for ( uint8_t i = 0; i < 16; i++ ) {
+    Y2_.mutable_coefficients().at( i ) = 0;
+  }
+
   Y_.forall( [&] ( YBlock & block ) {
       block.set_prediction_mode( B_DC_PRED );
       block.set_Y_without_Y2();
@@ -207,4 +226,6 @@ void InterFrame::rewrite_as_intra( const QuantizerFilterAdjustments & quantizer_
 					 } } );
 
   loopfilter( quantizer_filter_adjustments, raster );
+
+  relink_y2_blocks();
 }
