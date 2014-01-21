@@ -486,11 +486,6 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
 					      const References & references,
 					      Raster::Macroblock & raster ) const
 {
-  if ( continuation_ ) {
-    reconstruct_continuation( raster );
-    return;
-  }
-
   const Raster & reference = references.at( header_.reference() );
 
   if ( Y2_.prediction_mode() == SPLITMV ) {

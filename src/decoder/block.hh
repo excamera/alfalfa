@@ -124,7 +124,13 @@ public:
   void idct_add_pixel_adjust( Raster::Block4 & output ) const
   {
     idct_add( output );
-    apply_pixel_adjustment( output );
+
+    for ( uint8_t row = 0; row < 4; row++ ) {
+      for ( uint8_t column = 0; column < 4; column++ ) {
+	output.at( column, row ) = clamp255( output.at( column, row )
+					     + static_cast<int8_t>( pixel_adjustments_.at( row * 4 + column ) ) );
+      }
+    }
   }
 };
 

@@ -102,6 +102,8 @@ public:
 
   uint8_t segment_id( void ) const { return segment_id_; }
 
+  bool continuation( void ) const { return continuation_; }
+
   void serialize( BoolEncoder & encoder,
 		  const FrameHeaderType & frame_header,
 		  const ProbabilityArray< num_segments > & mb_segment_tree_probs,

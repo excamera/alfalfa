@@ -189,9 +189,13 @@ void InterFrame::decode( const QuantizerFilterAdjustments & quantizer_filter_adj
 					   ? segment_quantizers.at( macroblock.segment_id() )
 					   : frame_quantizer;
 					 if ( macroblock.inter_coded() ) {
-					   macroblock.reconstruct_inter( quantizer,
-									 references,
-									 raster.macroblock( column, row ) );
+					   if ( macroblock.continuation() ) {
+					     macroblock.reconstruct_continuation( raster.macroblock( column, row ) );
+					   } else {
+					     macroblock.reconstruct_inter( quantizer,
+									   references,
+									   raster.macroblock( column, row ) );
+					   }
 					 } else {
 					   macroblock.reconstruct_intra( quantizer,
 									 raster.macroblock( column, row ) );
