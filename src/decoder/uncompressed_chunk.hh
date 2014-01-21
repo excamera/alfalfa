@@ -19,6 +19,7 @@ private:
   ReconstructionFilterType reconstruction_filter_;
   LoopFilterType loop_filter_;
   bool show_frame_;
+  bool experimental_;
   Chunk first_partition_;
   Chunk rest_;
 
@@ -31,6 +32,8 @@ public:
 
   LoopFilterType loop_filter_type( void ) const { return loop_filter_; }
   bool show_frame( void ) const { return show_frame_; }
+
+  bool experimental( void ) const { return experimental_; }
 };
 
 #endif /* UNCOMPRESSED_CHUNK_HH */

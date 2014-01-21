@@ -10,6 +10,7 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
     reconstruction_filter_(),
     loop_filter_(),
     show_frame_(),
+    experimental_(),
     first_partition_( nullptr, 0 ),
     rest_( nullptr, 0 )
 {
@@ -25,18 +26,12 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
     case 0:
       reconstruction_filter_ = ReconstructionFilterType::Bicubic;
       loop_filter_ = LoopFilterType::Normal;
+      experimental_ = false;
       break;
-    case 1:
-      reconstruction_filter_ = ReconstructionFilterType::Bilinear;
-      loop_filter_ = LoopFilterType::Simple;
-      break;
-    case 2:
-      reconstruction_filter_ = ReconstructionFilterType::Bilinear;
-      loop_filter_ = LoopFilterType::NoFilter;
-      break;
-    case 3:
-      reconstruction_filter_ = ReconstructionFilterType::NoFilter;
-      loop_filter_ = LoopFilterType::NoFilter;
+    case 4:
+      reconstruction_filter_ = ReconstructionFilterType::Bicubic;
+      loop_filter_ = LoopFilterType::Normal;
+      experimental_ = true;
       break;
     default:
       throw Unsupported( "VP8 version of " + to_string( version ) );

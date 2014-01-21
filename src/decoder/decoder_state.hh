@@ -57,8 +57,14 @@ inline KeyFrame DecoderState::parse_and_apply<KeyFrame>( const UncompressedChunk
   /* initialize Boolean decoder for the frame and macroblock headers */
   BoolDecoder first_partition( uncompressed_chunk.first_partition() );
 
+  if ( uncompressed_chunk.experimental() ) {
+    throw Invalid( "experimental key frame" );
+  }
+
   /* parse keyframe header */
-  KeyFrame myframe( uncompressed_chunk.show_frame(), width, height, first_partition );
+  KeyFrame myframe( uncompressed_chunk.show_frame(),
+		    uncompressed_chunk.experimental(),
+		    width, height, first_partition );
 
   /* reset persistent decoder state to default values */
   *this = DecoderState( myframe.header(), width, height );
@@ -87,7 +93,9 @@ inline InterFrame DecoderState::parse_and_apply<InterFrame>( const UncompressedC
   BoolDecoder first_partition( uncompressed_chunk.first_partition() );
 
   /* parse interframe header */
-  InterFrame myframe( uncompressed_chunk.show_frame(), width, height, first_partition );
+  InterFrame myframe( uncompressed_chunk.show_frame(),
+		      uncompressed_chunk.experimental(),
+		      width, height, first_partition );
 
   /* update adjustments to quantizer and in-loop deblocking filter */
   quantizer_filter_adjustments.update( myframe.header() );

@@ -16,6 +16,19 @@ struct Quantizers
   SafeArray< Quantizer, num_segments > segment_quantizers;
 };
 
+struct ContinuationHeader
+{
+  Flag missing_last_frame;
+  Flag missing_golden_frame;
+  Flag missing_alternate_reference_frame;
+
+  ContinuationHeader( BoolDecoder & data )
+    : missing_last_frame( data ),
+      missing_golden_frame( data ),
+      missing_alternate_reference_frame( data )
+  {}
+};
+
 template <class FrameHeaderType, class MacroblockType>
 class Frame
 {
@@ -33,6 +46,8 @@ class Frame
 
   FrameHeaderType header_;
 
+  Optional< ContinuationHeader > continuation_header_;
+
   Optional< TwoD< MacroblockType > > macroblock_headers_ {};
 
   void relink_y2_blocks( void );
@@ -47,6 +62,7 @@ class Frame
 
  public:
   Frame( const bool show,
+	 const bool continuation,
 	 const unsigned int width,
 	 const unsigned int height,
 	 BoolDecoder & first_partition );

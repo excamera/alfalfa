@@ -9,13 +9,15 @@ using namespace std;
 
 template <class FrameHeaderType, class MacroblockType>
 Frame<FrameHeaderType, MacroblockType>::Frame( const bool show,
+					       const bool continuation,
 					       const unsigned int width,
 					       const unsigned int height,
 					       BoolDecoder & first_partition )
   : show_( show ),
     display_width_( width ),
     display_height_( height ),
-    header_( first_partition )
+    header_( first_partition ),
+    continuation_header_( continuation, first_partition )
 {}
 
 template <class FrameHeaderType, class MacroblockType>
