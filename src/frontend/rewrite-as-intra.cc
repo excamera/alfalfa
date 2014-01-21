@@ -34,19 +34,47 @@ int main( int argc, char *argv[] )
     DecoderState decoder_state( file.width(), file.height() );
     References references( file.width(), file.height() );
 
+    /* write IVF header */
+    cout << "DKIF";
+    cout << uint8_t(0) << uint8_t(0); /* version */
+    cout << uint8_t(32) << uint8_t(0); /* header length */
+    cout << "VP80"; /* fourcc */
+    cout << uint8_t(file.width() & 0xff) << uint8_t((file.width() >> 8) & 0xff); /* width */
+    cout << uint8_t(file.height() & 0xff) << uint8_t((file.height() >> 8) & 0xff); /* height */
+    cout << uint8_t(1) << uint8_t(0) << uint8_t(0) << uint8_t(0); /* bogus frame rate */
+    cout << uint8_t(1) << uint8_t(0) << uint8_t(0) << uint8_t(0); /* bogus time scale */
+
+    const uint32_t le_num_frames = htole32( file.frame_count() - frame_no );
+    cout << string( reinterpret_cast<const char *>( &le_num_frames ), sizeof( le_num_frames ) ); /* num frames */
+
+    cout << uint8_t(0) << uint8_t(0) << uint8_t(0) << uint8_t(0); /* fill out header */
+
     for ( uint32_t i = frame_no; i < file.frame_count(); i++ ) {
       RasterHandle raster( file.width(), file.height() );
+      vector< uint8_t > serialized_frame;
 
       UncompressedChunk whole_frame( file.frame( i ), file.width(), file.height() );
       if ( whole_frame.key_frame() ) {
 	const KeyFrame parsed_frame = decoder_state.parse_and_apply<KeyFrame>( whole_frame );
 	parsed_frame.decode( decoder_state.quantizer_filter_adjustments, raster );
 	parsed_frame.copy_to( raster, references );
+	serialized_frame = parsed_frame.serialize( decoder_state.probability_tables );
       } else {
 	InterFrame parsed_frame = decoder_state.parse_and_apply<InterFrame>( whole_frame );
 	parsed_frame.rewrite_as_intra( decoder_state.quantizer_filter_adjustments, references, raster );
 	parsed_frame.copy_to( raster, references );
+	serialized_frame = parsed_frame.serialize( decoder_state.probability_tables );
       }
+
+      /* write size of frame */
+      const uint32_t le_size = htole32( serialized_frame.size() );
+      cout << string( reinterpret_cast<const char *>( &le_size ), sizeof( le_size ) ); /* size */
+
+      cout << uint8_t(0) << uint8_t(0) << uint8_t(0) << uint8_t(0); /* fill out header */
+      cout << uint8_t(0) << uint8_t(0) << uint8_t(0) << uint8_t(0); /* fill out header */
+
+      /* write the frame */
+      fwrite( &serialized_frame.at( 0 ), serialized_frame.size(), 1, stdout );
     }
   } catch ( const Exception & e ) {
     e.perror( argv[ 0 ] );
