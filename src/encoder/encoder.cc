@@ -12,6 +12,7 @@ using namespace std;
 
 static vector< uint8_t > make_frame( const bool key_frame,
 				     const bool show_frame,
+				     const bool experimental,
 				     const uint16_t width,
 				     const uint16_t height,
 				     const vector< uint8_t > & first_partition,
@@ -30,7 +31,7 @@ static vector< uint8_t > make_frame( const bool key_frame,
   const uint32_t first_partition_length = first_partition.size();
 
   /* frame tag */
-  ret.emplace_back( (!key_frame) | (show_frame << 4) | (first_partition_length & 0x7) << 5 );
+  ret.emplace_back( (!key_frame) | (experimental << 3) | (show_frame << 4) | (first_partition_length & 0x7) << 5 );
   ret.emplace_back( (first_partition_length & 0x7f8) >> 3 );
   ret.emplace_back( (first_partition_length & 0x7f800) >> 11 );
 
@@ -75,6 +76,7 @@ vector< uint8_t > KeyFrame::serialize( const ProbabilityTables & probability_tab
 
   return make_frame( true,
 		     show_,
+		     continuation_header_.initialized(),
 		     display_width_, display_height_,
 		     serialize_first_partition( frame_probability_tables ),
 		     serialize_tokens( frame_probability_tables ) );
@@ -88,6 +90,7 @@ vector< uint8_t > InterFrame::serialize( const ProbabilityTables & probability_t
 
   return make_frame( false,
 		     show_,
+		     continuation_header_.initialized(),
 		     display_width_, display_height_,
 		     serialize_first_partition( frame_probability_tables ),
 		     serialize_tokens( frame_probability_tables ) );
@@ -190,6 +193,13 @@ static void encode( BoolEncoder & encoder, const UpdateSegmentation & h )
   encode( encoder, h.update_mb_segmentation_map );
   encode( encoder, h.segment_feature_data );
   encode( encoder, h.mb_segmentation_map );
+}
+
+static void encode( BoolEncoder & encoder, const ContinuationHeader & h )
+{
+  encode( encoder, h.missing_last_frame );
+  encode( encoder, h.missing_golden_frame );
+  encode( encoder, h.missing_alternate_reference_frame );
 }
 
 static void encode( BoolEncoder & encoder, const KeyFrameHeader & header )
@@ -439,8 +449,11 @@ vector< uint8_t > Frame< FrameHeaderType, MacroblockType >::serialize_first_part
 {
   BoolEncoder encoder;
 
-  /* encode partition header */
+  /* encode frame header */
   encode( encoder, header() );
+
+  /* encode continuation header if present */
+  encode( encoder, continuation_header_ );
 
   const auto segment_tree_probs = calculate_mb_segment_tree_probs();
 
