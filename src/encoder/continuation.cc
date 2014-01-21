@@ -117,14 +117,7 @@ static void rewrite_block_as_intra( Block<initial_block_type, PredictionMode> & 
     }
   }
 
-#ifndef NDEBUG
-  /* Verify roundtrip */
-  raster = prediction;
-  block.idct_add_pixel_adjust( raster );
-  assert( raster == target );
-#else
   raster = target;
-#endif
 }
 
 template <>
