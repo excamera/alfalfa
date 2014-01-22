@@ -112,6 +112,18 @@ static void rewrite_block_as_intra( Block<initial_block_type, PredictionMode> & 
   /* Transform the residue */
   block.fdct( residue );
 
+  /*
+  fprintf( stderr, "Residue:" );
+  for ( uint8_t i = 0; i < 16; i++ ) {
+    fprintf( stderr, " %d", block.coefficients().at( i ) );
+  }
+  fprintf( stderr, "\n" );
+  */
+
+  if ( block.mutable_coefficients().at( 1 ) == 1 ) {
+    block.mutable_coefficients().at( 1 )--;
+  }
+
   /* Find any necessary pixel adjustments */
   raster = prediction;
   block.idct_add( raster );

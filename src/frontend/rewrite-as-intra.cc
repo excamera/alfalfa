@@ -34,6 +34,8 @@ int main( int argc, char *argv[] )
     DecoderState decoder_state( file.width(), file.height() );
     References references( file.width(), file.height() );
 
+    uint32_t frame_count = 360;
+
     /* write IVF header */
     cout << "DKIF";
     cout << uint8_t(0) << uint8_t(0); /* version */
@@ -44,12 +46,12 @@ int main( int argc, char *argv[] )
     cout << uint8_t(1) << uint8_t(0) << uint8_t(0) << uint8_t(0); /* bogus frame rate */
     cout << uint8_t(1) << uint8_t(0) << uint8_t(0) << uint8_t(0); /* bogus time scale */
 
-    const uint32_t le_num_frames = htole32( file.frame_count() - frame_no );
+    const uint32_t le_num_frames = htole32( frame_count - frame_no );
     cout << string( reinterpret_cast<const char *>( &le_num_frames ), sizeof( le_num_frames ) ); /* num frames */
 
     cout << uint8_t(0) << uint8_t(0) << uint8_t(0) << uint8_t(0); /* fill out header */
 
-    for ( uint32_t i = frame_no; i < file.frame_count(); i++ ) {
+    for ( uint32_t i = frame_no; i < frame_count; i++ ) {
       RasterHandle raster( file.width(), file.height() );
       RasterHandle raster_test( file.width(), file.height() );
       vector< uint8_t > serialized_frame;
@@ -67,6 +69,7 @@ int main( int argc, char *argv[] )
 	fprintf( stderr, "Parsing frame the first time.\n" );
 	InterFrame parsed_frame = decoder_state.parse_and_apply<InterFrame>( whole_frame );
 	parsed_frame.rewrite_as_intra( decoder_state.quantizer_filter_adjustments, references, raster );
+	parsed_frame.optimize_continuation_coefficients();
 
 	serialized_frame = parsed_frame.serialize( decoder_state.probability_tables );
 

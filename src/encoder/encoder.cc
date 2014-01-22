@@ -200,6 +200,7 @@ static void encode( BoolEncoder & encoder, const ContinuationHeader & h )
   encode( encoder, h.missing_last_frame );
   encode( encoder, h.missing_golden_frame );
   encode( encoder, h.missing_alternate_reference_frame );
+  encode( encoder, h.continuation_token_probabilities );
 }
 
 static void encode( BoolEncoder & encoder, const KeyFrameHeader & header )
@@ -444,6 +445,33 @@ void Macroblock< FrameHeaderType, MacroblockheaderType >::serialize( BoolEncoder
   encode_prediction_modes( encoder, probability_tables );
 }
 
+template <>
+void InterFrame::optimize_continuation_coefficients( void )
+{
+  if ( continuation_header_.initialized() ) {
+    TokenBranchCounts token_branch_counts;
+    macroblock_headers_.get().forall( [&]( const InterFrameMacroblock & macroblock ) {
+	macroblock.accumulate_token_branches( token_branch_counts ); } );
+
+    for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
+      for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
+	for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
+	  for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
+	    const unsigned int false_count = token_branch_counts.at( i ).at( j ).at( k ).at( l ).first;
+	    const unsigned int true_count = token_branch_counts.at( i ).at( j ).at( k ).at( l ).second;
+
+	    const unsigned int prob = 256 * (false_count + 1) / (false_count + true_count + 2);
+
+	    assert( prob <= 255 );
+
+	    continuation_header_.get().continuation_token_probabilities.at( i ).at( j ).at( k ).at( l ) = prob;
+	  }
+	}
+      }
+    }
+  }
+}
+
 template <class FrameHeaderType, class MacroblockType>
 vector< uint8_t > Frame< FrameHeaderType, MacroblockType >::serialize_first_partition( const ProbabilityTables & probability_tables ) const
 {
@@ -472,13 +500,28 @@ vector< vector< uint8_t > > Frame< FrameHeaderType, MacroblockType >::serialize_
 {
   vector< BoolEncoder > dct_partitions( dct_partition_count() );
 
+  ProbabilityTables continuation_probability_table = probability_tables;
+  if ( continuation_header_.initialized() ) {
+    for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
+      for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
+	for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
+	  for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {    
+	    continuation_probability_table.coeff_probs.at( i ).at( j ).at( k ).at( l )
+	      = continuation_header_.get().continuation_token_probabilities.at( i ).at( j ).at( k ).at( l );
+	  }
+	}
+      }
+    }
+  }
+
   /* serialize every macroblock's tokens */
   macroblock_headers_.get().forall_ij( [&]( const MacroblockType & macroblock,
 					    const unsigned int column __attribute((unused)),
 					    const unsigned int row )
 				       {
+					 const ProbabilityTables & prob_table = macroblock.continuation() ? continuation_probability_table : probability_tables;
 					 macroblock.serialize_tokens( dct_partitions.at( row % dct_partition_count() ),
-								      probability_tables ); } );
+								      prob_table ); } );
 
   /* finish encoding and return the resulting octet sequences */
   vector< vector< uint8_t > > ret;
@@ -517,6 +560,142 @@ void TokenDecoder<length>::encode( BoolEncoder & encoder, const uint16_t value )
   uint16_t increment = value - base_value_;
   for ( uint8_t i = 0; i < length; i++ ) {
     encoder.put( increment & (1 << (length - 1 - i)), bit_probabilities_.at( i ) );
+  }
+}
+
+template <BlockType initial_block_type, class PredictionMode>
+static void accumulate_token_branches( const Block<initial_block_type, PredictionMode > & block,
+				       TokenBranchCounts & counts )
+{
+  uint8_t coded_length = 0;
+
+  /* how many tokens are we going to encode? */
+  for ( unsigned int index = (block.type() == BlockType::Y_after_Y2) ? 1 : 0;
+	index < 16;
+	index++ ) {
+    if ( block.coefficients().at( zigzag.at( index ) ) ) {
+      coded_length = index + 1;
+    }
+  }
+
+  bool last_was_zero = false;
+
+  /* prediction context starts with number-not-zero count */
+  char token_context = ( block.context().above.initialized() ? block.context().above.get()->has_nonzero() : 0 )
+    + ( block.context().left.initialized() ? block.context().left.get()->has_nonzero() : 0 );
+
+  unsigned int index = (block.type() == BlockType::Y_after_Y2) ? 1 : 0;
+
+  for ( ; index < coded_length; index++ ) {
+    const int16_t coefficient = block.coefficients().at( zigzag.at( index ) );
+    const uint16_t token_value = abs( coefficient );
+
+    /* select the tree probabilities based on the prediction context */
+    SafeArray< pair< uint32_t, uint32_t >, ENTROPY_NODES > & count = counts.at( block.type() ).at( coefficient_to_band.at( index ) ).at( token_context );
+
+    if ( not last_was_zero ) {
+      count.at( 0 ).second++;
+    }
+
+    if ( token_value == 0 ) {
+      count.at( 1 ).first++;
+      last_was_zero = true;
+      token_context = 0;
+      continue;
+    }
+
+    last_was_zero = false;
+    count.at( 1 ).second++;
+
+    if ( token_value == 1 ) {
+      count.at( 2 ).first++;
+      token_context = 1;
+      continue;
+    }
+
+    token_context = 2;
+    count.at( 2 ).second++;
+
+    if ( token_value == 2 ) {
+      count.at( 3 ).first++;
+      count.at( 4 ).first++;
+      continue;
+    }
+
+    if ( token_value == 3 ) {
+      count.at( 3 ).first++;
+      count.at( 4 ).second++;
+      count.at( 5 ).first++;
+      continue;
+    }
+
+    if ( token_value == 4 ) {
+      count.at( 3 ).first++;
+      count.at( 4 ).second++;
+      count.at( 5 ).second++;
+      continue;
+    }
+
+    count.at( 3 ).second++;
+
+    if ( token_value < token_decoder_1.base_value() ) { /* category 1, 5..6 */
+      count.at( 6 ).first++;
+      count.at( 7 ).first++;
+      continue;
+    }
+
+    if ( token_value < token_decoder_1.upper_limit() ) { /* category 2, 7..10 */
+      count.at( 6 ).first++;
+      count.at( 7 ).second++;
+      continue;
+    }
+
+    count.at( 6 ).second++;
+
+    if ( token_value < token_decoder_2.upper_limit() ) { /* category 3, 11..18 */
+      count.at( 8 ).first++;
+      count.at( 9 ).first++;
+      continue;
+    }
+
+    if ( token_value < token_decoder_3.upper_limit() ) { /* category 4, 19..34 */
+      count.at( 8 ).first++;
+      count.at( 9 ).second++;
+      continue;
+    }
+
+    count.at( 8 ).second++;
+
+    if ( token_value < token_decoder_4.upper_limit() ) { /* category 5, 35..66 */
+      count.at( 10 ).first++;
+      continue;
+    }
+
+    if ( token_value < token_decoder_5.upper_limit() ) { /* category 6, 67..2048 */
+      count.at( 10 ).second++;
+      continue;
+    }
+
+    throw Exception( "token encoder", "value too large" );
+  }
+
+  assert( last_was_zero == false );
+
+  /* write end of block */
+  if ( coded_length < 16 ) {
+    SafeArray< pair< uint32_t, uint32_t >, ENTROPY_NODES > & count = counts.at( block.type() ).at( coefficient_to_band.at( index ) ).at( token_context );
+
+    count.at( 0 ).first++;
+  }
+}
+
+template <class FrameHeaderType, class MacroblockHeaderType>
+void Macroblock<FrameHeaderType, MacroblockHeaderType>::accumulate_token_branches( TokenBranchCounts & counts ) const
+{
+  if ( continuation_ ) {
+    Y_.forall( [&]( const YBlock & block ) { ::accumulate_token_branches( block, counts ); } );
+    U_.forall( [&]( const UVBlock & block ) { ::accumulate_token_branches( block, counts ); } );
+    V_.forall( [&]( const UVBlock & block ) { ::accumulate_token_branches( block, counts ); } );
   }
 }
 

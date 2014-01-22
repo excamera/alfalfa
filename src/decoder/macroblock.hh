@@ -19,20 +19,34 @@ struct ContinuationHeader
   Flag missing_golden_frame;
   Flag missing_alternate_reference_frame;
 
+  Array< Array< Array< Array< Unsigned<8>,
+			      ENTROPY_NODES >,
+		       PREV_COEF_CONTEXTS >,
+		COEF_BANDS >,
+	 BLOCK_TYPES > continuation_token_probabilities;
+
   ContinuationHeader( BoolDecoder & data )
     : missing_last_frame( data ),
       missing_golden_frame( data ),
-      missing_alternate_reference_frame( data )
+      missing_alternate_reference_frame( data ),
+      continuation_token_probabilities( data )
   {}
 
   ContinuationHeader( const bool s_missing_last, const bool s_missing_golden, const bool s_missing_altref )
     : missing_last_frame( s_missing_last ),
       missing_golden_frame( s_missing_golden ),
-      missing_alternate_reference_frame( s_missing_altref )
+      missing_alternate_reference_frame( s_missing_altref ),
+      continuation_token_probabilities()
   {}
 
   bool is_missing( const reference_frame reference_id ) const;
 };
+
+typedef SafeArray< SafeArray< SafeArray< SafeArray< pair< uint32_t, uint32_t >,
+							  ENTROPY_NODES >,
+							  PREV_COEF_CONTEXTS >,
+							  COEF_BANDS >,
+							  BLOCK_TYPES > TokenBranchCounts;
 
 template <class FrameHeaderType, class MacroblockHeaderType>
 class Macroblock
@@ -111,6 +125,8 @@ public:
 
   void serialize_tokens( BoolEncoder & encoder,
 			 const ProbabilityTables & probability_tables ) const;
+
+  void accumulate_token_branches( TokenBranchCounts & counts ) const;
 };
 
 struct KeyFrameMacroblockHeader

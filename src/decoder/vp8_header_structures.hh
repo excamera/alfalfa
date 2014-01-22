@@ -34,7 +34,7 @@ public:
   {
     static_assert( width <= 8, "Unsigned width must be <= 8" );
   }
-  Unsigned( const uint8_t & val ) : i_( val ) {}
+  Unsigned( const uint8_t & val = 0 ) : i_( val ) {}
 
   operator const uint8_t & () const { return i_; }
 };
@@ -84,9 +84,11 @@ class Array
 protected:
   std::vector< T > storage_;
 
-  Array() : storage_() {}
+  Array( const bool ) : storage_() {}
 
 public:
+  Array() : storage_( len, T() ) {}
+
   template < typename... Targs >
   Array( BoolDecoder & data, Targs&&... Fargs )
     : storage_()
@@ -106,6 +108,15 @@ public:
     #endif
   }
 
+  T & at( const unsigned int offset )
+  {
+    #ifdef NDEBUG
+    return storage_[ offset ];
+    #else
+    return storage_.at( offset );
+    #endif
+  }
+
   static constexpr unsigned int size( void ) { return len; }
 
   virtual ~Array() {}
@@ -117,7 +128,7 @@ class Enumerate : public Array< T, size >
 public:
   template < typename... Targs >
   Enumerate( BoolDecoder & data, Targs&&... Fargs )
-    : Array<T, size>()
+    : Array<T,size>( false )
   {
     Array<T, size>::storage_.reserve( size );
     for ( unsigned int i = 0; i < size; i++ ) {

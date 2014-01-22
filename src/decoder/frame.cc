@@ -78,13 +78,29 @@ void Frame<FrameHeaderType, MacroblockType>::parse_tokens( vector< Chunk > dct_p
     dct_partition_decoders.emplace_back( x );
   }
 
+  /* prepare token probabilities for a continuation macroblock */
+  ProbabilityTables continuation_probability_table = probability_tables;
+  if ( continuation_header_.initialized() ) {
+    for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
+      for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
+	for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
+	  for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
+	    continuation_probability_table.coeff_probs.at( i ).at( j ).at( k ).at( l )
+	      = continuation_header_.get().continuation_token_probabilities.at( i ).at( j ).at( k ).at( l );
+	  }
+	}
+      }
+    }
+  }
+
   /* parse every macroblock's tokens */
   macroblock_headers_.get().forall_ij( [&]( MacroblockType & macroblock,
 					    const unsigned int column __attribute((unused)),
 					    const unsigned int row )
 				       {
+					 const ProbabilityTables & prob_table = macroblock.continuation() ? continuation_probability_table : probability_tables;
 					 macroblock.parse_tokens( dct_partition_decoders.at( row % dct_partition_decoders.size() ),
-								  probability_tables ); } );
+								  prob_table ); } );
 }
 
 template <class FrameHeaderType, class MacroblockType>

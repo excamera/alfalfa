@@ -67,6 +67,8 @@ class Frame
 
   void copy_to( const RasterHandle & raster, References & references ) const;
 
+  void optimize_continuation_coefficients( void );
+
   std::vector< uint8_t > serialize( const ProbabilityTables & probability_tables ) const;
 
   uint8_t dct_partition_count( void ) const { return 1 << header_.log2_number_of_dct_partitions; }
