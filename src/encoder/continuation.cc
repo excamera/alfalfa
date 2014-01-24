@@ -112,6 +112,10 @@ static void rewrite_block_as_intra( Block<initial_block_type, PredictionMode> & 
   /* Transform the residue */
   block.fdct( residue );
 
+  if ( block.mutable_coefficients().at( 1 ) == 1 ) {
+    block.mutable_coefficients().at( 1 )--;
+  }
+
   /*
   fprintf( stderr, "Residue:" );
   for ( uint8_t i = 0; i < 16; i++ ) {
@@ -119,10 +123,6 @@ static void rewrite_block_as_intra( Block<initial_block_type, PredictionMode> & 
   }
   fprintf( stderr, "\n" );
   */
-
-  if ( block.mutable_coefficients().at( 1 ) == 1 ) {
-    block.mutable_coefficients().at( 1 )--;
-  }
 
   /* Find any necessary pixel adjustments */
   raster = prediction;
@@ -210,6 +210,59 @@ void InterFrameMacroblock::rewrite_as_intra( Raster::Macroblock & raster )
 }
 
 template <>
+void InterFrameMacroblock::rewrite_as_diff( Raster::Macroblock & raster,
+					    const Raster::Macroblock & prediction )
+{
+  assert( inter_coded() );
+
+  if ( mb_skip_coeff_.initialized() ) {
+    mb_skip_coeff_.get() = false;
+  }
+
+  continuation_ = true;
+
+  has_nonzero_ = true;
+
+  /* set prediction modes */
+  Y2_.set_prediction_mode( B_PRED );
+  Y2_.set_if_coded();
+
+  for ( uint8_t i = 0; i < 16; i++ ) {
+    Y2_.mutable_coefficients().at( i ) = 0;
+  }
+
+  Y_.forall( [&] ( YBlock & block ) {
+      block.set_prediction_mode( B_DC_PRED );
+      block.set_Y_without_Y2();
+    } );
+  U_.at( 0, 0 ).set_prediction_mode( DC_PRED );
+
+  const IsolatedRasterMacroblock target( raster );
+
+  /* rewrite the Y subblocks */
+  Y_.forall_ij( [&] ( YBlock & block, unsigned int column, unsigned int row ) {
+      rewrite_block_as_intra( block,
+			      prediction.Y_sub.at( column, row ),
+			      target.mb().Y_sub.at( column, row ),
+			      raster.Y_sub.at( column, row ) );
+    } );
+
+  U_.forall_ij( [&] ( UVBlock & block, unsigned int column, unsigned int row ) {
+      rewrite_block_as_intra( block,
+			      prediction.U_sub.at( column, row ),
+			      target.mb().U_sub.at( column, row ),
+			      raster.U_sub.at( column, row ) );
+    } );
+
+  V_.forall_ij( [&] ( UVBlock & block, unsigned int column, unsigned int row ) {
+      rewrite_block_as_intra( block,
+			      prediction.V_sub.at( column, row ),
+			      target.mb().V_sub.at( column, row ),
+			      raster.V_sub.at( column, row ) );
+    } );
+}
+
+template <>
 void InterFrame::rewrite_as_intra( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
 				   const References & references,
 				   Raster & raster )
@@ -232,6 +285,41 @@ void InterFrame::rewrite_as_intra( const QuantizerFilterAdjustments & quantizer_
 									 references,
 									 raster.macroblock( column, row ) );
 					   macroblock.rewrite_as_intra( raster.macroblock( column, row ) );
+					 } else {
+					   macroblock.reconstruct_intra( quantizer,
+									 raster.macroblock( column, row ) );
+					 } } );
+
+  loopfilter( quantizer_filter_adjustments, raster );
+
+  relink_y2_blocks();
+}
+
+template <>
+void InterFrame::rewrite_as_diff( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
+				  const References & references,
+				  const Raster & prediction,
+				  Raster & raster )
+{
+  assert( not continuation_header_.initialized() );
+  continuation_header_.initialize( true, true, true );
+
+  const Quantizer frame_quantizer( header_.quant_indices );
+  const auto segment_quantizers = calculate_segment_quantizers( quantizer_filter_adjustments );
+
+  /* process each macroblock */
+  macroblock_headers_.get().forall_ij( [&]( InterFrameMacroblock & macroblock,
+					    const unsigned int column,
+					    const unsigned int row ) {
+					 const auto & quantizer = header_.update_segmentation.initialized()
+					   ? segment_quantizers.at( macroblock.segment_id() )
+					   : frame_quantizer;
+					 if ( macroblock.inter_coded() ) {
+					   macroblock.reconstruct_inter( quantizer,
+									 references,
+									 raster.macroblock( column, row ) );
+					   macroblock.rewrite_as_diff( raster.macroblock( column, row ),
+								       prediction.macroblock( column, row ) );
 					 } else {
 					   macroblock.reconstruct_intra( quantizer,
 									 raster.macroblock( column, row ) );

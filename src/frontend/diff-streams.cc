@@ -3,36 +3,48 @@
 #include "ivf.hh"
 #include "uncompressed_chunk.hh"
 #include "decoder_state.hh"
+#include "display.hh"
 
 using namespace std;
 
 int main( int argc, char *argv[] )
 {
   try {
-    if ( argc != 2 ) {
-      cerr << "Usage: " << argv[ 0 ] << " FILENAME" << endl;
+    if ( argc != 3 ) {
+      cerr << "Usage: " << argv[ 0 ] << " SOURCE TARGET" << endl;
       return EXIT_FAILURE;
     }
 
-    IVF file( argv[ 1 ] );
+    IVF source( argv[ 1 ] );
+    IVF target( argv[ 2 ] );
 
-    if ( file.fourcc() != "VP80" ) {
+    if ( source.fourcc() != "VP80"
+	 or target.fourcc() != "VP80" ) {
       throw Unsupported( "not a VP8 file" );
     }
 
-    /* find first key frame */
-    uint32_t frame_no = 0;
-
-    while ( frame_no < file.frame_count() ) {
-      UncompressedChunk uncompressed_chunk( file.frame( frame_no ), file.width(), file.height() );
-      if ( uncompressed_chunk.key_frame() ) {
-	break;
-      }
-      frame_no++;
+    /* make sure sizes agree */
+    if ( target.width() != source.width()
+	 or target.height() != source.height() ) {
+      throw Unsupported( "stream size mismatch" );
     }
 
-    DecoderState decoder_state( file.width(), file.height() );
-    References references( file.width(), file.height() );
+    uint32_t frame_no = 304;
+
+    /* make sure first frame is a keyframe */
+    if ( not UncompressedChunk( target.frame( frame_no ), target.width(), target.height() ).key_frame() ) {
+      throw Unsupported( "target does not begin with keyframe" );
+    }
+
+    if ( not UncompressedChunk( source.frame( frame_no ), source.width(), source.height() ).key_frame() ) {
+      throw Unsupported( "source does not begin with keyframe" );
+    }
+
+    DecoderState source_decoder_state( source.width(), source.height() ),
+      target_decoder_state( source.width(), source.height() );
+    References source_references( source.width(), source.height() ),
+      target_references( target.width(), target.height() );
+    VideoDisplay display( Decoder( source.width(), source.height() ).example_raster() );
 
     uint32_t frame_count = 360;
 
@@ -41,8 +53,8 @@ int main( int argc, char *argv[] )
     cout << uint8_t(0) << uint8_t(0); /* version */
     cout << uint8_t(32) << uint8_t(0); /* header length */
     cout << "VP80"; /* fourcc */
-    cout << uint8_t(file.width() & 0xff) << uint8_t((file.width() >> 8) & 0xff); /* width */
-    cout << uint8_t(file.height() & 0xff) << uint8_t((file.height() >> 8) & 0xff); /* height */
+    cout << uint8_t(source.width() & 0xff) << uint8_t((source.width() >> 8) & 0xff); /* width */
+    cout << uint8_t(source.height() & 0xff) << uint8_t((source.height() >> 8) & 0xff); /* height */
     cout << uint8_t(1) << uint8_t(0) << uint8_t(0) << uint8_t(0); /* bogus frame rate */
     cout << uint8_t(1) << uint8_t(0) << uint8_t(0) << uint8_t(0); /* bogus time scale */
 
@@ -52,56 +64,53 @@ int main( int argc, char *argv[] )
     cout << uint8_t(0) << uint8_t(0) << uint8_t(0) << uint8_t(0); /* fill out header */
 
     for ( uint32_t i = frame_no; i < frame_count; i++ ) {
-      RasterHandle raster( file.width(), file.height() );
-      RasterHandle raster_test( file.width(), file.height() );
+      RasterHandle source_raster( source.width(), source.height() ),
+	target_raster( source.width(), source.height() );
+
+      /* decode the source */
+      UncompressedChunk whole_source( source.frame( i ), source.width(), source.height() );
+      if ( whole_source.key_frame() ) {
+	KeyFrame parsed_frame = source_decoder_state.parse_and_apply<KeyFrame>( whole_source );
+	parsed_frame.decode( source_decoder_state.quantizer_filter_adjustments, source_raster );
+	parsed_frame.copy_to( source_raster, source_references );
+      } else {
+	const InterFrame parsed_frame = source_decoder_state.parse_and_apply<InterFrame>( whole_source );
+	parsed_frame.decode( source_decoder_state.quantizer_filter_adjustments,
+			     source_references, source_raster );
+	parsed_frame.copy_to( source_raster, source_references );
+      }
+
+      display.draw( source_raster );
+
       vector< uint8_t > serialized_frame;
 
-      UncompressedChunk whole_frame( file.frame( i ), file.width(), file.height() );
-      if ( whole_frame.key_frame() ) {
-	const KeyFrame parsed_frame = decoder_state.parse_and_apply<KeyFrame>( whole_frame );
-	parsed_frame.decode( decoder_state.quantizer_filter_adjustments, raster );
-	parsed_frame.copy_to( raster, references );
-	serialized_frame = parsed_frame.serialize( decoder_state.probability_tables );
+      /* now decode and rewrite the target */
+      UncompressedChunk whole_target( target.frame( i ), target.width(), target.height() );
+      if ( whole_target.key_frame() ) {
+	const KeyFrame parsed_frame = target_decoder_state.parse_and_apply<KeyFrame>( whole_target );
+	parsed_frame.decode( target_decoder_state.quantizer_filter_adjustments, target_raster );
+	parsed_frame.copy_to( target_raster, target_references );
 
+	serialized_frame = parsed_frame.serialize( target_decoder_state.probability_tables );
 	fprintf( stderr, "Frame %u, original length: %lu bytes. Serialized length: %lu bytes.\n",
-		 i, file.frame( i ).size(), serialized_frame.size() );
+		 i, target.frame( i ).size(), serialized_frame.size() );
       } else {
-	fprintf( stderr, "Parsing frame the first time.\n" );
-	InterFrame parsed_frame = decoder_state.parse_and_apply<InterFrame>( whole_frame );
-	parsed_frame.rewrite_as_intra( decoder_state.quantizer_filter_adjustments, references, raster );
+	InterFrame parsed_frame = target_decoder_state.parse_and_apply<InterFrame>( whole_target );
+	parsed_frame.rewrite_as_diff( target_decoder_state.quantizer_filter_adjustments,
+				      target_references, source_raster, target_raster );
+	parsed_frame.copy_to( target_raster, target_references );
+
 	parsed_frame.optimize_continuation_coefficients();
 
-	serialized_frame = parsed_frame.serialize( decoder_state.probability_tables );
+	serialized_frame = parsed_frame.serialize( target_decoder_state.probability_tables );
 
-	fprintf( stderr, "Frame %u, original length: %lu bytes. Intra length: %lu bytes.\n",
-		 i, file.frame( i ).size(), serialized_frame.size() );
-
-#ifndef NDEBUG
-	/* verify */
-	parsed_frame.decode( decoder_state.quantizer_filter_adjustments, references, raster_test );
-	assert( raster.get() == raster_test.get() );
-
-	Chunk frame_chunk_2( &serialized_frame.at( 0 ), serialized_frame.size() );
-
-	UncompressedChunk whole_frame_2( frame_chunk_2, file.width(), file.height() );
-
-	fprintf( stderr, "Parsing frame the second time.\n" );
-
-	InterFrame parsed_frame_2 = decoder_state.parse_and_apply<InterFrame>( whole_frame_2 );
-
-	//	assert( parsed_frame == parsed_frame_2 );
-
-	vector< uint8_t > serialized_frame_2 = parsed_frame_2.serialize( decoder_state.probability_tables );
-
-	assert( serialized_frame == serialized_frame_2 );
-
-	parsed_frame_2.decode( decoder_state.quantizer_filter_adjustments, references, raster_test );
-
-	assert( raster.get() == raster_test.get() );
-#endif
-
-	parsed_frame.copy_to( raster, references );
+	fprintf( stderr, "Frame %u, original length: %lu bytes. Diff length: %lu bytes.\n",
+		 i, target.frame( i ).size(), serialized_frame.size() );
       }
+
+      display.draw( target_raster );
+
+      sleep( 1 );
 
       /* write size of frame */
       const uint32_t le_size = htole32( serialized_frame.size() );

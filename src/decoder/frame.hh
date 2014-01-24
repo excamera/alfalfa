@@ -61,9 +61,9 @@ class Frame
 							     const ProbabilityTables & probability_tables );
   void parse_tokens( std::vector< Chunk > dct_partitions, const ProbabilityTables & probability_tables );
 
-  void decode( const QuantizerFilterAdjustments & quantizer_filter_adjustments, Raster & raster ) const;
+  void decode( const QuantizerFilterAdjustments & quantizer_filter_adjustments, Raster & raster, const bool lf = true ) const;
   void decode( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
-	       const References & references, Raster & raster ) const;
+	       const References & references, Raster & raster, const bool lf = true ) const;
 
   void copy_to( const RasterHandle & raster, References & references ) const;
 
@@ -77,6 +77,10 @@ class Frame
 
   void rewrite_as_intra( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
 			 const References & references, Raster & raster );
+
+  void rewrite_as_diff( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
+			const References & references, const Raster & prediction,
+			Raster & raster );
 };
 
 using KeyFrame = Frame< KeyFrameHeader, KeyFrameMacroblock >;
