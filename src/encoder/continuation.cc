@@ -110,10 +110,16 @@ static void rewrite_block_as_intra( Block<initial_block_type, PredictionMode> & 
   const auto residue = target - prediction;
 
   /* Transform the residue */
+  /*
   block.fdct( residue );
 
   if ( block.mutable_coefficients().at( 1 ) == 1 ) {
     block.mutable_coefficients().at( 1 )--;
+  }
+  */
+
+  for ( uint8_t i = 0; i < 16; i++ ) {
+    block.mutable_coefficients().at( i ) = residue.at( i / 4 ).at( i % 4 );
   }
 
   /*
@@ -126,7 +132,12 @@ static void rewrite_block_as_intra( Block<initial_block_type, PredictionMode> & 
 
   /* Find any necessary pixel adjustments */
   raster = prediction;
-  block.idct_add( raster );
+
+  for ( uint8_t i = 0; i < 16; i++ ) {
+    raster.at( i % 4, i / 4 ) += block.coefficients().at( i );
+  }
+
+  //  block.idct_add( raster );
   for ( uint8_t pixel_row = 0; pixel_row < 4; pixel_row++ ) {
     for ( uint8_t pixel_col = 0; pixel_col < 4; pixel_col++ ) {
       const int8_t adjustment = target.at( pixel_col, pixel_row ) - raster.at( pixel_col, pixel_row );

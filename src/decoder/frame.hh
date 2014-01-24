@@ -39,8 +39,6 @@ class Frame
 
   void relink_y2_blocks( void );
 
-  void loopfilter( const QuantizerFilterAdjustments & quantizer_filter_adjustments, Raster & target ) const;
-
   ProbabilityArray< num_segments > calculate_mb_segment_tree_probs( void ) const;
   SafeArray< Quantizer, num_segments > calculate_segment_quantizers( const QuantizerFilterAdjustments & quantizer_filter_adjustments ) const;
 
@@ -48,6 +46,8 @@ class Frame
   std::vector< std::vector< uint8_t > > serialize_tokens( const ProbabilityTables & probability_tables ) const;
 
  public:
+  void loopfilter( const QuantizerFilterAdjustments & quantizer_filter_adjustments, Raster & target ) const;
+
   Frame( const bool show,
 	 const bool continuation,
 	 const unsigned int width,
