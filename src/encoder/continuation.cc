@@ -82,7 +82,7 @@ void InterFrameMacroblock::rewrite_as_diff( Raster::Macroblock & raster,
 }
 
 template <>
-void InterFrame::rewrite_as_diff( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
+void InterFrame::rewrite_as_diff( const DecoderState & target_decoder_state,
 				  const References & references,
 				  const Raster & prediction,
 				  Raster & raster )
@@ -91,7 +91,7 @@ void InterFrame::rewrite_as_diff( const QuantizerFilterAdjustments & quantizer_f
   continuation_header_.initialize( true, true, true );
 
   const Quantizer frame_quantizer( header_.quant_indices );
-  const auto segment_quantizers = calculate_segment_quantizers( quantizer_filter_adjustments );
+  const auto segment_quantizers = calculate_segment_quantizers( target_decoder_state.quantizer_filter_adjustments );
 
   /* process each macroblock */
   macroblock_headers_.get().forall_ij( [&]( InterFrameMacroblock & macroblock,
