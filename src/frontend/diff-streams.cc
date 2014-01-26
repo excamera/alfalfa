@@ -44,7 +44,6 @@ int main( int argc, char *argv[] )
       target_decoder_state( source.width(), source.height() );
     References source_references( source.width(), source.height() ),
       target_references( target.width(), target.height() );
-    VideoDisplay display( Decoder( source.width(), source.height() ).example_raster() );
 
     uint32_t frame_count = source.frame_count();
 
@@ -85,8 +84,6 @@ int main( int argc, char *argv[] )
 	parsed_frame.copy_to( source_raster, source_references );
       }
 
-      //      display.draw( source_raster );
-
       vector< uint8_t > serialized_frame;
 
       /* now decode and rewrite the target */
@@ -119,10 +116,6 @@ int main( int argc, char *argv[] )
 	fprintf( stderr, "Frame %u, original length: %lu bytes. Diff length: %lu bytes.\n",
 		 i, target.frame( i ).size(), serialized_frame.size() );
       }
-
-      //      display.draw( target_raster );
-
-      //      sleep( 1 );
 
       /* write size of frame */
       const uint32_t le_size = htole32( serialized_frame.size() );
