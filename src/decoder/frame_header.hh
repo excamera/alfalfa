@@ -70,7 +70,7 @@ struct MVProbUpdate
   Flagged< Unsigned<7> > mv_prob;
 
   bool initialized( void ) const { return mv_prob.initialized(); }
-  uint8_t get( void ) const { const uint8_t ret = mv_prob.get(); return ret ? ret << 1 : ret; }
+  uint8_t get( void ) const { return mv_prob.get() << 1; }
 
   MVProbUpdate( BoolDecoder & data,
 		const unsigned int j, const unsigned int i )
