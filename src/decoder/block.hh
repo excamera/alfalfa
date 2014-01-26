@@ -102,8 +102,6 @@ public:
   SafeArray< int16_t, 16 > & mutable_coefficients( void ) { return coefficients_; }
   const SafeArray< int16_t, 16 > & coefficients( void ) const { return coefficients_; }
 
-  void fdct( const SafeArray< SafeArray< int16_t, 4 >, 4 > & input );
-
   void add_residue( Raster::Block4 & raster ) const;
 
   void recalculate_has_nonzero();
