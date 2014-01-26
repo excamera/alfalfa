@@ -87,6 +87,17 @@ void InterFrame::rewrite_as_diff( const DecoderState & target_decoder_state,
 				  const Raster & prediction,
 				  Raster & raster )
 {
+  /* match correct ProbabilityTables in frame header */
+  for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
+    for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
+      for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
+	for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
+	  header_.token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( target_decoder_state.probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l ) );
+	}
+      }
+    }
+  }
+
   assert( not continuation_header_.initialized() );
   continuation_header_.initialize( true, true, true );
 
