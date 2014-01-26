@@ -29,7 +29,7 @@ int main( int argc, char *argv[] )
       throw Unsupported( "stream size mismatch" );
     }
 
-    uint32_t frame_no = 304;
+    uint32_t frame_no = 0;
 
     /* make sure first frame is a keyframe */
     if ( not UncompressedChunk( target.frame( frame_no ), target.width(), target.height() ).key_frame() ) {
@@ -65,22 +65,27 @@ int main( int argc, char *argv[] )
 
     for ( uint32_t i = frame_no; i < frame_count; i++ ) {
       RasterHandle source_raster( source.width(), source.height() ),
-	target_raster( source.width(), source.height() );
+	target_raster( source.width(), source.height() ),
+	source_raster_preloop( source.width(), source.height() );
 
       /* decode the source */
       UncompressedChunk whole_source( source.frame( i ), source.width(), source.height() );
       if ( whole_source.key_frame() ) {
 	KeyFrame parsed_frame = source_decoder_state.parse_and_apply<KeyFrame>( whole_source );
-	parsed_frame.decode( source_decoder_state.quantizer_filter_adjustments, source_raster );
+	parsed_frame.decode( source_decoder_state.quantizer_filter_adjustments, source_raster_preloop, false );
+	source_raster.get().copy( source_raster_preloop );
+	parsed_frame.loopfilter( source_decoder_state.quantizer_filter_adjustments, source_raster );
 	parsed_frame.copy_to( source_raster, source_references );
       } else {
 	const InterFrame parsed_frame = source_decoder_state.parse_and_apply<InterFrame>( whole_source );
 	parsed_frame.decode( source_decoder_state.quantizer_filter_adjustments,
-			     source_references, source_raster );
+			     source_references, source_raster_preloop, false );
+	source_raster.get().copy( source_raster_preloop );
+	parsed_frame.loopfilter( source_decoder_state.quantizer_filter_adjustments, source_raster );
 	parsed_frame.copy_to( source_raster, source_references );
       }
 
-      display.draw( source_raster );
+      //      display.draw( source_raster );
 
       vector< uint8_t > serialized_frame;
 
@@ -96,8 +101,15 @@ int main( int argc, char *argv[] )
 		 i, target.frame( i ).size(), serialized_frame.size() );
       } else {
 	InterFrame parsed_frame = target_decoder_state.parse_and_apply<InterFrame>( whole_target );
+
 	parsed_frame.rewrite_as_diff( target_decoder_state.quantizer_filter_adjustments,
-				      target_references, source_raster, target_raster );
+				      target_references, source_raster_preloop, target_raster );
+
+	//	parsed_frame.decode( target_decoder_state.quantizer_filter_adjustments, target_references, target_raster );
+
+
+	parsed_frame.loopfilter( target_decoder_state.quantizer_filter_adjustments, target_raster );
+
 	parsed_frame.copy_to( target_raster, target_references );
 
 	parsed_frame.optimize_continuation_coefficients();
@@ -108,9 +120,9 @@ int main( int argc, char *argv[] )
 		 i, target.frame( i ).size(), serialized_frame.size() );
       }
 
-      display.draw( target_raster );
+      //      display.draw( target_raster );
 
-      sleep( 1 );
+      //      sleep( 1 );
 
       /* write size of frame */
       const uint32_t le_size = htole32( serialized_frame.size() );

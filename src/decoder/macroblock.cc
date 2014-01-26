@@ -46,6 +46,7 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
     continuation_( continuation_header.initialized()
 		   and inter_coded()
 		   and continuation_header.get().is_missing( header_.reference() ) ),
+    loopfilter_skip_subblock_edges_( continuation_, data ),
     Y2_( frame_Y2.at( c.column, c.row ) ),
     Y_( frame_Y, c.column * 4, c.row * 4 ),
     U_( frame_U, c.column * 2, c.row * 2 ),
@@ -277,7 +278,7 @@ template <>
 void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 						    const ProbabilityTables & probability_tables )
 {
-  if ( (not inter_coded()) or continuation_ ) {
+  if ( not inter_coded() ) {
     /* Set Y prediction mode */
     Y2_.set_prediction_mode( Tree< mbmode, num_y_modes, y_mode_tree >( data, probability_tables.y_mode_probs ) );
     Y2_.set_if_coded();
@@ -391,18 +392,13 @@ template <class FrameHeaderType, class MacroblockHeaderType>
 void Macroblock<FrameHeaderType, MacroblockHeaderType>::parse_tokens( BoolDecoder & data,
 								      const ProbabilityTables & probability_tables )
 {
-  if ( continuation_ ) {
-    assert( mb_skip_coeff_.get_or( false ) == false );
-    assert( not Y2_.coded() );
-  }
-
   /* is macroblock skipped? */
   if ( mb_skip_coeff_.get_or( false ) ) {
     return;
   }
 
   /* parse Y2 block if present */
-  if ( Y2_.coded() ) {
+  if ( Y2_.coded() and (not continuation_) ) {
     Y2_.parse_tokens( data, probability_tables, false );
     has_nonzero_ |= Y2_.has_nonzero();
   }
@@ -534,7 +530,7 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::loopfilter( const Quanti
 								    const FilterParameters & loopfilter,
 								    Raster::Macroblock & raster ) const
 {
-  const bool skip_subblock_edges = Y2_.coded() and ( not has_nonzero_ );
+  const bool skip_subblock_edges = loopfilter_skip_subblock_edges_.get_or( Y2_.coded() and ( not has_nonzero_ ) );
 
   /* which filter are we using? */
   FilterParameters loopfilter_in_use( loopfilter );

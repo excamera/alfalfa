@@ -189,6 +189,13 @@ public:
   {
     return (Y_ == other.Y_) and (U_ == other.U_) and (V_ == other.V_);
   }
+
+  void copy( const Raster & other )
+  {
+    Y_.copy( other.Y_ );
+    U_.copy( other.U_ );
+    V_.copy( other.V_ );
+  }
 };
 
 class RasterHandle
@@ -209,6 +216,7 @@ public:
   operator Raster & () { return *raster_; }
 
   const Raster & get( void ) const { return *raster_; }
+  Raster & get( void ) { return *raster_; }
 };
 
 #endif /* RASTER_HH */

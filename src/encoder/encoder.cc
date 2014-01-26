@@ -377,7 +377,7 @@ template <>
 void InterFrameMacroblock::encode_prediction_modes( BoolEncoder & encoder,
 						    const ProbabilityTables & probability_tables ) const
 {
-  if ( (not inter_coded()) or continuation_ ) {
+  if ( not inter_coded() ) {
     encode( encoder,
 	    Tree< mbmode, num_y_modes, y_mode_tree >( Y2_.prediction_mode() ),
 	    probability_tables.y_mode_probs );
@@ -442,6 +442,7 @@ void Macroblock< FrameHeaderType, MacroblockheaderType >::serialize( BoolEncoder
   encode( encoder, segment_id_update_, mb_segment_tree_probs );
   encode( encoder, mb_skip_coeff_, frame_header.prob_skip_false.get_or( 0 ) );
   encode( encoder, header_, frame_header );
+  encode( encoder, loopfilter_skip_subblock_edges_ );
   encode_prediction_modes( encoder, probability_tables );
 }
 
@@ -535,16 +536,11 @@ template <class FrameHeaderType, class MacroblockheaderType >
 void Macroblock< FrameHeaderType, MacroblockheaderType >::serialize_tokens( BoolEncoder & encoder,
 									    const ProbabilityTables & probability_tables ) const
 {
-  if ( continuation_ ) {
-    assert( mb_skip_coeff_.get_or( false ) == false );
-    assert( not Y2_.coded() );
-  }
-
   if ( mb_skip_coeff_.get_or( false ) ) {
     return;
   }
 
-  if ( Y2_.coded() ) {
+  if ( Y2_.coded() and (not continuation_) ) {
     Y2_.serialize_tokens( encoder, probability_tables, false );
   }
 

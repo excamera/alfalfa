@@ -62,6 +62,7 @@ private:
   MacroblockHeaderType header_;
 
   bool continuation_;
+  Optional< Boolean > loopfilter_skip_subblock_edges_;
 
   Y2Block & Y2_;
   TwoDSubRange< YBlock, 4, 4 > Y_;

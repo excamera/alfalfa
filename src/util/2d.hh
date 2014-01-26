@@ -137,6 +137,14 @@ public:
   TwoD( const TwoD & other ) = delete;
   TwoD & operator=( const TwoD & other ) = delete;
 
+  /* explicit copy operator */
+  void copy( const TwoD & other )
+  {
+    assert( width_ == other.width_ );
+    assert( height_ == other.height_ );
+    storage_ = other.storage_;
+  }
+
   /* allow moving */
   TwoD( TwoD && other )
     : width_( other.width_ ),

@@ -98,6 +98,15 @@ void Block<initial_block_type, PredictionMode>::recalculate_has_nonzero( void )
       return;
     }
   }
+
+  if ( has_pixel_adjustment_ ) {
+    for ( uint8_t i = 0; i < 16; i++ ) {
+      if ( pixel_adjustments_.at( i ) != PixelAdjustment::NoAdjustment ) {
+	has_nonzero_ = true;
+	return;
+      }
+    }
+  }
 }
 
 template <BlockType initial_block_type, class PredictionMode>
@@ -226,29 +235,16 @@ void InterFrameMacroblock::rewrite_as_diff( Raster::Macroblock & raster,
 {
   assert( inter_coded() );
 
-  if ( mb_skip_coeff_.initialized() ) {
-    mb_skip_coeff_.get() = false;
-  }
+  //  assert( raster == prediction );
 
   continuation_ = true;
 
-  has_nonzero_ = true;
-
-  /* set prediction modes */
-  Y2_.set_prediction_mode( B_PRED );
-  Y2_.set_if_coded();
-
-  for ( uint8_t i = 0; i < 16; i++ ) {
-    Y2_.mutable_coefficients().at( i ) = 0;
-  }
-
-  Y_.forall( [&] ( YBlock & block ) {
-      block.set_prediction_mode( B_DC_PRED );
-      block.set_Y_without_Y2();
-    } );
-  U_.at( 0, 0 ).set_prediction_mode( DC_PRED );
-
   const IsolatedRasterMacroblock target( raster );
+
+  /* save old value so that we can run the loopfilter exactly as before */
+  loopfilter_skip_subblock_edges_.initialize( Y2_.coded() and ( not has_nonzero_ ) );
+
+  has_nonzero_ = false;
 
   /* rewrite the Y subblocks */
   Y_.forall_ij( [&] ( YBlock & block, unsigned int column, unsigned int row ) {
@@ -256,6 +252,8 @@ void InterFrameMacroblock::rewrite_as_diff( Raster::Macroblock & raster,
 			      prediction.Y_sub.at( column, row ),
 			      target.mb().Y_sub.at( column, row ),
 			      raster.Y_sub.at( column, row ) );
+
+      has_nonzero_ |= block.has_nonzero();
     } );
 
   U_.forall_ij( [&] ( UVBlock & block, unsigned int column, unsigned int row ) {
@@ -263,6 +261,8 @@ void InterFrameMacroblock::rewrite_as_diff( Raster::Macroblock & raster,
 			      prediction.U_sub.at( column, row ),
 			      target.mb().U_sub.at( column, row ),
 			      raster.U_sub.at( column, row ) );
+
+      has_nonzero_ |= block.has_nonzero();
     } );
 
   V_.forall_ij( [&] ( UVBlock & block, unsigned int column, unsigned int row ) {
@@ -270,7 +270,15 @@ void InterFrameMacroblock::rewrite_as_diff( Raster::Macroblock & raster,
 			      prediction.V_sub.at( column, row ),
 			      target.mb().V_sub.at( column, row ),
 			      raster.V_sub.at( column, row ) );
+
+      has_nonzero_ |= block.has_nonzero();
     } );
+
+  assert( target.mb() == raster );
+
+  if ( mb_skip_coeff_.initialized() ) {
+    mb_skip_coeff_.get() = not has_nonzero_;
+  }
 }
 
 template <>
@@ -336,7 +344,7 @@ void InterFrame::rewrite_as_diff( const QuantizerFilterAdjustments & quantizer_f
 									 raster.macroblock( column, row ) );
 					 } } );
 
-  loopfilter( quantizer_filter_adjustments, raster );
+  // loopfilter( quantizer_filter_adjustments, raster );
 
   relink_y2_blocks();
 }
