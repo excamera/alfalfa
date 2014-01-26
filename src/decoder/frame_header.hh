@@ -62,7 +62,7 @@ struct TokenProbUpdate
 		   const unsigned int j, const unsigned int i )
     : coeff_prob( data, k_coeff_entropy_update_probs.at( i ).at( j ).at( k ).at( l ) ) {}
 
-  TokenProbUpdate( const uint8_t x ) : coeff_prob( x ) {}
+  TokenProbUpdate( const bool initialized, const uint8_t x ) : coeff_prob( initialized, x ) {}
 };
 
 struct MVProbUpdate

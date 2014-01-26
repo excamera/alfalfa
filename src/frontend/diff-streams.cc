@@ -99,7 +99,7 @@ int main( int argc, char *argv[] )
       } else {
 	InterFrame parsed_frame = target_decoder_state.parse_and_apply<InterFrame>( whole_target );
 
-	parsed_frame.rewrite_as_diff( target_decoder_state,
+	parsed_frame.rewrite_as_diff( source_decoder_state, target_decoder_state,
 				      target_references, source_raster_preloop, target_raster );
 
 	//	parsed_frame.decode( target_decoder_state.quantizer_filter_adjustments, target_references, target_raster );

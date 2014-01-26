@@ -69,7 +69,7 @@ public:
     : storage_( Boolean( data, probability ), data )
   {}
 
-  Flagged( const T & other ) : storage_( true, other ) {}
+  Flagged( const bool initialized, const T & other ) : storage_( initialized, other ) {}
 
   bool initialized( void ) const { return storage_.initialized(); }
   const T & get( void ) const { return storage_.get(); }

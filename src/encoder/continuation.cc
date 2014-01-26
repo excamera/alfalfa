@@ -82,9 +82,10 @@ void InterFrameMacroblock::rewrite_as_diff( Raster::Macroblock & raster,
 }
 
 template <>
-void InterFrame::rewrite_as_diff( const DecoderState & target_decoder_state,
+void InterFrame::rewrite_as_diff( const DecoderState & source_decoder_state,
+				  const DecoderState & target_decoder_state,
 				  const References & references,
-				  const Raster & prediction,
+				  const Raster & source_raster_preloop,
 				  Raster & raster )
 {
   /* match correct ProbabilityTables in frame header */
@@ -92,7 +93,9 @@ void InterFrame::rewrite_as_diff( const DecoderState & target_decoder_state,
     for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
       for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
 	for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
-	  header_.token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( target_decoder_state.probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l ) );
+	  const auto & source = source_decoder_state.probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l );
+	  const auto & target = target_decoder_state.probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l );
+	  header_.token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( source != target, target );
 	}
       }
     }
@@ -116,7 +119,7 @@ void InterFrame::rewrite_as_diff( const DecoderState & target_decoder_state,
 									 references,
 									 raster.macroblock( column, row ) );
 					   macroblock.rewrite_as_diff( raster.macroblock( column, row ),
-								       prediction.macroblock( column, row ) );
+								       source_raster_preloop.macroblock( column, row ) );
 					 } else {
 					   macroblock.reconstruct_intra( quantizer,
 									 raster.macroblock( column, row ) );

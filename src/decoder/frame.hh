@@ -75,8 +75,10 @@ class Frame
 
   bool show_frame( void ) const { return show_; }
 
-  void rewrite_as_diff( const DecoderState & target_decoder_state,
-			const References & references, const Raster & prediction,
+  void rewrite_as_diff( const DecoderState & source_decoder_state,
+			const DecoderState & target_decoder_state,
+			const References & references,
+			const Raster & source_raster_preloop,
 			Raster & raster );
 };
 
