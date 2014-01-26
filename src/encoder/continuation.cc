@@ -88,7 +88,7 @@ void InterFrame::rewrite_as_diff( const DecoderState & source_decoder_state,
 				  const Raster & source_raster_preloop,
 				  Raster & raster )
 {
-  /* match correct ProbabilityTables in frame header */
+  /* match (normal) coefficient probabilities in frame header */
   for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
     for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
       for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
@@ -100,6 +100,40 @@ void InterFrame::rewrite_as_diff( const DecoderState & source_decoder_state,
       }
     }
   }
+
+  /* match intra_16x16_probs in frame header */
+  bool update_y_mode_probs = false;
+  Array< Unsigned< 8 >, 4 > new_y_mode_probs;
+
+  for ( unsigned int i = 0; i < 4; i++ ) {
+    const auto & source = source_decoder_state.probability_tables.y_mode_probs.at( i );
+    const auto & target = target_decoder_state.probability_tables.y_mode_probs.at( i );
+
+    new_y_mode_probs.at( i ) = target;
+
+    if ( source != target ) {
+      update_y_mode_probs = true;
+    }
+  }
+
+  header_.intra_16x16_prob = decltype( header_.intra_16x16_prob )( update_y_mode_probs, new_y_mode_probs );
+
+  /* match intra_chroma_prob in frame header */
+  bool update_chroma_mode_probs = false;
+  Array< Unsigned< 8 >, 3 > new_chroma_mode_probs;
+
+  for ( unsigned int i = 0; i < 3; i++ ) {
+    const auto & source = source_decoder_state.probability_tables.uv_mode_probs.at( i );
+    const auto & target = target_decoder_state.probability_tables.uv_mode_probs.at( i );
+
+    new_chroma_mode_probs.at( i ) = target;
+
+    if ( source != target ) {
+      update_chroma_mode_probs = true;
+    }
+  }
+
+  header_.intra_chroma_prob = decltype( header_.intra_chroma_prob )( update_chroma_mode_probs, new_chroma_mode_probs );
 
   assert( not continuation_header_.initialized() );
   continuation_header_.initialize( true, true, true );
