@@ -206,7 +206,8 @@ void InterFrame::decode( const QuantizerFilterAdjustments & quantizer_filter_adj
 					   : frame_quantizer;
 					 if ( macroblock.inter_coded() ) {
 					   if ( macroblock.continuation() ) {
-					     macroblock.reconstruct_continuation( raster.macroblock( column, row ) );
+					     macroblock.reconstruct_continuation( references,
+										  raster.macroblock( column, row ) );
 					   } else {
 					     macroblock.reconstruct_inter( quantizer,
 									   references,

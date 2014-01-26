@@ -90,3 +90,12 @@ void Block< initial_block_type, PredictionMode >::idct_add( Raster::Block4 & out
     *target = clamp255( *target + ((t0 - t3 + 4) >> 3) );
   }
 }
+
+template <BlockType initial_block_type, class PredictionMode>
+void Block< initial_block_type, PredictionMode >::add_residue( Raster::Block4 & output ) const
+{
+  for ( uint8_t i = 0; i < 16; i++ ) {
+    output.at( i % 4, i / 4 ) = clamp255( output.at( i % 4, i / 4 )
+					  + coefficients_.at( zigzag.at( i ) ) );
+  }
+}

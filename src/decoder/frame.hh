@@ -75,9 +75,6 @@ class Frame
 
   bool show_frame( void ) const { return show_; }
 
-  void rewrite_as_intra( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
-			 const References & references, Raster & raster );
-
   void rewrite_as_diff( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
 			const References & references, const Raster & prediction,
 			Raster & raster );

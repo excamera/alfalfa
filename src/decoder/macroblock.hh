@@ -98,9 +98,8 @@ public:
   void reconstruct_inter( const Quantizer & quantizer,
 			  const References & references,
 			  Raster::Macroblock & raster ) const;
-  void reconstruct_continuation( Raster::Macroblock & raster ) const;
+  void reconstruct_continuation( const References & references, Raster::Macroblock & raster ) const;
 
-  void rewrite_as_intra( Raster::Macroblock & raster );
   void rewrite_as_diff( Raster::Macroblock & raster, const Raster::Macroblock & prediction );
 
   void loopfilter( const QuantizerFilterAdjustments & quantizer_filter_adjustments,

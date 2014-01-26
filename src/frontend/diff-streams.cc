@@ -46,7 +46,7 @@ int main( int argc, char *argv[] )
       target_references( target.width(), target.height() );
     VideoDisplay display( Decoder( source.width(), source.height() ).example_raster() );
 
-    uint32_t frame_count = 360;
+    uint32_t frame_count = source.frame_count();
 
     /* write IVF header */
     cout << "DKIF";

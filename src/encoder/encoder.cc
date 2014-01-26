@@ -541,12 +541,12 @@ void Macroblock< FrameHeaderType, MacroblockheaderType >::serialize_tokens( Bool
   }
 
   if ( Y2_.coded() and (not continuation_) ) {
-    Y2_.serialize_tokens( encoder, probability_tables, false );
+    Y2_.serialize_tokens( encoder, probability_tables );
   }
 
-  Y_.forall( [&]( const YBlock & block ) { block.serialize_tokens( encoder, probability_tables, continuation_ ); } );
-  U_.forall( [&]( const UVBlock & block ) { block.serialize_tokens( encoder, probability_tables, continuation_ ); } );
-  V_.forall( [&]( const UVBlock & block ) { block.serialize_tokens( encoder, probability_tables, continuation_ ); } );
+  Y_.forall( [&]( const YBlock & block ) { block.serialize_tokens( encoder, probability_tables ); } );
+  U_.forall( [&]( const UVBlock & block ) { block.serialize_tokens( encoder, probability_tables ); } );
+  V_.forall( [&]( const UVBlock & block ) { block.serialize_tokens( encoder, probability_tables ); } );
 }
 
 template <unsigned int length>
@@ -698,8 +698,7 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::accumulate_token_branche
 template <BlockType initial_block_type, class PredictionMode>
 void Block< initial_block_type,
 	    PredictionMode >::serialize_tokens( BoolEncoder & encoder,
-						const ProbabilityTables & probability_tables,
-						const bool with_pixel_adjustment ) const
+						const ProbabilityTables & probability_tables ) const
 {
   uint8_t coded_length = 0;
 
@@ -839,18 +838,5 @@ void Block< initial_block_type,
       = probability_tables.coeff_probs.at( type_ ).at( coefficient_to_band.at( index ) ).at( token_context );
 
     encoder.put( false, prob.at( 0 ) );
-  }
-
-  /* write pixel adjustment */
-  if ( with_pixel_adjustment ) {
-    for ( unsigned int i = 0; i < 16; i++ ) {
-      const bool is_nonzero = !( pixel_adjustments_.at( i ) == PixelAdjustment::NoAdjustment );
-      encoder.put( is_nonzero, 253 );
-
-      if ( is_nonzero ) {
-	const bool bit = (pixel_adjustments_.at( i ) == PixelAdjustment::PlusOne) ? 1 : 0;
-	encoder.put( bit );
-      }
-    }
   }
 }

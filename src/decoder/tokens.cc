@@ -22,8 +22,7 @@ uint16_t TokenDecoder<length>::decode( BoolDecoder & data ) const
 template < BlockType initial_block_type, class PredictionMode >
 void Block< initial_block_type,
 	    PredictionMode >::parse_tokens( BoolDecoder & data,
-					    const ProbabilityTables & probability_tables,
-					    const bool continuation )
+					    const ProbabilityTables & probability_tables )
 {
   bool last_was_zero = false;
 
@@ -104,16 +103,5 @@ void Block< initial_block_type,
 
     /* assign to block storage */
     coefficients_.at( zigzag.at( index ) ) = value;
-  }
-
-  if ( continuation ) {
-    for ( unsigned int i = 0; i < 16; i++ ) {
-      bool is_nonzero = data.get( 253 );
-      if ( is_nonzero ) {
-	has_nonzero_ = true;
-	pixel_adjustments_.at( i ) = data.get() ? PixelAdjustment::PlusOne : PixelAdjustment::MinusOne;
-	has_pixel_adjustment_ = true;
-      }
-    }
   }
 }
