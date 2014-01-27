@@ -128,7 +128,23 @@ void InterFrame::rewrite_as_diff( const DecoderState & source_decoder_state,
     }
   }
 
-  (header_.refresh_entropy_probs ? header_.intra_16x16_prob : replacement_entropy_header.intra_16x16_prob) = decltype( header_.intra_16x16_prob )( update_y_mode_probs, new_y_mode_probs );
+  if ( header_.refresh_entropy_probs ) {
+    if ( header_.intra_16x16_prob.initialized() ) {
+      if ( update_y_mode_probs ) {
+	header_.intra_16x16_prob.get() = new_y_mode_probs;
+      } else {
+	header_.intra_16x16_prob.clear();
+      }
+    } else {
+      if ( update_y_mode_probs ) {
+	header_.intra_16x16_prob.initialize( new_y_mode_probs );
+      }
+    }
+  } else {
+    if ( update_y_mode_probs ) {
+      replacement_entropy_header.intra_16x16_prob.initialize( new_y_mode_probs );
+    }
+  }
 
   /* match intra_chroma_prob in frame header */
   bool update_chroma_mode_probs = false;
@@ -145,7 +161,23 @@ void InterFrame::rewrite_as_diff( const DecoderState & source_decoder_state,
     }
   }
 
-  (header_.refresh_entropy_probs ? header_.intra_chroma_prob : replacement_entropy_header.intra_chroma_prob) = decltype( header_.intra_chroma_prob )( update_chroma_mode_probs, new_chroma_mode_probs );
+  if ( header_.refresh_entropy_probs ) {
+    if ( header_.intra_chroma_prob.initialized() ) {
+      if ( update_chroma_mode_probs ) {
+	header_.intra_chroma_prob.get() = new_chroma_mode_probs;
+      } else {
+	header_.intra_chroma_prob.clear();
+      }
+    } else {
+      if ( update_chroma_mode_probs ) {
+	header_.intra_chroma_prob.initialize( new_chroma_mode_probs );
+      }
+    }
+  } else {
+    if ( update_chroma_mode_probs ) {
+      replacement_entropy_header.intra_chroma_prob.initialize( new_chroma_mode_probs );
+    }
+  }
 
   /* match motion_vector_probs in frame header */
   for ( uint8_t i = 0; i < 2; i++ ) {
@@ -202,7 +234,11 @@ void InterFrame::rewrite_as_diff( const DecoderState & source_decoder_state,
       }
     }
 
-    header_.update_segmentation.get().segment_feature_data = segment_feature_data;
+    if ( header_.update_segmentation.get().segment_feature_data.initialized() ) {
+      header_.update_segmentation.get().segment_feature_data.get() = segment_feature_data;
+    } else {
+      header_.update_segmentation.get().segment_feature_data.initialize( segment_feature_data );
+    }
 
     if ( not header_.update_segmentation.get().update_mb_segmentation_map ) {
       /* need to set up segmentation map */
@@ -220,7 +256,11 @@ void InterFrame::rewrite_as_diff( const DecoderState & source_decoder_state,
       macroblock_headers_.get().forall( [&]( InterFrameMacroblock & macroblock ) {
 	  macroblock.mutable_segment_id_update().initialize( macroblock.segment_id() ); } );
 
-      header_.update_segmentation.get().mb_segmentation_map = make_optional( mb_segmentation_map );
+      if ( header_.update_segmentation.get().mb_segmentation_map.initialized() ) {
+	header_.update_segmentation.get().mb_segmentation_map.get() = mb_segmentation_map;
+      } else {
+	header_.update_segmentation.get().mb_segmentation_map.initialize( mb_segmentation_map );
+      }
     }
   }
 

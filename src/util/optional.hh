@@ -107,13 +107,7 @@ public:
   /* destructor */
   ~Optional() { if ( initialized() ) { object_.~T(); } }
 
-  void clear( void ) { *this = Optional(); }
+  void clear( void ) { if ( initialized() ) { object_.~T(); } initialized_ = false; }
 };
-
-template <class T>
-static Optional<T> make_optional( const T & obj )
-{
-  return Optional<T>( true, obj );
-}
 
 #endif /* OPTIONAL_HH */

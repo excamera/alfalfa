@@ -84,8 +84,7 @@ public:
   T & get( void ) { return storage_.get(); }
   const T & get_or( const T & default_value ) const { return storage_.get_or( default_value ); }
   operator const Optional<T> & () const { return storage_; }
-
-  Flagged & operator=( const T & other ) { storage_ = make_optional( other ); return *this; }
+  void clear( void ) { storage_.clear(); }
 };
 
 /* An Array of VP8 header elements.
