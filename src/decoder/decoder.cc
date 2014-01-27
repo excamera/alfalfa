@@ -18,7 +18,7 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
   if ( uncompressed_chunk.key_frame() ) {
     const KeyFrame myframe = state_.parse_and_apply<KeyFrame>( uncompressed_chunk );
 
-    myframe.decode( state_.quantizer_filter_adjustments, raster );
+    myframe.decode( state_.segmentation, state_.filter_adjustments, raster );
 
     myframe.copy_to( raster, references_ );
 
@@ -26,7 +26,7 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
   } else {
     const InterFrame myframe = state_.parse_and_apply<InterFrame>( uncompressed_chunk );
 
-    myframe.decode( state_.quantizer_filter_adjustments, references_, raster );
+    myframe.decode( state_.segmentation, state_.filter_adjustments, references_, raster );
 
     myframe.copy_to( raster, references_ );
 
@@ -72,14 +72,23 @@ void ProbabilityTables::update( const InterFrameHeader & header )
   }
 }
 
+DecoderState::DecoderState( const unsigned int s_width, const unsigned int s_height )
+  : width( s_width ), height( s_height )
+{}
+
 DecoderState::DecoderState( const KeyFrameHeader & header,
 			    const unsigned int s_width,
 			    const unsigned int s_height )
   : width( s_width ), height( s_height ),
-    quantizer_filter_adjustments( header ),
-    segmentation_map( header.update_segmentation.initialized()
-		      and header.update_segmentation.get().update_mb_segmentation_map,
-		      Raster::macroblock_dimension( width ),
-		      Raster::macroblock_dimension( height ),
-		      -1 )
+    segmentation( header.update_segmentation.initialized(), header, width, height ),
+    filter_adjustments( header.mode_lf_adjustments.initialized(), header )
 {}
+
+template <class HeaderType>
+Segmentation::Segmentation( const HeaderType & header,
+			    const unsigned int width,
+			    const unsigned int height )
+  : map( width, height, 3 )
+{
+  update( header );
+}

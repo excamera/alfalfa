@@ -522,8 +522,7 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
 }
 
 template <class FrameHeaderType, class MacroblockHeaderType>
-void Macroblock<FrameHeaderType, MacroblockHeaderType>::loopfilter( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
-								    const bool adjust_for_mode_and_ref,
+void Macroblock<FrameHeaderType, MacroblockHeaderType>::loopfilter( const Optional< FilterAdjustments > & filter_adjustments,
 								    const FilterParameters & loopfilter,
 								    Raster::Macroblock & raster ) const
 {
@@ -532,9 +531,9 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::loopfilter( const Quanti
   /* which filter are we using? */
   FilterParameters loopfilter_in_use( loopfilter );
 
-  if ( adjust_for_mode_and_ref ) {
-    loopfilter_in_use.adjust( quantizer_filter_adjustments.loopfilter_ref_adjustments,
-			      quantizer_filter_adjustments.loopfilter_mode_adjustments,
+  if ( filter_adjustments.initialized() ) {
+    loopfilter_in_use.adjust( filter_adjustments.get().loopfilter_ref_adjustments,
+			      filter_adjustments.get().loopfilter_mode_adjustments,
 			      header_.reference(),
 			      Y2_.prediction_mode() );
   }

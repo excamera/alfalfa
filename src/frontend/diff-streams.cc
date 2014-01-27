@@ -71,16 +71,16 @@ int main( int argc, char *argv[] )
       UncompressedChunk whole_source( source.frame( i ), source.width(), source.height() );
       if ( whole_source.key_frame() ) {
 	KeyFrame parsed_frame = source_decoder_state.parse_and_apply<KeyFrame>( whole_source );
-	parsed_frame.decode( source_decoder_state.quantizer_filter_adjustments, source_raster_preloop, false );
+	parsed_frame.decode( source_decoder_state.segmentation, source_decoder_state.filter_adjustments, source_raster_preloop, false );
 	source_raster.get().copy( source_raster_preloop );
-	parsed_frame.loopfilter( source_decoder_state.quantizer_filter_adjustments, source_raster );
+	parsed_frame.loopfilter( source_decoder_state.segmentation, source_decoder_state.filter_adjustments, source_raster );
 	parsed_frame.copy_to( source_raster, source_references );
       } else {
 	const InterFrame parsed_frame = source_decoder_state.parse_and_apply<InterFrame>( whole_source );
-	parsed_frame.decode( source_decoder_state.quantizer_filter_adjustments,
+	parsed_frame.decode( source_decoder_state.segmentation, source_decoder_state.filter_adjustments,
 			     source_references, source_raster_preloop, false );
 	source_raster.get().copy( source_raster_preloop );
-	parsed_frame.loopfilter( source_decoder_state.quantizer_filter_adjustments, source_raster );
+	parsed_frame.loopfilter( source_decoder_state.segmentation, source_decoder_state.filter_adjustments, source_raster );
 	parsed_frame.copy_to( source_raster, source_references );
       }
 
@@ -90,7 +90,7 @@ int main( int argc, char *argv[] )
       UncompressedChunk whole_target( target.frame( i ), target.width(), target.height() );
       if ( whole_target.key_frame() ) {
 	const KeyFrame parsed_frame = target_decoder_state.parse_and_apply<KeyFrame>( whole_target );
-	parsed_frame.decode( target_decoder_state.quantizer_filter_adjustments, target_raster );
+	parsed_frame.decode( target_decoder_state.segmentation, target_decoder_state.filter_adjustments, target_raster );
 	parsed_frame.copy_to( target_raster, target_references );
 
 	serialized_frame = parsed_frame.serialize( target_decoder_state.probability_tables );
@@ -105,7 +105,7 @@ int main( int argc, char *argv[] )
 	//	parsed_frame.decode( target_decoder_state.quantizer_filter_adjustments, target_references, target_raster );
 
 
-	parsed_frame.loopfilter( target_decoder_state.quantizer_filter_adjustments, target_raster );
+	parsed_frame.loopfilter( target_decoder_state.segmentation, target_decoder_state.filter_adjustments, target_raster );
 
 	parsed_frame.copy_to( target_raster, target_references );
 

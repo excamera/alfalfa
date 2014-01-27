@@ -148,7 +148,7 @@ void InterFrame::rewrite_as_diff( const DecoderState & source_decoder_state,
   continuation_header_.initialize( true, true, true );
 
   const Quantizer frame_quantizer( header_.quant_indices );
-  const auto segment_quantizers = calculate_segment_quantizers( target_decoder_state.quantizer_filter_adjustments );
+  const auto segment_quantizers = calculate_segment_quantizers( target_decoder_state.segmentation );
 
   /* process each macroblock */
   macroblock_headers_.get().forall_ij( [&]( InterFrameMacroblock & macroblock,

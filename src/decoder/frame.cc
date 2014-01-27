@@ -108,7 +108,9 @@ void Frame<FrameHeaderType, MacroblockType>::parse_tokens( vector< Chunk > dct_p
 }
 
 template <class FrameHeaderType, class MacroblockType>
-void Frame<FrameHeaderType, MacroblockType>::loopfilter( const QuantizerFilterAdjustments & quantizer_filter_adjustments, Raster & raster ) const
+void Frame<FrameHeaderType, MacroblockType>::loopfilter( const Optional< Segmentation > & segmentation,
+							 const Optional< FilterAdjustments > & filter_adjustments,
+							 Raster & raster ) const
 {
   if ( header_.loop_filter_level ) {
     /* calculate per-segment filter adjustments if
@@ -120,13 +122,13 @@ void Frame<FrameHeaderType, MacroblockType>::loopfilter( const QuantizerFilterAd
 
     SafeArray< FilterParameters, num_segments > segment_loopfilters;
 
-    if ( header_.update_segmentation.initialized() ) {
+    if ( segmentation.initialized() ) {
       for ( uint8_t i = 0; i < num_segments; i++ ) {
 	FilterParameters segment_filter( header_.filter_type,
 					 header_.loop_filter_level,
 					 header_.sharpness_level );
-	segment_filter.filter_level = quantizer_filter_adjustments.segment_filter_adjustments.at( i )
-	  + ( quantizer_filter_adjustments.absolute_segment_adjustments
+	segment_filter.filter_level = segmentation.get().segment_filter_adjustments.at( i )
+	  + ( segmentation.get().absolute_segment_adjustments
 	      ? 0
 	      : segment_filter.filter_level );
 
@@ -140,9 +142,8 @@ void Frame<FrameHeaderType, MacroblockType>::loopfilter( const QuantizerFilterAd
     macroblock_headers_.get().forall_ij( [&]( const MacroblockType & macroblock,
 					      const unsigned int column,
 					      const unsigned int row )
-					 { macroblock.loopfilter( quantizer_filter_adjustments,
-								  header_.mode_lf_adjustments.initialized(),
-								  header_.update_segmentation.initialized()
+					 { macroblock.loopfilter( filter_adjustments,
+								  segmentation.initialized()
 								  ? segment_loopfilters.at( macroblock.segment_id() )
 								  : frame_loopfilter,
 								  raster.macroblock( column, row ) ); } );
@@ -150,18 +151,18 @@ void Frame<FrameHeaderType, MacroblockType>::loopfilter( const QuantizerFilterAd
 }
 
 template <class FrameHeaderType, class MacroblockType>
-SafeArray<Quantizer, num_segments> Frame<FrameHeaderType, MacroblockType>::calculate_segment_quantizers( const QuantizerFilterAdjustments & quantizer_filter_adjustments ) const
+SafeArray<Quantizer, num_segments> Frame<FrameHeaderType, MacroblockType>::calculate_segment_quantizers( const Optional< Segmentation > & segmentation ) const
 {
   /* calculate per-segment quantizer adjustments if
      segmentation is enabled */
 
   SafeArray< Quantizer, num_segments > segment_quantizers;
 
-  if ( header_.update_segmentation.initialized() ) {
+  if ( segmentation.initialized() ) {
     for ( uint8_t i = 0; i < num_segments; i++ ) {
       QuantIndices segment_indices( header_.quant_indices );
-      segment_indices.y_ac_qi = quantizer_filter_adjustments.segment_quantizer_adjustments.at( i )
-	+ ( quantizer_filter_adjustments.absolute_segment_adjustments
+      segment_indices.y_ac_qi = segmentation.get().segment_quantizer_adjustments.at( i )
+	+ ( segmentation.get().absolute_segment_adjustments
 	    ? static_cast<Unsigned<7>>( 0 )
 	    : segment_indices.y_ac_qi );
 
@@ -173,39 +174,42 @@ SafeArray<Quantizer, num_segments> Frame<FrameHeaderType, MacroblockType>::calcu
 }
 
 template <>
-void KeyFrame::decode( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
+void KeyFrame::decode( const Optional< Segmentation > & segmentation,
+		       const Optional< FilterAdjustments > & filter_adjustments,
 		       Raster & raster, const bool lf ) const
 {
   const Quantizer frame_quantizer( header_.quant_indices );
-  const auto segment_quantizers = calculate_segment_quantizers( quantizer_filter_adjustments );
+  const auto segment_quantizers = calculate_segment_quantizers( segmentation );
 
   /* process each macroblock */
   macroblock_headers_.get().forall_ij( [&]( const KeyFrameMacroblock & macroblock,
 					    const unsigned int column,
 					    const unsigned int row ) {
-					 const auto & quantizer = header_.update_segmentation.initialized()
+					 const auto & quantizer = segmentation.initialized()
 					   ? segment_quantizers.at( macroblock.segment_id() )
 					   : frame_quantizer;
 					 macroblock.reconstruct_intra( quantizer,
 								       raster.macroblock( column, row ) );
 				       } );
-  if ( lf )
-    loopfilter( quantizer_filter_adjustments, raster );
+  if ( lf ) {
+    loopfilter( segmentation, filter_adjustments, raster );
+  }
 }
 
 template <>
-void InterFrame::decode( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
+void InterFrame::decode( const Optional< Segmentation > & segmentation,
+			 const Optional< FilterAdjustments > & filter_adjustments,
 			 const References & references,
 			 Raster & raster, const bool lf ) const
 {
   const Quantizer frame_quantizer( header_.quant_indices );
-  const auto segment_quantizers = calculate_segment_quantizers( quantizer_filter_adjustments );
+  const auto segment_quantizers = calculate_segment_quantizers( segmentation );
 
   /* process each macroblock */
   macroblock_headers_.get().forall_ij( [&]( const InterFrameMacroblock & macroblock,
 					    const unsigned int column,
 					    const unsigned int row ) { 
-					 const auto & quantizer = header_.update_segmentation.initialized()
+					 const auto & quantizer = segmentation.initialized()
 					   ? segment_quantizers.at( macroblock.segment_id() )
 					   : frame_quantizer;
 					 if ( macroblock.inter_coded() ) {
@@ -222,8 +226,9 @@ void InterFrame::decode( const QuantizerFilterAdjustments & quantizer_filter_adj
 									 raster.macroblock( column, row ) );
 					 } } );
 
-  if ( lf )
-    loopfilter( quantizer_filter_adjustments, raster );
+  if ( lf ) {
+    loopfilter( segmentation, filter_adjustments, raster );
+  }
 }
 
 /* "above" for a Y2 block refers to the first macroblock above that actually has Y2 coded */

@@ -103,8 +103,7 @@ public:
 
   void rewrite_as_diff( Raster::Macroblock & raster, const Raster::Macroblock & prediction );
 
-  void loopfilter( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
-		   const bool adjust_for_mode_and_ref,
+  void loopfilter( const Optional< FilterAdjustments > & filter_adjustments,
 		   const FilterParameters & loopfilter,
 		   Raster::Macroblock & raster ) const;
 

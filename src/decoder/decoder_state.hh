@@ -23,25 +23,29 @@ void ProbabilityTables::coeff_prob_update( const HeaderType & header )
 }
 
 template <class HeaderType>
-void QuantizerFilterAdjustments::update( const HeaderType & header )
+void Segmentation::update( const HeaderType & header )
 {
+  assert( header.update_segmentation.initialized() );
+
   /* update segment adjustments */
-  if ( header.update_segmentation.initialized() ) {
-    if ( header.update_segmentation.get().segment_feature_data.initialized() ) {
-      const auto & feature_data = header.update_segmentation.get().segment_feature_data.get();
+  if ( header.update_segmentation.get().segment_feature_data.initialized() ) {
+    const auto & feature_data = header.update_segmentation.get().segment_feature_data.get();
 
-      absolute_segment_adjustments = feature_data.segment_feature_mode;
+    absolute_segment_adjustments = feature_data.segment_feature_mode;
 
-      for ( uint8_t i = 0; i < num_segments; i++ ) {
-	segment_quantizer_adjustments.at( i ) = feature_data.quantizer_update.at( i ).get_or( 0 );
-	segment_filter_adjustments.at( i ) = feature_data.loop_filter_update.at( i ).get_or( 0 );
-      }
+    for ( uint8_t i = 0; i < num_segments; i++ ) {
+      segment_quantizer_adjustments.at( i ) = feature_data.quantizer_update.at( i ).get_or( 0 );
+      segment_filter_adjustments.at( i ) = feature_data.loop_filter_update.at( i ).get_or( 0 );
     }
   }
+}
+
+template <class HeaderType>
+void FilterAdjustments::update( const HeaderType & header ) {
+  assert( header.mode_lf_adjustments.initialized() );
 
   /* update additional in-loop deblocking filter adjustments */
-  if ( header.mode_lf_adjustments.initialized()
-       and header.mode_lf_adjustments.get().initialized() ) {
+  if ( header.mode_lf_adjustments.get().initialized() ) {
     for ( unsigned int i = 0; i < loopfilter_ref_adjustments.size(); i++ ) {
       loopfilter_ref_adjustments.at( i ) = header.mode_lf_adjustments.get().get().ref_update.at( i ).get_or( 0 );
       loopfilter_mode_adjustments.at( i ) = header.mode_lf_adjustments.get().get().mode_update.at( i ).get_or( 0 );
@@ -79,8 +83,8 @@ inline KeyFrame DecoderState::parse_and_apply<KeyFrame>( const UncompressedChunk
   /* parse the frame (and update the persistent segmentation map) */
   myframe.parse_macroblock_headers( first_partition, frame_probability_tables );
 
-  if ( segmentation_map.initialized() ) {
-    myframe.update_segmentation( segmentation_map.get() );
+  if ( segmentation.initialized() ) {
+    myframe.update_segmentation( segmentation.get().map );
   }
 
   myframe.parse_tokens( uncompressed_chunk.dct_partitions( myframe.dct_partition_count() ),
@@ -102,9 +106,6 @@ inline InterFrame DecoderState::parse_and_apply<InterFrame>( const UncompressedC
 		      uncompressed_chunk.experimental(),
 		      width, height, first_partition );
 
-  /* update adjustments to quantizer and in-loop deblocking filter */
-  quantizer_filter_adjustments.update( myframe.header() );
-
   /* update probability tables. replace persistent copy if prescribed in header */
   ProbabilityTables frame_probability_tables( probability_tables );
   frame_probability_tables.update( myframe.header() );
@@ -112,16 +113,33 @@ inline InterFrame DecoderState::parse_and_apply<InterFrame>( const UncompressedC
     probability_tables = frame_probability_tables;
   }
 
-  /* wipe segmentation map if segmentation not enabled on this frame */
-  if ( not myframe.header().update_segmentation.initialized() ) {
-    segmentation_map.clear();
+  /* update adjustments to in-loop deblocking filter */
+  if ( myframe.header().mode_lf_adjustments.initialized() ) {
+    if ( filter_adjustments.initialized() ) {
+      filter_adjustments.get().update( myframe.header() );
+    } else {
+      filter_adjustments.initialize( myframe.header() );
+    }
+  } else {
+    filter_adjustments.clear();
+  }
+
+  /* update segmentation information */
+  if ( myframe.header().update_segmentation.initialized() ) {
+    if ( segmentation.initialized() ) {
+      segmentation.get().update( myframe.header() );
+    } else {
+      segmentation.initialize( myframe.header(), width, height );
+    }
+  } else {
+    segmentation.clear();
   }
 
   /* parse the frame (and update the persistent segmentation map) */
   myframe.parse_macroblock_headers( first_partition, frame_probability_tables );
 
-  if ( segmentation_map.initialized() ) {
-    myframe.update_segmentation( segmentation_map.get() );
+  if ( segmentation.initialized() ) {
+    myframe.update_segmentation( segmentation.get().map );
   }
 
   myframe.parse_tokens( uncompressed_chunk.dct_partitions( myframe.dct_partition_count() ),

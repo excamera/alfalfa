@@ -34,26 +34,18 @@ struct ProbabilityTables
   void update( const InterFrameHeader & header );
 };
 
-struct QuantizerFilterAdjustments
+struct FilterAdjustments
 {
-  /* Whether segment-based adjustments are absolute or relative */
-  bool absolute_segment_adjustments {};
-
-  /* Segment-based adjustments to the quantizer */
-  SafeArray< int8_t, num_segments > segment_quantizer_adjustments {{}};
-
-  /* Segment-based adjustments to the in-loop deblocking filter */
-  SafeArray< int8_t, num_segments > segment_filter_adjustments {{}};
-
   /* Adjustments to the deblocking filter based on the macroblock's reference frame */
   SafeArray< int8_t, num_reference_frames > loopfilter_ref_adjustments {{}};
 
   /* Adjustments based on the macroblock's prediction mode */
   SafeArray< int8_t, 4 > loopfilter_mode_adjustments {{}};
 
-  QuantizerFilterAdjustments() {}
+  FilterAdjustments() {}
 
-  QuantizerFilterAdjustments( const KeyFrameHeader & header ) { update( header ); }
+  template <class HeaderType>
+  FilterAdjustments( const HeaderType & header ) { update( header ); }
 
   template <class HeaderType>
   void update( const HeaderType & header );
@@ -78,16 +70,38 @@ struct References
 
 using SegmentationMap = TwoD< uint8_t >;
 
+struct Segmentation
+{
+  /* Whether segment-based adjustments are absolute or relative */
+  bool absolute_segment_adjustments {};
+
+  /* Segment-based adjustments to the quantizer */
+  SafeArray< int8_t, num_segments > segment_quantizer_adjustments {{}};
+
+  /* Segment-based adjustments to the in-loop deblocking filter */
+  SafeArray< int8_t, num_segments > segment_filter_adjustments {{}};
+
+  /* Mapping of macroblocks to segments */
+  SegmentationMap map;
+
+  template <class HeaderType>
+  Segmentation( const HeaderType & header,
+		const unsigned int width,
+		const unsigned int height );
+
+  template <class HeaderType>
+  void update( const HeaderType & header );
+};
+
 struct DecoderState
 {
   uint16_t width, height;
 
-  QuantizerFilterAdjustments quantizer_filter_adjustments = {};
   ProbabilityTables probability_tables = {};
-  Optional< SegmentationMap > segmentation_map = {};
+  Optional< Segmentation > segmentation = {};
+  Optional< FilterAdjustments > filter_adjustments = {};
 
-  DecoderState( const unsigned int s_width, const unsigned int s_height )
-    : width( s_width ), height( s_height ) {}
+  DecoderState( const unsigned int s_width, const unsigned int s_height );
 
   DecoderState( const KeyFrameHeader & header,
 		const unsigned int s_width,

@@ -8,7 +8,8 @@
 #include "raster.hh"
 
 struct References;
-struct QuantizerFilterAdjustments;
+struct Segmentation;
+struct FilterAdjustments;
 
 struct Quantizers
 {
@@ -40,13 +41,15 @@ class Frame
   void relink_y2_blocks( void );
 
   ProbabilityArray< num_segments > calculate_mb_segment_tree_probs( void ) const;
-  SafeArray< Quantizer, num_segments > calculate_segment_quantizers( const QuantizerFilterAdjustments & quantizer_filter_adjustments ) const;
+  SafeArray< Quantizer, num_segments > calculate_segment_quantizers( const Optional< Segmentation > & segmentation ) const;
 
   std::vector< uint8_t > serialize_first_partition( const ProbabilityTables & probability_tables ) const;
   std::vector< std::vector< uint8_t > > serialize_tokens( const ProbabilityTables & probability_tables ) const;
 
  public:
-  void loopfilter( const QuantizerFilterAdjustments & quantizer_filter_adjustments, Raster & target ) const;
+  void loopfilter( const Optional< Segmentation > & segmentation,
+		   const Optional< FilterAdjustments > & quantizer_filter_adjustments,
+		   Raster & target ) const;
 
   Frame( const bool show,
 	 const bool continuation,
@@ -63,8 +66,12 @@ class Frame
 
   void parse_tokens( std::vector< Chunk > dct_partitions, const ProbabilityTables & probability_tables );
 
-  void decode( const QuantizerFilterAdjustments & quantizer_filter_adjustments, Raster & raster, const bool lf = true ) const;
-  void decode( const QuantizerFilterAdjustments & quantizer_filter_adjustments,
+  void decode( const Optional< Segmentation > & segmentation,
+	       const Optional< FilterAdjustments > & filter_adjustments,
+	       Raster & raster, const bool lf = true ) const;
+
+  void decode( const Optional< Segmentation > & segmentation,
+	       const Optional< FilterAdjustments > & filter_adjustments,
 	       const References & references, Raster & raster, const bool lf = true ) const;
 
   void copy_to( const RasterHandle & raster, References & references ) const;
