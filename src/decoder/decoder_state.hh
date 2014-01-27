@@ -107,6 +107,12 @@ inline InterFrame DecoderState::parse_and_apply<InterFrame>( const UncompressedC
     probability_tables = frame_probability_tables;
   }
 
+  /* wipe segmentation map if segmentation not enabled on this frame */
+  if ( not myframe.header().update_segmentation.initialized() ) {
+    segmentation_map = SegmentationMap( segmentation_map.width(),
+					segmentation_map.height() );
+  }
+
   /* parse the frame (and update the persistent segmentation map) */
   myframe.parse_macroblock_headers_and_update_segmentation_map( first_partition, segmentation_map, frame_probability_tables );
   myframe.parse_tokens( uncompressed_chunk.dct_partitions( myframe.dct_partition_count() ),
