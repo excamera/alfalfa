@@ -42,6 +42,12 @@ struct SegmentFeatureData
 
   SegmentFeatureData( BoolDecoder & data )
     : segment_feature_mode( data ), quantizer_update( data ), loop_filter_update( data ) {}
+
+  SegmentFeatureData()
+    : segment_feature_mode(),
+      quantizer_update(),
+      loop_filter_update()
+  {}
 };
 
 struct UpdateSegmentation
@@ -53,6 +59,12 @@ struct UpdateSegmentation
   UpdateSegmentation( BoolDecoder & data )
     : update_mb_segmentation_map( data ), segment_feature_data( data ),
       mb_segmentation_map( update_mb_segmentation_map, data ) {}
+
+  UpdateSegmentation()
+    : update_mb_segmentation_map(),
+      segment_feature_data(),
+      mb_segmentation_map()
+  {}
 };
 
 struct TokenProbUpdate

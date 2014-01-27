@@ -17,7 +17,7 @@ private:
 
 public:
   Boolean( BoolDecoder & data, const Probability probability = 128 ) : i_( data.get( probability ) ) {}
-  Boolean( const bool & val ) : i_( val ) {}
+  Boolean( const bool & val = false ) : i_( val ) {}
   operator const bool & () const { return i_; }
 };
 

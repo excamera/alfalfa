@@ -148,44 +148,66 @@ void InterFrame::rewrite_as_diff( const DecoderState & source_decoder_state,
   if ( target_decoder_state.filter_adjustments.initialized() ) {
     assert( header_.mode_lf_adjustments.initialized() );
 
-    if ( not source_decoder_state.filter_adjustments.initialized() ) {
-      /* need to encode all of them */
-      ModeRefLFDeltaUpdate filter_update;
+    ModeRefLFDeltaUpdate filter_update;
 
-      for ( unsigned int i = 0; i < target_decoder_state.filter_adjustments.get().loopfilter_ref_adjustments.size(); i++ ) {
-	filter_update.ref_update.at( i ).initialize( target_decoder_state.filter_adjustments.get().loopfilter_ref_adjustments.at( i ) );
+    /* these are 0 if not set */
+    for ( unsigned int i = 0; i < target_decoder_state.filter_adjustments.get().loopfilter_ref_adjustments.size(); i++ ) {
+      const auto & value = target_decoder_state.filter_adjustments.get().loopfilter_ref_adjustments.at( i );
+      if ( value ) {
+	filter_update.ref_update.at( i ).initialize( value );
+      }
+    }
+
+    for ( unsigned int i = 0; i < target_decoder_state.filter_adjustments.get().loopfilter_mode_adjustments.size(); i++ ) {
+      const auto & value = target_decoder_state.filter_adjustments.get().loopfilter_mode_adjustments.at( i );
+      if ( value ) {
+	filter_update.mode_update.at( i ).initialize( value );
+      }
+    }
+
+    header_.mode_lf_adjustments.get() = Flagged< ModeRefLFDeltaUpdate >( true, filter_update );
+  }
+
+  /* match segmentation if necessary */
+  if ( target_decoder_state.segmentation.initialized() ) {
+    assert( header_.update_segmentation.initialized() );  
+
+    SegmentFeatureData segment_feature_data;
+
+    segment_feature_data.segment_feature_mode = target_decoder_state.segmentation.get().absolute_segment_adjustments;
+
+    for ( unsigned int i = 0; i < num_segments; i++ ) {
+      /* these also default to 0 */
+      const auto & q_adjustment = target_decoder_state.segmentation.get().segment_quantizer_adjustments.at( i );
+      const auto & lf_adjustment = target_decoder_state.segmentation.get().segment_filter_adjustments.at( i );
+      if ( q_adjustment ) {
+	segment_feature_data.quantizer_update.at( i ).initialize( q_adjustment );
       }
 
-      for ( unsigned int i = 0; i < target_decoder_state.filter_adjustments.get().loopfilter_mode_adjustments.size(); i++ ) {
-	filter_update.mode_update.at( i ).initialize( target_decoder_state.filter_adjustments.get().loopfilter_mode_adjustments.at( i ) );
+      if ( lf_adjustment ) {
+	segment_feature_data.loop_filter_update.at( i ).initialize( lf_adjustment );
+      }
+    }
+
+    header_.update_segmentation.get().segment_feature_data.initialize( segment_feature_data );
+
+    if ( not header_.update_segmentation.get().update_mb_segmentation_map ) {
+      /* need to set up segmentation map */
+
+      header_.update_segmentation.get().update_mb_segmentation_map = true;
+
+      Array< Flagged< Unsigned<8> >, 3 > mb_segmentation_map;
+
+      /* don't optimize the tree probabilities for now */
+      for ( unsigned int i = 0; i < 3; i++ ) {
+	mb_segmentation_map.at( i ).initialize( 128 );
       }
 
-      header_.mode_lf_adjustments.get() = Flagged< ModeRefLFDeltaUpdate >( true, filter_update );
-    } else {
-      /* selective update */
-      bool update_mode_lf_adjustments = false;
+      /* write segmentation updates into the macroblock headers */
+      macroblock_headers_.get().forall( [&]( InterFrameMacroblock & macroblock ) {
+	  macroblock.mutable_segment_id_update().initialize( macroblock.segment_id() ); } );
 
-      ModeRefLFDeltaUpdate filter_update;
-
-      for ( unsigned int i = 0; i < target_decoder_state.filter_adjustments.get().loopfilter_ref_adjustments.size(); i++ ) {
-	const auto & source = source_decoder_state.filter_adjustments.get().loopfilter_ref_adjustments.at( i );
-	const auto & target = target_decoder_state.filter_adjustments.get().loopfilter_ref_adjustments.at( i );
-	if ( source != target ) {
-	  filter_update.ref_update.at( i ).initialize( target );
-	  update_mode_lf_adjustments = true;
-	}
-      }
-
-      for ( unsigned int i = 0; i < target_decoder_state.filter_adjustments.get().loopfilter_mode_adjustments.size(); i++ ) {
-	const auto & source = source_decoder_state.filter_adjustments.get().loopfilter_mode_adjustments.at( i );
-	const auto & target = target_decoder_state.filter_adjustments.get().loopfilter_mode_adjustments.at( i );
-	if ( source != target ) {
-	  filter_update.mode_update.at( i ).initialize( target );
-	  update_mode_lf_adjustments = true;
-	}
-      }
-
-      header_.mode_lf_adjustments.get() = Flagged< ModeRefLFDeltaUpdate >( update_mode_lf_adjustments, filter_update );
+      header_.update_segmentation.get().mb_segmentation_map.initialize( mb_segmentation_map );
     }
   }
 
