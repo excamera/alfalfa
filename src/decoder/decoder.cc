@@ -40,38 +40,6 @@ References::References( const uint16_t width, const uint16_t height )
     alternative_reference( width, height )
 {}
 
-template <unsigned int size>
-static void assign( SafeArray< Probability, size > & dest, const Array< Unsigned<8>, size > & src )
-{
-  for ( unsigned int i = 0; i < size; i++ ) {
-    dest.at( i ) = src.at( i );
-  }
-}
-
-void ProbabilityTables::update( const InterFrameHeader & header )
-{
-  coeff_prob_update( header );
-
-  /* update intra-mode probabilities in inter macroblocks */
-  if ( header.intra_16x16_prob.initialized() ) {
-    assign( y_mode_probs, header.intra_16x16_prob.get() );
-  }
-
-  if ( header.intra_chroma_prob.initialized() ) {
-    assign( uv_mode_probs, header.intra_chroma_prob.get() );
-  }
-
-  /* update motion vector component probabilities */
-  for ( uint8_t i = 0; i < header.mv_prob_update.size(); i++ ) {
-    for ( uint8_t j = 0; j < header.mv_prob_update.at( i ).size(); j++ ) {
-      const auto & prob = header.mv_prob_update.at( i ).at( j );
-      if ( prob.initialized() ) {
-	motion_vector_probs.at( i ).at( j ) = prob.get();
-      }
-    }
-  }
-}
-
 DecoderState::DecoderState( const unsigned int s_width, const unsigned int s_height )
   : width( s_width ), height( s_height )
 {}
@@ -83,3 +51,43 @@ DecoderState::DecoderState( const KeyFrameHeader & header,
     segmentation( header.update_segmentation.initialized(), header, width, height ),
     filter_adjustments( header.mode_lf_adjustments.initialized(), header )
 {}
+
+bool DecoderState::operator==( const DecoderState & other ) const
+{
+  return width == other.width
+    and height == other.height
+    and probability_tables == other.probability_tables
+    and segmentation == other.segmentation
+    and filter_adjustments == other.filter_adjustments;
+}
+
+bool ProbabilityTables::operator==( const ProbabilityTables & other ) const
+{
+  return coeff_probs == other.coeff_probs
+    and y_mode_probs == other.y_mode_probs
+    and uv_mode_probs == other.uv_mode_probs
+    and motion_vector_probs == other.motion_vector_probs;
+}
+
+bool FilterAdjustments::operator==( const FilterAdjustments & other ) const
+{
+  return loopfilter_ref_adjustments == other.loopfilter_ref_adjustments
+    and loopfilter_mode_adjustments == other.loopfilter_mode_adjustments;
+}
+
+bool Segmentation::operator==( const Segmentation & other ) const
+{
+  return absolute_segment_adjustments == other.absolute_segment_adjustments
+    and segment_quantizer_adjustments == other.segment_quantizer_adjustments
+    and segment_filter_adjustments == other.segment_filter_adjustments
+    and map == other.map;
+}
+
+Segmentation::Segmentation( const Segmentation & other )
+  : absolute_segment_adjustments( other.absolute_segment_adjustments ),
+    segment_quantizer_adjustments( other.segment_quantizer_adjustments ),
+    segment_filter_adjustments( other.segment_filter_adjustments ),
+    map( other.map.width(), other.map.height() )
+{
+  map.copy( other.map );
+}

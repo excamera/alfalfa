@@ -51,6 +51,14 @@ void InterFrameMacroblock::rewrite_as_diff( Raster::Macroblock & raster,
 
   has_nonzero_ = false;
 
+  /* erase the Y2 subblock contents */
+  for ( uint8_t i = 0; i < 16; i++ ) {
+    Y2_.mutable_coefficients().at( i ) = 0;
+  }
+  Y2_.recalculate_has_nonzero();
+
+  assert( not Y2_.has_nonzero() );
+
   /* rewrite the Y subblocks */
   Y_.forall_ij( [&] ( YBlock & block, unsigned int column, unsigned int row ) {
       rewrite_block_as_intra( block,
@@ -88,6 +96,9 @@ void InterFrame::rewrite_as_diff( const DecoderState & source_decoder_state,
 				  const Raster & source_raster_preloop,
 				  Raster & raster )
 {
+  /* if frame does not update probability tables, we still need to update decoder state */
+  ReplacementEntropyHeader replacement_entropy_header;
+
   /* match (normal) coefficient probabilities in frame header */
   for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
     for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
@@ -95,7 +106,8 @@ void InterFrame::rewrite_as_diff( const DecoderState & source_decoder_state,
 	for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
 	  const auto & source = source_decoder_state.probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l );
 	  const auto & target = target_decoder_state.probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l );
-	  header_.token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( source != target, target );
+
+	  (header_.refresh_entropy_probs ? header_.token_prob_update : replacement_entropy_header.token_prob_update).at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( source != target, target );
 	}
       }
     }
@@ -116,7 +128,7 @@ void InterFrame::rewrite_as_diff( const DecoderState & source_decoder_state,
     }
   }
 
-  header_.intra_16x16_prob = decltype( header_.intra_16x16_prob )( update_y_mode_probs, new_y_mode_probs );
+  (header_.refresh_entropy_probs ? header_.intra_16x16_prob : replacement_entropy_header.intra_16x16_prob) = decltype( header_.intra_16x16_prob )( update_y_mode_probs, new_y_mode_probs );
 
   /* match intra_chroma_prob in frame header */
   bool update_chroma_mode_probs = false;
@@ -133,14 +145,15 @@ void InterFrame::rewrite_as_diff( const DecoderState & source_decoder_state,
     }
   }
 
-  header_.intra_chroma_prob = decltype( header_.intra_chroma_prob )( update_chroma_mode_probs, new_chroma_mode_probs );
+  (header_.refresh_entropy_probs ? header_.intra_chroma_prob : replacement_entropy_header.intra_chroma_prob) = decltype( header_.intra_chroma_prob )( update_chroma_mode_probs, new_chroma_mode_probs );
 
   /* match motion_vector_probs in frame header */
   for ( uint8_t i = 0; i < 2; i++ ) {
     for ( uint8_t j = 0; j < MV_PROB_CNT; j++ ) {
       const auto & source = source_decoder_state.probability_tables.motion_vector_probs.at( i ).at( j );
       const auto & target = target_decoder_state.probability_tables.motion_vector_probs.at( i ).at( j );
-      header_.mv_prob_update.at( i ).at( j ) = MVProbUpdate( source != target, target );      
+
+      (header_.refresh_entropy_probs ? header_.mv_prob_update : replacement_entropy_header.mv_prob_update).at( i ).at( j ) = MVProbUpdate( source != target, target );      
     }
   }
 
@@ -189,7 +202,7 @@ void InterFrame::rewrite_as_diff( const DecoderState & source_decoder_state,
       }
     }
 
-    header_.update_segmentation.get().segment_feature_data.initialize( segment_feature_data );
+    header_.update_segmentation.get().segment_feature_data = segment_feature_data;
 
     if ( not header_.update_segmentation.get().update_mb_segmentation_map ) {
       /* need to set up segmentation map */
@@ -207,12 +220,16 @@ void InterFrame::rewrite_as_diff( const DecoderState & source_decoder_state,
       macroblock_headers_.get().forall( [&]( InterFrameMacroblock & macroblock ) {
 	  macroblock.mutable_segment_id_update().initialize( macroblock.segment_id() ); } );
 
-      header_.update_segmentation.get().mb_segmentation_map.initialize( mb_segmentation_map );
+      header_.update_segmentation.get().mb_segmentation_map = make_optional( mb_segmentation_map );
     }
   }
 
   assert( not continuation_header_.initialized() );
   continuation_header_.initialize( true, true, true );
+
+  if ( not header_.refresh_entropy_probs ) {
+    continuation_header_.get().replacement_entropy_header.initialize( replacement_entropy_header );
+  }
 
   const Quantizer frame_quantizer( header_.quant_indices );
   const auto segment_quantizers = calculate_segment_quantizers( target_decoder_state.segmentation );

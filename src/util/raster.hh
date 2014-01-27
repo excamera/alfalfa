@@ -131,6 +131,13 @@ public:
     TwoDSubRange< Block4, 2, 2 > U_sub, V_sub;
 
     Macroblock( const TwoD< Macroblock >::Context & c, Raster & raster );
+
+    bool operator==( const Macroblock & other ) const
+    {
+      return Y.contents() == other.Y.contents()
+	and U.contents() == other.U.contents()
+	and V.contents() == other.V.contents();
+    }
   };
 
 private:

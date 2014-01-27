@@ -2,6 +2,7 @@
 #define SAFE_ARRAY_HH
 
 #include <cassert>
+#include <cstring>
 
 /* Just like std::array, but with safety controllable by NDEBUG macro */
 
@@ -32,6 +33,11 @@ struct SafeArray
   }
 
   const T & last( void ) const { return storage_[ size_param - 1 ]; }
+
+  bool operator==( const SafeArray<T, size_param> & other ) const
+  {
+    return 0 == memcmp( storage_, other.storage_, size_param );
+  }
 };
 
 #endif /* ARRAY_HH */

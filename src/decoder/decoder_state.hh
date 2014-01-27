@@ -22,6 +22,39 @@ void ProbabilityTables::coeff_prob_update( const HeaderType & header )
   }
 }
 
+template <unsigned int size>
+static void assign( SafeArray< Probability, size > & dest, const Array< Unsigned<8>, size > & src )
+{
+  for ( unsigned int i = 0; i < size; i++ ) {
+    dest.at( i ) = src.at( i );
+  }
+}
+
+template <class HeaderType>
+void ProbabilityTables::update( const HeaderType & header )
+{
+  coeff_prob_update( header );
+
+  /* update intra-mode probabilities in inter macroblocks */
+  if ( header.intra_16x16_prob.initialized() ) {
+    assign( y_mode_probs, header.intra_16x16_prob.get() );
+  }
+
+  if ( header.intra_chroma_prob.initialized() ) {
+    assign( uv_mode_probs, header.intra_chroma_prob.get() );
+  }
+
+  /* update motion vector component probabilities */
+  for ( uint8_t i = 0; i < header.mv_prob_update.size(); i++ ) {
+    for ( uint8_t j = 0; j < header.mv_prob_update.at( i ).size(); j++ ) {
+      const auto & prob = header.mv_prob_update.at( i ).at( j );
+      if ( prob.initialized() ) {
+	motion_vector_probs.at( i ).at( j ) = prob.get();
+      }
+    }
+  }
+}
+
 template <class HeaderType>
 void Segmentation::update( const HeaderType & header )
 {
@@ -105,6 +138,12 @@ inline InterFrame DecoderState::parse_and_apply<InterFrame>( const UncompressedC
   InterFrame myframe( uncompressed_chunk.show_frame(),
 		      uncompressed_chunk.experimental(),
 		      width, height, first_partition );
+
+  /* update probability tables if prescribed by continuation header */
+  if ( myframe.continuation_header().initialized()
+       and myframe.continuation_header().get().replacement_entropy_header.initialized() ) {
+    probability_tables.update( myframe.continuation_header().get().replacement_entropy_header.get() );
+  }
 
   /* update probability tables. replace persistent copy if prescribed in header */
   ProbabilityTables frame_probability_tables( probability_tables );

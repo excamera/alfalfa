@@ -466,6 +466,10 @@ void InterFrameMacroblock::reconstruct_continuation( const References & referenc
   raster.U.inter_predict( zeromv, reference.U() );
   raster.V.inter_predict( zeromv, reference.V() );
 
+  assert( raster.Y.contents() == reference.macroblock( context_.column, context_.row ).Y.contents() );
+  assert( raster.U.contents() == reference.macroblock( context_.column, context_.row ).U.contents() );
+  assert( raster.V.contents() == reference.macroblock( context_.column, context_.row ).V.contents() );
+
   Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
 		{ block.add_residue( raster.Y_sub.at( column, row ) ); } );
   U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )

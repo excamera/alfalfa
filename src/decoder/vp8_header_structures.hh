@@ -84,6 +84,8 @@ public:
   T & get( void ) { return storage_.get(); }
   const T & get_or( const T & default_value ) const { return storage_.get_or( default_value ); }
   operator const Optional<T> & () const { return storage_; }
+
+  Flagged & operator=( const T & other ) { storage_ = make_optional( other ); return *this; }
 };
 
 /* An Array of VP8 header elements.
@@ -137,6 +139,8 @@ template <class T, unsigned int size>
 class Enumerate : public Array< T, size >
 {
 public:
+  Enumerate() : Array<T,size>() {}
+
   template < typename... Targs >
   Enumerate( BoolDecoder & data, Targs&&... Fargs )
     : Array<T,size>( false )

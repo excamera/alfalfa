@@ -65,7 +65,8 @@ int main( int argc, char *argv[] )
     for ( uint32_t i = frame_no; i < frame_count; i++ ) {
       RasterHandle source_raster( source.width(), source.height() ),
 	target_raster( source.width(), source.height() ),
-	source_raster_preloop( source.width(), source.height() );
+	source_raster_preloop( source.width(), source.height() ),
+	target_raster_preloop( source.width(), source.height() );
 
       /* decode the source */
       UncompressedChunk whole_source( source.frame( i ), source.width(), source.height() );
@@ -86,11 +87,15 @@ int main( int argc, char *argv[] )
 
       vector< uint8_t > serialized_frame;
 
+      ProbabilityTables target_frame_probability_tables;
+
       /* now decode and rewrite the target */
       UncompressedChunk whole_target( target.frame( i ), target.width(), target.height() );
       if ( whole_target.key_frame() ) {
 	const KeyFrame parsed_frame = target_decoder_state.parse_and_apply<KeyFrame>( whole_target );
-	parsed_frame.decode( target_decoder_state.segmentation, target_decoder_state.filter_adjustments, target_raster );
+	parsed_frame.decode( target_decoder_state.segmentation, target_decoder_state.filter_adjustments, target_raster_preloop, false );
+	target_raster.get().copy( target_raster_preloop );
+	parsed_frame.loopfilter( target_decoder_state.segmentation, target_decoder_state.filter_adjustments, target_raster );
 	parsed_frame.copy_to( target_raster, target_references );
 
 	serialized_frame = parsed_frame.serialize( target_decoder_state.probability_tables );
@@ -99,11 +104,16 @@ int main( int argc, char *argv[] )
       } else {
 	InterFrame parsed_frame = target_decoder_state.parse_and_apply<InterFrame>( whole_target );
 
+	target_frame_probability_tables = target_decoder_state.probability_tables;
+	if ( parsed_frame.header().refresh_entropy_probs ) {
+	  target_frame_probability_tables.update( parsed_frame.header() );
+	}
+
 	parsed_frame.rewrite_as_diff( source_decoder_state, target_decoder_state,
-				      target_references, source_raster_preloop, target_raster );
+				      target_references, source_raster_preloop, target_raster_preloop );
 
 	//	parsed_frame.decode( target_decoder_state.quantizer_filter_adjustments, target_references, target_raster );
-
+	target_raster.get().copy( target_raster_preloop );
 
 	parsed_frame.loopfilter( target_decoder_state.segmentation, target_decoder_state.filter_adjustments, target_raster );
 
@@ -117,6 +127,36 @@ int main( int argc, char *argv[] )
 		 i, target.frame( i ).size(), serialized_frame.size() );
       }
 
+      {
+	/* test if it works */
+	DecoderState test_decoder_state( source_decoder_state );
+	Raster test_raster( source.width(), source.height() );
+	References test_references( source.width(), source.height() );
+	test_references.last = test_references.golden = test_references.alternative_reference = source_raster_preloop;
+	UncompressedChunk whole_frame( Chunk( &serialized_frame.at( 0 ), serialized_frame.size() ),
+				       source.width(), source.height() );
+	if ( whole_frame.key_frame() ) {
+	  const KeyFrame parsed_frame = test_decoder_state.parse_and_apply<KeyFrame>( whole_frame );
+	  assert( test_decoder_state == target_decoder_state );
+	  parsed_frame.decode( test_decoder_state.segmentation, test_decoder_state.filter_adjustments, test_raster );
+	} else {
+	  const InterFrame parsed_frame = test_decoder_state.parse_and_apply<InterFrame>( whole_frame );
+	  assert( test_decoder_state == target_decoder_state );
+
+	  /* update probability tables. replace persistent copy if prescribed in header */
+	  ProbabilityTables frame_probability_tables( test_decoder_state.probability_tables );
+	  frame_probability_tables.update( parsed_frame.header() );
+
+	  assert( frame_probability_tables == target_frame_probability_tables );
+
+	  parsed_frame.decode( test_decoder_state.segmentation, test_decoder_state.filter_adjustments, test_references, test_raster, false );
+	  assert( test_raster == target_raster_preloop );
+	  parsed_frame.loopfilter( test_decoder_state.segmentation, test_decoder_state.filter_adjustments, test_raster );
+	}
+
+	assert( test_raster == target_raster );
+      }
+
       /* write size of frame */
       const uint32_t le_size = htole32( serialized_frame.size() );
       cout << string( reinterpret_cast<const char *>( &le_size ), sizeof( le_size ) ); /* size */
@@ -125,7 +165,7 @@ int main( int argc, char *argv[] )
       cout << uint8_t(0) << uint8_t(0) << uint8_t(0) << uint8_t(0); /* fill out header */
 
       /* write the frame */
-      fwrite( &serialized_frame.at( 0 ), serialized_frame.size(), 1, stdout );
+      //      fwrite( &serialized_frame.at( 0 ), serialized_frame.size(), 1, stdout );
     }
   } catch ( const Exception & e ) {
     e.perror( argv[ 0 ] );

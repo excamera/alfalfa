@@ -31,7 +31,10 @@ struct ProbabilityTables
   template <class HeaderType>
   void coeff_prob_update( const HeaderType & header );
 
-  void update( const InterFrameHeader & header );
+  template <class HeaderType>
+  void update( const HeaderType & header );
+
+  bool operator==( const ProbabilityTables & other ) const;
 };
 
 struct FilterAdjustments
@@ -49,6 +52,8 @@ struct FilterAdjustments
 
   template <class HeaderType>
   void update( const HeaderType & header );
+
+  bool operator==( const FilterAdjustments & other ) const;
 };
 
 struct References
@@ -91,6 +96,10 @@ struct Segmentation
 
   template <class HeaderType>
   void update( const HeaderType & header );
+
+  bool operator==( const Segmentation & other ) const;
+
+  Segmentation( const Segmentation & other );
 };
 
 struct DecoderState
@@ -109,6 +118,8 @@ struct DecoderState
 
   template <class FrameType>
   FrameType parse_and_apply( const UncompressedChunk & uncompressed_chunk );
+
+  bool operator==( const DecoderState & other ) const;
 };
 
 class Decoder

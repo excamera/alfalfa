@@ -195,12 +195,21 @@ static void encode( BoolEncoder & encoder, const UpdateSegmentation & h )
   encode( encoder, h.mb_segmentation_map );
 }
 
+static void encode( BoolEncoder & encoder, const ReplacementEntropyHeader & h )
+{
+  encode( encoder, h.token_prob_update );
+  encode( encoder, h.intra_16x16_prob );
+  encode( encoder, h.intra_chroma_prob );
+  encode( encoder, h.mv_prob_update );
+}
+
 static void encode( BoolEncoder & encoder, const ContinuationHeader & h )
 {
   encode( encoder, h.missing_last_frame );
   encode( encoder, h.missing_golden_frame );
   encode( encoder, h.missing_alternate_reference_frame );
   encode( encoder, h.continuation_token_probabilities );
+  encode( encoder, h.replacement_entropy_header );
 }
 
 static void encode( BoolEncoder & encoder, const KeyFrameHeader & header )

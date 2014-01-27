@@ -87,6 +87,16 @@ public:
     return *this;
   }
 
+  /* equality */
+  bool operator==( const Optional<T> & other ) const
+  {
+    if ( initialized_ ) {
+      return other.initialized_ ? (get() == other.get()) : false;
+    } else {
+      return !other.initialized_;
+    }
+  }
+
   /* getters */
   bool initialized( void ) const { return initialized_; }
   const T & get( void ) const { assert( initialized() ); return object_; }
@@ -99,5 +109,11 @@ public:
 
   void clear( void ) { *this = Optional(); }
 };
+
+template <class T>
+static Optional<T> make_optional( const T & obj )
+{
+  return Optional<T>( true, obj );
+}
 
 #endif /* OPTIONAL_HH */
