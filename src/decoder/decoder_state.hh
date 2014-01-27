@@ -77,7 +77,12 @@ inline KeyFrame DecoderState::parse_and_apply<KeyFrame>( const UncompressedChunk
   }
 
   /* parse the frame (and update the persistent segmentation map) */
-  myframe.parse_macroblock_headers_and_update_segmentation_map( first_partition, segmentation_map, frame_probability_tables );
+  myframe.parse_macroblock_headers( first_partition, frame_probability_tables );
+
+  if ( segmentation_map.initialized() ) {
+    myframe.update_segmentation( segmentation_map.get() );
+  }
+
   myframe.parse_tokens( uncompressed_chunk.dct_partitions( myframe.dct_partition_count() ),
 			frame_probability_tables );
 
@@ -109,12 +114,16 @@ inline InterFrame DecoderState::parse_and_apply<InterFrame>( const UncompressedC
 
   /* wipe segmentation map if segmentation not enabled on this frame */
   if ( not myframe.header().update_segmentation.initialized() ) {
-    segmentation_map = SegmentationMap( segmentation_map.width(),
-					segmentation_map.height() );
+    segmentation_map = decltype( segmentation_map )();
   }
 
   /* parse the frame (and update the persistent segmentation map) */
-  myframe.parse_macroblock_headers_and_update_segmentation_map( first_partition, segmentation_map, frame_probability_tables );
+  myframe.parse_macroblock_headers( first_partition, frame_probability_tables );
+
+  if ( segmentation_map.initialized() ) {
+    myframe.update_segmentation( segmentation_map.get() );
+  }
+
   myframe.parse_tokens( uncompressed_chunk.dct_partitions( myframe.dct_partition_count() ),
 			frame_probability_tables );
 

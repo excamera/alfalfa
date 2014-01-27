@@ -83,13 +83,14 @@ public:
 	      BoolDecoder & data,
 	      const FrameHeaderType & key_frame_header,
 	      const ProbabilityArray< num_segments > & mb_segment_tree_probs,
-	      SegmentationMap & mutable_segmentation_map,
 	      const ProbabilityTables & probability_tables,
 	      const Optional< ContinuationHeader > & continuation_header,
 	      TwoD< Y2Block > & frame_Y2,
 	      TwoD< YBlock > & frame_Y,
 	      TwoD< UVBlock > & frame_U,
 	      TwoD< UVBlock > & frame_V );
+
+  void update_segmentation( SegmentationMap & mutable_segmentation_map );
 
   void parse_tokens( BoolDecoder & data,
 		     const ProbabilityTables & probability_tables );

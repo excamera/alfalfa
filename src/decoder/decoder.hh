@@ -84,17 +84,14 @@ struct DecoderState
 
   QuantizerFilterAdjustments quantizer_filter_adjustments = {};
   ProbabilityTables probability_tables = {};
-  SegmentationMap segmentation_map = { Raster::macroblock_dimension( width ),
-				       Raster::macroblock_dimension( height ) };
+  Optional< SegmentationMap > segmentation_map = {};
 
   DecoderState( const unsigned int s_width, const unsigned int s_height )
     : width( s_width ), height( s_height ) {}
 
   DecoderState( const KeyFrameHeader & header,
 		const unsigned int s_width,
-		const unsigned int s_height )
-    : width( s_width ), height( s_height ),
-      quantizer_filter_adjustments( header ) {}
+		const unsigned int s_height );
 
   template <class FrameType>
   FrameType parse_and_apply( const UncompressedChunk & uncompressed_chunk );

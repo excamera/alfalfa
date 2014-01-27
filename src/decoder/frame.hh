@@ -56,9 +56,11 @@ class Frame
 
   const FrameHeaderType & header( void ) const { return header_; }
 
-  void parse_macroblock_headers_and_update_segmentation_map( BoolDecoder & rest_of_first_partition,
-							     SegmentationMap & segmentation_map,
-							     const ProbabilityTables & probability_tables );
+  void parse_macroblock_headers( BoolDecoder & rest_of_first_partition,
+				 const ProbabilityTables & probability_tables );
+
+  void update_segmentation( SegmentationMap & mutable_segmentation_map );
+
   void parse_tokens( std::vector< Chunk > dct_partitions, const ProbabilityTables & probability_tables );
 
   void decode( const QuantizerFilterAdjustments & quantizer_filter_adjustments, Raster & raster, const bool lf = true ) const;

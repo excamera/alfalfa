@@ -28,7 +28,6 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
 							       BoolDecoder & data,
 							       const FrameHeaderType & frame_header,
 							       const ProbabilityArray< num_segments > & mb_segment_tree_probs,
-							       SegmentationMap & mutable_segmentation_map,
 							       const ProbabilityTables & probability_tables,
 							       const Optional< ContinuationHeader > & continuation_header,
 							       TwoD< Y2Block > & frame_Y2,
@@ -52,17 +51,18 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
     U_( frame_U, c.column * 2, c.row * 2 ),
     V_( frame_V, c.column * 2, c.row * 2 )
 {
+  decode_prediction_modes( data, probability_tables );
+}
+
+template <class FrameHeaderType, class MacroblockHeaderType>
+void Macroblock<FrameHeaderType, MacroblockHeaderType>::update_segmentation( SegmentationMap & mutable_segmentation_map ) {
   /* update persistent segmentation map */
   if ( segment_id_update_.initialized() ) {
-    mutable_segmentation_map.at( c.column, c.row ) = segment_id_update_.get();
+    mutable_segmentation_map.at( context_.column, context_.row ) = segment_id_update_.get();
   }
 
   /* cache segment id of this macroblock*/
-  if ( frame_header.update_segmentation.initialized() ) {
-    segment_id_ = mutable_segmentation_map.at( c.column, c.row );
-  }
-
-  decode_prediction_modes( data, probability_tables );
+  segment_id_ = mutable_segmentation_map.at( context_.column, context_.row );
 }
 
 template <>

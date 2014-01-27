@@ -38,9 +38,8 @@ ProbabilityArray< num_segments > Frame<FrameHeaderType, MacroblockType>::calcula
 }
 
 template <class FrameHeaderType, class MacroblockType>
-void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers_and_update_segmentation_map( BoolDecoder & rest_of_first_partition,
-												   SegmentationMap & segmentation_map,
-												   const ProbabilityTables & probability_tables )
+void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers( BoolDecoder & rest_of_first_partition,
+								       const ProbabilityTables & probability_tables )
 {
   /* calculate segment tree probabilities if map is updated by this frame */
   const ProbabilityArray< num_segments > mb_segment_tree_probs = calculate_mb_segment_tree_probs();
@@ -49,13 +48,18 @@ void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers_and_update
   macroblock_headers_.initialize( macroblock_width_, macroblock_height_,
 				  rest_of_first_partition, header_,
 				  mb_segment_tree_probs,
-				  segmentation_map,
 				  probability_tables,
 				  continuation_header_,
 				  Y2_, Y_, U_, V_ );
 
   /* repoint Y2 above/left pointers to skip missing subblocks */
   relink_y2_blocks();
+}
+
+template <class FrameHeaderType, class MacroblockType>
+void Frame<FrameHeaderType, MacroblockType>::update_segmentation( SegmentationMap & mutable_segmentation_map )
+{
+  macroblock_headers_.get().forall( [&] ( MacroblockType & mb ) { mb.update_segmentation( mutable_segmentation_map ); } );
 }
 
 bool ContinuationHeader::is_missing( const reference_frame reference_id ) const

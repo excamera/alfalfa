@@ -71,3 +71,15 @@ void ProbabilityTables::update( const InterFrameHeader & header )
     }
   }
 }
+
+DecoderState::DecoderState( const KeyFrameHeader & header,
+			    const unsigned int s_width,
+			    const unsigned int s_height )
+  : width( s_width ), height( s_height ),
+    quantizer_filter_adjustments( header ),
+    segmentation_map( header.update_segmentation.initialized()
+		      and header.update_segmentation.get().update_mb_segmentation_map,
+		      Raster::macroblock_dimension( width ),
+		      Raster::macroblock_dimension( height ),
+		      -1 )
+{}

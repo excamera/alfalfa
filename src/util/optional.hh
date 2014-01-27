@@ -67,7 +67,7 @@ public:
 
     initialized_ = other.initialized_;
     if ( initialized_ ) {
-      object_ = std::move( other.object_ );
+      new( &object_ ) T( std::move( other.object_ ) );
     }
     return *this;
   }
