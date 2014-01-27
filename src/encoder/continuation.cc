@@ -64,7 +64,7 @@ void InterFrameMacroblock::rewrite_as_diff( Raster::Macroblock & raster,
       rewrite_block_as_intra( block,
 			      prediction.Y_sub.at( column, row ),
 			      raster.Y_sub.at( column, row ) );
-
+      block.set_Y_without_Y2();
       has_nonzero_ |= block.has_nonzero();
     } );
 

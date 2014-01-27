@@ -376,6 +376,10 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 						 Y_.at( column * 2, row * 2 + 1 ).motion_vector(),
 						 Y_.at( column * 2 + 1, row * 2 + 1 ).motion_vector() ) );
       } );
+
+    if ( continuation_ ) {
+      Y_.forall( [&] ( YBlock & block ) { block.set_Y_without_Y2(); } );
+    }
   }
 }
 
