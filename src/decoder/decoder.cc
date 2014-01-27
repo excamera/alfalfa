@@ -83,12 +83,3 @@ DecoderState::DecoderState( const KeyFrameHeader & header,
     segmentation( header.update_segmentation.initialized(), header, width, height ),
     filter_adjustments( header.mode_lf_adjustments.initialized(), header )
 {}
-
-template <class HeaderType>
-Segmentation::Segmentation( const HeaderType & header,
-			    const unsigned int width,
-			    const unsigned int height )
-  : map( width, height, 3 )
-{
-  update( header );
-}

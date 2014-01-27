@@ -148,4 +148,13 @@ inline InterFrame DecoderState::parse_and_apply<InterFrame>( const UncompressedC
   return myframe;
 }
 
+template <class HeaderType>
+Segmentation::Segmentation( const HeaderType & header,
+			    const unsigned int width,
+			    const unsigned int height )
+  : map( width, height, 3 )
+{
+  update( header );
+}
+
 #endif /* DECODER_STATE_HH */

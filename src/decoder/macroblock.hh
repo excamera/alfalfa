@@ -8,7 +8,6 @@
 #include "raster.hh"
 #include "decoder.hh"
 
-class QuantizerFilterAdjustments;
 class ProbabilityTables;
 class References;
 class BoolEncoder;
