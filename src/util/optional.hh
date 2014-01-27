@@ -96,6 +96,8 @@ public:
 
   /* destructor */
   ~Optional() { if ( initialized() ) { object_.~T(); } }
+
+  void clear( void ) { *this = Optional(); }
 };
 
 #endif /* OPTIONAL_HH */

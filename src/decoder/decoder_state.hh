@@ -114,7 +114,7 @@ inline InterFrame DecoderState::parse_and_apply<InterFrame>( const UncompressedC
 
   /* wipe segmentation map if segmentation not enabled on this frame */
   if ( not myframe.header().update_segmentation.initialized() ) {
-    segmentation_map = decltype( segmentation_map )();
+    segmentation_map.clear();
   }
 
   /* parse the frame (and update the persistent segmentation map) */
