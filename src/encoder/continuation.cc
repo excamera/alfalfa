@@ -135,6 +135,15 @@ void InterFrame::rewrite_as_diff( const DecoderState & source_decoder_state,
 
   header_.intra_chroma_prob = decltype( header_.intra_chroma_prob )( update_chroma_mode_probs, new_chroma_mode_probs );
 
+  /* match motion_vector_probs in frame header */
+  for ( uint8_t i = 0; i < 2; i++ ) {
+    for ( uint8_t j = 0; j < MV_PROB_CNT; j++ ) {
+      const auto & source = source_decoder_state.probability_tables.motion_vector_probs.at( i ).at( j );
+      const auto & target = target_decoder_state.probability_tables.motion_vector_probs.at( i ).at( j );
+      header_.mv_prob_update.at( i ).at( j ) = MVProbUpdate( source != target, target );      
+    }
+  }
+
   assert( not continuation_header_.initialized() );
   continuation_header_.initialize( true, true, true );
 

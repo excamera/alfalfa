@@ -76,6 +76,8 @@ struct MVProbUpdate
 		const unsigned int j, const unsigned int i )
     : mv_prob( data, k_mv_entropy_update_probs.at( i ).at( j ) )
   {}
+
+  MVProbUpdate( const bool initialized, const uint8_t x ) : mv_prob( initialized, x >> 1 ) {}
 };
 
 struct KeyFrameHeader
