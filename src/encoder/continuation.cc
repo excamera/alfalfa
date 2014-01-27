@@ -144,6 +144,51 @@ void InterFrame::rewrite_as_diff( const DecoderState & source_decoder_state,
     }
   }
 
+  /* match FilterAdjustments if necessary */
+  if ( target_decoder_state.filter_adjustments.initialized() ) {
+    assert( header_.mode_lf_adjustments.initialized() );
+
+    if ( not source_decoder_state.filter_adjustments.initialized() ) {
+      /* need to encode all of them */
+      ModeRefLFDeltaUpdate filter_update;
+
+      for ( unsigned int i = 0; i < target_decoder_state.filter_adjustments.get().loopfilter_ref_adjustments.size(); i++ ) {
+	filter_update.ref_update.at( i ).initialize( target_decoder_state.filter_adjustments.get().loopfilter_ref_adjustments.at( i ) );
+      }
+
+      for ( unsigned int i = 0; i < target_decoder_state.filter_adjustments.get().loopfilter_mode_adjustments.size(); i++ ) {
+	filter_update.mode_update.at( i ).initialize( target_decoder_state.filter_adjustments.get().loopfilter_mode_adjustments.at( i ) );
+      }
+
+      header_.mode_lf_adjustments.get() = Flagged< ModeRefLFDeltaUpdate >( true, filter_update );
+    } else {
+      /* selective update */
+      bool update_mode_lf_adjustments = false;
+
+      ModeRefLFDeltaUpdate filter_update;
+
+      for ( unsigned int i = 0; i < target_decoder_state.filter_adjustments.get().loopfilter_ref_adjustments.size(); i++ ) {
+	const auto & source = source_decoder_state.filter_adjustments.get().loopfilter_ref_adjustments.at( i );
+	const auto & target = target_decoder_state.filter_adjustments.get().loopfilter_ref_adjustments.at( i );
+	if ( source != target ) {
+	  filter_update.ref_update.at( i ).initialize( target );
+	  update_mode_lf_adjustments = true;
+	}
+      }
+
+      for ( unsigned int i = 0; i < target_decoder_state.filter_adjustments.get().loopfilter_mode_adjustments.size(); i++ ) {
+	const auto & source = source_decoder_state.filter_adjustments.get().loopfilter_mode_adjustments.at( i );
+	const auto & target = target_decoder_state.filter_adjustments.get().loopfilter_mode_adjustments.at( i );
+	if ( source != target ) {
+	  filter_update.mode_update.at( i ).initialize( target );
+	  update_mode_lf_adjustments = true;
+	}
+      }
+
+      header_.mode_lf_adjustments.get() = Flagged< ModeRefLFDeltaUpdate >( update_mode_lf_adjustments, filter_update );
+    }
+  }
+
   assert( not continuation_header_.initialized() );
   continuation_header_.initialize( true, true, true );
 

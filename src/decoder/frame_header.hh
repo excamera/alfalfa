@@ -30,6 +30,8 @@ struct ModeRefLFDeltaUpdate
   Array< Flagged< Signed<6> >, 4 > mode_update;
 
   ModeRefLFDeltaUpdate( BoolDecoder & data ) : ref_update( data ), mode_update( data ) {}
+
+  ModeRefLFDeltaUpdate() : ref_update(), mode_update() {}
 };
 
 struct SegmentFeatureData

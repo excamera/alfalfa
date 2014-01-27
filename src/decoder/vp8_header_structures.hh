@@ -71,8 +71,17 @@ public:
 
   Flagged( const bool initialized, const T & other ) : storage_( initialized, other ) {}
 
+  Flagged() : storage_() {}
+
+  template <typename... Targs>
+  void initialize( Targs&&... Fargs )
+  {
+    storage_.initialize( std::forward<Targs>( Fargs )... );
+  }
+
   bool initialized( void ) const { return storage_.initialized(); }
   const T & get( void ) const { return storage_.get(); }
+  T & get( void ) { return storage_.get(); }
   const T & get_or( const T & default_value ) const { return storage_.get_or( default_value ); }
   operator const Optional<T> & () const { return storage_; }
 };
