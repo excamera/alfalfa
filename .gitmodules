@@ -1,3 +1,3 @@
 [submodule "alfalfa_test_vectors"]
 	path = alfalfa_test_vectors
-	url = https://github.com/keithw/alfalfa_test_vectors
+	url = https://github.com/alfalfa/alfalfa_test_vectors
