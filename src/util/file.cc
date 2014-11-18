@@ -13,7 +13,7 @@ File::File( const std::string & filename )
     chunk_( buffer_, size_ )
 {
   if ( buffer_ == MAP_FAILED ) {
-    throw Exception( "mmap" );
+    throw unix_error( "mmap" );
   }
 }
 

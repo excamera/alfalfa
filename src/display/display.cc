@@ -17,7 +17,7 @@ static void GLcheck( const string & description )
   const GLenum gl_error = glGetError();
 
   if ( gl_error != GL_NO_ERROR ) {
-    throw Exception( description, reinterpret_cast<const char *>( gluErrorString( gl_error ) ) );
+    throw internal_error( description, reinterpret_cast<const char *>( gluErrorString( gl_error ) ) );
   }
 }
 
@@ -26,7 +26,7 @@ CheckedPointer<T>::CheckedPointer( const string & context, T const pointer, std:
   : checked_pointer_( pointer ), deleter_( deleter )
 {
   if ( checked_pointer_ == nullptr ) {
-    throw Exception( context, "returned null pointer" );
+    throw internal_error( context, "returned null pointer" );
   }
 }
 
@@ -113,7 +113,7 @@ GLContext::GLContext( Display * display, const XWindow & window )
 	      [&]( GLXContext x ) { glXDestroyContext( display_, x ); } )
 {
   if ( not glXMakeCurrent( display, window, context_ ) ) {
-    throw Exception( "glXMakeCurrent", "failed" );
+    throw internal_error( "glXMakeCurrent", "failed" );
   }
 
   GLcheck( "glXMakeCurrent" );
@@ -163,8 +163,8 @@ GLShader::GLShader()
   GLint error_location;
   glGetIntegerv( GL_PROGRAM_ERROR_POSITION_ARB, &error_location );
   if ( error_location != -1 ) {
-    throw Exception( "loading colorspace transformation shader",
-		     reinterpret_cast<const char *>( glGetString( GL_PROGRAM_ERROR_STRING_ARB ) ) );
+    throw internal_error( "loading colorspace transformation shader",
+			  reinterpret_cast<const char *>( glGetString( GL_PROGRAM_ERROR_STRING_ARB ) ) );
   }
 
   GLcheck( "glProgramString" );

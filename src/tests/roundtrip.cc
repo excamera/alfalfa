@@ -62,11 +62,11 @@ int main( int argc, char *argv[] )
 
       /* verify equality of original and re-encoded frame */
       if ( file.frame( i ).size() != serialized_frame.size() ) {
-	throw Exception( "roundtrip failure", "frame size mismatch. wanted " + to_string( file.frame( i ).size() ) + ", got " + to_string( serialized_frame.size() ) );
+	throw internal_error( "roundtrip failure", "frame size mismatch. wanted " + to_string( file.frame( i ).size() ) + ", got " + to_string( serialized_frame.size() ) );
       } else {
 	for ( unsigned int j = 0; j < file.frame( i ).size(); j++ ) {
 	  if ( file.frame( i )( j ).octet() != serialized_frame.at( j ) ) {
-	    throw Exception( "roundtrip failure", "frame contents mismatch" );
+	    throw internal_error( "roundtrip failure", "frame contents mismatch" );
 	  }
 	}
       }
@@ -81,8 +81,8 @@ int main( int argc, char *argv[] )
       /* write the frame */
       fwrite( &serialized_frame.at( 0 ), serialized_frame.size(), 1, stdout );
     }
-  } catch ( const Exception & e ) {
-    e.perror( argv[ 0 ] );
+  } catch ( const exception & e ) {
+    print_exception( argv[ 0 ], e );
     return EXIT_FAILURE;
   }
 

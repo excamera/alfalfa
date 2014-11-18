@@ -82,8 +82,8 @@ int main( int argc, char *argv[] )
       }
     }
     
-  } catch ( const Exception & e ) {
-    e.perror( argv[ 0 ] );
+  } catch ( const exception & e ) {
+    print_exception( argv[ 0 ], e );
     return EXIT_FAILURE;
   }
 

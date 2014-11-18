@@ -1,55 +1,78 @@
 #ifndef EXCEPTION_HH
 #define EXCEPTION_HH
 
-#include <string>
+#include <system_error>
 #include <iostream>
-#include <cstring>
 
-class Exception
+class tagged_error : public std::system_error
 {
 private:
-  std::string attempt_, error_;
+  std::string attempt_and_error_;
 
 public:
-  Exception( const std::string & s_attempt, const std::string & s_error )
-    : attempt_( s_attempt ), error_( s_error )
+  tagged_error( const std::error_category & category,
+		const std::string s_attempt,
+		const int error_code )
+    : system_error( error_code, category ),
+      attempt_and_error_( s_attempt + ": " + std::system_error::what() )
   {}
 
-  Exception( const std::string & s_attempt )
-    : Exception( s_attempt, strerror( errno ) )
-  {}
-
-  void perror( const std::string & prefix ) const
+  const char * what( void ) const noexcept override
   {
-    std::cerr << prefix << ": " << attempt_ << ": " << error_ << std::endl;
+    return attempt_and_error_.c_str();
   }
-
-  virtual ~Exception() {}
 };
 
-class Invalid : public Exception
+class unix_error : public tagged_error
+{
+public:
+  unix_error ( const std::string & s_attempt,
+	       const int s_errno = errno )
+    : tagged_error( std::system_category(), s_attempt, s_errno )
+  {}
+};
+
+inline void print_exception( const char * argv0, const std::exception & e )
+{
+  std::cerr << argv0 << ": " << e.what() << std::endl;
+}
+
+class internal_error : public std::runtime_error
+{
+public:
+  internal_error( const std::string & s_attempt, const std::string & s_error )
+    : runtime_error( s_attempt + ": " + s_error )
+  {}
+};
+
+class Invalid : public internal_error
 {
 public:
   Invalid( const std::string & s_error )
-    : Exception( "invalid bitstream", s_error )
+    : internal_error( "invalid bitstream", s_error )
   {}
 };
 
-class Unsupported : public Exception
+class Unsupported : public internal_error
 {
 public:
   Unsupported( const std::string & s_error )
-    : Exception( "unsupported bitstream", s_error )
+    : internal_error( "unsupported bitstream", s_error )
   {}
 };
 
-inline int SystemCall( const std::string & s_attempt, const int return_value )
+inline int SystemCall( const char * s_attempt, const int return_value )
 {
   if ( return_value >= 0 ) {
     return return_value;
   }
+  
+  throw unix_error( s_attempt );
+}
 
-  throw Exception( s_attempt );
+inline int SystemCall( const std::string & s_attempt, const int return_value )
+{
+  return SystemCall( s_attempt.c_str(), return_value );
 }
 
 #endif

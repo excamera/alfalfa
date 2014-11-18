@@ -99,7 +99,7 @@ struct MVProbUpdate
     if ( x == 1 ) {
       return;
     } else if ( (x == 0) or (x & 2) ) {
-      throw Exception( "MVProbUpdate", "invalid value " + std::to_string( x ) );
+      throw internal_error( "MVProbUpdate", "invalid value " + std::to_string( x ) );
     }
   }
 

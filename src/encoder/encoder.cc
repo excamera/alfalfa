@@ -681,7 +681,7 @@ static void accumulate_token_branches( const Block<initial_block_type, Predictio
       continue;
     }
 
-    throw Exception( "token encoder", "value too large" );
+    throw internal_error( "token encoder", "value too large" );
   }
 
   assert( last_was_zero == false );
@@ -836,7 +836,7 @@ void Block< initial_block_type,
       continue;
     }
 
-    throw Exception( "token encoder", "value too large" );
+    throw internal_error( "token encoder", "value too large" );
   }
 
   assert( last_was_zero == false );
