@@ -19,7 +19,7 @@ static bmode implied_subblock_mode( const mbmode y_mode )
   case V_PRED:  return B_VE_PRED;
   case H_PRED:  return B_HE_PRED;
   case TM_PRED: return B_TM_PRED;
-  default: assert( false ); return bmode();
+  default: throw LogicError();
   }
 }
 
@@ -251,8 +251,7 @@ void YBlock::read_subblock_inter_prediction( BoolDecoder & data,
     }
     break;
   default:
-    assert( false );
-    break;
+    throw LogicError();
   }
 }
 
@@ -360,8 +359,7 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
       }
       break;
     default:
-      assert( false );
-      break;
+      throw LogicError();
     }
 
     /* set motion vectors of Y subblocks */
@@ -565,7 +563,7 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::loopfilter( const Option
     }
     break;
   default:
-    assert( false );
+    throw LogicError();
   }
 }
 

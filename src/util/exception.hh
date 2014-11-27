@@ -61,6 +61,14 @@ public:
   {}
 };
 
+class LogicError : public internal_error
+{
+public:
+  LogicError()
+    : internal_error( "internal error", "logic error" )
+  {}
+};
+
 inline int SystemCall( const char * s_attempt, const int return_value )
 {
   if ( return_value >= 0 ) {

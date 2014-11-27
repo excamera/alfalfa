@@ -1,4 +1,3 @@
-#include <cassert>
 #include <vector>
 
 #include "frame.hh"
@@ -68,7 +67,7 @@ bool ContinuationHeader::is_missing( const reference_frame reference_id ) const
   case LAST_FRAME: return missing_last_frame;
   case GOLDEN_FRAME: return missing_golden_frame;
   case ALTREF_FRAME: return missing_alternate_reference_frame;
-  default: assert( false ); return false;
+  default: throw LogicError();
   }
 }
 

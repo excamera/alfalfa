@@ -6,6 +6,7 @@
 #include "loopfilter.hh"
 #include "vp8_prob_data.hh"
 #include "quantization.hh"
+#include "exception.hh"
 
 class Chunk;
 class Raster;
@@ -68,7 +69,7 @@ struct References
     case LAST_FRAME: return last;
     case GOLDEN_FRAME: return golden;
     case ALTREF_FRAME: return alternative_reference;
-    default: assert( false ); return last;
+    default: throw LogicError();
     }
   }
 };
