@@ -5,6 +5,7 @@
 #include "bool_encoder.hh"
 #include "modemv_data.hh"
 
+#include "tree.cc"
 #include "encode_tree.cc"
 
 using namespace std;
