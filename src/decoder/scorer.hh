@@ -1,11 +1,8 @@
 #ifndef SCORER_HH
 #define SCORER_HH
 
-#include <tuple>
-
-#include "block.hh"
 #include "safe_array.hh"
-#include "macroblock.hh"
+#include "vp8_header_structures.hh"
 
 class Scorer
 {

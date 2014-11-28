@@ -1,8 +1,4 @@
-#include <vector>
-#include <algorithm>
-
 #include "macroblock.hh"
-#include "decoder.hh"
 #include "scorer.hh"
 
 #include "tokens.cc"

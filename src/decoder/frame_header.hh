@@ -2,12 +2,7 @@
 #define FRAME_HEADER_HH
 
 #include "vp8_header_structures.hh"
-#include "bool_decoder.hh"
-#include "vp8_prob_data.hh"
-#include "modemv_data.hh"
 #include "exception.hh"
-#include "quantization.hh"
-#include "loopfilter.hh"
 
 struct QuantIndices
 {

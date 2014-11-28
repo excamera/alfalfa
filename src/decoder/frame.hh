@@ -4,8 +4,6 @@
 #include "2d.hh"
 #include "block.hh"
 #include "macroblock.hh"
-#include "modemv_data.hh"
-#include "raster.hh"
 
 struct References;
 struct Segmentation;
