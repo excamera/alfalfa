@@ -12,11 +12,11 @@ class ProbabilityTables;
 class References;
 class BoolEncoder;
 
-typedef SafeArray< SafeArray< SafeArray< SafeArray< pair< uint32_t, uint32_t >,
-							  ENTROPY_NODES >,
-							  PREV_COEF_CONTEXTS >,
-							  COEF_BANDS >,
-							  BLOCK_TYPES > TokenBranchCounts;
+typedef SafeArray< SafeArray< SafeArray< SafeArray< std::pair< uint32_t, uint32_t >,
+						    ENTROPY_NODES >,
+					 PREV_COEF_CONTEXTS >,
+			      COEF_BANDS >,
+		   BLOCK_TYPES > TokenBranchCounts;
 
 template <class FrameHeaderType, class MacroblockHeaderType>
 class Macroblock

@@ -75,4 +75,22 @@ public:
 	  const ProbabilityArray< alphabet_size > & probabilities );
 };
 
+template <class enumeration, uint8_t alphabet_size, const TreeArray< alphabet_size > & nodes>
+class Tree
+{
+private:
+  enumeration value_;
+
+public:
+  typedef enumeration type;
+
+  Tree( BoolDecoder & data, const ProbabilityArray< alphabet_size > & probabilities )
+    : value_( data.tree< alphabet_size, enumeration >( nodes, probabilities ) )
+  {}
+
+  Tree( const enumeration & x ) : value_( x ) {}
+
+  operator const enumeration & () const { return value_; }
+};
+
 #endif /* BOOL_DECODER_HH */

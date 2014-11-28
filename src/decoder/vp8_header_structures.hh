@@ -8,8 +8,6 @@
 #include "bool_decoder.hh"
 #include "vp8_prob_data.hh"
 
-#include "tree.cc"
-
 class Boolean
 {
 private:
@@ -130,24 +128,6 @@ public:
       Array<T, size>::storage_.emplace_back( data, i, std::forward<Targs>( Fargs )... );
     }
   }
-};
-
-template <class enumeration, uint8_t alphabet_size, const TreeArray< alphabet_size > & nodes>
-class Tree
-{
-private:
-  enumeration value_;
-
-public:
-  typedef enumeration type;
-
-  Tree( BoolDecoder & data, const ProbabilityArray< alphabet_size > & probabilities )
-    : value_( data.tree< alphabet_size, enumeration >( nodes, probabilities ) )
-  {}
-
-  Tree( const enumeration & x ) : value_( x ) {}
-
-  operator const enumeration & () const { return value_; }
 };
 
 class MotionVector

@@ -9,6 +9,7 @@
 #include "transform.cc"
 #include "prediction.cc"
 #include "quantization.cc"
+#include "tree.cc"
 
 using namespace std;
 

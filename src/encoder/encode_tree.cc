@@ -1,7 +1,6 @@
 #include <vector>
 
 #include "bool_encoder.hh"
-#include "vp8_header_structures.hh"
 
 template <class enumeration, uint8_t alphabet_size, const TreeArray< alphabet_size > & nodes >
 static void encode( BoolEncoder & encoder,
