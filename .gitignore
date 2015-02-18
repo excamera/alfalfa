@@ -23,7 +23,8 @@ Makefile.in
 /test-driver
 
 /src/frontend/diff-streams
-/src/frontend/vp8scan
+/src/frontend/vp8play
+/src/frontend/vp8decode
 /src/tests/decode-to-stdout
 /src/tests/encode-loopback
 /src/tests/extract-key-frames
