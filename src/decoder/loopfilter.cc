@@ -51,41 +51,49 @@ void FilterParameters::adjust( const SafeArray< int8_t, num_reference_frames > &
 }
 
 SimpleLoopFilter::SimpleLoopFilter( const FilterParameters & params )
-  : filter_level_( clamp63( params.filter_level ) ),
-    interior_limit_( filter_level_ ),
-    macroblock_edge_limit_(),
-    subblock_edge_limit_()
+  : interior_limit_vector_(),
+    macroblock_limit_vector_(),
+    subblock_limit_vector_(),
+    filter_level_( clamp63( params.filter_level ) )
 {
+  uint8_t interior_limit = filter_level_;
   if ( params.sharpness_level ) {
-    interior_limit_ >>= params.sharpness_level > 4 ? 2 : 1;
+    interior_limit >>= params.sharpness_level > 4 ? 2 : 1;
 
-    if ( interior_limit_ > 9 - params.sharpness_level ) {
-      interior_limit_ = 9 - params.sharpness_level;
+    if ( interior_limit > 9 - params.sharpness_level ) {
+      interior_limit = 9 - params.sharpness_level;
     }
   }
 
-  if ( interior_limit_ < 1 ) {
-    interior_limit_ = 1;
+  if ( interior_limit < 1 ) {
+    interior_limit = 1;
   }
 
-  macroblock_edge_limit_ = ( ( filter_level_ + 2 ) * 2 ) + interior_limit_;
-  subblock_edge_limit_ = ( filter_level_ * 2 ) + interior_limit_;
+  interior_limit_vector_.fill(interior_limit);
+
+  macroblock_limit_vector_.fill(( ( filter_level_ + 2 ) * 2 ) + interior_limit);
+
+  subblock_limit_vector_.fill(( filter_level_ * 2 ) + interior_limit);
 }
 
 NormalLoopFilter::NormalLoopFilter( const bool key_frame,
 				    const FilterParameters & params )
   : simple_( params ),
-    high_edge_variance_threshold_( simple_.filter_level() >= 15 )
+    hev_threshold_vector_()
 {
   assert( params.type == LoopFilterType::Normal );
 
+  uint8_t high_edge_variance_threshold(simple_.filter_level() >= 15);
+
   if ( simple_.filter_level() >= 40 ) {
-    high_edge_variance_threshold_++;
+    high_edge_variance_threshold++;
   }
 
   if ( simple_.filter_level() >= 20 and (not key_frame) ) {
-    high_edge_variance_threshold_++;
+    high_edge_variance_threshold++;
   }
+  hev_threshold_vector_.fill(high_edge_variance_threshold);
+
 }
 
 void SimpleLoopFilter::filter( Raster::Macroblock & , const bool )
@@ -93,39 +101,33 @@ void SimpleLoopFilter::filter( Raster::Macroblock & , const bool )
   throw Unsupported( "VP8 'simple' in-loop deblocking filter" );
 }
 
+// Corresponds roughly to vp8_loop_filter_mbh_c combined with vp8_loop_filter_row_normal
 void NormalLoopFilter::filter( Raster::Macroblock & raster, const bool skip_subblock_edges )
 {
   /* 1: filter the left inter-macroblock edge */
   if ( raster.Y.context().left.initialized() ) {
-    filter_mb_vertical( raster.Y );
-    filter_mb_vertical( raster.U );
-    filter_mb_vertical( raster.V );
+    filter_mb_vertical( raster );
   }
 
   /* 2: filter the vertical subblock edges */
   if ( not skip_subblock_edges ) {
-    filter_sb_vertical( raster.Y );
-    filter_sb_vertical( raster.U );
-    filter_sb_vertical( raster.V );
+    filter_sb_vertical( raster );
   }
 
   /* 3: filter the top inter-macroblock edge */
   if ( raster.Y.context().above.initialized() ) {
-    filter_mb_horizontal( raster.Y );
-    filter_mb_horizontal( raster.U );
-    filter_mb_horizontal( raster.V );
+    filter_mb_horizontal( raster );
   }
 
   /* 4: filter the horizontal subblock edges */
   if ( not skip_subblock_edges ) {
-    filter_sb_horizontal( raster.Y );
-    filter_sb_horizontal( raster.U );
-    filter_sb_horizontal( raster.V );
+    filter_sb_horizontal( raster );
   }
 }
 
+// Roughly the same as filter_mbloop_filter_horizontal_edge_c
 template <class BlockType>
-void NormalLoopFilter::filter_mb_vertical( BlockType & block )
+void NormalLoopFilter::filter_mb_vertical_c( BlockType & block )
 {
   const uint8_t size = BlockType::dimension;
 
@@ -143,7 +145,7 @@ void NormalLoopFilter::filter_mb_vertical( BlockType & block )
 					 *(central + 2),
 					 *(central + 3) );
 
-    const int8_t hev = vp8_hevmask( high_edge_variance_threshold_,
+    const int8_t hev = vp8_hevmask( hev_threshold_vector_[0],
 				    *(central - 2),
 				    *(central - 1),
 				    *(central),
@@ -155,8 +157,31 @@ void NormalLoopFilter::filter_mb_vertical( BlockType & block )
   }
 }
 
+void NormalLoopFilter::filter_mb_vertical( Raster::Macroblock & raster )
+{
+#ifdef HAVE_SSE2
+  uint8_t *y_ptr = &raster.Y.at(0, 0);
+  uint8_t *u_ptr = &raster.U.at(0, 0);
+  uint8_t *v_ptr = &raster.V.at(0, 0);
+
+  const int y_stride = raster.Y.stride();
+  const int uv_stride = raster.U.stride(); // Is v stride always u stride?
+
+  auto blimit_vec = simple_.macroblock_limit_vector().data();
+  auto limit_vec = simple_.interior_limit_vector().data();
+
+  vp8_mbloop_filter_vertical_edge_sse2(y_ptr, y_stride, blimit_vec, limit_vec, hev_threshold_vector_.data());
+  vp8_mbloop_filter_vertical_edge_uv_sse2(u_ptr, uv_stride, blimit_vec, limit_vec, hev_threshold_vector_.data(),
+					  v_ptr);
+#else
+  filter_mb_vertical_c( raster.Y );
+  filter_mb_vertical_c( raster.U );
+  filter_mb_vertical_c( raster.V );
+#endif
+}
+
 template <class BlockType>
-void NormalLoopFilter::filter_mb_horizontal( BlockType & block )
+void NormalLoopFilter::filter_mb_horizontal_c( BlockType & block )
 {
   const uint8_t size = BlockType::dimension;
 
@@ -176,7 +201,7 @@ void NormalLoopFilter::filter_mb_horizontal( BlockType & block )
 					 *(central + 2 * stride ),
 					 *(central + 3 * stride ) );
 
-    const int8_t hev = vp8_hevmask( high_edge_variance_threshold_,
+    const int8_t hev = vp8_hevmask( hev_threshold_vector_[0],
 				    *(central - 2 * stride ),
 				    *(central - stride ),
 				    *(central),
@@ -192,8 +217,31 @@ void NormalLoopFilter::filter_mb_horizontal( BlockType & block )
   }
 }
 
+void NormalLoopFilter::filter_mb_horizontal( Raster::Macroblock & raster )
+{
+#ifdef HAVE_SSE2
+  uint8_t *y_ptr = &raster.Y.at(0, 0);
+  uint8_t *u_ptr = &raster.U.at(0, 0);
+  uint8_t *v_ptr = &raster.V.at(0, 0);
+
+  const int y_stride = raster.Y.stride();
+  const int uv_stride = raster.U.stride(); // Is v stride always u stride?
+
+  auto blimit_vec = simple_.macroblock_limit_vector().data();
+  auto limit_vec = simple_.interior_limit_vector().data();
+
+  vp8_mbloop_filter_horizontal_edge_sse2(y_ptr, y_stride, blimit_vec, limit_vec, hev_threshold_vector_.data());
+  vp8_mbloop_filter_horizontal_edge_uv_sse2(u_ptr, uv_stride, blimit_vec, limit_vec, hev_threshold_vector_.data(),
+					  v_ptr);
+#else
+  filter_mb_horizontal_c( raster.Y );
+  filter_mb_horizontal_c( raster.U );
+  filter_mb_horizontal_c( raster.V );
+#endif
+}
+
 template <class BlockType>
-void NormalLoopFilter::filter_sb_vertical( BlockType & block )
+void NormalLoopFilter::filter_sb_vertical_c( BlockType & block )
 {
   const uint8_t size = BlockType::dimension;
 
@@ -212,7 +260,7 @@ void NormalLoopFilter::filter_sb_vertical( BlockType & block )
 					   *(central + 2),
 					   *(central + 3) );
 
-      const int8_t hev = vp8_hevmask( high_edge_variance_threshold_,
+      const int8_t hev = vp8_hevmask( hev_threshold_vector_[0],
 				      *(central - 2),
 				      *(central - 1),
 				      *(central),
@@ -225,8 +273,37 @@ void NormalLoopFilter::filter_sb_vertical( BlockType & block )
   }
 }
 
+void NormalLoopFilter::filter_sb_vertical( Raster::Macroblock & raster )
+{
+#ifdef HAVE_SSE2
+  uint8_t *y_ptr = &raster.Y.at(0, 0);
+  uint8_t *u_ptr = &raster.U.at(0, 0);
+  uint8_t *v_ptr = &raster.V.at(0, 0);
+
+  const int y_stride = raster.Y.stride();
+  const int uv_stride = raster.U.stride(); // Is v stride always u stride?
+
+  auto blimit_vec = simple_.subblock_limit_vector().data();
+  auto limit_vec = simple_.interior_limit_vector().data();
+
+#ifdef ARCH_X86_64
+    vp8_loop_filter_bv_y_sse2(y_ptr, y_stride, blimit_vec, limit_vec, hev_threshold_vector_.data(), 2);
+#else
+    vp8_loop_filter_vertical_edge_sse2(y_ptr + 4, y_stride, blimit_vec, limit_vec, hev_threshold_vector_.data());
+    vp8_loop_filter_vertical_edge_sse2(y_ptr + 8, y_stride, blimit_vec, limit_vec, hev_threshold_vector_.data());
+    vp8_loop_filter_vertical_edge_sse2(y_ptr + 12, y_stride, blimit_vec, limit_vec, hev_threshold_vector_.data());
+#endif
+
+  vp8_loop_filter_vertical_edge_uv_sse2(u_ptr + 4, uv_stride, blimit_vec, limit_vec, hev_threshold_vector_.data(), v_ptr + 4);
+#else
+  filter_sb_vertical_c( raster.Y );
+  filter_sb_vertical_c( raster.U );
+  filter_sb_vertical_c( raster.V );
+#endif
+}
+
 template <class BlockType>
-void NormalLoopFilter::filter_sb_horizontal( BlockType & block )
+void NormalLoopFilter::filter_sb_horizontal_c( BlockType & block )
 {
   const uint8_t size = BlockType::dimension;
 
@@ -247,7 +324,7 @@ void NormalLoopFilter::filter_sb_horizontal( BlockType & block )
 					   *(central + 2 * stride ),
 					   *(central + 3 * stride ) );
 
-      const int8_t hev = vp8_hevmask( high_edge_variance_threshold_,
+      const int8_t hev = vp8_hevmask( hev_threshold_vector_[0],
 				      *(central - 2 * stride ),
 				      *(central - stride ),
 				      *(central),
@@ -260,4 +337,33 @@ void NormalLoopFilter::filter_sb_horizontal( BlockType & block )
 		  *(central + stride ) );
     }
   }
+}
+
+void NormalLoopFilter::filter_sb_horizontal( Raster::Macroblock & raster )
+{
+#ifdef HAVE_SSE2
+  uint8_t *y_ptr = &raster.Y.at(0, 0);
+  uint8_t *u_ptr = &raster.U.at(0, 0);
+  uint8_t *v_ptr = &raster.V.at(0, 0);
+
+  const int y_stride = raster.Y.stride();
+  const int uv_stride = raster.U.stride(); // Is v stride always u stride?
+
+  auto blimit_vec = simple_.subblock_limit_vector().data();
+  auto limit_vec = simple_.interior_limit_vector().data();
+
+#ifdef ARCH_X86_64
+    vp8_loop_filter_bh_y_sse2(y_ptr, y_stride, blimit_vec, limit_vec, hev_threshold_vector_.data(), 2);
+#else
+    vp8_loop_filter_horizontal_edge_sse2(y_ptr + 4 * ystride, y_stride, blimit_vec, limit_vec, hev_threshold_vector_.data());
+    vp8_loop_filter_horizontal_edge_sse2(y_ptr + 8 * ystride, y_stride, blimit_vec, limit_vec, hev_threshold_vector_.data());
+    vp8_loop_filter_horizontal_edge_sse2(y_ptr + 12 * ystride, y_stride, blimit_vec, limit_vec, hev_threshold_vector_.data());
+#endif
+
+  vp8_loop_filter_horizontal_edge_uv_sse2(u_ptr + 4 * uv_stride, uv_stride, blimit_vec, limit_vec, hev_threshold_vector_.data(), v_ptr + 4 * uv_stride);
+#else
+  filter_sb_horizontal_c( raster.Y );
+  filter_sb_horizontal_c( raster.U );
+  filter_sb_horizontal_c( raster.V );
+#endif
 }

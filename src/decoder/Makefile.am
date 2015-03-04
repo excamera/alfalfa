@@ -1,6 +1,10 @@
 AM_CPPFLAGS = -I$(srcdir)/../util
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(NODEBUG_CXXFLAGS)
 
+SUFFIXES = .asm
+.asm.o:
+	$(AS) $(ASFLAGS) -I$(srcdir)/../asm/ $<
+
 noinst_LIBRARIES = libalfalfadecoder.a
 
 libalfalfadecoder_a_SOURCES = block.hh bool_decoder.hh decoder.cc decoder.hh \
@@ -10,4 +14,4 @@ libalfalfadecoder_a_SOURCES = block.hh bool_decoder.hh decoder.cc decoder.hh \
 	prediction.cc quantization.cc quantization.hh tokens.cc tokens.hh \
 	transform.cc tree.cc uncompressed_chunk.cc uncompressed_chunk.hh \
 	vp8_header_structures.hh vp8_prob_data.cc vp8_prob_data.hh scorer.hh \
-	decoder_state.hh
+	decoder_state.hh loopfilter_sse2.asm loopfilter_block_sse2_x86_64.asm

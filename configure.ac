@@ -27,6 +27,22 @@ AC_ARG_ENABLE([debug],
   [NODEBUG_CXXFLAGS="-DNDEBUG"])
 AC_SUBST(NODEBUG_CXXFLAGS)
 
+# Checks for assemblers
+# TODO only check this when arch is x86
+AC_CHECK_PROGS([AS], [yasm nasm], [none])
+AS_IF([test x$YASM == xnone], [
+  AC_MSG_WARN(yasm or nasm required for assembly; ASM functions are disabled.)
+  AC_MSG_WARN(Install one of these to use SSE2 in the decoder.)
+], [
+  ASFLAGS="-f elf64"
+
+  AC_DEFINE([HAVE_SSE2], [1], [CPU supports SSE2])
+  AC_DEFINE([ARCH_X86_64], [1], [64bit CPU])
+])
+
+AC_SUBST([AS])
+AC_SUBST([ASFLAGS])
+
 # Checks for libraries.
 PKG_CHECK_MODULES([X11_XCB], [x11-xcb])
 PKG_CHECK_MODULES([GLU], [glu])

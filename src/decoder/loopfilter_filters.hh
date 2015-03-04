@@ -1,7 +1,8 @@
 #ifndef LOOPFILTER_FILTERS_HH
 #define LOOPFILTER_FILTERS_HH
 
-/* Excerpted from libvpx/vp8/common/loopfilter_filters.c */
+/* Excerpted from libvpx/vp8/common/loopfilter_filters.c with SSE2
+ * prototypes from libvpx/vp8/common/x86/loopfilter_x86.c */
 
 /*
  *  Copyright (c) 2010 The WebM project authors. All Rights Reserved.
@@ -13,6 +14,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <config.h>
 #include <cstdint>
 
 typedef uint8_t uc;
@@ -187,5 +189,57 @@ static inline void vp8_simple_filter(signed char mask, uc *op1, uc *op0, uc *oq0
     u = vp8_signed_char_clamp(p0 + Filter2);
     *op0 = u ^ 0x80;
 }
+
+/* SSE2 prototypes */
+#ifdef HAVE_SSE2
+
+extern "C" {
+  typedef void loop_filter_function
+  (
+      unsigned char *u,   /* source pointer */
+      int p,              /* pitch */
+      const uint8_t *blimit,
+      const uint8_t *limit,
+      const uint8_t *thresh,
+      int count
+  );
+  
+  typedef void loop_filter_ncfunction
+  (
+      unsigned char *u,   /* source pointer */
+      int p,              /* pitch */
+      const uint8_t *blimit,
+      const uint8_t *limit,
+      const uint8_t *thresh
+  );
+  
+  typedef void loop_filter_uvfunction
+  (
+      unsigned char *u,   /* source pointer */
+      int p,              /* pitch */
+      const uint8_t *blimit,
+      const uint8_t *limit,
+      const uint8_t *thresh,
+      unsigned char *v
+  );
+  
+#ifdef ARCH_X86_64
+  loop_filter_function vp8_loop_filter_bv_y_sse2;
+  loop_filter_function vp8_loop_filter_bh_y_sse2;
+#else
+  loop_filter_ncfunction vp8_loop_filter_vertical_edge_sse2;
+  loop_filter_ncfunction vp8_loop_filter_horizontal_edge_sse2;
+#endif
+  
+  loop_filter_ncfunction vp8_mbloop_filter_vertical_edge_sse2;
+  loop_filter_ncfunction vp8_mbloop_filter_horizontal_edge_sse2;
+  
+  loop_filter_uvfunction vp8_loop_filter_horizontal_edge_uv_sse2;
+  loop_filter_uvfunction vp8_loop_filter_vertical_edge_uv_sse2;
+  loop_filter_uvfunction vp8_mbloop_filter_horizontal_edge_uv_sse2;
+  loop_filter_uvfunction vp8_mbloop_filter_vertical_edge_uv_sse2;
+}
+
+#endif /* HAVE_SSE2 */
 
 #endif /* LOOPFILTER_FILTERS_HH */
