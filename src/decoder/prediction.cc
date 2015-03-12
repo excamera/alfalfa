@@ -381,6 +381,90 @@ void Raster::Block<size>::inter_predict( const MotionVector & mv, const TwoD< ui
   }
 }
 
+#ifdef HAVE_SSE2
+template <unsigned int size>
+void Raster::Block<size>::sse_horiz_inter_predict( const uint8_t *, const unsigned int,
+						   const uint8_t *, const unsigned int,
+						   const unsigned int, const unsigned int ) = delete;
+
+template <>
+void Raster::Block<4>::sse_horiz_inter_predict( const uint8_t * src,
+						const unsigned int pixels_per_line,
+						const uint8_t * dst,
+						const unsigned int dst_pitch,
+						const unsigned int dst_height,
+						const unsigned int filter_idx)
+{
+  vp8_filter_block1d4_h6_ssse3( src, pixels_per_line, dst, dst_pitch, dst_height,
+				filter_idx );
+}
+
+template <>
+void Raster::Block<8>::sse_horiz_inter_predict( const uint8_t * src,
+						const unsigned int pixels_per_line,
+						const uint8_t * dst,
+						const unsigned int dst_pitch,
+						const unsigned int dst_height,
+						const unsigned int filter_idx)
+{
+  vp8_filter_block1d8_h6_ssse3( src, pixels_per_line, dst, dst_pitch, dst_height,
+				filter_idx );
+}
+
+template <>
+void Raster::Block<16>::sse_horiz_inter_predict( const uint8_t * src,
+						const unsigned int pixels_per_line,
+						const uint8_t * dst,
+						const unsigned int dst_pitch,
+						const unsigned int dst_height,
+						const unsigned int filter_idx)
+{
+  vp8_filter_block1d16_h6_ssse3( src, pixels_per_line, dst, dst_pitch, dst_height,
+				filter_idx );
+}
+
+template <unsigned int size>
+void Raster::Block<size>::sse_vert_inter_predict( const uint8_t *, const unsigned int,
+						  const uint8_t *, const unsigned int,
+						  const unsigned int, const unsigned int ) = delete;
+
+template <>
+void Raster::Block<4>::sse_vert_inter_predict( const uint8_t * src,
+						const unsigned int pixels_per_line,
+						const uint8_t * dst,
+						const unsigned int dst_pitch,
+						const unsigned int dst_height,
+						const unsigned int filter_idx)
+{
+  vp8_filter_block1d4_v6_ssse3( src, pixels_per_line, dst, dst_pitch, dst_height,
+				filter_idx );
+}
+
+template <>
+void Raster::Block<8>::sse_vert_inter_predict( const uint8_t * src,
+						const unsigned int pixels_per_line,
+						const uint8_t * dst,
+						const unsigned int dst_pitch,
+						const unsigned int dst_height,
+						const unsigned int filter_idx)
+{
+  vp8_filter_block1d8_v6_ssse3( src, pixels_per_line, dst, dst_pitch, dst_height,
+				filter_idx );
+}
+
+template <>
+void Raster::Block<16>::sse_vert_inter_predict( const uint8_t * src,
+						const unsigned int pixels_per_line,
+						const uint8_t * dst,
+						const unsigned int dst_pitch,
+						const unsigned int dst_height,
+						const unsigned int filter_idx)
+{
+  vp8_filter_block1d16_v6_ssse3( src, pixels_per_line, dst, dst_pitch, dst_height,
+				filter_idx );
+}
+#endif
+
 template <unsigned int size>
 void Raster::Block<size>::unsafe_inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference,
 						const int source_column, const int source_row )
@@ -403,6 +487,31 @@ void Raster::Block<size>::unsafe_inter_predict( const MotionVector & mv, const T
     return;
   }
 
+#ifdef HAVE_SSE2
+  alignas(16) SafeArray< SafeArray< uint8_t, size + 8 >, size + 8 > intermediate;
+  const uint8_t *intermediate_ptr = &intermediate.at( 0 ).at( 0 );
+  const uint8_t *src_ptr = &reference.at( source_column, source_row );
+  const uint8_t *dst_ptr = &contents_.at( 0, 0 );
+
+  if ( mx ) {
+    if ( my ) {
+      sse_horiz_inter_predict( src_ptr - 2 * stride, stride, intermediate_ptr,
+			       size, size + 5, mx );
+      sse_vert_inter_predict( intermediate_ptr, size, dst_ptr, stride,
+			      size, my );
+    }
+    else {
+      /* First pass only */
+      sse_horiz_inter_predict( src_ptr, stride, dst_ptr, stride, size, mx );
+    }
+  }
+  else {
+    /* Second pass only */
+    sse_vert_inter_predict( src_ptr - 2 * stride, stride, dst_ptr, stride,
+			    size, my );
+  }
+
+#else
   SafeArray< SafeArray< uint8_t, size >, size + 5 > intermediate;
 
   {
@@ -458,6 +567,7 @@ void Raster::Block<size>::unsafe_inter_predict( const MotionVector & mv, const T
       dest_row_start += stride - size;
     }
   }
+#endif
 }
 
 template <unsigned int size>

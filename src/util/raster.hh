@@ -5,6 +5,11 @@
 
 #include "2d.hh"
 #include "safe_array.hh"
+#include <config.h>
+
+#ifdef HAVE_SSE2
+#include "predictor_sse.hh"
+#endif
 
 class MotionVector;
 
@@ -108,6 +113,16 @@ public:
 
     void unsafe_inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference,
 			       const int source_column, const int source_row );
+
+#ifdef HAVE_SSE2
+    void sse_horiz_inter_predict( const uint8_t * src, const unsigned int pixels_per_line,
+				  const uint8_t * dst, const unsigned int dst_pitch,
+				  const unsigned int dst_height, const unsigned int filter_idx );
+
+    void sse_vert_inter_predict( const uint8_t * src, const unsigned int pixels_per_line,
+				 const uint8_t * dst, const unsigned int dst_pitch,
+				 const unsigned int dst_height, const unsigned int filter_idx );
+#endif
 
     void set_above_right_bottom_row_predictor( const typename Predictors::AboveRightBottomRowPredictor & replacement );
 
