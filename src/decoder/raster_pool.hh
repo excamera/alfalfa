@@ -3,17 +3,21 @@
 
 #include <memory>
 #include <queue>
+#include <functional>
 
 #include "raster.hh"
 
 class RasterPool
 {
 private:
-  std::queue<Raster> raster_pool_ {};
+  std::queue<std::unique_ptr< Raster >> raster_pool_ {};
 
 public:
-  Raster & make_raster( void );
-  void free_raster( Raster && raster );
+  RasterPool( void ) {}
+  ~RasterPool( void ) {};
+  Raster * make_raster( const unsigned int display_width, const unsigned int display_height );
+  void free_raster( Raster * raster );
+  static RasterPool & global_pool( void );
 };
 
 class RasterHandle
@@ -23,7 +27,11 @@ private:
 
 public:
   RasterHandle( const unsigned int display_width, const unsigned int display_height )
-    : raster_( std::make_shared<Raster>( display_width, display_height ) )
+    : raster_( RasterPool::global_pool().make_raster( display_width, display_height ), 
+		[]( Raster * raster ) 
+		{
+		  RasterPool::global_pool().free_raster( raster );
+		} )
   {}
 
   RasterHandle( const std::shared_ptr< Raster > & other )
