@@ -1,6 +1,7 @@
 #include "macroblock.hh"
 #include "block.hh"
 #include "safe_array.hh"
+#include "transform_sse.hh"
 
 template <>
 void YBlock::set_dc_coefficient( const int16_t & val )
@@ -57,6 +58,12 @@ void Block< initial_block_type, PredictionMode >::idct_add( Raster::Block4 & out
 {
   assert( type_ == UV or type_ == Y_without_Y2 );
 
+#ifdef HAVE_SSE2
+
+  vp8_short_idct4x4llm_mmx( &coefficients_.at( 0 ), &output.at( 0, 0 ), output.stride(), &output.at( 0, 0 ), output.stride() );
+
+#else
+
   SafeArray< int16_t, 16 > intermediate;
 
   /* Based on libav/ffmpeg vp8_idct_add_c */
@@ -89,6 +96,7 @@ void Block< initial_block_type, PredictionMode >::idct_add( Raster::Block4 & out
     target++;
     *target = clamp255( *target + ((t0 - t3 + 4) >> 3) );
   }
+#endif
 }
 
 template <BlockType initial_block_type, class PredictionMode>

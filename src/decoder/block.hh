@@ -100,7 +100,7 @@ public:
 			 const ProbabilityTables & probability_tables ) const;
 
   SafeArray< int16_t, 16 > & mutable_coefficients( void ) { return coefficients_; }
-  const SafeArray< int16_t, 16 > & coefficients( void ) const { return coefficients_; }
+  alignas(16) const SafeArray< int16_t, 16 > & coefficients( void ) const { return coefficients_; }
 
   void add_residue( Raster::Block4 & raster ) const;
 
