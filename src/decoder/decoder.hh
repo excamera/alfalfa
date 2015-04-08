@@ -7,7 +7,7 @@
 #include "vp8_prob_data.hh"
 #include "quantization.hh"
 #include "exception.hh"
-#include "raster_pool.hh"
+#include "raster_handle.hh"
 
 class Chunk;
 class Raster;
