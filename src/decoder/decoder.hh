@@ -8,6 +8,7 @@
 #include "quantization.hh"
 #include "exception.hh"
 #include "raster_handle.hh"
+#include "frame_handle.hh"
 
 class Chunk;
 class Raster;
@@ -119,7 +120,7 @@ struct DecoderState
 		const unsigned int s_height );
 
   template <class FrameType>
-  FrameType parse_and_apply( const UncompressedChunk & uncompressed_chunk );
+  FrameHandle<FrameType> parse_and_apply( const UncompressedChunk & uncompressed_chunk );
 
   bool operator==( const DecoderState & other ) const;
 };

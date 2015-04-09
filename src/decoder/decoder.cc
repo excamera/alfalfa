@@ -16,21 +16,21 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
   UncompressedChunk uncompressed_chunk( frame, state_.width, state_.height );
 
   if ( uncompressed_chunk.key_frame() ) {
-    const KeyFrame myframe = state_.parse_and_apply<KeyFrame>( uncompressed_chunk );
+    const FrameHandle< KeyFrame > myframe = state_.parse_and_apply<KeyFrame>( uncompressed_chunk );
 
-    myframe.decode( state_.segmentation, state_.filter_adjustments, raster );
+    myframe->decode( state_.segmentation, state_.filter_adjustments, raster );
 
-    myframe.copy_to( raster, references_ );
+    myframe->copy_to( raster, references_ );
 
-    return myframe.show_frame();
+    return myframe->show_frame();
   } else {
-    const InterFrame myframe = state_.parse_and_apply<InterFrame>( uncompressed_chunk );
+    const FrameHandle< InterFrame > myframe = state_.parse_and_apply<InterFrame>( uncompressed_chunk );
 
-    myframe.decode( state_.segmentation, state_.filter_adjustments, references_, raster );
+    myframe->decode( state_.segmentation, state_.filter_adjustments, references_, raster );
 
-    myframe.copy_to( raster, references_ );
+    myframe->copy_to( raster, references_ );
 
-    return myframe.show_frame();
+    return myframe->show_frame();
   }
 }
 

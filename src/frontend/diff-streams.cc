@@ -71,18 +71,18 @@ int main( int argc, char *argv[] )
       /* decode the source */
       UncompressedChunk whole_source( source.frame( i ), source.width(), source.height() );
       if ( whole_source.key_frame() ) {
-	KeyFrame parsed_frame = source_decoder_state.parse_and_apply<KeyFrame>( whole_source );
-	parsed_frame.decode( source_decoder_state.segmentation, source_decoder_state.filter_adjustments, source_raster_preloop, false );
+	FrameHandle<KeyFrame> parsed_frame = source_decoder_state.parse_and_apply<KeyFrame>( whole_source );
+	parsed_frame->decode( source_decoder_state.segmentation, source_decoder_state.filter_adjustments, source_raster_preloop, false );
 	source_raster.get().copy( source_raster_preloop );
-	parsed_frame.loopfilter( source_decoder_state.segmentation, source_decoder_state.filter_adjustments, source_raster );
-	parsed_frame.copy_to( source_raster, source_references );
+	parsed_frame->loopfilter( source_decoder_state.segmentation, source_decoder_state.filter_adjustments, source_raster );
+	parsed_frame->copy_to( source_raster, source_references );
       } else {
-	const InterFrame parsed_frame = source_decoder_state.parse_and_apply<InterFrame>( whole_source );
-	parsed_frame.decode( source_decoder_state.segmentation, source_decoder_state.filter_adjustments,
+	const FrameHandle<InterFrame> parsed_frame = source_decoder_state.parse_and_apply<InterFrame>( whole_source );
+	parsed_frame->decode( source_decoder_state.segmentation, source_decoder_state.filter_adjustments,
 			     source_references, source_raster_preloop, false );
 	source_raster.get().copy( source_raster_preloop );
-	parsed_frame.loopfilter( source_decoder_state.segmentation, source_decoder_state.filter_adjustments, source_raster );
-	parsed_frame.copy_to( source_raster, source_references );
+	parsed_frame->loopfilter( source_decoder_state.segmentation, source_decoder_state.filter_adjustments, source_raster );
+	parsed_frame->copy_to( source_raster, source_references );
       }
 
       vector< uint8_t > serialized_frame;
@@ -92,36 +92,36 @@ int main( int argc, char *argv[] )
       /* now decode and rewrite the target */
       UncompressedChunk whole_target( target.frame( i ), target.width(), target.height() );
       if ( whole_target.key_frame() ) {
-	const KeyFrame parsed_frame = target_decoder_state.parse_and_apply<KeyFrame>( whole_target );
-	parsed_frame.decode( target_decoder_state.segmentation, target_decoder_state.filter_adjustments, target_raster_preloop, false );
+	const FrameHandle<KeyFrame> parsed_frame = target_decoder_state.parse_and_apply<KeyFrame>( whole_target );
+	parsed_frame->decode( target_decoder_state.segmentation, target_decoder_state.filter_adjustments, target_raster_preloop, false );
 	target_raster.get().copy( target_raster_preloop );
-	parsed_frame.loopfilter( target_decoder_state.segmentation, target_decoder_state.filter_adjustments, target_raster );
-	parsed_frame.copy_to( target_raster, target_references );
+	parsed_frame->loopfilter( target_decoder_state.segmentation, target_decoder_state.filter_adjustments, target_raster );
+	parsed_frame->copy_to( target_raster, target_references );
 
-	serialized_frame = parsed_frame.serialize( target_decoder_state.probability_tables );
+	serialized_frame = parsed_frame->serialize( target_decoder_state.probability_tables );
 	fprintf( stderr, "Frame %u, original length: %lu bytes. Serialized length: %lu bytes.\n",
 		 i, target.frame( i ).size(), serialized_frame.size() );
       } else {
-	InterFrame parsed_frame = target_decoder_state.parse_and_apply<InterFrame>( whole_target );
+	const FrameHandle<InterFrame> parsed_frame = target_decoder_state.parse_and_apply<InterFrame>( whole_target );
 
 	target_frame_probability_tables = target_decoder_state.probability_tables;
-	if ( parsed_frame.header().refresh_entropy_probs ) {
-	  target_frame_probability_tables.update( parsed_frame.header() );
+	if ( parsed_frame->header().refresh_entropy_probs ) {
+	  target_frame_probability_tables.update( parsed_frame->header() );
 	}
 
-	parsed_frame.rewrite_as_diff( source_decoder_state, target_decoder_state,
+	parsed_frame->rewrite_as_diff( source_decoder_state, target_decoder_state,
 				      target_references, source_raster_preloop, target_raster_preloop );
 
 	//	parsed_frame.decode( target_decoder_state.quantizer_filter_adjustments, target_references, target_raster );
 	target_raster.get().copy( target_raster_preloop );
 
-	parsed_frame.loopfilter( target_decoder_state.segmentation, target_decoder_state.filter_adjustments, target_raster );
+	parsed_frame->loopfilter( target_decoder_state.segmentation, target_decoder_state.filter_adjustments, target_raster );
 
-	parsed_frame.copy_to( target_raster, target_references );
+	parsed_frame->copy_to( target_raster, target_references );
 
-	parsed_frame.optimize_continuation_coefficients();
+	parsed_frame->optimize_continuation_coefficients();
 
-	serialized_frame = parsed_frame.serialize( target_decoder_state.probability_tables );
+	serialized_frame = parsed_frame->serialize( target_decoder_state.probability_tables );
 
 	fprintf( stderr, "Frame %u, original length: %lu bytes. Diff length: %lu bytes.\n",
 		 i, target.frame( i ).size(), serialized_frame.size() );
@@ -136,22 +136,22 @@ int main( int argc, char *argv[] )
 	UncompressedChunk whole_frame( Chunk( &serialized_frame.at( 0 ), serialized_frame.size() ),
 				       source.width(), source.height() );
 	if ( whole_frame.key_frame() ) {
-	  const KeyFrame parsed_frame = test_decoder_state.parse_and_apply<KeyFrame>( whole_frame );
+	  const FrameHandle<KeyFrame> parsed_frame = test_decoder_state.parse_and_apply<KeyFrame>( whole_frame );
 	  assert( test_decoder_state == target_decoder_state );
-	  parsed_frame.decode( test_decoder_state.segmentation, test_decoder_state.filter_adjustments, test_raster );
+	  parsed_frame->decode( test_decoder_state.segmentation, test_decoder_state.filter_adjustments, test_raster );
 	} else {
-	  const InterFrame parsed_frame = test_decoder_state.parse_and_apply<InterFrame>( whole_frame );
+	  const FrameHandle<InterFrame> parsed_frame = test_decoder_state.parse_and_apply<InterFrame>( whole_frame );
 	  assert( test_decoder_state == target_decoder_state );
 
 	  /* update probability tables. replace persistent copy if prescribed in header */
 	  ProbabilityTables frame_probability_tables( test_decoder_state.probability_tables );
-	  frame_probability_tables.update( parsed_frame.header() );
+	  frame_probability_tables.update( parsed_frame->header() );
 
 	  assert( frame_probability_tables == target_frame_probability_tables );
 
-	  parsed_frame.decode( test_decoder_state.segmentation, test_decoder_state.filter_adjustments, test_references, test_raster, false );
+	  parsed_frame->decode( test_decoder_state.segmentation, test_decoder_state.filter_adjustments, test_references, test_raster, false );
 	  assert( test_raster == target_raster_preloop );
-	  parsed_frame.loopfilter( test_decoder_state.segmentation, test_decoder_state.filter_adjustments, test_raster );
+	  parsed_frame->loopfilter( test_decoder_state.segmentation, test_decoder_state.filter_adjustments, test_raster );
 	}
 
 	assert( test_raster == target_raster );

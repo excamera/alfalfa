@@ -38,6 +38,8 @@ public:
     : context_( context )
   {}
 
+  void reinitialize( void );
+
   const PredictionMode & prediction_mode( void ) const { return prediction_mode_; }
 
   void set_prediction_mode( const PredictionMode prediction_mode )
@@ -100,7 +102,7 @@ public:
 			 const ProbabilityTables & probability_tables ) const;
 
   SafeArray< int16_t, 16 > & mutable_coefficients( void ) { return coefficients_; }
-  alignas(16) const SafeArray< int16_t, 16 > & coefficients( void ) const { return coefficients_; }
+  const SafeArray< int16_t, 16 > & coefficients( void ) const { return coefficients_; }
 
   void add_residue( Raster::Block4 & raster ) const;
 
