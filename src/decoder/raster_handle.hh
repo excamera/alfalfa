@@ -1,20 +1,7 @@
 #ifndef RASTER_POOL_HH
 #define RASTER_POOL_HH
 
-#include <memory>
-#include <queue>
-
 #include "raster.hh"
-
-class RasterPool
-{
-private:
-  std::queue<Raster> raster_pool_ {};
-
-public:
-  Raster & make_raster( void );
-  void free_raster( Raster && raster );
-};
 
 class RasterHandle
 {
@@ -22,9 +9,7 @@ private:
   std::shared_ptr< Raster > raster_;
 
 public:
-  RasterHandle( const unsigned int display_width, const unsigned int display_height )
-    : raster_( std::make_shared<Raster>( display_width, display_height ) )
-  {}
+  RasterHandle( const unsigned int display_width, const unsigned int display_height );
 
   RasterHandle( const std::shared_ptr< Raster > & other )
     : raster_( other )

@@ -61,20 +61,19 @@ Quantizer::Quantizer( const QuantIndices & quant_indices )
 }
 
 template <BlockType initial_block_type, class PredictionMode>
-Block<initial_block_type, PredictionMode> Block<initial_block_type, PredictionMode>::dequantize_internal( const uint16_t dc_factor, const uint16_t ac_factor ) const
+DCTCoefficients Block<initial_block_type, PredictionMode>::dequantize_internal( const uint16_t dc_factor, const uint16_t ac_factor ) const
 {
-  Block ret = *this;
-
-  ret.coefficients_.at( 0 ) *= dc_factor;
+  DCTCoefficients new_coefficients;
+  new_coefficients.at( 0 ) = coefficients_.at( 0 ) * dc_factor;
   for ( uint8_t i = 1; i < 16; i++ ) {
-    ret.coefficients_.at( i ) *= ac_factor;
+    new_coefficients.at( i ) = coefficients_.at( i ) * ac_factor;
   }
 
-  return ret;
+  return new_coefficients;
 }
 
 template <>
-Y2Block Y2Block::dequantize( const Quantizer & quantizer ) const
+DCTCoefficients Y2Block::dequantize( const Quantizer & quantizer ) const
 {
   assert( coded_ );
 
@@ -82,13 +81,38 @@ Y2Block Y2Block::dequantize( const Quantizer & quantizer ) const
 }
 
 template <>
-YBlock YBlock::dequantize( const Quantizer & quantizer ) const
+DCTCoefficients YBlock::dequantize( const Quantizer & quantizer ) const
 {
   return dequantize_internal( quantizer.y_dc, quantizer.y_ac );
 }
 
 template <>
-UVBlock UVBlock::dequantize( const Quantizer & quantizer ) const
+DCTCoefficients UVBlock::dequantize( const Quantizer & quantizer ) const
 {
   return dequantize_internal( quantizer.uv_dc, quantizer.uv_ac );
+}
+
+template <>
+void Y2Block::reinitialize( void )
+{
+  coded_ = true;
+  has_nonzero_ = false;
+  coefficients_.reinitialize();
+}
+
+template <>
+void YBlock::reinitialize( void )
+{
+  type_ = Y_after_Y2;
+  has_nonzero_ = false;
+  coefficients_.reinitialize();
+  motion_vector_ = MotionVector {};
+}
+
+template <>
+void UVBlock::reinitialize( void )
+{
+  has_nonzero_ = false;
+  coefficients_.reinitialize();
+  motion_vector_ = MotionVector {};
 }

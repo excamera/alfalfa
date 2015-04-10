@@ -16,6 +16,29 @@ Frame<FrameHeaderType, MacroblockType>::Frame( const bool show,
 {}
 
 template <class FrameHeaderType, class MacroblockType>
+void Frame<FrameHeaderType, MacroblockType>::reinitialize( const bool show,
+							   const bool continuation,
+					       	      	   const unsigned int width,
+					       	      	   const unsigned int height,
+					       	      	   BoolDecoder & first_partition )
+{
+  if ( width != display_width_ || height != display_height_ ) {
+    throw Unsupported( "frames of different dimensions" );
+  }
+  show_ = show;
+  header_ = FrameHeaderType( first_partition );
+  continuation_header_.clear();
+  if (continuation) {
+    continuation_header_.initialize( first_partition );
+  }
+
+  Y2_.forall( std::mem_fn( &Y2Block::reinitialize ) );
+  Y_.forall( std::mem_fn( &YBlock::reinitialize ) );
+  U_.forall( std::mem_fn( &UVBlock::reinitialize ) );
+  V_.forall( std::mem_fn( &UVBlock::reinitialize ) );
+}
+
+template <class FrameHeaderType, class MacroblockType>
 ProbabilityArray< num_segments > Frame<FrameHeaderType, MacroblockType>::calculate_mb_segment_tree_probs( void ) const
 {
   /* calculate segment tree probabilities if map is updated by this frame */
