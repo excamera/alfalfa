@@ -97,7 +97,7 @@ void Y2Block::reinitialize( void )
 {
   coded_ = true;
   has_nonzero_ = false;
-  coefficients_ = DCTCoefficients {};
+  coefficients_.reinitialize();
 }
 
 template <>
@@ -105,7 +105,7 @@ void YBlock::reinitialize( void )
 {
   type_ = Y_after_Y2;
   has_nonzero_ = false;
-  coefficients_ = DCTCoefficients {};
+  coefficients_.reinitialize();
   motion_vector_ = MotionVector {};
 }
 
@@ -113,6 +113,6 @@ template <>
 void UVBlock::reinitialize( void )
 {
   has_nonzero_ = false;
-  coefficients_ = DCTCoefficients {};
+  coefficients_.reinitialize();
   motion_vector_ = MotionVector {};
 }

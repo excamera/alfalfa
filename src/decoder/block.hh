@@ -19,6 +19,11 @@ private:
   SafeArray< int16_t, 16 > coefficients_ {{}};
 public:
 
+  void reinitialize( void )
+  {
+    coefficients_ = SafeArray< int16_t, 16 > {{}};
+  }
+
   int16_t & at( const unsigned int index )
   {
     return coefficients_.at( index );
