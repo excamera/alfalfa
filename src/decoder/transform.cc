@@ -6,17 +6,17 @@
 template <>
 void YBlock::set_dc_coefficient( const int16_t & val )
 {
-  coefficients_.at( 0 ) = val;
+  coefficients_.set_dc_coefficient( val );
   set_Y_without_Y2();
 }
 
-template <>
-void Y2Block::walsh_transform( TwoD< YBlock > & output ) const
+void DCTCoefficients::set_dc_coefficient( const int16_t & val )
 {
-  assert( coded_ );
-  assert( output.width() == 4 );
-  assert( output.height() == 4 );
+  coefficients_.at( 0 ) = val;
+}
 
+void DCTCoefficients::walsh_transform( SafeArray< SafeArray< DCTCoefficients, 4 >, 4 > & output ) const
+{
   SafeArray< int16_t, 16 > intermediate;
 
   for ( unsigned int i = 0; i < 4; i++ ) {
@@ -43,21 +43,18 @@ void Y2Block::walsh_transform( TwoD< YBlock > & output ) const
     int c2 = a1 - b1;
     int d2 = d1 - c1;
 
-    output.at( 0, i ).set_dc_coefficient( (a2 + 3) >> 3 );
-    output.at( 1, i ).set_dc_coefficient( (b2 + 3) >> 3 );
-    output.at( 2, i ).set_dc_coefficient( (c2 + 3) >> 3 );
-    output.at( 3, i ).set_dc_coefficient( (d2 + 3) >> 3 );
+    output.at( i ).at( 0 ).set_dc_coefficient( (a2 + 3) >> 3 );
+    output.at( i ).at( 1 ).set_dc_coefficient( (b2 + 3) >> 3 );
+    output.at( i ).at( 2 ).set_dc_coefficient( (c2 + 3) >> 3 );
+    output.at( i ).at( 3 ).set_dc_coefficient( (d2 + 3) >> 3 );
   }
 }
 
 static inline int MUL_20091( const int a ) { return ((((a)*20091) >> 16) + (a)); }
 static inline int MUL_35468( const int a ) { return (((a)*35468) >> 16); }
 
-template <BlockType initial_block_type, class PredictionMode>
-void Block< initial_block_type, PredictionMode >::idct_add( Raster::Block4 & output ) const
+void DCTCoefficients::idct_add( Raster::Block4 & output ) const
 {
-  assert( type_ == UV or type_ == Y_without_Y2 );
-
 #ifdef HAVE_SSE2
 
   vp8_short_idct4x4llm_mmx( &coefficients_.at( 0 ), &output.at( 0, 0 ), output.stride(), &output.at( 0, 0 ), output.stride() );

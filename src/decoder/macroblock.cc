@@ -417,6 +417,24 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::parse_tokens( BoolDecode
 }
 
 template <class FrameHeaderType, class MacroblockHeaderType>
+void Macroblock<FrameHeaderType, MacroblockHeaderType>::apply_walsh( const Quantizer & quantizer,
+								     Raster::Macroblock & raster ) const
+{
+    SafeArray< SafeArray< DCTCoefficients, 4 >, 4 > Y_dequant_coeffs;
+    for ( int row = 0; row < 4; row++ ) {
+      for ( int column = 0; column < 4; column++ ) {
+        Y_dequant_coeffs.at( row ).at( column ) = Y_.at( column, row ).dequantize( quantizer );
+      }
+    }
+    Y2_.dequantize( quantizer ).walsh_transform( Y_dequant_coeffs );
+    for ( int row = 0; row < 4; row++ ) {
+      for ( int column = 0; column < 4; column++ ) {
+        Y_dequant_coeffs.at( row ).at( column ).idct_add( raster.Y_sub.at( column, row ) );
+      }
+    }
+}
+
+template <class FrameHeaderType, class MacroblockHeaderType>
 void Macroblock<FrameHeaderType, MacroblockHeaderType>::reconstruct_intra( const Quantizer & quantizer,
 									   Raster::Macroblock & raster ) const
 {
@@ -441,12 +459,7 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::reconstruct_intra( const
     raster.Y.intra_predict( Y2_.prediction_mode() );
 
     if ( has_nonzero_ ) {
-      TwoD< YBlock > Y_dequantized( 4, 4 );
-      Y_dequantized.forall_ij( [&] ( YBlock & block, const unsigned int column, const unsigned int row )
-			       { block = Y_.at( column, row ).dequantize( quantizer ); } );
-      Y2_.dequantize( quantizer ).walsh_transform( Y_dequantized );
-      Y_dequantized.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
-			       { block.idct_add( raster.Y_sub.at( column, row ) ); } );
+      apply_walsh( quantizer, raster );
     }
   }
 }
@@ -510,12 +523,7 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
     raster.V.inter_predict( U_.at( 0, 0 ).motion_vector(), reference.V() );
 
     if ( has_nonzero_ ) {
-      TwoD< YBlock > Y_dequantized( 4, 4 );
-      Y_dequantized.forall_ij( [&] ( YBlock & block, const unsigned int column, const unsigned int row )
-			       { block = Y_.at( column, row ).dequantize( quantizer ); } );
-      Y2_.dequantize( quantizer ).walsh_transform( Y_dequantized );
-      Y_dequantized.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
-			       { block.idct_add( raster.Y_sub.at( column, row ) ); } );
+      apply_walsh( quantizer, raster );
       U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
 		    { block.dequantize( quantizer ).idct_add( raster.U_sub.at( column, row ) ); } );
       V_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )

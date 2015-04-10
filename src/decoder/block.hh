@@ -13,17 +13,40 @@ class BoolEncoder;
 
 enum BlockType { Y_after_Y2 = 0, Y2, UV, Y_without_Y2 };
 
+class DCTCoefficients
+{
+private:
+  SafeArray< int16_t, 16 > coefficients_ {{}};
+public:
+
+  int16_t & at( const unsigned int index )
+  {
+    return coefficients_.at( index );
+  }
+
+  const int16_t & at( const unsigned int index ) const
+  {
+    return coefficients_.at( index );
+  }
+
+  void walsh_transform( SafeArray< SafeArray< DCTCoefficients, 4 >, 4 > & output ) const;
+  void idct_add( Raster::Block4 & output ) const;
+
+  void set_dc_coefficient( const int16_t & val );
+} ;
+
 template <BlockType initial_block_type, class PredictionMode>
 class Block
 {
 private:
+  // Keeping coefficients at base address of block reduces pointer arithmetic in accesses
+  DCTCoefficients coefficients_ {};
+
   typename TwoD< Block >::Context context_;
 
   BlockType type_ { initial_block_type };
 
   PredictionMode prediction_mode_ {};
-
-  SafeArray< int16_t, 16 > coefficients_ {{}};
 
   bool coded_ { true };
 
@@ -31,7 +54,7 @@ private:
 
   MotionVector motion_vector_ {};
 
-  Block dequantize_internal( const uint16_t dc_factor, const uint16_t ac_factor ) const;
+  DCTCoefficients dequantize_internal( const uint16_t dc_factor, const uint16_t ac_factor ) const;
 
 public:
   Block( const typename TwoD< Block >::Context & context )
@@ -73,10 +96,8 @@ public:
 					    "only Y2 blocks can be omitted" ); return coded_; }
   bool has_nonzero( void ) const { return has_nonzero_; }
 
-  void walsh_transform( TwoD< Block< Y_after_Y2, bmode > > & output ) const;
-  void idct_add( Raster::Block4 & output ) const;
   void set_dc_coefficient( const int16_t & val );
-  Block dequantize( const Quantizer & quantizer ) const;
+  DCTCoefficients dequantize( const Quantizer & quantizer ) const;
 
   const MotionVector & motion_vector( void ) const
   {
@@ -99,8 +120,8 @@ public:
   void serialize_tokens( BoolEncoder & data,
 			 const ProbabilityTables & probability_tables ) const;
 
-  SafeArray< int16_t, 16 > & mutable_coefficients( void ) { return coefficients_; }
-  alignas(16) const SafeArray< int16_t, 16 > & coefficients( void ) const { return coefficients_; }
+  DCTCoefficients & mutable_coefficients( void ) { return coefficients_; }
+  const DCTCoefficients & coefficients( void ) const { return coefficients_; }
 
   void add_residue( Raster::Block4 & raster ) const;
 
