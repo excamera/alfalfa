@@ -55,6 +55,12 @@ class Frame
 	 const unsigned int height,
 	 BoolDecoder & first_partition );
 
+  void reinitialize( const bool show,
+		     const bool continuation,
+	 	     const unsigned int width,
+	 	     const unsigned int height,
+	 	     BoolDecoder & first_partition );
+
   const FrameHeaderType & header( void ) const { return header_; }
   const Optional< ContinuationHeader > & continuation_header( void ) const { return continuation_header_; }
 

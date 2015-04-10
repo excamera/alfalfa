@@ -48,6 +48,8 @@ private:
 
   void set_base_motion_vector( const MotionVector & mv );
 
+  void apply_walsh( const Quantizer & quantizer, Raster::Macroblock & raster ) const;
+
 public:
   Macroblock( const typename TwoD< Macroblock >::Context & c,
 	      BoolDecoder & data,

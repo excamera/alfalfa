@@ -15,5 +15,6 @@ libalfalfadecoder_a_SOURCES = block.hh bool_decoder.hh decoder.cc decoder.hh \
 	transform.cc tree.cc uncompressed_chunk.cc uncompressed_chunk.hh \
 	vp8_header_structures.hh vp8_prob_data.cc vp8_prob_data.hh scorer.hh \
 	decoder_state.hh loopfilter_sse2.asm loopfilter_block_sse2_x86_64.asm \
-	subpixel_ssse3.asm \
-	raster_pool.hh raster_pool.cc
+	subpixel_ssse3.asm idctllm_mmx.asm \
+	transform_sse.hh raster_handle.hh raster_handle.cc frame_handle.cc \
+	frame_handle.hh
