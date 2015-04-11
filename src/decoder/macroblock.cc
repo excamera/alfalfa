@@ -193,11 +193,14 @@ int16_t MotionVector::read_component( BoolDecoder & data,
     x = Tree< int16_t, 8, small_mv_tree >( data, component_probs.slice<SHORT, 7>() );
   }
 
+  x <<= 1; /* must do before it can be negative or
+	      -fsanitize complains */
+
   if ( x && data.get( component_probs.at( SIGN ) ) ) {
     x = -x;
   }
 
-  return x << 1;
+  return x;
 }
 
 template <>

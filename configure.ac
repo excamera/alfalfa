@@ -23,7 +23,7 @@ AC_LANG_PUSH(C++)
 AC_ARG_ENABLE([debug],
   [AS_HELP_STRING([--enable-debug],
     [Enable assertions and bounds-checking @<:@no@:>@])],
-  [NODEBUG_CXXFLAGS=""],
+  [NODEBUG_CXXFLAGS="-fsanitize=address -fsanitize=undefined"],
   [NODEBUG_CXXFLAGS="-DNDEBUG"])
 AC_SUBST(NODEBUG_CXXFLAGS)
 

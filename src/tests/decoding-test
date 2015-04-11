@@ -11,7 +11,7 @@ sub check {
   }
 
   print STDERR "Checking $sha1... ";
-  my $decoded_sha1 = (split ' ', `./decode-to-stdout $filename | sha1sum` )[ 0 ];
+  my $decoded_sha1 = (split ' ', `./decode-to-stdout $filename 2>&1 | sha1sum` )[ 0 ];
   if ( $decoded_sha1 ne $sha1 ) {
     print STDERR "$0: decoding mismatch: expected $sha1, got $decoded_sha1\n";
     exit( 1 );
