@@ -3,6 +3,8 @@
 
 #include "raster.hh"
 
+class RasterPool;
+
 class RasterHandle
 {
 private:
@@ -11,9 +13,7 @@ private:
 public:
   RasterHandle( const unsigned int display_width, const unsigned int display_height );
 
-  RasterHandle( const std::shared_ptr< Raster > & other )
-    : raster_( other )
-  {}
+  RasterHandle( const unsigned int display_width, const unsigned int display_height, RasterPool & raster_pool );
 
   operator const Raster & () const { return *raster_; }
   operator Raster & () { return *raster_; }

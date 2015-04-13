@@ -7,9 +7,14 @@
 
 using namespace std;
 
-struct RasterDeleter
+class RasterDeleter
 {
+private:
+  RasterPool * raster_pool_ = nullptr;
+
+public:
   void operator()( Raster * raster ) const;
+  void set_raster_pool( RasterPool * pool );
 };
 
 typedef std::unique_ptr<Raster, RasterDeleter> RasterHolder;
@@ -26,29 +31,50 @@ T dequeue( queue<T> & q )
 class RasterPool
 {
 private:
-  std::queue<RasterHolder> raster_pool_ {};
+  std::queue<RasterHolder> unused_rasters_ {};
 
 public:
   RasterHolder make_raster( const unsigned int display_width,
 			    const unsigned int display_height )
   {
-    if ( raster_pool_.empty() ) {
-      return RasterHolder( new Raster( display_width, display_height ) );
+    RasterHolder ret;
+
+    if ( unused_rasters_.empty() ) {
+      ret.reset( new Raster( display_width, display_height ) );
+    } else {
+      if ( (unused_rasters_.front()->display_width() != display_width)
+	   or (unused_rasters_.front()->display_height() != display_height) ) {
+	throw Unsupported( "raster size has changed" );
+      }
+
+      ret = dequeue( unused_rasters_ );
     }
 
-    if ( (raster_pool_.front()->display_width() != display_width)
-	 or (raster_pool_.front()->display_height() != display_height) ) {
-      throw Unsupported( "raster size has changed" );
-    }
-
-    return dequeue( raster_pool_ );
+    ret.get_deleter().set_raster_pool( this );
+    return ret;
   }
 
   void free_raster( Raster * raster )
   {
-    raster_pool_.emplace( raster );
+    assert( raster );
+    unused_rasters_.emplace( raster );
   }
 };
+
+void RasterDeleter::operator()( Raster * raster ) const
+{
+  if ( raster_pool_ ) {
+    raster_pool_->free_raster( raster );
+  } else {
+    delete raster;
+  }
+}
+
+void RasterDeleter::set_raster_pool( RasterPool * pool )
+{
+  assert( not raster_pool_ );
+  raster_pool_ = pool;
+}
 
 static RasterPool & global_raster_pool( void )
 {
@@ -56,11 +82,10 @@ static RasterPool & global_raster_pool( void )
   return pool;
 }
 
-void RasterDeleter::operator()( Raster * raster ) const
-{
-  global_raster_pool().free_raster( raster );
-}
-
 RasterHandle::RasterHandle( const unsigned int display_width, const unsigned int display_height )
-  : raster_( global_raster_pool().make_raster( display_width, display_height ) )
+  : RasterHandle( display_width, display_height, global_raster_pool() )
+{}
+
+RasterHandle::RasterHandle( const unsigned int display_width, const unsigned int display_height, RasterPool & raster_pool )
+  : raster_( raster_pool.make_raster( display_width, display_height ) )
 {}
