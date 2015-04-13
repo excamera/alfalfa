@@ -17,7 +17,7 @@ public:
   void set_raster_pool( RasterPool * pool );
 };
 
-typedef std::unique_ptr<Raster, RasterDeleter> RasterHolder;
+typedef unique_ptr<Raster, RasterDeleter> RasterHolder;
 
 /* helper to dequeue front element from a queue */
 template <typename T>
@@ -31,7 +31,7 @@ T dequeue( queue<T> & q )
 class RasterPool
 {
 private:
-  std::queue<RasterHolder> unused_rasters_ {};
+  queue<RasterHolder> unused_rasters_ {};
 
 public:
   RasterHolder make_raster( const unsigned int display_width,
