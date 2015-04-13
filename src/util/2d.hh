@@ -190,8 +190,8 @@ public:
     return master_.at( column_ + column, row_ + row );
   }
 
-  constexpr unsigned int width( void ) { return sub_width; }
-  constexpr unsigned int height( void ) { return sub_height; }
+  constexpr unsigned int width( void ) const { return sub_width; }
+  constexpr unsigned int height( void ) const { return sub_height; }
 
   TwoDSubRange< T, sub_width, 1 > row( const unsigned int num ) const
   {

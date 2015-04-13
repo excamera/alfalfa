@@ -353,14 +353,14 @@ public:
 };
 
 static constexpr SafeArray< SafeArray< int16_t, 6 >, 8 > sixtap_filters =
-  {{ { 0,  0,  128,    0,   0,  0 },
-     { 0, -6,  123,   12,  -1,  0 },
-     { 2, -11, 108,   36,  -8,  1 },
-     { 0, -9,   93,   50,  -6,  0 },
-     { 3, -16,  77,   77, -16,  3 },
-     { 0, -6,   50,   93,  -9,  0 },
-     { 1, -8,   36,  108, -11,  2 },
-     { 0, -1,   12,  123,  -6,  0 } }};
+  {{ { { 0,  0,  128,    0,   0,  0 } },
+     { { 0, -6,  123,   12,  -1,  0 } },
+     { { 2, -11, 108,   36,  -8,  1 } },
+     { { 0, -9,   93,   50,  -6,  0 } },
+     { { 3, -16,  77,   77, -16,  3 } },
+     { { 0, -6,   50,   93,  -9,  0 } },
+     { { 1, -8,   36,  108, -11,  2 } },
+     { { 0, -1,   12,  123,  -6,  0 } } }};
 
 template <unsigned int size>
 void Raster::Block<size>::inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference )
@@ -382,11 +382,6 @@ void Raster::Block<size>::inter_predict( const MotionVector & mv, const TwoD< ui
 }
 
 #ifdef HAVE_SSE2
-template <unsigned int size>
-void Raster::Block<size>::sse_horiz_inter_predict( const uint8_t *, const unsigned int,
-						   const uint8_t *, const unsigned int,
-						   const unsigned int, const unsigned int ) = delete;
-
 template <>
 void Raster::Block<4>::sse_horiz_inter_predict( const uint8_t * src,
 						const unsigned int pixels_per_line,
@@ -423,11 +418,6 @@ void Raster::Block<16>::sse_horiz_inter_predict( const uint8_t * src,
 				filter_idx );
 }
 
-template <unsigned int size>
-void Raster::Block<size>::sse_vert_inter_predict( const uint8_t *, const unsigned int,
-						  const uint8_t *, const unsigned int,
-						  const unsigned int, const unsigned int ) = delete;
-
 template <>
 void Raster::Block<4>::sse_vert_inter_predict( const uint8_t * src,
 						const unsigned int pixels_per_line,
@@ -463,6 +453,7 @@ void Raster::Block<16>::sse_vert_inter_predict( const uint8_t * src,
   vp8_filter_block1d16_v6_ssse3( src, pixels_per_line, dst, dst_pitch, dst_height,
 				filter_idx );
 }
+
 #endif
 
 template <unsigned int size>

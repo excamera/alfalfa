@@ -43,7 +43,7 @@ public:
 
   SafeArray< uint8_t, 4 > mode_contexts( void ) const
   {
-    return { scores_.at( 0 ), scores_.at( 1 ), scores_.at( 2 ), splitmv_score_ };
+    return { { scores_.at( 0 ), scores_.at( 1 ), scores_.at( 2 ), splitmv_score_ } };
   }
 
   static MotionVector clamp( const MotionVector & mv, const typename TwoD< InterFrameMacroblock >::Context & c );

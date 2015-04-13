@@ -8,8 +8,8 @@
 #include "raster.hh"
 #include "decoder.hh"
 
-class ProbabilityTables;
-class References;
+struct ProbabilityTables;
+struct References;
 class BoolEncoder;
 
 typedef SafeArray< SafeArray< SafeArray< SafeArray< std::pair< uint32_t, uint32_t >,

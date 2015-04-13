@@ -7,8 +7,8 @@
 #include "safe_array.hh"
 #include "vp8_header_structures.hh"
 
-class ProbabilityTables;
-class Quantizer;
+struct ProbabilityTables;
+struct Quantizer;
 class BoolEncoder;
 
 enum BlockType { Y_after_Y2 = 0, Y2, UV, Y_without_Y2 };

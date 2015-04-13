@@ -50,17 +50,21 @@ void DCTCoefficients::walsh_transform( SafeArray< SafeArray< DCTCoefficients, 4 
   }
 }
 
+#ifdef HAVE_SSE2
+
+void DCTCoefficients::idct_add( Raster::Block4 & output ) const
+{
+
+  vp8_short_idct4x4llm_mmx( &coefficients_.at( 0 ), &output.at( 0, 0 ), output.stride(), &output.at( 0, 0 ), output.stride() );
+}
+
+#else
+
 static inline int MUL_20091( const int a ) { return ((((a)*20091) >> 16) + (a)); }
 static inline int MUL_35468( const int a ) { return (((a)*35468) >> 16); }
 
 void DCTCoefficients::idct_add( Raster::Block4 & output ) const
 {
-#ifdef HAVE_SSE2
-
-  vp8_short_idct4x4llm_mmx( &coefficients_.at( 0 ), &output.at( 0, 0 ), output.stride(), &output.at( 0, 0 ), output.stride() );
-
-#else
-
   SafeArray< int16_t, 16 > intermediate;
 
   /* Based on libav/ffmpeg vp8_idct_add_c */
@@ -93,8 +97,8 @@ void DCTCoefficients::idct_add( Raster::Block4 & output ) const
     target++;
     *target = clamp255( *target + ((t0 - t3 + 4) >> 3) );
   }
-#endif
 }
+#endif
 
 template <BlockType initial_block_type, class PredictionMode>
 void Block< initial_block_type, PredictionMode >::add_residue( Raster::Block4 & output ) const

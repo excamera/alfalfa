@@ -43,10 +43,10 @@ public:
   uint16_t upper_limit( void ) const { return base_value_ + (1 << length); }
 };
 
-static const TokenDecoder< 2 > token_decoder_1( 7, { 165, 145 } );
-static const TokenDecoder< 3 > token_decoder_2( 11, { 173, 148, 140 } );
-static const TokenDecoder< 4 > token_decoder_3( 19, { 176, 155, 140, 135 } );
-static const TokenDecoder< 5 > token_decoder_4( 35, { 180, 157, 141, 134, 130 } );
-static const TokenDecoder< 11 > token_decoder_5( 67, { 254, 254, 243, 230, 196, 177, 153, 140, 133, 130, 129 } );
+static const TokenDecoder< 2 > token_decoder_1( 7, { { 165, 145 } } );
+static const TokenDecoder< 3 > token_decoder_2( 11, { { 173, 148, 140 } } );
+static const TokenDecoder< 4 > token_decoder_3( 19, { { 176, 155, 140, 135 } } );
+static const TokenDecoder< 5 > token_decoder_4( 35, { { 180, 157, 141, 134, 130 } } );
+static const TokenDecoder< 11 > token_decoder_5( 67, { { 254, 254, 243, 230, 196, 177, 153, 140, 133, 130, 129 } } );
 
 #endif /* TOKENS_HH */
