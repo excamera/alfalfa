@@ -20,7 +20,7 @@ Player::Player( const std::string & file_name )
   }
 }
 
-void Player::advance( RasterHandle & raster, bool before_loop_filter )
+void Player::advance( RasterHandle & raster, const bool before_loop_filter )
 {
   while ( not eof() ) {
     if ( decoder_.decode_frame( file_.frame( frame_no_++ ), raster, 

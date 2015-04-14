@@ -20,7 +20,7 @@ private:
 public:
   Player( const std::string & file_name );
 
-  void advance( RasterHandle & raster, bool before_loop_filter = false );
+  void advance( RasterHandle & raster, const bool before_loop_filter = false );
   
   bool eof( void ) const;
 
