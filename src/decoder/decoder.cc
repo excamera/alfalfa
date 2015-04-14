@@ -10,7 +10,7 @@ Decoder::Decoder( const uint16_t width, const uint16_t height )
     references_( width, height )
 {}
 
-bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster, bool preloop )
+bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster, bool before_loop_filter )
 {
   /* parse uncompressed data chunk */
   UncompressedChunk uncompressed_chunk( frame, state_.width, state_.height );
@@ -20,18 +20,18 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster, bool pre
 
     myframe.decode( state_.segmentation, raster );
 
-    RasterHandle & filter_raster = raster;
+    RasterHandle & filtered_raster = raster;
 
     // If the caller wants the preloop version of the raster (for diffs),
     // copy the raster then finish filtering and reference calculations
-    if ( preloop and myframe.show_frame() ) {
-      filter_raster = RasterHandle( state_.width, state_.height );
-      raster.get().copy( filter_raster );
+    if ( before_loop_filter and myframe.show_frame() ) {
+      filtered_raster = RasterHandle( state_.width, state_.height );
+      raster.get().copy( filtered_raster );
     }
 
-    myframe.loopfilter( state_.segmentation, state_.filter_adjustments, filter_raster );
+    myframe.loopfilter( state_.segmentation, state_.filter_adjustments, filtered_raster );
 
-    myframe.copy_to( filter_raster, references_ );
+    myframe.copy_to( filtered_raster, references_ );
 
     return myframe.show_frame();
   } else {
@@ -39,16 +39,16 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster, bool pre
 
     myframe.decode( state_.segmentation, references_, raster );
 
-    RasterHandle & filter_raster = raster;
+    RasterHandle & filtered_raster = raster;
 
-    if ( preloop and myframe.show_frame() ) {
-      filter_raster = RasterHandle( state_.width, state_.height );
-      raster.get().copy( filter_raster );
+    if ( before_loop_filter and myframe.show_frame() ) {
+      filtered_raster = RasterHandle( state_.width, state_.height );
+      raster.get().copy( filtered_raster );
     }
 
-    myframe.loopfilter( state_.segmentation, state_.filter_adjustments, filter_raster );
+    myframe.loopfilter( state_.segmentation, state_.filter_adjustments, filtered_raster );
 
-    myframe.copy_to( filter_raster, references_ );
+    myframe.copy_to( filtered_raster, references_ );
 
     return myframe.show_frame();
   }

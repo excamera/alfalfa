@@ -20,19 +20,22 @@ Player::Player( const std::string & file_name )
   }
 }
 
-bool Player::next_shown_frame( RasterHandle & raster, bool preloop )
+void Player::advance( RasterHandle & raster, bool before_loop_filter )
 {
   while ( frame_no_ < file_.frame_count() ) {
-    if ( decoder_.decode_frame( file_.frame( frame_no_++ ), raster, preloop ) ) {
-      return true;
+    if ( decoder_.decode_frame( file_.frame( frame_no_++ ), raster, 
+				before_loop_filter ) ) {
+      return;
     }
     // Previous undisplayed frame could be used as a reference,
     // so we can't overwrite it
     raster = new_raster();
   }
+}
 
-  // EOF
-  return false;
+bool Player::eof( void )
+{
+  return frame_no_ >= file_.frame_count();
 }
 
 RasterHandle Player::new_raster( void )

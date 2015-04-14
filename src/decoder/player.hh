@@ -15,14 +15,16 @@ private:
 
   Decoder decoder_ { width_, height_ };
 
-  unsigned int frame_no_ = { 0 };
+  unsigned int frame_no_ { 0 };
 
 public:
   Player( const std::string & file_name );
 
-  bool next_shown_frame( RasterHandle & raster, bool preloop = false );
+  void advance( RasterHandle & raster, bool before_loop_filter = false );
+  
+  bool eof( void );
 
-  vector< uint8_t > get_continuation( RasterHandle & source_raster );
+  //vector< uint8_t > get_continuation( RasterHandle & source_raster );
 
   RasterHandle new_raster( void );
 

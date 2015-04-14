@@ -15,11 +15,9 @@ int main( int argc, char *argv[] )
     Player player( argv[ 1 ] );
 
 
-    while ( true ) {
+    while ( player.eof() ) {
       RasterHandle raster = player.new_raster();
-      if ( !player.next_shown_frame( raster ) ) {
-	break;
-      }
+      player.advance( raster );
     }
 
   } catch ( const exception & e ) {

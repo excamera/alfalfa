@@ -19,14 +19,12 @@ int main( int argc, char *argv[] )
     VideoDisplay display( player.new_raster() );
 
 
-    while ( true ) {
+    while ( not player.eof() ) {
+
       RasterHandle raster = player.new_raster();
-      if ( player.next_shown_frame( raster ) ) {
-	display.draw( raster );
-      }
-      else {
-	break;
-      }
+      player.advance( raster );
+      display.draw( raster );
+
     }
   } catch ( const exception & e ) {
     print_exception( argv[ 0 ], e );
