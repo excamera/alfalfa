@@ -135,7 +135,8 @@ public:
 
   const Raster & example_raster( void ) const { return references_.last; }
 
-  bool decode_frame( const Chunk & frame, RasterHandle & raster );
+  bool decode_frame( const Chunk & frame, RasterHandle & raster,
+		     bool preloop = false );
 };
 
 #endif /* DECODER_HH */

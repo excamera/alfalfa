@@ -66,12 +66,10 @@ class Frame
   void parse_tokens( std::vector< Chunk > dct_partitions, const ProbabilityTables & probability_tables );
 
   void decode( const Optional< Segmentation > & segmentation,
-	       const Optional< FilterAdjustments > & filter_adjustments,
-	       Raster & raster, const bool lf = true ) const;
+	       Raster & raster ) const;
 
   void decode( const Optional< Segmentation > & segmentation,
-	       const Optional< FilterAdjustments > & filter_adjustments,
-	       const References & references, Raster & raster, const bool lf = true ) const;
+	       const References & references, Raster & raster ) const;
 
   void copy_to( const RasterHandle & raster, References & references ) const;
 

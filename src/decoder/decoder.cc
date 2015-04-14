@@ -10,7 +10,7 @@ Decoder::Decoder( const uint16_t width, const uint16_t height )
     references_( width, height )
 {}
 
-bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
+bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster, bool preloop )
 {
   /* parse uncompressed data chunk */
   UncompressedChunk uncompressed_chunk( frame, state_.width, state_.height );
@@ -18,17 +18,37 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
   if ( uncompressed_chunk.key_frame() ) {
     const KeyFrame myframe = state_.parse_and_apply<KeyFrame>( uncompressed_chunk );
 
-    myframe.decode( state_.segmentation, state_.filter_adjustments, raster );
+    myframe.decode( state_.segmentation, raster );
 
-    myframe.copy_to( raster, references_ );
+    RasterHandle & filter_raster = raster;
+
+    // If the caller wants the preloop version of the raster (for diffs),
+    // copy the raster then finish filtering and reference calculations
+    if ( preloop and myframe.show_frame() ) {
+      filter_raster = RasterHandle( state_.width, state_.height );
+      raster.get().copy( filter_raster );
+    }
+
+    myframe.loopfilter( state_.segmentation, state_.filter_adjustments, filter_raster );
+
+    myframe.copy_to( filter_raster, references_ );
 
     return myframe.show_frame();
   } else {
     const InterFrame myframe = state_.parse_and_apply<InterFrame>( uncompressed_chunk );
 
-    myframe.decode( state_.segmentation, state_.filter_adjustments, references_, raster );
+    myframe.decode( state_.segmentation, references_, raster );
 
-    myframe.copy_to( raster, references_ );
+    RasterHandle & filter_raster = raster;
+
+    if ( preloop and myframe.show_frame() ) {
+      filter_raster = RasterHandle( state_.width, state_.height );
+      raster.get().copy( filter_raster );
+    }
+
+    myframe.loopfilter( state_.segmentation, state_.filter_adjustments, filter_raster );
+
+    myframe.copy_to( filter_raster, references_ );
 
     return myframe.show_frame();
   }

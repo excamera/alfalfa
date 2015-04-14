@@ -170,8 +170,7 @@ SafeArray<Quantizer, num_segments> Frame<FrameHeaderType, MacroblockType>::calcu
 
 template <>
 void KeyFrame::decode( const Optional< Segmentation > & segmentation,
-		       const Optional< FilterAdjustments > & filter_adjustments,
-		       Raster & raster, const bool lf ) const
+		       Raster & raster ) const
 {
   const Quantizer frame_quantizer( header_.quant_indices );
   const auto segment_quantizers = calculate_segment_quantizers( segmentation );
@@ -186,16 +185,11 @@ void KeyFrame::decode( const Optional< Segmentation > & segmentation,
 					 macroblock.reconstruct_intra( quantizer,
 								       raster.macroblock( column, row ) );
 				       } );
-  if ( lf ) {
-    loopfilter( segmentation, filter_adjustments, raster );
-  }
 }
 
 template <>
 void InterFrame::decode( const Optional< Segmentation > & segmentation,
-			 const Optional< FilterAdjustments > & filter_adjustments,
-			 const References & references,
-			 Raster & raster, const bool lf ) const
+			 const References & references, Raster & raster ) const
 {
   const Quantizer frame_quantizer( header_.quant_indices );
   const auto segment_quantizers = calculate_segment_quantizers( segmentation );
@@ -220,10 +214,6 @@ void InterFrame::decode( const Optional< Segmentation > & segmentation,
 					   macroblock.reconstruct_intra( quantizer,
 									 raster.macroblock( column, row ) );
 					 } } );
-
-  if ( lf ) {
-    loopfilter( segmentation, filter_adjustments, raster );
-  }
 }
 
 /* "above" for a Y2 block refers to the first macroblock above that actually has Y2 coded */
