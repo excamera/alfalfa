@@ -138,7 +138,7 @@ public:
   TwoD & operator=( const TwoD & other ) = delete;
 
   /* explicit copy operator */
-  void copy( const TwoD & other )
+  void copy_from( const TwoD & other )
   {
     assert( width_ == other.width_ );
     assert( height_ == other.height_ );

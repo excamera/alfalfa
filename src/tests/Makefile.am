@@ -1,6 +1,6 @@
 AM_CPPFLAGS = -I$(srcdir)/../util -I$(srcdir)/../decoder -I$(srcdir)/../encoder
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(NODEBUG_CXXFLAGS)
-LDADD = ../util/libalfalfautil.a ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a
+LDADD = ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../util/libalfalfautil.a
 check_PROGRAMS = extract-key-frames decode-to-stdout encode-loopback roundtrip
 
 extract_key_frames_SOURCES = extract-key-frames.cc

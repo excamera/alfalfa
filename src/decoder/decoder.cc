@@ -20,13 +20,13 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster, bool bef
 
     myframe.decode( state_.segmentation, raster );
 
-    RasterHandle & filtered_raster = raster;
+    RasterHandle filtered_raster { raster };
 
     // If the caller wants the preloop version of the raster (for diffs),
     // copy the raster then finish filtering and reference calculations
     if ( before_loop_filter and myframe.show_frame() ) {
       filtered_raster = RasterHandle( state_.width, state_.height );
-      raster.get().copy( filtered_raster );
+      filtered_raster.get().copy_from( raster );
     }
 
     myframe.loopfilter( state_.segmentation, state_.filter_adjustments, filtered_raster );
@@ -39,11 +39,11 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster, bool bef
 
     myframe.decode( state_.segmentation, references_, raster );
 
-    RasterHandle & filtered_raster = raster;
+    RasterHandle filtered_raster { raster };
 
     if ( before_loop_filter and myframe.show_frame() ) {
       filtered_raster = RasterHandle( state_.width, state_.height );
-      raster.get().copy( filtered_raster );
+      filtered_raster.get().copy_from( raster );
     }
 
     myframe.loopfilter( state_.segmentation, state_.filter_adjustments, filtered_raster );
@@ -109,5 +109,5 @@ Segmentation::Segmentation( const Segmentation & other )
     segment_filter_adjustments( other.segment_filter_adjustments ),
     map( other.map.width(), other.map.height() )
 {
-  map.copy( other.map );
+  map.copy_from( other.map );
 }
