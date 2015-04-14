@@ -22,7 +22,7 @@ public:
 
   void advance( RasterHandle & raster, bool before_loop_filter = false );
   
-  bool eof( void );
+  bool eof( void ) const;
 
   //vector< uint8_t > get_continuation( RasterHandle & source_raster );
 

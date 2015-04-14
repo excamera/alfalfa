@@ -22,7 +22,7 @@ Player::Player( const std::string & file_name )
 
 void Player::advance( RasterHandle & raster, bool before_loop_filter )
 {
-  while ( frame_no_ < file_.frame_count() ) {
+  while ( not eof() ) {
     if ( decoder_.decode_frame( file_.frame( frame_no_++ ), raster, 
 				before_loop_filter ) ) {
       return;
@@ -33,9 +33,9 @@ void Player::advance( RasterHandle & raster, bool before_loop_filter )
   }
 }
 
-bool Player::eof( void )
+bool Player::eof( void ) const
 {
-  return frame_no_ >= file_.frame_count();
+  return frame_no_ == file_.frame_count();
 }
 
 RasterHandle Player::new_raster( void )
