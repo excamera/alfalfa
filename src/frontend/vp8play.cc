@@ -15,16 +15,10 @@ int main( int argc, char *argv[] )
 
     Player player( argv[ 1 ] );
 
-
-    VideoDisplay display( player.new_raster() );
-
+    VideoDisplay display { player.example_raster() };
 
     while ( not player.eof() ) {
-
-      RasterHandle raster = player.new_raster();
-      player.advance( raster );
-      display.draw( raster );
-
+      display.draw( player.advance() );
     }
   } catch ( const exception & e ) {
     print_exception( argv[ 0 ], e );

@@ -15,8 +15,7 @@ int main( int argc, char *argv[] )
     Player player( argv[ 1 ] );
 
     while ( not player.eof() ) {
-      RasterHandle raster = player.new_raster();
-      player.advance( raster );
+      RasterHandle raster = player.advance();
 
       for ( unsigned int row = 0; row < raster.get().display_height(); row++ ) {
 	fwrite( &raster.get().Y().at( 0, row ), raster.get().display_width(), 1, stdout );

@@ -16,8 +16,7 @@ int main( int argc, char *argv[] )
 
 
     while ( not player.eof() ) {
-      RasterHandle raster = player.new_raster();
-      player.advance( raster );
+      player.advance();
     }
 
   } catch ( const exception & e ) {

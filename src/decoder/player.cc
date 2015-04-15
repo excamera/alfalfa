@@ -3,7 +3,7 @@
 
 Player::Player( const std::string & file_name )
   : file_( file_name ),
-    width_( file_.width() ), height_( file_.height() )
+    decoder_( file_.width(), file_.height() )
 {
   if ( file_.fourcc() != "VP80" ) {
     throw Unsupported( "not a VP8 file" );
@@ -20,25 +20,20 @@ Player::Player( const std::string & file_name )
   }
 }
 
-void Player::advance( RasterHandle & raster, const bool before_loop_filter )
+RasterHandle Player::advance( const bool before_loop_filter )
 {
   while ( not eof() ) {
+    RasterHandle raster( file_.width(), file_.height() );
     if ( decoder_.decode_frame( file_.frame( frame_no_++ ), raster, 
 				before_loop_filter ) ) {
-      return;
+      return raster;
     }
-    // Previous undisplayed frame could be used as a reference,
-    // so we can't overwrite it
-    raster = new_raster();
   }
+
+  throw Unsupported( "hidden frames at end of file" );
 }
 
 bool Player::eof( void ) const
 {
   return frame_no_ == file_.frame_count();
-}
-
-RasterHandle Player::new_raster( void )
-{
-  return RasterHandle( width_, height_ );
 }
