@@ -2,6 +2,7 @@
 #define PLAYER_HH
 
 #include <string>
+#include <vector>
 
 #include "ivf.hh"
 #include "decoder.hh"
@@ -26,6 +27,10 @@ public:
   {
     return decoder_.example_raster();
   }
+
+  std::vector< uint8_t > operator-( Player & source_player );
+
+  RasterHandle reconstruct_diff( const std::vector< uint8_t > & diff );
 };
 
 #endif

@@ -9,6 +9,7 @@
 #include "exception.hh"
 #include "raster_handle.hh"
 
+class Player;
 class Chunk;
 class Raster;
 class UncompressedChunk;
@@ -126,7 +127,8 @@ struct DecoderState
 
 class Decoder
 {
-private:
+friend class Player; // Diffs need to be able to directly access decoder state
+protected:
   DecoderState state_;  
   References references_;
 
