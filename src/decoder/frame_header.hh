@@ -91,9 +91,11 @@ struct MVProbUpdate
   MVProbUpdate( const bool initialized, const uint8_t x )
     : mv_prob( initialized, x >> 1 )
   {
-    if ( x == 1 ) {
+    if ( not initialized ) {
       return;
-    } else if ( (x == 0) or (x & 2) ) {
+    }
+
+    if ( get() != x ) {
       throw internal_error( "MVProbUpdate", "invalid value " + std::to_string( x ) );
     }
   }
