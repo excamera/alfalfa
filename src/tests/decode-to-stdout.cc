@@ -12,7 +12,7 @@ int main( int argc, char *argv[] )
       return EXIT_FAILURE;
     }
 
-    Player player( argv[ 1 ] );
+    Player<> player( argv[ 1 ] );
 
     while ( not player.eof() ) {
       RasterHandle raster = player.advance();

@@ -7,7 +7,7 @@
 #include "ivf.hh"
 #include "decoder.hh"
 
-template< class DecoderType = Decoder >
+template <class DecoderType = Decoder>
 class Player
 {
 private:
@@ -36,9 +36,9 @@ public:
     return decoder_.example_raster();
   }
 
-  std::vector< uint8_t > operator-( Player & source_player );
+  std::vector<uint8_t> operator-( Player & source_player );
 
-  RasterHandle reconstruct_diff( const std::vector< uint8_t > & diff ) const;
+  RasterHandle reconstruct_diff( const std::vector<uint8_t> & diff ) const;
 };
 
 #endif

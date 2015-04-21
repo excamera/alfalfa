@@ -175,7 +175,7 @@ vector< uint8_t > DiffGenerator::operator-( const DiffGenerator & source_decoder
     return key_frame_.get().serialize( state_.probability_tables );
   } else {
     inter_frame_.get().rewrite_as_diff( source_decoder.state_, state_, references_,
-				  source_decoder.raster_, raster_ );
+					source_decoder.raster_, raster_ );
 
     inter_frame_.get().optimize_continuation_coefficients();
 
