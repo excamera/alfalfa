@@ -166,28 +166,28 @@ template< class T, unsigned int sub_width, unsigned int sub_height >
 class TwoDSubRange
 {
 private:
-  TwoD< T > & master_;
+  TwoD< T > * master_;
 
   unsigned int column_, row_;
 
 public:
   TwoDSubRange( TwoD< T > & master, const unsigned int column, const unsigned int row )
-    : master_( master ), column_( column ), row_( row )
+    : master_( &master ), column_( column ), row_( row )
   {
-    assert( column_ + sub_width <= master_.width() );
-    assert( row_ + sub_height <= master_.height() );
+    assert( column_ + sub_width <= master_->width() );
+    assert( row_ + sub_height <= master_->height() );
   }
 
   T & at( const unsigned int column, const unsigned int row )
   {
     assert( column < sub_width and row < sub_height );
-    return master_.at( column_ + column, row_ + row );
+    return master_->at( column_ + column, row_ + row );
   }
 
   const T & at( const unsigned int column, const unsigned int row ) const
   {
     assert( column < sub_width and row < sub_height );
-    return master_.at( column_ + column, row_ + row );
+    return master_->at( column_ + column, row_ + row );
   }
 
   constexpr unsigned int width( void ) const { return sub_width; }
@@ -195,12 +195,12 @@ public:
 
   TwoDSubRange< T, sub_width, 1 > row( const unsigned int num ) const
   {
-    return TwoDSubRange< T, sub_width, 1 >( master_, column_, row_ + num );
+    return TwoDSubRange< T, sub_width, 1 >( *master_, column_, row_ + num );
   }
 
   TwoDSubRange< T, 1, sub_height > column( const unsigned int num ) const
   {
-    return TwoDSubRange< T, 1, sub_height >( master_, column_ + num, row_ );
+    return TwoDSubRange< T, 1, sub_height >( *master_, column_ + num, row_ );
   }
 
   TwoDSubRange< T, sub_width, 1 > bottom( void ) const
@@ -291,7 +291,7 @@ public:
     }
   }
 
-  unsigned int stride( void ) const { return master_.width(); }
+  unsigned int stride( void ) const { return master_->width(); }
 };
 
 #endif /* TWOD_HH */

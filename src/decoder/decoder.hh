@@ -1,6 +1,7 @@
 #ifndef DECODER_HH
 #define DECODER_HH
 
+#include <vector>
 #include "safe_array.hh"
 #include "modemv_data.hh"
 #include "loopfilter.hh"
@@ -9,7 +10,6 @@
 #include "exception.hh"
 #include "raster_handle.hh"
 
-class Player;
 class Chunk;
 class Raster;
 class UncompressedChunk;
@@ -127,7 +127,6 @@ struct DecoderState
 
 class Decoder
 {
-friend class Player; // Diffs need to be able to directly access decoder state
 protected:
   DecoderState state_;  
   References references_;
@@ -137,8 +136,7 @@ public:
 
   const Raster & example_raster( void ) const { return references_.last; }
 
-  bool decode_frame( const Chunk & frame, RasterHandle & raster,
-		     bool before_loop_filter = false );
+  bool decode_frame( const Chunk & frame, RasterHandle & raster );
 };
 
 #endif /* DECODER_HH */

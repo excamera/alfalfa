@@ -13,7 +13,7 @@ int main( int argc, char *argv[] )
       return EXIT_FAILURE;
     }
 
-    Player player( argv[ 1 ] );
+    Player<Decoder> player( argv[ 1 ] );
 
     VideoDisplay display { player.example_raster() };
 

@@ -61,7 +61,7 @@ public:
   const Optional & operator=( Optional<T> && other )
   {
     /* destroy if necessary */
-    if ( initialized_ and (!other.initialized_) ) {
+    if ( initialized_ ) {
       object_.~T();
     }
 

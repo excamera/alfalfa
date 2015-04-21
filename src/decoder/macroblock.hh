@@ -62,6 +62,10 @@ public:
 	      TwoD< UVBlock > & frame_U,
 	      TwoD< UVBlock > & frame_V );
 
+  void update_frame_refs( TwoD< YBlock > & frame_Y,
+			  TwoD< UVBlock > & frame_U,
+			  TwoD< UVBlock > & frame_V );
+
   void update_segmentation( SegmentationMap & mutable_segmentation_map );
 
   void parse_tokens( BoolDecoder & data,

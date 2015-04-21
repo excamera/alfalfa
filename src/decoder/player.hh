@@ -7,19 +7,20 @@
 #include "ivf.hh"
 #include "decoder.hh"
 
+template< class DecoderType = Decoder >
 class Player
 {
 private:
   IVF file_;
 
-  Decoder decoder_;
+  DecoderType decoder_;
 
   unsigned int frame_no_ { 0 };
 
 public:
   Player( const std::string & file_name );
 
-  RasterHandle advance( const bool before_loop_filter = false );
+  RasterHandle advance( void );
   
   bool eof( void ) const;
 
