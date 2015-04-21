@@ -139,6 +139,35 @@ bool DiffGenerator::decode_frame( const Chunk & frame, RasterHandle & raster )
   }
 }
 
+RasterHandle DiffGenerator::decode_diff( const Chunk & frame ) const
+{
+  // Operate on copy of state so operation is const
+  DecoderState diff_state = state_;
+
+  References diff_refs( state_.width, state_.height );
+  diff_refs.last = diff_refs.golden = diff_refs.alternative_reference = raster_;
+
+  RasterHandle raster( state_.width, state_.height );
+
+  UncompressedChunk uncompressed_chunk( frame, state_.width, state_.height );
+
+  if ( uncompressed_chunk.key_frame() ) {
+    const KeyFrame myframe = diff_state.parse_and_apply<KeyFrame>( uncompressed_chunk );
+
+    myframe.decode( diff_state.segmentation, raster );
+
+    myframe.loopfilter( diff_state.segmentation, diff_state.filter_adjustments, raster );
+  } else {
+    const InterFrame myframe = diff_state.parse_and_apply<InterFrame>( uncompressed_chunk );
+
+    myframe.decode( diff_state.segmentation, diff_refs, raster );
+
+    myframe.loopfilter( diff_state.segmentation, diff_state.filter_adjustments, raster );
+  }
+
+  return raster;
+}
+
 // This needs to be made const, which means rewriting rewrite_as_diff into make_continuation_frame
 vector< uint8_t > DiffGenerator::operator-( const DiffGenerator & source_decoder )
 {

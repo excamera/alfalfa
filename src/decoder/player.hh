@@ -24,6 +24,13 @@ public:
   
   bool eof( void ) const;
 
+  unsigned int frame_no( void ) const
+  { 
+    return frame_no_ - 1;
+  }
+
+  long unsigned int original_size( void ) const;
+
   const Raster & example_raster( void ) const
   {
     return decoder_.example_raster();
@@ -31,7 +38,7 @@ public:
 
   std::vector< uint8_t > operator-( Player & source_player );
 
-  RasterHandle reconstruct_diff( const std::vector< uint8_t > & diff );
+  RasterHandle reconstruct_diff( const std::vector< uint8_t > & diff ) const;
 };
 
 #endif

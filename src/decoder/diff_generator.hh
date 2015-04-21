@@ -20,17 +20,10 @@ private:
 
 public:
   DiffGenerator( const uint16_t width, const uint16_t height );
-  //~DiffGenerator()
-  //{
-  //  if ( on_key_frame_ ) {
-  //    key_frame_.~KeyFrame();
-  //  }
-  //  else {
-  //    inter_frame_.~InterFrame();
-  //  }
-  //}
 
   bool decode_frame( const Chunk & frame, RasterHandle & raster );
+
+  RasterHandle decode_diff( const Chunk & frame ) const;
 
   std::vector< uint8_t > operator-( const DiffGenerator & source_decoder );
 
