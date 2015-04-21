@@ -76,13 +76,13 @@ public:
   const Optional & operator=( const Optional<T> & other )
   {
     /* destroy if necessary */
-    if ( initialized_ and (!other.initialized_) ) {
+    if ( initialized_ ) {
       object_.~T();
     }
 
     initialized_ = other.initialized_;
     if ( initialized_ ) {
-      object_ = other.object_;
+      new( &object_ ) T( other.object_ );
     }
     return *this;
   }
