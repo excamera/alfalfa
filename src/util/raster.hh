@@ -16,7 +16,7 @@ class MotionVector;
 /* For an array of pixels, context and separate construction not necessary */
 template<>
 template< typename... Targs >
-TwoD< uint8_t >::TwoD( const unsigned int width, const unsigned int height, Targs&&... Fargs )
+TwoDStorage<uint8_t>::TwoDStorage( const unsigned int width, const unsigned int height, Targs&&... Fargs )
   : width_( width ), height_( height ), storage_( width * height, Fargs... )
 {
   assert( width > 0 );

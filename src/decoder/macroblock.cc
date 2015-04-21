@@ -52,16 +52,6 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
 }
 
 template <class FrameHeaderType, class MacroblockHeaderType>
-void Macroblock<FrameHeaderType, MacroblockHeaderType>::update_frame_refs( TwoD< YBlock > & frame_Y,
-			  						   TwoD< UVBlock > & frame_U,
-			  						   TwoD< UVBlock > & frame_V )
-{
-  Y_ = TwoDSubRange< YBlock, 4, 4 >( frame_Y, context_.column * 4, context_.row * 4 );
-  U_ = TwoDSubRange< UVBlock, 2, 2 >( frame_U, context_.column * 2, context_.row * 2 );
-  V_ = TwoDSubRange< UVBlock, 2, 2 >( frame_V, context_.column * 2, context_.row * 2 );
-}
-
-template <class FrameHeaderType, class MacroblockHeaderType>
 void Macroblock<FrameHeaderType, MacroblockHeaderType>::update_segmentation( SegmentationMap & mutable_segmentation_map ) {
   /* update persistent segmentation map */
   if ( segment_id_update_.initialized() ) {

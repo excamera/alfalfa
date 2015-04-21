@@ -55,23 +55,6 @@ class Frame
 	 const unsigned int height,
 	 BoolDecoder & first_partition );
 
-  Frame( Frame && other )
-    : show_ { other.show_ },
-      display_width_ { other.display_width_ },
-      display_height_{ other.display_height_ },
-      Y2_ { std::move( other.Y2_ ) },
-      Y_ { std::move( other.Y_ ) },
-      U_ { std::move( other.U_ )  },
-      V_ { std::move( other.V_ ) },
-      header_ { std::move( other.header_ ) },
-      continuation_header_ { std::move( other.continuation_header_)  },
-      macroblock_headers_ { std::move( other.macroblock_headers_ ) }
-  {
-    if ( macroblock_headers_.initialized() ) {
-      macroblock_headers_.get().forall( [&]( MacroblockType & macroblock )
-				       { macroblock.update_frame_refs( Y_, U_, V_ ); } );
-    }
-  }
   const FrameHeaderType & header( void ) const { return header_; }
   const Optional< ContinuationHeader > & continuation_header( void ) const { return continuation_header_; }
 

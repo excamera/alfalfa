@@ -3,12 +3,13 @@
 
 #include <cassert>
 #include <vector>
+#include <memory>
 
 #include "optional.hh"
 
 /* simple two-dimensional container */
-template< class T >
-class TwoD
+template <class T>
+class TwoDStorage
 {
 private:
   unsigned int width_, height_;
@@ -23,7 +24,7 @@ public:
 
     Context( const unsigned int s_column, const unsigned int s_row,
 	     const unsigned int width, const unsigned int height,
-	     const TwoD & self )
+	     const TwoDStorage & self )
       : column( s_column ), row( s_row ),
 	width( width ), height( height ),
 	left(        self.maybe_at( column - 1, row ) ),
@@ -34,7 +35,7 @@ public:
   };
 
   template< typename... Targs >
-  TwoD( const unsigned int width, const unsigned int height, Targs&&... Fargs )
+  TwoDStorage( const unsigned int width, const unsigned int height, Targs&&... Fargs )
     : width_( width ), height_( height ), storage_()
   {
     assert( width > 0 );
@@ -115,7 +116,7 @@ public:
     }
   }
 
-  bool operator==( const TwoD< T > & other ) const
+  bool operator==( const TwoDStorage< T > & other ) const
   {
     if ( width() != other.width()
 	 or height() != other.height() ) {
@@ -134,45 +135,86 @@ public:
   }
 
   /* forbid copying */
-  TwoD( const TwoD & other ) = delete;
-  TwoD & operator=( const TwoD & other ) = delete;
+  TwoDStorage( const TwoDStorage & other ) = delete;
+  TwoDStorage & operator=( const TwoDStorage & other ) = delete;
 
   /* explicit copy operator */
-  void copy_from( const TwoD & other )
+  void copy_from( const TwoDStorage & other )
   {
     assert( width_ == other.width_ );
     assert( height_ == other.height_ );
     storage_ = other.storage_;
   }
 
-  /* allow moving */
-  TwoD( TwoD && other )
-    : width_( other.width_ ),
-      height_( other.height_ ),
-      storage_( move( other.storage_ ) )
+  /* forbid moving */
+  TwoDStorage( TwoDStorage && other ) = delete;
+  TwoDStorage & operator=( TwoDStorage && other ) = delete;
+};
+
+template <class T>
+class TwoD
+{
+private:
+  std::shared_ptr<TwoDStorage<T>> storage_;
+
+public:
+  typedef typename TwoDStorage<T>::Context Context;
+
+  template <typename... Targs>
+  TwoD( Targs&&... Fargs )
+    : storage_( std::make_shared<TwoDStorage<T>, Targs...>( std::forward<Targs>( Fargs )... ) )
   {}
 
-  TwoD & operator=( TwoD && other )
-  {
-    width_ = other.width_;
-    height_ = other.height_;
-    storage_ = move( other.storage_ );
+  T & at( const unsigned int column, const unsigned int row ) { return storage_->at( column, row ); }
+  const T & at( const unsigned int column, const unsigned int row ) const { return storage_->at( column, row ); }
 
-    return *this;
-  }
+  unsigned int width( void ) const { return storage_->width(); }
+  unsigned int height( void ) const { return storage_->height(); }
+
+  template <class lambda>
+  void forall( const lambda & f ) { storage_->forall( f ); }
+
+  template <class lambda>
+  void forall( const lambda & f ) const { storage_->forall( f ); }
+
+  template <class lambda>
+  void forall_ij( const lambda & f ) { storage_->forall_ij( f ); }
+
+  template <class lambda>
+  void forall_ij( const lambda & f ) const { storage_->forall_ij( f ); }
+
+  bool operator==( const TwoD<T> & other ) const { return *storage_ == *( other.storage_ ); }
+
+  /* forbid copying */
+  TwoD( const TwoD & other ) = delete;
+  TwoD & operator=( const TwoD & other ) = delete;
+
+  /* allow moving */
+  TwoD( TwoD && other ) : storage_( std::move( other.storage_ ) ) {}
+  TwoD & operator=( TwoD && other ) { storage_ = std::move( other.storage_ ); }
+
+  /* explicit copy operator */
+  void copy_from( const TwoD & other ) { storage_->copy_from( *( other.storage_ ) ); }
+
+  /* expose storage */
+  const std::shared_ptr<TwoDStorage<T>> & storage( void ) const { return storage_; }
 };
 
 template< class T, unsigned int sub_width, unsigned int sub_height >
 class TwoDSubRange
 {
 private:
-  TwoD< T > * master_;
+  std::shared_ptr<TwoDStorage<T>> master_;
 
   unsigned int column_, row_;
 
 public:
-  TwoDSubRange( TwoD< T > & master, const unsigned int column, const unsigned int row )
-    : master_( &master ), column_( column ), row_( row )
+  TwoDSubRange( const TwoD<T> & master, const unsigned int column, const unsigned int row )
+    : TwoDSubRange( master.storage(), column, row )
+  {}
+
+  TwoDSubRange( const std::shared_ptr<TwoDStorage<T>> & storage, const unsigned int column, const unsigned int row )
+    : master_( storage ), column_( column ), row_( row )
   {
     assert( column_ + sub_width <= master_->width() );
     assert( row_ + sub_height <= master_->height() );
@@ -195,12 +237,12 @@ public:
 
   TwoDSubRange< T, sub_width, 1 > row( const unsigned int num ) const
   {
-    return TwoDSubRange< T, sub_width, 1 >( *master_, column_, row_ + num );
+    return TwoDSubRange< T, sub_width, 1 >( master_, column_, row_ + num );
   }
 
   TwoDSubRange< T, 1, sub_height > column( const unsigned int num ) const
   {
-    return TwoDSubRange< T, 1, sub_height >( *master_, column_ + num, row_ );
+    return TwoDSubRange< T, 1, sub_height >( master_, column_ + num, row_ );
   }
 
   TwoDSubRange< T, sub_width, 1 > bottom( void ) const
@@ -219,7 +261,7 @@ public:
     row_ = other.row_;
   }
 
-  void copy( const TwoDSubRange< T, sub_width, sub_height > & other )
+  void copy_from( const TwoDSubRange< T, sub_width, sub_height > & other )
   {
     forall_ij( [&] ( T & x, const unsigned int column, const unsigned int row )
 	       { x = other.at( column, row ); } );
