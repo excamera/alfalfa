@@ -15,17 +15,17 @@ private:
 
   RasterHandle raster_ { state_.width, state_.height };
 
-  template< class FrameType >
-  void update_diff_state( const FrameType & frame, const RasterHandle & raster );
-
 public:
   DiffGenerator( const uint16_t width, const uint16_t height );
 
+  // Copy constructor only copies state (not frames)
+  DiffGenerator( const DiffGenerator & other );
+
   bool decode_frame( const Chunk & frame, RasterHandle & raster );
 
-  RasterHandle decode_diff( const Chunk & frame ) const;
+  bool operator==( const DiffGenerator & other ) const;
 
-  std::vector< uint8_t > operator-( const DiffGenerator & source_decoder );
+  std::vector< uint8_t > operator-( const DiffGenerator & source_decoder ) const;
 
 };
 #endif

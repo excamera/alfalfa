@@ -12,8 +12,8 @@ int main( int argc, char * argv[] )
     return EXIT_FAILURE;
   }
 
-  Player<DiffGenerator> source_player( argv[ 1 ] );
-  Player<DiffGenerator> target_player( argv[ 2 ] );
+  GenericPlayer<DiffGenerator> source_player( argv[ 1 ] );
+  GenericPlayer<DiffGenerator> target_player( argv[ 2 ] );
 
   VideoDisplay display { source_player.example_raster() };
 
@@ -27,11 +27,13 @@ int main( int argc, char * argv[] )
     fprintf( stderr, "Frame %u, original length: %lu bytes. Diff length: %lu bytes.\n",
 	     target_player.frame_no(), target_player.original_size(), diff.size() );
 
-    RasterHandle diff_raster = source_player.reconstruct_diff( diff );
+    GenericPlayer<DiffGenerator> diff_player( source_player );
+
+    RasterHandle diff_raster = diff_player.reconstruct_diff( diff );
 
     display.draw( diff_raster );
 
-    if ( !(diff_raster.get() == target_raster.get()) ) {
+    if ( diff_player != target_player ) {
       cout << "Sad times...\n";
     }
   }

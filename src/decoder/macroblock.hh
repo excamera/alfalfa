@@ -62,6 +62,14 @@ public:
 	      TwoD< UVBlock > & frame_U,
 	      TwoD< UVBlock > & frame_V );
 
+  // Used when constructing diff frames
+  Macroblock( const typename TwoD< Macroblock >::Context & c,
+	      const TwoD< Macroblock > & old_macroblocks,
+	      TwoD< Y2Block > & frame_Y2,
+	      TwoD< YBlock > & frame_Y,
+	      TwoD< UVBlock > & frame_U,
+	      TwoD< UVBlock > & frame_V );
+
   void update_segmentation( SegmentationMap & mutable_segmentation_map );
 
   void parse_tokens( BoolDecoder & data,
@@ -73,7 +81,7 @@ public:
 			  Raster::Macroblock & raster ) const;
   void reconstruct_continuation( const References & references, Raster::Macroblock & raster ) const;
 
-  void rewrite_as_diff( Raster::Macroblock & raster, const Raster::Macroblock & prediction );
+  void rewrite_as_diff( const Raster::Macroblock & raster, const Raster::Macroblock & prediction );
 
   void loopfilter( const Optional< FilterAdjustments > & filter_adjustments,
 		   const FilterParameters & loopfilter,

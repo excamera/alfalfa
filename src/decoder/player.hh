@@ -3,22 +3,23 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
 #include "ivf.hh"
 #include "decoder.hh"
 
-template <class DecoderType = Decoder>
-class Player
+template <class DecoderType>
+class GenericPlayer
 {
 private:
-  IVF file_;
+  std::shared_ptr<IVF> file_;
 
   DecoderType decoder_;
 
   unsigned int frame_no_ { 0 };
 
 public:
-  Player( const std::string & file_name );
+  GenericPlayer( const std::string & file_name );
 
   RasterHandle advance( void );
   
@@ -36,9 +37,15 @@ public:
     return decoder_.example_raster();
   }
 
-  std::vector<uint8_t> operator-( Player & source_player );
+  bool operator==( const GenericPlayer & other ) const;
 
-  RasterHandle reconstruct_diff( const std::vector<uint8_t> & diff ) const;
+  bool operator!=( const GenericPlayer & other ) const;
+
+  std::vector<uint8_t> operator-( const GenericPlayer & source_player ) const;
+
+  RasterHandle reconstruct_diff( const std::vector<uint8_t> & diff );
 };
+
+using Player = GenericPlayer<Decoder>;
 
 #endif

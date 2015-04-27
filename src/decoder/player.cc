@@ -6,18 +6,18 @@
 using namespace std;
 
 template< class DecoderType >
-Player<DecoderType>::Player( const string & file_name )
-  : file_( file_name ),
-    decoder_( file_.width(), file_.height() )
+GenericPlayer<DecoderType>::GenericPlayer( const string & file_name )
+  : file_( make_shared<IVF>( file_name ) ),
+    decoder_( file_->width(), file_->height() )
 {
-  if ( file_.fourcc() != "VP80" ) {
+  if ( file_->fourcc() != "VP80" ) {
     throw Unsupported( "not a VP8 file" );
   }
 
   // Start at first KeyFrame
-  while ( frame_no_ < file_.frame_count() ) {
-    UncompressedChunk uncompressed_chunk( file_.frame( frame_no_ ), 
-					  file_.width(), file_.height() );
+  while ( frame_no_ < file_->frame_count() ) {
+    UncompressedChunk uncompressed_chunk( file_->frame( frame_no_ ), 
+					  file_->width(), file_->height() );
     if ( uncompressed_chunk.key_frame() ) {
       break;
     }
@@ -26,11 +26,11 @@ Player<DecoderType>::Player( const string & file_name )
 }
 
 template< class DecoderType >
-RasterHandle Player<DecoderType>::advance( void )
+RasterHandle GenericPlayer<DecoderType>::advance( void )
 {
   while ( not eof() ) {
-    RasterHandle raster( file_.width(), file_.height() );
-    if ( decoder_.decode_frame( file_.frame( frame_no_++ ), raster ) ) {
+    RasterHandle raster( file_->width(), file_->height() );
+    if ( decoder_.decode_frame( file_->frame( frame_no_++ ), raster ) ) {
       return raster;
     }
   }
@@ -39,22 +39,34 @@ RasterHandle Player<DecoderType>::advance( void )
 }
 
 template< class DecoderType >
-bool Player<DecoderType>::eof( void ) const
+bool GenericPlayer<DecoderType>::eof( void ) const
 {
-  return frame_no_ == file_.frame_count();
+  return frame_no_ == file_->frame_count();
 }
 
 template<>
-long unsigned int Player<DiffGenerator>::original_size( void ) const
+long unsigned int GenericPlayer<DiffGenerator>::original_size( void ) const
 {
-  return file_.frame( frame_no() ).size();
+  return file_->frame( frame_no() ).size();
 }
 
 template<>
-vector< uint8_t > Player<DiffGenerator>::operator-( Player & source_player )
+bool GenericPlayer<DiffGenerator>::operator==( const GenericPlayer & other ) const
 {
-  if ( file_.width() != source_player.file_.width() or
-       file_.height() != source_player.file_.height() ) {
+  return decoder_ == other.decoder_;
+}
+
+template<>
+bool GenericPlayer<DiffGenerator>::operator!=( const GenericPlayer & other ) const
+{
+  return not operator==( other );
+}
+
+template<>
+vector< uint8_t > GenericPlayer<DiffGenerator>::operator-( const GenericPlayer & source_player ) const
+{
+  if ( file_->width() != source_player.file_->width() or
+       file_->height() != source_player.file_->height() ) {
     throw Unsupported( "stream size mismatch" );
   }
 
@@ -62,10 +74,13 @@ vector< uint8_t > Player<DiffGenerator>::operator-( Player & source_player )
 }
 
 template<>
-RasterHandle Player<DiffGenerator>::reconstruct_diff( const std::vector< uint8_t > & diff ) const
+RasterHandle GenericPlayer<DiffGenerator>::reconstruct_diff( const std::vector< uint8_t > & diff )
 {
-  return decoder_.decode_diff( Chunk( &diff.at( 0 ), diff.size() ) );
+  RasterHandle raster( file_->width(), file_->height() );
+  decoder_.decode_frame( Chunk( &diff.at( 0 ), diff.size() ), raster );
+
+  return raster;
 }
 
-template class Player< Decoder >;
-template class Player< DiffGenerator >;
+template class GenericPlayer< Decoder >;
+template class GenericPlayer< DiffGenerator >;

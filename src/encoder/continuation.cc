@@ -26,7 +26,7 @@ void Block<initial_block_type, PredictionMode>::recalculate_has_nonzero( void )
 template <BlockType initial_block_type, class PredictionMode>
 static void rewrite_block_as_intra( Block<initial_block_type, PredictionMode> & block,
 				    const Raster::Block4 & prediction,
-				    Raster::Block4 & raster )
+				    const Raster::Block4 & raster )
 {
   /* Get the residue */
   const auto residue = raster - prediction;
@@ -39,7 +39,7 @@ static void rewrite_block_as_intra( Block<initial_block_type, PredictionMode> & 
 }
 
 template <>
-void InterFrameMacroblock::rewrite_as_diff( Raster::Macroblock & raster,
+void InterFrameMacroblock::rewrite_as_diff( const Raster::Macroblock & raster,
 					    const Raster::Macroblock & prediction )
 {
   assert( inter_coded() );
@@ -89,12 +89,20 @@ void InterFrameMacroblock::rewrite_as_diff( Raster::Macroblock & raster,
   }
 }
 
+// Make Diff Frame
 template <>
-void InterFrame::rewrite_as_diff( const DecoderState & source_decoder_state,
-				  const DecoderState & target_decoder_state,
-				  const References & references,
-				  const Raster & source_raster_preloop,
-				  Raster & raster )
+InterFrame::Frame( const InterFrame & original,
+		   const DecoderState & source_decoder_state,
+		   const DecoderState & target_decoder_state,
+		   const Raster & source_raster,
+		   const Raster & target_raster )
+  : show_ { true },
+    display_width_ { original.display_width_ },
+    display_height_ { original.display_height_ },
+    header_ { original.header_ },
+    continuation_header_ { true, true, true, true },
+    macroblock_headers_ { true, macroblock_width_, macroblock_height_,
+			  original.macroblock_headers_.get(), Y2_, Y_, U_, V_ }
 {
   /* if frame does not update probability tables, we still need to update decoder state */
   ReplacementEntropyHeader replacement_entropy_header;
@@ -264,35 +272,18 @@ void InterFrame::rewrite_as_diff( const DecoderState & source_decoder_state,
     }
   }
 
-  assert( not continuation_header_.initialized() );
-  continuation_header_.initialize( true, true, true );
-
   if ( not header_.refresh_entropy_probs ) {
     continuation_header_.get().replacement_entropy_header.initialize( replacement_entropy_header );
   }
-
-  const Quantizer frame_quantizer( header_.quant_indices );
-  const auto segment_quantizers = calculate_segment_quantizers( target_decoder_state.segmentation );
 
   /* process each macroblock */
   macroblock_headers_.get().forall_ij( [&]( InterFrameMacroblock & macroblock,
 					    const unsigned int column,
 					    const unsigned int row ) {
-					 const auto & quantizer = header_.update_segmentation.initialized()
-					   ? segment_quantizers.at( macroblock.segment_id() )
-					   : frame_quantizer;
 					 if ( macroblock.inter_coded() ) {
-					   macroblock.reconstruct_inter( quantizer,
-									 references,
-									 raster.macroblock( column, row ) );
-					   macroblock.rewrite_as_diff( raster.macroblock( column, row ),
-								       source_raster_preloop.macroblock( column, row ) );
-					 } else {
-					   macroblock.reconstruct_intra( quantizer,
-									 raster.macroblock( column, row ) );
+					   macroblock.rewrite_as_diff( target_raster.macroblock( column, row ),
+								       source_raster.macroblock( column, row ) );
 					 } } );
-
-  // loopfilter( quantizer_filter_adjustments, raster );
 
   relink_y2_blocks();
 }

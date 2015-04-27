@@ -55,6 +55,13 @@ class Frame
 	 const unsigned int height,
 	 BoolDecoder & first_partition );
 
+  // Diff Constructor
+  Frame( const Frame & original,
+	 const DecoderState & source_decoder_state,
+	 const DecoderState & target_decoder_state,
+	 const Raster & source_raster,
+	 const Raster & target_raster );
+
   const FrameHeaderType & header( void ) const { return header_; }
   const Optional< ContinuationHeader > & continuation_header( void ) const { return continuation_header_; }
 
@@ -80,12 +87,6 @@ class Frame
   uint8_t dct_partition_count( void ) const { return 1 << header_.log2_number_of_dct_partitions; }
 
   bool show_frame( void ) const { return show_; }
-
-  void rewrite_as_diff( const DecoderState & source_decoder_state,
-			const DecoderState & target_decoder_state,
-			const References & references,
-			const Raster & source_raster_preloop,
-			Raster & raster );
 };
 
 using KeyFrame = Frame< KeyFrameHeader, KeyFrameMacroblock >;
