@@ -34,6 +34,9 @@ int main( int argc, char * argv[] )
     display.draw( diff_raster );
 
     if ( diff_player != target_player ) {
+      if ( !(diff_raster.get() == target_raster.get()) ) {
+	cout << "Really ";
+      }
       cout << "Sad times...\n";
     }
   }

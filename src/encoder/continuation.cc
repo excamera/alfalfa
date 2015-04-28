@@ -96,14 +96,20 @@ InterFrame::Frame( const InterFrame & original,
 		   const DecoderState & target_decoder_state,
 		   const Raster & source_raster,
 		   const Raster & target_raster )
-  : show_ { true },
+  : show_ { original.show_ },
     display_width_ { original.display_width_ },
     display_height_ { original.display_height_ },
     header_ { original.header_ },
-    continuation_header_ { true, true, true, true },
+    continuation_header_ { true, true, true, true},
     macroblock_headers_ { true, macroblock_width_, macroblock_height_,
-			  original.macroblock_headers_.get(), Y2_, Y_, U_, V_ }
+			  original.macroblock_headers_.get(),
+			  Y2_, Y_, U_, V_ }
 {
+  Y2_.copy_from( original.Y2_ );
+  Y_.copy_from( original.Y_ );
+  U_.copy_from( original.U_ );
+  V_.copy_from( original.V_ );
+
   /* if frame does not update probability tables, we still need to update decoder state */
   ReplacementEntropyHeader replacement_entropy_header;
 
@@ -284,6 +290,5 @@ InterFrame::Frame( const InterFrame & original,
 					   macroblock.rewrite_as_diff( target_raster.macroblock( column, row ),
 								       source_raster.macroblock( column, row ) );
 					 } } );
-
   relink_y2_blocks();
 }

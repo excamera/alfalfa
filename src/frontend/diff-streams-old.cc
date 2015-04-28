@@ -87,8 +87,6 @@ int main( int argc, char *argv[] )
 
       vector< uint8_t > serialized_frame;
 
-      ProbabilityTables target_frame_probability_tables;
-
       /* now decode and rewrite the target */
       UncompressedChunk whole_target( target.frame( i ), target.width(), target.height() );
       if ( whole_target.key_frame() ) {
@@ -103,11 +101,6 @@ int main( int argc, char *argv[] )
 		 i, target.frame( i ).size(), serialized_frame.size() );
       } else {
 	InterFrame parsed_frame = target_decoder_state.parse_and_apply<InterFrame>( whole_target );
-
-	target_frame_probability_tables = target_decoder_state.probability_tables;
-	if ( parsed_frame.header().refresh_entropy_probs ) {
-	  target_frame_probability_tables.update( parsed_frame.header() );
-	}
 
 	parsed_frame.rewrite_as_diff( source_decoder_state, target_decoder_state,
 				      target_references, source_raster_preloop, target_raster_preloop );
@@ -143,12 +136,6 @@ int main( int argc, char *argv[] )
 	} else {
 	  const InterFrame parsed_frame = test_decoder_state.parse_and_apply<InterFrame>( whole_frame );
 	  assert( test_decoder_state == target_decoder_state );
-
-	  /* update probability tables. replace persistent copy if prescribed in header */
-	  ProbabilityTables frame_probability_tables( test_decoder_state.probability_tables );
-	  frame_probability_tables.update( parsed_frame.header() );
-
-	  assert( frame_probability_tables == target_frame_probability_tables );
 
 	  parsed_frame.decode( test_decoder_state.segmentation, test_references, test_raster );
 	  assert( test_raster == target_raster_preloop );

@@ -52,6 +52,11 @@ bool DiffGenerator::decode_frame( const Chunk & frame, RasterHandle & raster )
   }
 }
 
+void DiffGenerator::reset_references( void )
+{
+  references_.last = references_.golden = references_.alternative_reference = raster_;
+}
+
 bool DiffGenerator::operator==( const DiffGenerator & other ) const
 {
   return state_ == other.state_ and raster_.get() == other.raster_.get();

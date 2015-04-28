@@ -77,6 +77,9 @@ template<>
 RasterHandle GenericPlayer<DiffGenerator>::reconstruct_diff( const std::vector< uint8_t > & diff )
 {
   RasterHandle raster( file_->width(), file_->height() );
+
+  decoder_.reset_references();
+
   decoder_.decode_frame( Chunk( &diff.at( 0 ), diff.size() ), raster );
 
   return raster;

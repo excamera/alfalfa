@@ -18,10 +18,12 @@ private:
 public:
   DiffGenerator( const uint16_t width, const uint16_t height );
 
-  // Copy constructor only copies state (not frames)
+  // Copy constructor only copies state (not frame)
   DiffGenerator( const DiffGenerator & other );
 
   bool decode_frame( const Chunk & frame, RasterHandle & raster );
+
+  void reset_references( void );
 
   bool operator==( const DiffGenerator & other ) const;
 
