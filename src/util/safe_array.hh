@@ -36,7 +36,7 @@ struct SafeArray
 
   bool operator==( const SafeArray<T, size_param> & other ) const
   {
-    return 0 == memcmp( storage_, other.storage_, size_param );
+    return 0 == memcmp( storage_, other.storage_, size_param * sizeof( T ) );
   }
 };
 

@@ -95,9 +95,7 @@ struct MVProbUpdate
       return;
     }
 
-    //if ( get() != x ) {
-    //  throw internal_error( "MVProbUpdate", "invalid value " + std::to_string( x ) );
-    //}
+    assert( get() == x );
   }
 
   MVProbUpdate() : mv_prob() {}

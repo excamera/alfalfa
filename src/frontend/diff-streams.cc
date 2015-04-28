@@ -15,8 +15,6 @@ int main( int argc, char * argv[] )
   GenericPlayer<DiffGenerator> source_player( argv[ 1 ] );
   GenericPlayer<DiffGenerator> target_player( argv[ 2 ] );
 
-  VideoDisplay display { source_player.example_raster() };
-
   while ( !source_player.eof() && !target_player.eof() ) {
     source_player.advance();
     RasterHandle target_raster = target_player.advance();
@@ -31,12 +29,7 @@ int main( int argc, char * argv[] )
 
     RasterHandle diff_raster = diff_player.reconstruct_diff( diff );
 
-    display.draw( diff_raster );
-
     if ( diff_player != target_player ) {
-      if ( !(diff_raster.get() == target_raster.get()) ) {
-	cout << "Really ";
-      }
       cout << "Sad times...\n";
     }
   }
