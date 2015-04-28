@@ -110,8 +110,9 @@ InterFrame::Frame( const InterFrame & original,
   U_.copy_from( original.U_ );
   V_.copy_from( original.V_ );
 
-  /* if frame does not update probability tables, we still need to update decoder state */
   ReplacementEntropyHeader replacement_entropy_header;
+
+  header_.refresh_entropy_probs = false;
 
   /* match (normal) coefficient probabilities in frame header */
   for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
@@ -121,7 +122,7 @@ InterFrame::Frame( const InterFrame & original,
 	  const auto & source = source_decoder_state.probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l );
 	  const auto & target = target_decoder_state.probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l );
 
-	  (header_.refresh_entropy_probs ? header_.token_prob_update : replacement_entropy_header.token_prob_update).at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( source != target, target );
+	  replacement_entropy_header.token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( source != target, target );
 	}
       }
     }
@@ -142,22 +143,8 @@ InterFrame::Frame( const InterFrame & original,
     }
   }
 
-  if ( header_.refresh_entropy_probs ) {
-    if ( header_.intra_16x16_prob.initialized() ) {
-      if ( update_y_mode_probs ) {
-	header_.intra_16x16_prob.get() = new_y_mode_probs;
-      } else {
-	header_.intra_16x16_prob.clear();
-      }
-    } else {
-      if ( update_y_mode_probs ) {
-	header_.intra_16x16_prob.initialize( new_y_mode_probs );
-      }
-    }
-  } else {
-    if ( update_y_mode_probs ) {
-      replacement_entropy_header.intra_16x16_prob.initialize( new_y_mode_probs );
-    }
+  if ( update_y_mode_probs ) {
+    replacement_entropy_header.intra_16x16_prob.initialize( new_y_mode_probs );
   }
 
   /* match intra_chroma_prob in frame header */
@@ -175,22 +162,8 @@ InterFrame::Frame( const InterFrame & original,
     }
   }
 
-  if ( header_.refresh_entropy_probs ) {
-    if ( header_.intra_chroma_prob.initialized() ) {
-      if ( update_chroma_mode_probs ) {
-	header_.intra_chroma_prob.get() = new_chroma_mode_probs;
-      } else {
-	header_.intra_chroma_prob.clear();
-      }
-    } else {
-      if ( update_chroma_mode_probs ) {
-	header_.intra_chroma_prob.initialize( new_chroma_mode_probs );
-      }
-    }
-  } else {
-    if ( update_chroma_mode_probs ) {
-      replacement_entropy_header.intra_chroma_prob.initialize( new_chroma_mode_probs );
-    }
+  if ( update_chroma_mode_probs ) {
+    replacement_entropy_header.intra_chroma_prob.initialize( new_chroma_mode_probs );
   }
 
   /* match motion_vector_probs in frame header */
@@ -199,7 +172,7 @@ InterFrame::Frame( const InterFrame & original,
       const auto & source = source_decoder_state.probability_tables.motion_vector_probs.at( i ).at( j );
       const auto & target = target_decoder_state.probability_tables.motion_vector_probs.at( i ).at( j );
 
-      (header_.refresh_entropy_probs ? header_.mv_prob_update : replacement_entropy_header.mv_prob_update).at( i ).at( j ) = MVProbUpdate( source != target, target );      
+      replacement_entropy_header.mv_prob_update.at( i ).at( j ) = MVProbReplacement( source != target, target );
     }
   }
 
@@ -278,9 +251,7 @@ InterFrame::Frame( const InterFrame & original,
     }
   }
 
-  if ( not header_.refresh_entropy_probs ) {
-    continuation_header_.get().replacement_entropy_header.initialize( replacement_entropy_header );
-  }
+  continuation_header_.get().replacement_entropy_header.initialize( replacement_entropy_header );
 
   /* process each macroblock */
   macroblock_headers_.get().forall_ij( [&]( InterFrameMacroblock & macroblock,

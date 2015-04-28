@@ -76,6 +76,26 @@ struct TokenProbUpdate
   TokenProbUpdate() : coeff_prob() {}
 };
 
+struct MVProbReplacement
+{
+  Flagged< Unsigned<8> > mv_prob;
+
+  bool initialized( void ) const { return mv_prob.initialized(); }
+  uint8_t get( void ) const { return mv_prob.get(); }
+
+  MVProbReplacement( BoolDecoder & data,
+		      const unsigned int j, const unsigned int i )
+    : mv_prob( data, k_mv_entropy_update_probs.at( i ).at( j ) )
+  {}
+
+  MVProbReplacement( const bool initialized, const uint8_t x )
+    : mv_prob( initialized, x )
+  {}
+
+  MVProbReplacement() : mv_prob() {}
+
+};
+
 struct MVProbUpdate
 {
   Flagged< Unsigned<7> > mv_prob;
@@ -91,11 +111,7 @@ struct MVProbUpdate
   MVProbUpdate( const bool initialized, const uint8_t x )
     : mv_prob( initialized, x >> 1 )
   {
-    if ( not initialized ) {
-      return;
-    }
-
-    assert( get() == x );
+    assert( !initialized or get() == x );
   }
 
   MVProbUpdate() : mv_prob() {}
@@ -201,7 +217,7 @@ struct ReplacementEntropyHeader
 	     BLOCK_TYPES > token_prob_update;
   Flagged< Array< Unsigned<8>, 4 > > intra_16x16_prob;
   Flagged< Array< Unsigned<8>, 3 > > intra_chroma_prob;
-  Enumerate< Enumerate< MVProbUpdate, MV_PROB_CNT >, 2 > mv_prob_update;
+  Enumerate< Enumerate< MVProbReplacement, MV_PROB_CNT >, 2 > mv_prob_update;
 
   ReplacementEntropyHeader( BoolDecoder & data )
     : token_prob_update( data ), intra_16x16_prob( data ),

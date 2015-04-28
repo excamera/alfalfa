@@ -157,6 +157,12 @@ static void encode( BoolEncoder & encoder, const MVProbUpdate & mv,
   encode( encoder, mv.mv_prob, k_mv_entropy_update_probs.at( i ).at( j ) );
 }
 
+static void encode( BoolEncoder & encoder, const MVProbReplacement & mv,
+		    const unsigned int j, const unsigned int i )
+{
+  encode( encoder, mv.mv_prob, k_mv_entropy_update_probs.at( i ).at( j ) );
+}
+
 template <class T, unsigned int len, typename... Targs>
 static void encode( BoolEncoder & encoder, const Enumerate<T, len> & obj, Targs&&... Fargs )
 {
