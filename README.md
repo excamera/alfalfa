@@ -1,4 +1,3 @@
-explicit-VP8
-============
+[![Build Status](https://travis-ci.org/alfalfa/alfalfa.svg?branch=diff)](https://travis-ci.org/alfalfa/alfalfa)
 
-Explicit version of VP8 based on VP8's reference decoder.
+Alfalfa: streaming video done right
