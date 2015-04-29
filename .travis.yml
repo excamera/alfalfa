@@ -1,5 +1,9 @@
 language: cpp
 
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq g++-4.9 yasm
+
 script: "./autogen.sh && ./configure --enable-debug && make && make check"
 
 compiler:
