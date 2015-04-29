@@ -1,0 +1,7 @@
+language: cpp
+
+script: "./autogen.sh && ./configure --enable-debug && make && make check"
+
+compiler:
+  - clang
+  - gcc
