@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I$(srcdir)/../util -I$(srcdir)/../decoder
+AM_CPPFLAGS = -I$(srcdir)/../util -I$(srcdir)/../decoder $(CXX11_FLAGS)
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(NODEBUG_CXXFLAGS)
 
 noinst_LIBRARIES = libalfalfaencoder.a
