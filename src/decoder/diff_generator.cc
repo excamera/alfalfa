@@ -9,12 +9,6 @@ DiffGenerator::DiffGenerator( const uint16_t width, const uint16_t height )
     on_key_frame_ { true }
 {}
 
-DiffGenerator::DiffGenerator( const DiffGenerator & other )
-  : Decoder( other ),
-    on_key_frame_ { other.on_key_frame_ },
-    raster_ { other.raster_ }
-{}
-
 bool DiffGenerator::decode_frame( const Chunk & frame, RasterHandle & raster )
 {
   /* parse uncompressed data chunk */
@@ -28,7 +22,7 @@ bool DiffGenerator::decode_frame( const Chunk & frame, RasterHandle & raster )
     key_frame_.get().decode( state_.segmentation, raster );
 
     // Store copy of the raster for diffs before loopfilter is applied
-    raster_.get().copy_from( raster );
+    references_.update_continuation( raster );
 
     key_frame_.get().loopfilter( state_.segmentation, state_.filter_adjustments, raster );
 
@@ -42,7 +36,7 @@ bool DiffGenerator::decode_frame( const Chunk & frame, RasterHandle & raster )
 
     inter_frame_.get().decode( state_.segmentation, references_, raster );
 
-    raster_.get().copy_from( raster );
+    references_.update_continuation( raster );
 
     inter_frame_.get().loopfilter( state_.segmentation, state_.filter_adjustments, raster );
 
@@ -52,16 +46,6 @@ bool DiffGenerator::decode_frame( const Chunk & frame, RasterHandle & raster )
   }
 }
 
-void DiffGenerator::reset_references( void )
-{
-  references_.last = references_.golden = references_.alternative_reference = raster_;
-}
-
-bool DiffGenerator::operator==( const DiffGenerator & other ) const
-{
-  return state_ == other.state_ and raster_.get() == other.raster_.get();
-}
-
 // This needs to be made const, which means rewriting rewrite_as_diff into make_continuation_frame
 vector<uint8_t> DiffGenerator::operator-( const DiffGenerator & source_decoder ) const
 {
@@ -69,7 +53,7 @@ vector<uint8_t> DiffGenerator::operator-( const DiffGenerator & source_decoder )
     return key_frame_.get().serialize( state_.probability_tables );
   } else {
     InterFrame diff_frame( inter_frame_.get(), source_decoder.state_, state_,
-			   source_decoder.raster_, raster_ );
+			   source_decoder.references_.continuation, references_.continuation );
     
     diff_frame.optimize_continuation_coefficients();
 

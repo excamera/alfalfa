@@ -13,7 +13,7 @@ class File
 private:
   FileDescriptor fd_;
   size_t size_;
-  uint8_t * const buffer_;
+  uint8_t * buffer_;
   Chunk chunk_;
 
 public:
@@ -26,8 +26,12 @@ public:
     return chunk_( offset, length );
   }
 
+  /* Disallow copying */
   File( const File & other ) = delete;
   File & operator=( const File & other ) = delete;
+
+  /* Allow moving */
+  File( File && other );
 };
 
 #endif /* FILE_HH */

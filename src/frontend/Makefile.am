@@ -8,5 +8,3 @@ vp8decode_SOURCES = vp8decode.cc
 vp8play_SOURCES = vp8play.cc
 
 diff_streams_SOURCES = diff-streams.cc
-
-# diff_streams_old_SOURCES = diff-streams-old.cc

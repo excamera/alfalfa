@@ -21,6 +21,8 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
 
     myframe.decode( state_.segmentation, raster );
 
+    references_.update_continuation( raster );
+
     myframe.loopfilter( state_.segmentation, state_.filter_adjustments, raster );
 
     myframe.copy_to( raster, references_ );
@@ -31,6 +33,8 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
 
     myframe.decode( state_.segmentation, references_, raster );
 
+    references_.update_continuation( raster );
+
     myframe.loopfilter( state_.segmentation, state_.filter_adjustments, raster );
 
     myframe.copy_to( raster, references_ );
@@ -39,11 +43,23 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
   }
 }
 
+bool Decoder::operator==( const Decoder & other ) const
+{
+  return state_ == other.state_ and
+    references_.continuation.get() == other.references_.continuation.get();
+}
+
 References::References( const uint16_t width, const uint16_t height )
   : last( width, height ),
     golden( width, height ),
-    alternative_reference( width, height )
+    alternative_reference( width, height ),
+    continuation( width, height )
 {}
+
+void References::update_continuation( const RasterHandle & raster )
+{
+  continuation.get().copy_from( raster );
+}
 
 DecoderState::DecoderState( const unsigned int s_width, const unsigned int s_height )
   : width( s_width ), height( s_height )

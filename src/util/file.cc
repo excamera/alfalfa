@@ -19,5 +19,16 @@ File::File( const std::string & filename )
 
 File::~File()
 {
-  SystemCall( "munmap", munmap( buffer_, size_ ) );
+  if ( buffer_ ) { 
+    SystemCall( "munmap", munmap( buffer_, size_ ) );
+  }
+}
+
+File::File( File && other )
+  : fd_( move( other.fd_ ) ),
+    size_( move( other.size_ ) ),
+    buffer_( move( other.buffer_ ) ),
+    chunk_( move( other.chunk_ ) )
+{
+  other.buffer_ = NULL;
 }

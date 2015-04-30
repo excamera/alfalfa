@@ -495,7 +495,7 @@ void InterFrameMacroblock::reconstruct_continuation( const References & referenc
 
   const MotionVector zeromv;
 
-  const Raster & reference = references.at( header_.reference() );
+  const Raster & reference = references.continuation;
 
   raster.Y.inter_predict( zeromv, reference.Y() );
   raster.U.inter_predict( zeromv, reference.U() );

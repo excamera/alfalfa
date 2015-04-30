@@ -12,26 +12,19 @@ int main( int argc, char * argv[] )
     return EXIT_FAILURE;
   }
 
-  GenericPlayer<DiffGenerator> source_player( argv[ 1 ] );
-  GenericPlayer<DiffGenerator> target_player( argv[ 2 ] );
+  FilePlayer<DiffGenerator> source_player( argv[ 1 ] );
+  FilePlayer<DiffGenerator> target_player( argv[ 2 ] );
 
   while ( !source_player.eof() && !target_player.eof() ) {
     source_player.advance();
-    RasterHandle target_raster = target_player.advance();
+    target_player.advance();
 
     vector< uint8_t > diff = target_player - source_player;
 
-    fprintf( stderr, "Src Frame %u, ", source_player.frame_no() );
+    fprintf( stderr, "Src Frame %u, ", source_player.cur_frame_no() );
     fprintf( stderr, "Frame %u, original length: %lu bytes. Diff length: %lu bytes.\n",
-	     target_player.frame_no(), target_player.original_size(), diff.size() );
+	     target_player.cur_frame_no(), target_player.original_size(), diff.size() );
 
-    GenericPlayer<DiffGenerator> diff_player( source_player );
-
-    RasterHandle diff_raster = diff_player.reconstruct_diff( diff );
-
-    if ( diff_player != target_player ) {
-      cout << "Sad times...\n";
-    }
   }
     
   return EXIT_SUCCESS;

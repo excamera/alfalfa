@@ -61,9 +61,11 @@ struct FilterAdjustments
 
 struct References
 {
-  RasterHandle last, golden, alternative_reference;
+  RasterHandle last, golden, alternative_reference, continuation;
 
   References( const uint16_t width, const uint16_t height );
+
+  void update_continuation( const RasterHandle & raster );
 
   const Raster & at( const reference_frame reference_id ) const
   {
@@ -137,6 +139,8 @@ public:
   const Raster & example_raster( void ) const { return references_.last; }
 
   bool decode_frame( const Chunk & frame, RasterHandle & raster );
+
+  bool operator==( const Decoder & other ) const;
 };
 
 #endif /* DECODER_HH */
