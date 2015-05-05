@@ -8,6 +8,31 @@
 #include "ivf.hh"
 #include "decoder.hh"
 
+class SerializedFrame
+{
+private:
+  std::vector<uint8_t> frame_;
+  std::string source_desc_, target_desc_;
+
+public:
+  SerializedFrame( const std::string & path );
+
+  SerializedFrame( const std::vector<uint8_t> & frame, const std::string & source_hash,
+		   const std::string & target_hash );
+
+  SerializedFrame( const Chunk & frame, const std::string & source_hash,
+		   const std::string & target_hash );
+
+  Chunk chunk( void ) const;
+
+  bool validate_source( const Decoder & decoder ) const;
+
+  bool validate_target( const Decoder & decoder ) const;
+
+  void write( std::string path = "" ) const;
+
+};
+
 template <class DecoderType>
 class FramePlayer
 {
@@ -19,11 +44,13 @@ protected:
 public:
   FramePlayer( const uint16_t width, const uint16_t height );
 
-  RasterHandle decode( const std::vector<uint8_t> & raw_frame, const std::string & name );
+  RasterHandle decode( const SerializedFrame & frame );
 
   const Raster & example_raster( void ) const;
 
-  std::vector<uint8_t> operator-( const FramePlayer & source_player ) const;
+  std::string hash_str( void ) const;
+
+  SerializedFrame operator-( const FramePlayer & source_player ) const;
   bool operator==( const FramePlayer & other ) const;
   bool operator!=( const FramePlayer & other ) const;
 };
@@ -36,12 +63,14 @@ private:
 
   unsigned int frame_no_ { 0 };
 
-  FilePlayer( IVF & file );
+  FilePlayer( IVF && file );
 
 public:
   FilePlayer( const std::string & file_name );
 
   RasterHandle advance( void );
+
+  SerializedFrame serialize_next( void );
   
   bool eof( void ) const;
 

@@ -37,6 +37,8 @@ struct ProbabilityTables
   template <class HeaderType>
   void update( const HeaderType & header );
 
+  size_t hash( void ) const;
+
   bool operator==( const ProbabilityTables & other ) const;
 };
 
@@ -55,6 +57,8 @@ struct FilterAdjustments
 
   template <class HeaderType>
   void update( const HeaderType & header );
+
+  size_t hash( void ) const;
 
   bool operator==( const FilterAdjustments & other ) const;
 };
@@ -102,6 +106,8 @@ struct Segmentation
   template <class HeaderType>
   void update( const HeaderType & header );
 
+  size_t hash( void ) const;
+
   bool operator==( const Segmentation & other ) const;
 
   Segmentation( const Segmentation & other );
@@ -125,6 +131,8 @@ struct DecoderState
   FrameType parse_and_apply( const UncompressedChunk & uncompressed_chunk );
 
   bool operator==( const DecoderState & other ) const;
+
+  size_t hash( void ) const;
 };
 
 class Decoder
@@ -139,6 +147,8 @@ public:
   const Raster & example_raster( void ) const { return references_.last; }
 
   bool decode_frame( const Chunk & frame, RasterHandle & raster );
+
+  std::string hash_str( void ) const;
 
   bool operator==( const Decoder & other ) const;
 };

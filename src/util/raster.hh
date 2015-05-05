@@ -2,6 +2,7 @@
 #define RASTER_HH
 
 #include <memory>
+#include <boost/functional/hash.hpp>
 
 #include "2d.hh"
 #include "safe_array.hh"
@@ -205,6 +206,17 @@ public:
   bool operator==( const Raster & other ) const
   {
     return (Y_ == other.Y_) and (U_ == other.U_) and (V_ == other.V_);
+  }
+
+  size_t hash( void ) const
+  {
+    size_t hash_val = 0;
+
+    boost::hash_range( hash_val, Y_.begin(), Y_.end() );
+    boost::hash_range( hash_val, U_.begin(), U_.end() );
+    boost::hash_range( hash_val, V_.begin(), V_.end() );
+
+    return hash_val;
   }
 
   void copy_from( const Raster & other )

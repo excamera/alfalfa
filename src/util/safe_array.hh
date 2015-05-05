@@ -23,6 +23,17 @@ struct SafeArray
     return storage_[ index ];
   }
 
+  /* Probably want to reimplement these with a proper iterator */
+  const T * begin( void ) const
+  {
+    return &storage_[0];
+  }
+
+  const T * end( void ) const
+  {
+    return &storage_[ size_param ];
+  }
+
   static constexpr unsigned int size( void ) { return size_param; }
 
   template <unsigned int offset, unsigned int len>

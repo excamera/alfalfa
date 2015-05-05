@@ -43,6 +43,14 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
   }
 }
 
+string Decoder::hash_str( void ) const
+{
+  return to_string( state_.hash() ) + "_" + to_string( references_.continuation.get().hash() ) 
+    + "_" + to_string( references_.last.get().hash() ) + "_" + 
+    to_string( references_.golden.get().hash() ) + "_" + 
+    to_string( references_.alternative_reference.get().hash() );
+}
+
 bool Decoder::operator==( const Decoder & other ) const
 {
   return state_ == other.state_ and
@@ -80,6 +88,74 @@ bool DecoderState::operator==( const DecoderState & other ) const
     and probability_tables == other.probability_tables
     and segmentation == other.segmentation
     and filter_adjustments == other.filter_adjustments;
+}
+
+size_t DecoderState::hash( void ) const
+{
+  size_t hash_val = 0;
+
+  boost::hash_combine( hash_val, width );
+  boost::hash_combine( hash_val, height );
+  boost::hash_combine( hash_val, probability_tables.hash() );
+  if ( segmentation.initialized() ) {
+    boost::hash_combine( hash_val, segmentation.get().hash() );
+  }
+  if ( filter_adjustments.initialized() ) {
+    boost::hash_combine( hash_val, filter_adjustments.get().hash() );
+  }
+
+  return hash_val;
+}
+
+size_t ProbabilityTables::hash( void ) const
+{
+  size_t hash_val = 0;
+
+  for ( auto const & block_sub : coeff_probs ) {
+    for ( auto const & bands_sub : block_sub ) {
+      for ( auto const & contexts_sub : bands_sub ) {
+	boost::hash_range( hash_val, contexts_sub.begin(), contexts_sub.end() );
+      }
+    }
+  }
+
+  boost::hash_range( hash_val, y_mode_probs.begin(), y_mode_probs.end() );
+
+  boost::hash_range( hash_val, uv_mode_probs.begin(), uv_mode_probs.end() );
+
+  for ( auto const & sub : motion_vector_probs ) {
+    boost::hash_range( hash_val, sub.begin(), sub.end() );
+  }
+
+  return hash_val;
+}
+
+size_t FilterAdjustments::hash( void ) const
+{
+  size_t hash_val = 0;
+
+  boost::hash_range( hash_val, loopfilter_ref_adjustments.begin(), loopfilter_ref_adjustments.end() );
+
+  boost::hash_range( hash_val, loopfilter_mode_adjustments.begin(), loopfilter_ref_adjustments.end() );
+
+  return hash_val;
+}
+
+size_t Segmentation::hash( void ) const
+{
+  size_t hash_val = 0;
+
+  boost::hash_combine( hash_val, absolute_segment_adjustments );
+
+  boost::hash_range( hash_val, segment_quantizer_adjustments.begin(),
+		       segment_quantizer_adjustments.end() );
+
+  boost::hash_range( hash_val, segment_filter_adjustments.begin(),
+		       segment_filter_adjustments.end() );
+
+  boost::hash_range( hash_val, map.begin(), map.end() );
+
+  return hash_val;
 }
 
 bool ProbabilityTables::operator==( const ProbabilityTables & other ) const

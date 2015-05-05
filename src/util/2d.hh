@@ -4,6 +4,7 @@
 #include <cassert>
 #include <vector>
 #include <memory>
+#include <functional>
 
 #include "optional.hh"
 
@@ -16,6 +17,8 @@ private:
   std::vector< T > storage_;
 
 public:
+  using const_iterator = typename std::vector< T >::const_iterator;
+
   struct Context
   {
     unsigned int column, row;
@@ -68,7 +71,7 @@ public:
     return storage_[ row * width_ + column ];
   }
 
-  Optional< const T * > maybe_at( const unsigned int column, const unsigned int row ) const
+  Optional<const T *> maybe_at( const unsigned int column, const unsigned int row ) const
   {
     if ( column < width_ and row < height_ ) {
       return &at( column, row );
@@ -79,6 +82,16 @@ public:
 
   unsigned int width( void ) const { return width_; }
   unsigned int height( void ) const { return height_; }
+
+  const_iterator begin( void ) const
+  {
+    return storage_.begin();
+  }
+
+  const_iterator end( void ) const
+  {
+    return storage_.end();
+  }
 
   template <class lambda>
   void forall( const lambda & f ) const
@@ -186,6 +199,16 @@ public:
 
   template <class lambda>
   void forall_ij( const lambda & f ) const { storage_->forall_ij( f ); }
+
+  typename TwoDStorage<T>::const_iterator begin( void ) const
+  {
+    return storage_->begin();
+  }
+
+  typename TwoDStorage<T>::const_iterator end( void ) const
+  {
+    return storage_->end();
+  }
 
   bool operator==( const TwoD<T> & other ) const { return *storage_ == *( other.storage_ ); }
 

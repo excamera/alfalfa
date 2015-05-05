@@ -23,7 +23,8 @@ Makefile.in
 /stamp-h1
 /test-driver
 
-/src/frontend/diff-streams
+/src/frontend/diff-sizes
+/src/frontend/frameify
 /src/frontend/vp8play
 /src/frontend/vp8decode
 /src/tests/decode-to-stdout
