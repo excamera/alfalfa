@@ -32,15 +32,15 @@ void generate_diff_frames( const string & source, const string & target )
 int main( int argc, char * argv[] )
 {
   if ( argc < 3 ) {
-    cerr << "Usage: " << argv[ 0 ] << "MANIFEST SOURCE [TARGET]" << endl;
+    cerr << "Usage: " << argv[ 0 ] << " MANIFEST SOURCE [TARGET]" << endl;
     return EXIT_FAILURE;
   }
 
   if ( argc == 3 ) {
-    dump_vp8_frames( argv[ 1 ] );
+    dump_vp8_frames( argv[ 2 ] );
   }
   else if ( argc == 4 ) {
-    generate_diff_frames( argv[ 1 ], argv[ 2 ] );
+    generate_diff_frames( argv[ 2 ], argv[ 3 ] );
   }
 
 }

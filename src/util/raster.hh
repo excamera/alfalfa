@@ -208,6 +208,11 @@ public:
     return (Y_ == other.Y_) and (U_ == other.U_) and (V_ == other.V_);
   }
 
+  bool operator!=( const Raster & other ) const
+  {
+    return not operator==( other );
+  }
+
   size_t hash( void ) const
   {
     size_t hash_val = 0;

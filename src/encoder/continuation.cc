@@ -94,8 +94,8 @@ template <>
 InterFrame::Frame( const InterFrame & original,
 		   const DecoderState & source_decoder_state,
 		   const DecoderState & target_decoder_state,
-		   const Raster & source_raster,
-		   const Raster & target_raster )
+		   const References & source_references,
+		   const References & target_references )
   : show_ { original.show_ },
     display_width_ { original.display_width_ },
     display_height_ { original.display_height_ },
@@ -258,8 +258,11 @@ InterFrame::Frame( const InterFrame & original,
 					    const unsigned int column,
 					    const unsigned int row ) {
 					 if ( macroblock.inter_coded() ) {
-					   macroblock.rewrite_as_diff( target_raster.macroblock( column, row ),
-								       source_raster.macroblock( column, row ) );
+					   reference_frame ref = macroblock.header().reference();
+					   if ( source_references.at( ref ) != target_references.at( ref ) ) {
+					     macroblock.rewrite_as_diff( target_references.continuation.get().macroblock( column, row ),
+								         source_references.continuation.get().macroblock( column, row ) );
+					   }
 					 } } );
   relink_y2_blocks();
 }

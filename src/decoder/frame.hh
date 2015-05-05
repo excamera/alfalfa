@@ -59,8 +59,8 @@ class Frame
   Frame( const Frame & original,
 	 const DecoderState & source_decoder_state,
 	 const DecoderState & target_decoder_state,
-	 const Raster & source_raster,
-	 const Raster & target_raster );
+	 const References & source_references,
+	 const References & target_references );
 
   const FrameHeaderType & header( void ) const { return header_; }
   const Optional< ContinuationHeader > & continuation_header( void ) const { return continuation_header_; }

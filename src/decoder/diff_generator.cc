@@ -53,7 +53,7 @@ vector<uint8_t> DiffGenerator::operator-( const DiffGenerator & source_decoder )
     return key_frame_.get().serialize( state_.probability_tables );
   } else {
     InterFrame diff_frame( inter_frame_.get(), source_decoder.state_, state_,
-			   source_decoder.references_.continuation, references_.continuation );
+			   source_decoder.references_, references_ );
     
     diff_frame.optimize_continuation_coefficients();
 
