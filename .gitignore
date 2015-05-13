@@ -25,6 +25,7 @@ Makefile.in
 
 /src/frontend/diff-sizes
 /src/frontend/frameify
+/src/frontend/frameplayer
 /src/frontend/vp8play
 /src/frontend/vp8decode
 /src/tests/decode-to-stdout

@@ -152,6 +152,10 @@ public:
 
   bool decode_frame( const Chunk & frame, RasterHandle & raster );
 
+  bool equal_references( const Decoder & other ) const;
+
+  void update_continuation( const Decoder & other );
+
   bool operator==( const Decoder & other ) const;
 };
 

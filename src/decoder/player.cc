@@ -38,6 +38,18 @@ const Raster & FramePlayer<DecoderType>::example_raster( void ) const
   return decoder_.example_raster();
 }
 
+template<class DecoderType>
+bool FramePlayer<DecoderType>::equal_references( const FramePlayer & other ) const
+{
+  return decoder_.equal_references( other.decoder_ );
+}
+
+template<class DecoderType>
+void FramePlayer<DecoderType>::update_continuation( const FramePlayer & other )
+{
+  return decoder_.update_continuation( other.decoder_ );
+}
+
 template<>
 SerializedFrame FramePlayer<DiffGenerator>::operator-( const FramePlayer & source_player ) const
 {
@@ -92,6 +104,8 @@ RasterHandle FilePlayer<DecoderType>::advance( void )
   while ( not eof() ) {
     RasterHandle raster( this->width_, this->height_ );
     if ( this->decoder_.decode_frame( file_.frame( frame_no_++ ), raster ) ) {
+      displayed_frame_no_++;
+
       return raster;
     }
   }
@@ -107,7 +121,11 @@ SerializedFrame FilePlayer<DiffGenerator>::serialize_next( void )
 
   RasterHandle throwaway_raster( this->width_, this->height_ );
 
-  this->decoder_.decode_frame( frame, throwaway_raster );
+  bool shown = this->decoder_.decode_frame( frame, throwaway_raster );
+
+  if ( shown ) {
+    displayed_frame_no_++;
+  }
 
   return SerializedFrame( frame, this->decoder_.source_hash_str( source ), this->decoder_.hash_str() );
 }

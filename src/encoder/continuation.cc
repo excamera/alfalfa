@@ -100,7 +100,9 @@ InterFrame::Frame( const InterFrame & original,
     display_width_ { original.display_width_ },
     display_height_ { original.display_height_ },
     header_ { original.header_ },
-    continuation_header_ { true, true, true, true},
+    continuation_header_ { true, source_references.last.get() != target_references.last.get(), 
+			   source_references.golden.get() != target_references.golden.get(),
+			   source_references.alternative_reference.get() != target_references.alternative_reference.get() },
     macroblock_headers_ { true, macroblock_width_, macroblock_height_,
 			  original.macroblock_headers_.get(),
 			  Y2_, Y_, U_, V_ }
@@ -251,15 +253,14 @@ InterFrame::Frame( const InterFrame & original,
     }
   }
 
-  continuation_header_.get().replacement_entropy_header.initialize( replacement_entropy_header );
-
+  continuation_header_.get().replacement_entropy_header.initialize( replacement_entropy_header ); 
+  
   /* process each macroblock */
   macroblock_headers_.get().forall_ij( [&]( InterFrameMacroblock & macroblock,
 					    const unsigned int column,
 					    const unsigned int row ) {
 					 if ( macroblock.inter_coded() ) {
-					   reference_frame ref = macroblock.header().reference();
-					   if ( source_references.at( ref ) != target_references.at( ref ) ) {
+					   if ( continuation_header_.get().is_missing( macroblock.header().reference() ) ) {
 					     macroblock.rewrite_as_diff( target_references.continuation.get().macroblock( column, row ),
 								         source_references.continuation.get().macroblock( column, row ) );
 					   }

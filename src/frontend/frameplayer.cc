@@ -5,14 +5,14 @@ using namespace std;
 
 int main( int argc, char * argv[] )
 {
-  if ( argc < 2 ) {
-    cerr << "Must provide at least one frame to display\n";
+  if ( argc < 4 ) {
+    cerr << "Usage: WIDTH HEIGHT START_FRAME [ OTHER_FRAMES ... ]";
     return EXIT_FAILURE;
   }
 
-  FramePlayer<Decoder> player;
+  FramePlayer<Decoder> player( stoi( argv[ 0 ] ), stoi( argv[ 1 ] ) );
 
-  for ( int arg_idx = 1; arg_idx < argc; arg_idx++ ) {
+  for ( int arg_idx = 3; arg_idx < argc; arg_idx++ ) {
     SerializedFrame frame( argv[ arg_idx ] );
 
     RasterHandle raster = player.decode( frame );

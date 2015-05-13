@@ -24,6 +24,10 @@ public:
 
   const Raster & example_raster( void ) const;
 
+  bool equal_references( const FramePlayer & other ) const;
+
+  void update_continuation( const FramePlayer & other );
+
   SerializedFrame operator-( const FramePlayer & source_player ) const;
   bool operator==( const FramePlayer & other ) const;
   bool operator!=( const FramePlayer & other ) const;
@@ -36,6 +40,7 @@ private:
   IVF file_;
 
   unsigned int frame_no_ { 0 };
+  unsigned int displayed_frame_no_ { 0 };
 
   FilePlayer( IVF && file );
 
@@ -51,6 +56,11 @@ public:
   unsigned int cur_frame_no( void ) const
   { 
     return frame_no_ - 1;
+  }
+
+  unsigned int cur_displayed_frame( void ) const
+  {
+    return displayed_frame_no_;
   }
 
   long unsigned int original_size( void ) const;

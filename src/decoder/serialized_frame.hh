@@ -27,7 +27,9 @@ public:
 
   bool validate_target( const Decoder & decoder ) const;
 
-  void write( std::string path = "" ) const;
+  std::string name( void ) const;
+
+  void write( const std::string & path = "" ) const;
 };
 
 #endif

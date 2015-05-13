@@ -44,12 +44,11 @@ array<bool, 4> InterFrame::used_references( void ) const
   array<bool, 4> refs;
   refs.fill( false );
 
-  if ( continuation_header_.initialized() ) {
-    refs[0] = true;
-  }
-
   macroblock_headers_.get().forall( [&] ( const InterFrameMacroblock & mb ) {
-				    if ( not mb.continuation() and mb.inter_coded() ) {
+				    if ( mb.continuation() ) {
+				      refs[ 0 ] = true;
+				    }
+				    else if ( mb.inter_coded() ) {
 				      refs[ mb.header().reference() ] = true;
 				    } } );
   

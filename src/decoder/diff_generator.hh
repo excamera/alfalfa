@@ -17,6 +17,8 @@ private:
 public:
   DiffGenerator( const uint16_t width, const uint16_t height );
 
+  DiffGenerator( const DiffGenerator & other );
+
   bool decode_frame( const Chunk & frame, RasterHandle & raster );
 
   std::string source_hash_str( const Decoder & source ) const;

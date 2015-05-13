@@ -85,6 +85,19 @@ string Decoder::hash_str( void ) const
     to_string( references_.alternative_reference.get().hash() );
 }
 
+bool Decoder::equal_references( const Decoder & other ) const
+{
+  return references_.continuation.get() == other.references_.continuation.get() and
+    references_.last.get() == other.references_.last.get() and
+    references_.golden.get() == other.references_.golden.get() and
+    references_.alternative_reference.get() == other.references_.alternative_reference.get();
+}
+
+void Decoder::update_continuation( const Decoder & other )
+{
+  references_.update_continuation( other.references_.continuation );
+}
+
 bool Decoder::operator==( const Decoder & other ) const
 {
   return state_ == other.state_ and

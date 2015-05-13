@@ -9,6 +9,12 @@ DiffGenerator::DiffGenerator( const uint16_t width, const uint16_t height )
     on_key_frame_ { true }
 {}
 
+/* Since frames are uncopyable, only copy the base */
+DiffGenerator::DiffGenerator( const DiffGenerator & other )
+  : Decoder ( other ),
+    on_key_frame_ ( false )
+{}
+
 bool DiffGenerator::decode_frame( const Chunk & frame, RasterHandle & raster )
 {
   /* parse uncompressed data chunk */
