@@ -17,4 +17,5 @@ libalfalfadecoder_a_SOURCES = block.hh bool_decoder.hh decoder.cc decoder.hh \
 	decoder_state.hh loopfilter_sse2.asm loopfilter_block_sse2_x86_64.asm \
 	subpixel_ssse3.asm idctllm_mmx.asm \
 	transform_sse.hh raster_handle.hh raster_handle.cc \
-	player.cc player.hh diff_generator.hh diff_generator.cc
+	player.cc player.hh diff_generator.hh diff_generator.cc serialized_frame.hh \
+	serialized_frame.cc

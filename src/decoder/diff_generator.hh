@@ -3,6 +3,7 @@
 
 #include "decoder.hh"
 #include "frame.hh"
+#include "serialized_frame.hh"
 
 /* Specialized version of Decoder which holds all necessary
  * state for generating diffs between streams */
@@ -18,7 +19,9 @@ public:
 
   bool decode_frame( const Chunk & frame, RasterHandle & raster );
 
-  std::vector< uint8_t > operator-( const DiffGenerator & source_decoder ) const;
+  std::string source_hash_str( const Decoder & source ) const;
+
+  SerializedFrame operator-( const DiffGenerator & source_decoder ) const;
 
 };
 #endif

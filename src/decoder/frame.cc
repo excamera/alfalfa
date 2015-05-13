@@ -32,6 +32,30 @@ ProbabilityArray< num_segments > Frame<FrameHeaderType, MacroblockType>::calcula
   return mb_segment_tree_probs;
 }
 
+template <>
+array<bool, 4> KeyFrame::used_references( void ) const
+{
+  return { false, false, false, false };
+}
+
+template <>
+array<bool, 4> InterFrame::used_references( void ) const
+{
+  array<bool, 4> refs;
+  refs.fill( false );
+
+  if ( continuation_header_.initialized() ) {
+    refs[0] = true;
+  }
+
+  macroblock_headers_.get().forall( [&] ( const InterFrameMacroblock & mb ) {
+				    if ( not mb.continuation() and mb.inter_coded() ) {
+				      refs[ mb.header().reference() ] = true;
+				    } } );
+  
+  return refs;
+}
+
 template <class FrameHeaderType, class MacroblockType>
 void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers( BoolDecoder & rest_of_first_partition,
 								       const ProbabilityTables & probability_tables )

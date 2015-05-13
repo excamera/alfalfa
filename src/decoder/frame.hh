@@ -65,6 +65,8 @@ class Frame
   const FrameHeaderType & header( void ) const { return header_; }
   const Optional< ContinuationHeader > & continuation_header( void ) const { return continuation_header_; }
 
+  std::array<bool, 4> used_references( void ) const;
+
   void parse_macroblock_headers( BoolDecoder & rest_of_first_partition,
 				 const ProbabilityTables & probability_tables );
 

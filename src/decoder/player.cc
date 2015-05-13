@@ -2,78 +2,11 @@
 #include "uncompressed_chunk.hh"
 #include "decoder_state.hh"
 #include "diff_generator.hh"
+#include "serialized_frame.hh"
 
 #include <fstream>
 
 using namespace std;
-
-SerializedFrame::SerializedFrame( const std::string & path )
-  : frame_ {},
-    source_desc_ {},
-    target_desc_ {}
-{
-  size_t name_position = path.rfind("/");
-
-  if ( name_position == string::npos ) {
-    name_position = 0;
-  } else {
-    name_position++;
-  }
-
-  size_t separator_pos = path.find( "#", name_position );
-
-  if ( separator_pos == string::npos ) {
-    throw internal_error( "Decoding frame", "invalid filename" );
-  }
-
-  source_desc_ = string( path, name_position, separator_pos - 1 );
-  target_desc_ = string( path, separator_pos + 1 );
-
-  basic_ifstream<uint8_t> file( path );
-  file.seekg( 0, file.end );
-  int size = file.tellg();
-  file.seekg( 0, file.beg );
-
-  frame_.reserve( size );
-  file.read( frame_.data(), size );
-}
-
-SerializedFrame::SerializedFrame( const vector<uint8_t> & frame,
-				  const string & source_hash,
-				  const string & target_hash )
-  : frame_( frame ),
-    source_desc_( source_hash ),
-    target_desc_( target_hash )
-{}
-
-SerializedFrame::SerializedFrame( const Chunk & frame,
-				  const string & source_hash,
-				  const string & target_hash )
-  : SerializedFrame( vector<uint8_t>( frame.buffer(), frame.buffer() + frame.size() ),
-		     source_hash, target_hash )
-{}
-
-Chunk SerializedFrame::chunk( void ) const
-{
-  return Chunk( &frame_.at( 0 ), frame_.size() );
-}
-
-bool SerializedFrame::validate_source( const Decoder & decoder ) const
-{
-  return source_desc_ == decoder.hash_str();
-}
-
-bool SerializedFrame::validate_target( const Decoder & decoder ) const
-{
-  return target_desc_ == decoder.hash_str();
-}
-
-void SerializedFrame::write( string path ) const
-{
-  basic_ofstream<uint8_t> file( path + source_desc_ + "#" + target_desc_ );
-
-  file.write( frame_.data(), frame_.size() );
-}
 
 template<class DecoderType>
 FramePlayer<DecoderType>::FramePlayer( const uint16_t width, const uint16_t height )
@@ -105,12 +38,6 @@ const Raster & FramePlayer<DecoderType>::example_raster( void ) const
   return decoder_.example_raster();
 }
 
-template<class DecoderType>
-std::string FramePlayer<DecoderType>::hash_str( void ) const
-{
-  return decoder_.hash_str();
-}
-
 template<>
 SerializedFrame FramePlayer<DiffGenerator>::operator-( const FramePlayer & source_player ) const
 {
@@ -119,9 +46,7 @@ SerializedFrame FramePlayer<DiffGenerator>::operator-( const FramePlayer & sourc
     throw Unsupported( "stream size mismatch" );
   }
 
-  vector<uint8_t> diff = decoder_ - source_player.decoder_;
-
-  return SerializedFrame( diff, source_player.hash_str(), hash_str() );
+  return decoder_ - source_player.decoder_;
 }
 
 template<class DecoderType>
@@ -174,17 +99,17 @@ RasterHandle FilePlayer<DecoderType>::advance( void )
   throw Unsupported( "hidden frames at end of file" );
 }
 
-template<class DecoderType>
-SerializedFrame FilePlayer<DecoderType>::serialize_next( void )
+template<>
+SerializedFrame FilePlayer<DiffGenerator>::serialize_next( void )
 {
-  string source_desc = this->hash_str();
+  Decoder source = this->decoder_;
   Chunk frame = file_.frame( frame_no_++ );
 
   RasterHandle throwaway_raster( this->width_, this->height_ );
 
   this->decoder_.decode_frame( frame, throwaway_raster );
 
-  return SerializedFrame( frame, source_desc, this->hash_str() );
+  return SerializedFrame( frame, this->decoder_.source_hash_str( source ), this->decoder_.hash_str() );
 }
 
 template<class DecoderType>

@@ -43,6 +43,40 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
   }
 }
 
+string Decoder::partial_hash_str( const array<bool, 4> & used_refs, const Decoder & source ) const
+{
+  string decoder_hash = to_string( source.state_.hash() ) + "_";
+
+  if ( used_refs[ 0 ] ) {
+    decoder_hash += to_string( source.references_.continuation.get().hash() );
+  } else {
+    decoder_hash += "x";
+  }
+  decoder_hash += "_";
+
+  if ( used_refs[ 1 ] ) {
+    decoder_hash += to_string( source.references_.last.get().hash() );
+  } else {
+    decoder_hash += "x";
+  }
+  decoder_hash += "_";
+
+  if ( used_refs[ 2 ] ) {
+    decoder_hash += to_string( source.references_.golden.get().hash() );
+  } else {
+    decoder_hash += "x";
+  }
+  decoder_hash += "_";
+
+  if ( used_refs[ 3 ] ) {
+    decoder_hash += to_string( source.references_.alternative_reference.get().hash() );
+  } else {
+    decoder_hash += "x";
+  }
+
+  return decoder_hash;
+}
+
 string Decoder::hash_str( void ) const
 {
   return to_string( state_.hash() ) + "_" + to_string( references_.continuation.get().hash() ) 

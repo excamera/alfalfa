@@ -46,17 +46,33 @@ bool DiffGenerator::decode_frame( const Chunk & frame, RasterHandle & raster )
   }
 }
 
+string DiffGenerator::source_hash_str( const Decoder & source ) const
+{
+  array<bool, 4> refs;
+  if ( on_key_frame_ ) {
+    refs = key_frame_.get().used_references();
+  }
+  else {
+    refs = inter_frame_.get().used_references();
+  }
+
+  return partial_hash_str( refs, source );
+}
+
 // This needs to be made const, which means rewriting rewrite_as_diff into make_continuation_frame
-vector<uint8_t> DiffGenerator::operator-( const DiffGenerator & source_decoder ) const
+SerializedFrame DiffGenerator::operator-( const DiffGenerator & source_decoder ) const
 {
   if ( on_key_frame_ ) {
-    return key_frame_.get().serialize( state_.probability_tables );
+    return SerializedFrame( key_frame_.get().serialize( state_.probability_tables ),
+			    "x_x_x_x", hash_str() );
   } else {
     InterFrame diff_frame( inter_frame_.get(), source_decoder.state_, state_,
 			   source_decoder.references_, references_ );
     
     diff_frame.optimize_continuation_coefficients();
 
-    return diff_frame.serialize( state_.probability_tables );
+    return SerializedFrame( diff_frame.serialize( state_.probability_tables ), 
+			    partial_hash_str( diff_frame.used_references(), source_decoder ),
+			    partial_hash_str( diff_frame.used_references(), *this ) );
   }
 }

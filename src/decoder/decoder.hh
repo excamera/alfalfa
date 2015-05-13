@@ -141,14 +141,16 @@ protected:
   DecoderState state_;  
   References references_;
 
+  std::string partial_hash_str( const std::array<bool, 4> & used_refs, const Decoder & source ) const;
+
 public:
   Decoder( const uint16_t width, const uint16_t height );
 
   const Raster & example_raster( void ) const { return references_.last; }
 
-  bool decode_frame( const Chunk & frame, RasterHandle & raster );
-
   std::string hash_str( void ) const;
+
+  bool decode_frame( const Chunk & frame, RasterHandle & raster );
 
   bool operator==( const Decoder & other ) const;
 };

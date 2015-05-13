@@ -7,7 +7,7 @@ using namespace std;
 
 void dump_vp8_frames( const string & video_path )
 {
-  Player player( video_path );
+  FilePlayer<DiffGenerator> player( video_path );
 
   while ( not player.eof() ) {
     SerializedFrame frame = player.serialize_next();
