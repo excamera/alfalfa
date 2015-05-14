@@ -10,7 +10,7 @@ class SerializedFrame
 {
 private:
   std::vector<uint8_t> frame_;
-  std::string source_desc_, target_desc_;
+  std::string source_hash_, target_hash_;
 
 public:
   SerializedFrame( const std::string & path );

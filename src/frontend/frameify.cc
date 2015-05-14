@@ -34,7 +34,7 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
   FilePlayer<DiffGenerator> source_player( source );
   FilePlayer<DiffGenerator> target_player( target );
 
-  manifest << source_player.width() << " " << source_player.height();
+  manifest << source_player.width() << " " << source_player.height() << "\n";
 
   /* Serialize source normally */
   while ( source_player.cur_displayed_frame() < switch_frame ) {
@@ -56,7 +56,7 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
   SerializedFrame continuation = target_player - diff_player;
   manifest << "C " << continuation.name() << "\n";
   continuation.write();
-
+  
   diff_player.decode( continuation );
 
   unsigned int last_displayed_frame = target_player.cur_displayed_frame();
@@ -92,7 +92,6 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
       continuation.write();
 
       diff_player.decode( continuation );
-    
     }
     
     last_displayed_frame = target_player.cur_displayed_frame();
