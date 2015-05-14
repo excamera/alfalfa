@@ -20,13 +20,18 @@ protected:
 public:
   FramePlayer( const uint16_t width, const uint16_t height );
 
-  RasterHandle decode( const SerializedFrame & frame );
+  Optional<RasterHandle> decode( const SerializedFrame & frame );
 
   const Raster & example_raster( void ) const;
+
+  bool can_decode( const SerializedFrame & frame ) const;
 
   bool equal_references( const FramePlayer & other ) const;
 
   void update_continuation( const FramePlayer & other );
+
+  uint16_t width( void ) const { return width_; }
+  uint16_t height( void ) const { return height_; }
 
   SerializedFrame operator-( const FramePlayer & source_player ) const;
   bool operator==( const FramePlayer & other ) const;

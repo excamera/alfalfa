@@ -52,13 +52,13 @@ SerializedFrame::SerializedFrame( const std::string & path )
   source_desc_ = string( path, name_position, separator_pos - 1 );
   target_desc_ = string( path, separator_pos + 1 );
 
-  basic_ifstream<uint8_t> file( path );
+  ifstream file( path, ifstream::binary );
   file.seekg( 0, file.end );
   int size = file.tellg();
   file.seekg( 0, file.beg );
 
-  frame_.reserve( size );
-  file.read( frame_.data(), size );
+  frame_.resize( size );
+  file.read( reinterpret_cast<char *>(frame_.data()), size );
 }
 
 SerializedFrame::SerializedFrame( const vector<uint8_t> & frame,

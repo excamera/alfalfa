@@ -1,20 +1,55 @@
 #include "player.hh"
 #include "display.hh"
 
+#include <fstream>
+
 using namespace std;
 
 int main( int argc, char * argv[] )
 {
-  if ( argc < 4 ) {
-    cerr << "Usage: WIDTH HEIGHT START_FRAME [ OTHER_FRAMES ... ]";
+  if ( argc < 2 ) {
+    cerr << "Usage: MANIFEST";
     return EXIT_FAILURE;
   }
 
-  FramePlayer<Decoder> player( stoi( argv[ 0 ] ), stoi( argv[ 1 ] ) );
+  ifstream manifest( argv[ 1 ] );
 
-  for ( int arg_idx = 3; arg_idx < argc; arg_idx++ ) {
-    SerializedFrame frame( argv[ arg_idx ] );
+  uint16_t width, height;
+  manifest >> width >> height;
 
-    RasterHandle raster = player.decode( frame );
+  FramePlayer<Decoder> player( width, height );
+  Optional<FramePlayer<Decoder>> source_copy;
+
+  VideoDisplay display { player.example_raster() };
+
+  while ( not manifest.eof() ) {
+    char frame_type;
+    string frame_name;
+    manifest >> frame_type >> frame_name;
+
+    Optional<RasterHandle> raster;
+    SerializedFrame frame( frame_name );
+
+    if ( frame_type == 'C' ) {
+      /* Copy the player to deal with incomplete diffs */
+      if ( not source_copy.initialized() ) {
+	source_copy.initialize( player );
+      }
+      raster = player.decode( frame );
+    }
+    else if ( frame_type == 'S' ) {
+      assert( source_copy.initialized() );
+
+      source_copy.get().decode( frame );
+
+      player.update_continuation( source_copy.get() );
+    }
+    else {
+      raster = player.decode( frame );
+    }
+
+    if ( raster.initialized() ) {
+      display.draw( raster.get() );
+    }
   }
 }

@@ -259,11 +259,10 @@ InterFrame::Frame( const InterFrame & original,
   macroblock_headers_.get().forall_ij( [&]( InterFrameMacroblock & macroblock,
 					    const unsigned int column,
 					    const unsigned int row ) {
-					 if ( macroblock.inter_coded() ) {
-					   if ( continuation_header_.get().is_missing( macroblock.header().reference() ) ) {
-					     macroblock.rewrite_as_diff( target_references.continuation.get().macroblock( column, row ),
-								         source_references.continuation.get().macroblock( column, row ) );
-					   }
+					 if ( macroblock.inter_coded() and
+					      continuation_header_.get().is_missing( macroblock.header().reference() ) ) {
+					   macroblock.rewrite_as_diff( target_references.continuation.get().macroblock( column, row ),
+								       source_references.continuation.get().macroblock( column, row ) );
 					 } } );
   relink_y2_blocks();
 }

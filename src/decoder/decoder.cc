@@ -87,6 +87,10 @@ string Decoder::hash_str( void ) const
 
 bool Decoder::equal_references( const Decoder & other ) const
 {
+  printf("CONT %d LAST %d GOLDEN %d ALT %d\n", references_.continuation.get() == other.references_.continuation.get(), references_.last.get() == other.references_.last.get(),
+references_.golden.get() == other.references_.golden.get(),
+references_.alternative_reference.get() == other.references_.alternative_reference.get());
+
   return references_.continuation.get() == other.references_.continuation.get() and
     references_.last.get() == other.references_.last.get() and
     references_.golden.get() == other.references_.golden.get() and

@@ -29,16 +29,87 @@ void generate_diff_frames( const string & source, const string & target )
   }
 }
 
-void single_switch( unsigned int switch_frame, const string & source, const string & target )
+void single_switch( ofstream & manifest, unsigned int switch_frame, const string & source, const string & target )
 {
   FilePlayer<DiffGenerator> source_player( source );
   FilePlayer<DiffGenerator> target_player( target );
 
+  manifest << source_player.width() << " " << source_player.height();
+
+  /* Serialize source normally */
+  while ( source_player.cur_displayed_frame() < switch_frame ) {
+    SerializedFrame frame = source_player.serialize_next();
+    manifest << "N " << frame.name() << "\n";
+    frame.write();
+    if ( source_player.eof() ) {
+      throw Unsupported( "source ended before switch" );
+    }
+  }
+
+  /* Catch up target_player */
+  while ( target_player.cur_displayed_frame() < switch_frame ) {
+    target_player.advance();
+  }
+
+  FramePlayer<DiffGenerator> diff_player( source_player );
+
+  SerializedFrame continuation = target_player - diff_player;
+  manifest << "C " << continuation.name() << "\n";
+  continuation.write();
+
+  diff_player.decode( continuation );
+
+  unsigned int last_displayed_frame = target_player.cur_displayed_frame();
+
+  SerializedFrame next_target = target_player.serialize_next();
+
+  while ( not source_player.eof() and not target_player.eof() ) {
+    /* Could get rid of the can_decode and just make this a try catch */
+    if ( diff_player.can_decode( next_target ) ) {
+      manifest << "N " << next_target.name() << "\n";
+      next_target.write();
+
+      diff_player.decode( next_target );
+    }
+    else {
+      /* Make another diff */
+    
+      /* next_target wasn't displayed */
+      if ( target_player.cur_displayed_frame() == last_displayed_frame ) {
+	target_player.advance();
+      }
+
+      while ( source_player.cur_displayed_frame() < target_player.cur_displayed_frame() ) {
+	  SerializedFrame source_frame = source_player.serialize_next(); 
+	  manifest << "S " << source_frame.name() << "\n";
+      	  source_frame.write();
+      }
+
+      diff_player.update_continuation( source_player );
+    
+      continuation = target_player - diff_player;
+      manifest << "C " << continuation.name() << "\n";
+      continuation.write();
+
+      diff_player.decode( continuation );
+    
+    }
+    
+    last_displayed_frame = target_player.cur_displayed_frame();
+    next_target = target_player.serialize_next();
+  }
+}
+
+# if 0
+void single_switch( ofstream & manifest, unsigned int switch_frame, const string & source, const string & target )
+{
+  FilePlayer<DiffGenerator> source_player( source );
+  FilePlayer<DiffGenerator> target_player( target );
 
   while ( not source_player.eof() and not target_player.eof() ) {
     if ( source_player.cur_displayed_frame() < switch_frame ) {
       SerializedFrame frame = source_player.serialize_next();
-      cout << frame.name() << "\n";
+      manifest << "N " << frame.name() << "\n";
       frame.write();
     }
     else {
@@ -48,7 +119,7 @@ void single_switch( unsigned int switch_frame, const string & source, const stri
       	  target_player.advance();
       	}
       	SerializedFrame frame = target_player - source_player;
-      	cout << frame.name() << "\n";
+	manifest << "C " << frame.name() << "\n";
       	frame.write();
 
       	FramePlayer<DiffGenerator> diff_player( source_player );
@@ -60,7 +131,7 @@ void single_switch( unsigned int switch_frame, const string & source, const stri
       	  while ( old_displayed_no == source_player.cur_displayed_frame() ) {
       	    // Need some way to signify that we are forking the decoding process
       	    frame = source_player.serialize_next(); 
-      	    cout << frame.name() << "\n";
+	    manifest << "S " << frame.name() << "\n";
       	    frame.write();
       	  }
 
@@ -68,7 +139,7 @@ void single_switch( unsigned int switch_frame, const string & source, const stri
       	  target_player.advance();
 
       	  frame = target_player - diff_player;
-      	  cout << frame.name() << "\n";
+	  manifest << "C " << frame.name() << "\n";
       	  frame.write();
 
       	  diff_player.decode( frame );
@@ -79,11 +150,12 @@ void single_switch( unsigned int switch_frame, const string & source, const stri
       	}
       }
       SerializedFrame frame = target_player.serialize_next();
-      cout << frame.name() << "\n";
+      manifest << "N " << frame.name() << "\n";
       frame.write();
     }
   }
 }
+#endif
 
 int main( int argc, char * argv[] )
 {
@@ -92,6 +164,8 @@ int main( int argc, char * argv[] )
     return EXIT_FAILURE;
   }
 
+  ofstream manifest( argv[ 1 ] );
+
   if ( argc == 3 ) {
     dump_vp8_frames( argv[ 2 ] );
   }
@@ -99,7 +173,7 @@ int main( int argc, char * argv[] )
     generate_diff_frames( argv[ 2 ], argv[ 3 ] );
   }
   else if ( argc == 5 ) {
-    single_switch( stoi( argv[ 2 ] ), argv[ 3 ], argv[ 4 ]);
+    single_switch( manifest, stoi( argv[ 2 ] ), argv[ 3 ], argv[ 4 ]);
   }
 
 }
