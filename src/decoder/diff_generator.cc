@@ -2,6 +2,8 @@
 #include "uncompressed_chunk.hh"
 #include "decoder_state.hh"
 
+#include <sstream>
+
 using namespace std;
 
 DiffGenerator::DiffGenerator( const uint16_t width, const uint16_t height )
@@ -52,6 +54,16 @@ bool DiffGenerator::decode_frame( const Chunk & frame, RasterHandle & raster )
   }
 }
 
+string DiffGenerator::cur_frame_stats( void ) const
+{
+  if ( on_key_frame_ ) {
+    return "\tKeyFrame\n";
+  }
+  else {
+    return "\tInterFrame\n" + inter_frame_.get().stats();
+  }
+}
+
 string DiffGenerator::source_hash_str( const Decoder & source ) const
 {
   array<bool, 4> refs;
@@ -62,7 +74,7 @@ string DiffGenerator::source_hash_str( const Decoder & source ) const
     refs = inter_frame_.get().used_references();
   }
 
-  return partial_hash_str( refs, source );
+  return source.hash_str( refs );
 }
 
 // This needs to be made const, which means rewriting rewrite_as_diff into make_continuation_frame
@@ -74,11 +86,13 @@ SerializedFrame DiffGenerator::operator-( const DiffGenerator & source_decoder )
   } else {
     InterFrame diff_frame( inter_frame_.get(), source_decoder.state_, state_,
 			   source_decoder.references_, references_ );
-    
+
     diff_frame.optimize_continuation_coefficients();
 
+    References diff_references = diff_frame.continuation_target_references( references_, source_decoder.references_ );
+
     return SerializedFrame( diff_frame.serialize( state_.probability_tables ), 
-			    partial_hash_str( diff_frame.used_references(), source_decoder ),
-			    partial_hash_str( diff_frame.used_references(), *this ) );
+			    source_decoder.hash_str( diff_frame.used_references() ),
+			    hash_str( { true, true, true, true }, diff_references ) );
   }
 }

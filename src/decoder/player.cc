@@ -57,6 +57,12 @@ void FramePlayer<DecoderType>::update_continuation( const FramePlayer & other )
 }
 
 template<>
+string FramePlayer<DiffGenerator>::cur_frame_stats( void ) const
+{
+  return decoder_.cur_frame_stats();
+}
+
+template<>
 SerializedFrame FramePlayer<DiffGenerator>::operator-( const FramePlayer & source_player ) const
 {
   if ( width_ != source_player.width_ or
@@ -120,14 +126,12 @@ RasterHandle FilePlayer<DecoderType>::advance( void )
 }
 
 template<>
-SerializedFrame FilePlayer<DiffGenerator>::serialize_next( void )
+SerializedFrame FilePlayer<DiffGenerator>::serialize_next( RasterHandle & raster )
 {
   Decoder source = this->decoder_;
   Chunk frame = file_.frame( frame_no_++ );
 
-  RasterHandle throwaway_raster( this->width_, this->height_ );
-
-  bool shown = this->decoder_.decode_frame( frame, throwaway_raster );
+  bool shown = this->decoder_.decode_frame( frame, raster );
 
   if ( shown ) {
     displayed_frame_no_++;

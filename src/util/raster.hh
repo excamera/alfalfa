@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <boost/functional/hash.hpp>
+#include <cmath>
 
 #include "2d.hh"
 #include "safe_array.hh"
@@ -202,6 +203,18 @@ public:
   unsigned int display_height( void ) const { return display_height_; }
 
   static unsigned int macroblock_dimension( const unsigned int num ) { return ( num + 15 ) / 16; }
+
+  double psnr( const Raster & other ) const
+  {
+    double y_mse = 0;
+    Y_.forall_ij( [&]( uint8_t pixel, unsigned int column, unsigned int row )
+		  {
+		    y_mse += pow( pixel - other.Y_.at( column, row ), 2 );
+		  } );
+    y_mse *= ( 1 / ( width_ * height_ ) );
+
+    return 20 * log10( 255 ) - 10 * log10( y_mse );
+  }
 
   bool operator==( const Raster & other ) const
   {

@@ -21,6 +21,8 @@ public:
 
   bool decode_frame( const Chunk & frame, RasterHandle & raster );
 
+  std::string cur_frame_stats( void ) const;
+
   std::string source_hash_str( const Decoder & source ) const;
 
   SerializedFrame operator-( const DiffGenerator & source_decoder ) const;

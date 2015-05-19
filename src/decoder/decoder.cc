@@ -4,6 +4,8 @@
 #include "decoder_state.hh"
 #include "diff_generator.hh"
 
+#include <sstream>
+
 using namespace std;
 
 Decoder::Decoder( const uint16_t width, const uint16_t height )
@@ -43,46 +45,56 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
   }
 }
 
-string Decoder::partial_hash_str( const array<bool, 4> & used_refs, const Decoder & source ) const
+string Decoder::hash_str( const array<bool, 4> & used_refs, 
+				  const References & references ) const
 {
-  string decoder_hash = to_string( source.state_.hash() ) + "_";
+  stringstream decoder_hash;
+  decoder_hash << hex << uppercase;
+
+  decoder_hash << state_.hash() << "_";
 
   if ( used_refs[ 0 ] ) {
-    decoder_hash += to_string( source.references_.continuation.get().hash() );
+    decoder_hash << references.continuation.get().hash();
   } else {
-    decoder_hash += "x";
+    decoder_hash << "x";
   }
-  decoder_hash += "_";
+  decoder_hash << "_";
 
   if ( used_refs[ 1 ] ) {
-    decoder_hash += to_string( source.references_.last.get().hash() );
+    decoder_hash << references.last.get().hash();
   } else {
-    decoder_hash += "x";
+    decoder_hash << "x";
   }
-  decoder_hash += "_";
+  decoder_hash << "_";
 
   if ( used_refs[ 2 ] ) {
-    decoder_hash += to_string( source.references_.golden.get().hash() );
+    decoder_hash << references.golden.get().hash();
   } else {
-    decoder_hash += "x";
+    decoder_hash << "x";
   }
-  decoder_hash += "_";
+  decoder_hash << "_";
 
   if ( used_refs[ 3 ] ) {
-    decoder_hash += to_string( source.references_.alternative_reference.get().hash() );
+    decoder_hash << references.alternative_reference.get().hash();
   } else {
-    decoder_hash += "x";
+    decoder_hash << "x";
   }
 
-  return decoder_hash;
+  return decoder_hash.str();
+}
+
+string Decoder::hash_str( const array<bool, 4> & used_refs ) const
+{
+  return hash_str( used_refs, references_ );
 }
 
 string Decoder::hash_str( void ) const
 {
-  return to_string( state_.hash() ) + "_" + to_string( references_.continuation.get().hash() ) 
-    + "_" + to_string( references_.last.get().hash() ) + "_" + 
-    to_string( references_.golden.get().hash() ) + "_" + 
-    to_string( references_.alternative_reference.get().hash() );
+  /* All references set to used so partial_hash hashes every reference */
+  array<bool, 4> used_refs;
+  used_refs.fill( true );
+
+  return hash_str( used_refs );
 }
 
 bool Decoder::equal_references( const Decoder & other ) const

@@ -82,6 +82,13 @@ class Frame
 
   void copy_to( const RasterHandle & raster, References & references ) const;
 
+  std::string reference_update_stats( void ) const;
+
+  std::string stats( void ) const;
+
+  References continuation_target_references( const References & references, 
+					     const References & source_references ) const;
+
   void optimize_continuation_coefficients( void );
 
   std::vector< uint8_t > serialize( const ProbabilityTables & probability_tables ) const;

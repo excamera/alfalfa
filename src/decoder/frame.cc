@@ -258,13 +258,14 @@ void Frame<FrameHeaderType, MacroblockType>::relink_y2_blocks( void )
     } );
 }
 
-template <>
+template<>
 void KeyFrame::copy_to( const RasterHandle & raster, References & references ) const
 {
   references.last = references.golden = references.alternative_reference = raster;
 }
 
-template <>
+
+template<>
 void InterFrame::copy_to( const RasterHandle & raster, References & references ) const
 {
   if ( header_.copy_buffer_to_alternate.initialized() ) {
@@ -295,6 +296,118 @@ void InterFrame::copy_to( const RasterHandle & raster, References & references )
     references.last = raster;
   }
 }
+
+template<>
+string InterFrame::reference_update_stats( void ) const
+{
+  string stats = "\t";
+  if ( header_.copy_buffer_to_alternate.initialized() ) {
+    if ( header_.copy_buffer_to_alternate.get() == 1 ) {
+      stats += "ALT with LAST ";
+    } else if ( header_.copy_buffer_to_alternate.get() == 2 ) {
+      stats += "ALT with GOLD ";
+    }
+  }
+
+  if ( header_.copy_buffer_to_golden.initialized() ) {
+    if ( header_.copy_buffer_to_golden.get() == 1 ) {
+      stats += "GOLD with LAST ";
+    } else if ( header_.copy_buffer_to_golden.get() == 2 ) {
+      stats += "GOLD with ALT ";
+    }
+  }
+
+  if ( header_.refresh_golden_frame ) {
+    stats += "refresh GOLD ";
+  }
+
+  if ( header_.refresh_alternate_frame ) {
+    stats += "refresh ALT ";
+  }
+
+  if ( header_.refresh_last ) {
+    stats += "refresh LAST ";
+  }
+
+  return stats + "\n";
+}
+
+template<>
+string KeyFrame::stats( void ) const
+{
+  return "";
+}
+
+template<>
+string InterFrame::stats( void ) const
+{
+  int total_macroblocks = macroblock_width_ * macroblock_height_;
+  int inter_coded_macroblocks = 0;
+  /* Tracks the percentage of inter coded blocks that refer to a given reference */
+  array<int, 4> ref_percentages;
+  ref_percentages.fill( 0 );
+
+  macroblock_headers_.get().forall( [&] ( const InterFrameMacroblock & macroblock )
+				    {
+				      if ( macroblock.inter_coded() ) {
+					inter_coded_macroblocks++;
+					if ( macroblock.continuation() ) {
+					  ref_percentages[ 0 ]++;
+					}
+					else {
+					  ref_percentages[ macroblock.header().reference() ]++;
+					}
+				      }
+				    } );
+
+  return "\tPercentage Inter Coded: " + 
+    to_string( (double)inter_coded_macroblocks * 100 / total_macroblocks ) + "%\n" +
+    "\tContinuation: " + to_string( (double)ref_percentages[ 0 ] * 100 / inter_coded_macroblocks ) + "%" +
+    " Last: " + to_string( (double)ref_percentages[ 1 ] * 100 / inter_coded_macroblocks ) + "%" +
+    " Golden: " + to_string( (double)ref_percentages[ 2 ] * 100 / inter_coded_macroblocks ) + "%" +
+    " Alternate: " + to_string( (double)ref_percentages[ 3 ] * 100 / inter_coded_macroblocks ) + "%\n" +
+    reference_update_stats();
+}
+
+template<>
+References InterFrame::continuation_target_references( const References & target_references, 
+						       const References & source_references ) const
+{
+  References diff_references = source_references;
+  string stats = "\t";
+  if ( header_.copy_buffer_to_alternate.initialized() ) {
+    if ( header_.copy_buffer_to_alternate.get() == 1 ) {
+      diff_references.alternative_reference = source_references.last;
+    } else if ( header_.copy_buffer_to_alternate.get() == 2 ) {
+      diff_references.alternative_reference = source_references.golden;
+    }
+  }
+
+  if ( header_.copy_buffer_to_golden.initialized() ) {
+    if ( header_.copy_buffer_to_golden.get() == 1 ) {
+      diff_references.golden = source_references.last;
+    } else if ( header_.copy_buffer_to_golden.get() == 2 ) {
+      diff_references.golden = source_references.alternative_reference;
+    }
+  }
+
+  if ( header_.refresh_golden_frame ) {
+    diff_references.golden = target_references.golden;
+  }
+
+  if ( header_.refresh_alternate_frame ) {
+    diff_references.alternative_reference = target_references.alternative_reference;
+  }
+
+  if ( header_.refresh_last ) {
+    diff_references.last = target_references.last; 
+  }
+
+  diff_references.continuation = target_references.continuation;
+
+  return diff_references;
+}
+
 
 template class Frame< KeyFrameHeader, KeyFrameMacroblock >;
 template class Frame< InterFrameHeader, InterFrameMacroblock >;

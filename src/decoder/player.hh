@@ -30,6 +30,8 @@ public:
 
   void update_continuation( const FramePlayer & other );
 
+  std::string cur_frame_stats( void ) const;
+
   uint16_t width( void ) const { return width_; }
   uint16_t height( void ) const { return height_; }
 
@@ -54,7 +56,7 @@ public:
 
   RasterHandle advance( void );
 
-  SerializedFrame serialize_next( void );
+  SerializedFrame serialize_next( RasterHandle & raster );
   
   bool eof( void ) const;
 

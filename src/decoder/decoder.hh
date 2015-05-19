@@ -141,12 +141,15 @@ protected:
   DecoderState state_;  
   References references_;
 
-  std::string partial_hash_str( const std::array<bool, 4> & used_refs, const Decoder & source ) const;
-
 public:
   Decoder( const uint16_t width, const uint16_t height );
 
   const Raster & example_raster( void ) const { return references_.last; }
+
+  std::string hash_str( const std::array<bool, 4> & used_refs, 
+			const References & references ) const;
+
+  std::string hash_str( const std::array<bool, 4> & used_refs ) const;
 
   std::string hash_str( void ) const;
 
