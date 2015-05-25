@@ -59,16 +59,17 @@ InterFrameMacroblock::Macroblock( const typename TwoD< Macroblock >::Context & c
 	      			  TwoD< UVBlock > & frame_U,
 	      			  TwoD< UVBlock > & frame_V )
   : context_( c ),
-    segment_id_update_{},
+    segment_id_update_( old_macroblocks.at( c.column, c.row ).segment_id_update_ ),
     segment_id_( old_macroblocks.at( c.column, c.row ).segment_id_ ),
     mb_skip_coeff_( old_macroblocks.at( c.column, c.row ).mb_skip_coeff_ ),
     header_( old_macroblocks.at( c.column, c.row ).header_ ),
     continuation_( false ),
-    loopfilter_skip_subblock_edges_{},
+    loopfilter_skip_subblock_edges_( old_macroblocks.at( c.column, c.row ).loopfilter_skip_subblock_edges_ ),
     Y2_( frame_Y2.at( c.column, c.row ) ),
     Y_( frame_Y, c.column * 4, c.row * 4 ),
     U_( frame_U, c.column * 2, c.row * 2 ),
-    V_( frame_V, c.column * 2, c.row * 2 )
+    V_( frame_V, c.column * 2, c.row * 2 ),
+    has_nonzero_( old_macroblocks.at( c.column, c.row ).has_nonzero_ )
 {}
 
 template <class FrameHeaderType, class MacroblockHeaderType>

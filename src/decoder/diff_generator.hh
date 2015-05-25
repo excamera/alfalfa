@@ -11,8 +11,12 @@ class DiffGenerator : public Decoder
 {
 private:
   bool on_key_frame_;
-  Optional<KeyFrame> key_frame_ {};
-  Optional<InterFrame> inter_frame_ {};
+  Optional<KeyFrame> key_frame_;
+  Optional<InterFrame> inter_frame_;
+
+  /* Need to know the previous set of references to calculate which references
+   * are missing for a continuation frame */
+  References prev_references_;
 
 public:
   DiffGenerator( const uint16_t width, const uint16_t height );

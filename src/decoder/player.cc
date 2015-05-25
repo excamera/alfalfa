@@ -18,7 +18,7 @@ template<class DecoderType>
 Optional<RasterHandle> FramePlayer<DecoderType>::decode( const SerializedFrame & frame )
 {
   if ( not frame.validate_source( decoder_ ) ) {
-    throw Unsupported( "Decoded frame from incorrect state" );
+    throw Invalid( "Decoded frame from incorrect state" );
   }
 
   RasterHandle raster( width_, height_ );
@@ -26,12 +26,12 @@ Optional<RasterHandle> FramePlayer<DecoderType>::decode( const SerializedFrame &
   bool shown = decoder_.decode_frame( frame.chunk(), raster );
 
   if ( not frame.validate_target( decoder_ ) ) {
-    throw Unsupported( "Target doesn't match after decode" );
+    throw Invalid( "Target doesn't match after decode" );
   }
 
   return Optional<RasterHandle>( shown, raster );
 }
-
+  
 template<class DecoderType>
 bool FramePlayer<DecoderType>::can_decode( const SerializedFrame & frame ) const
 {
@@ -126,10 +126,12 @@ RasterHandle FilePlayer<DecoderType>::advance( void )
 }
 
 template<>
-SerializedFrame FilePlayer<DiffGenerator>::serialize_next( RasterHandle & raster )
+SerializedFrame FilePlayer<DiffGenerator>::serialize_next( void )
 {
   Decoder source = this->decoder_;
   Chunk frame = file_.frame( frame_no_++ );
+
+  RasterHandle raster( width_, height_ );
 
   bool shown = this->decoder_.decode_frame( frame, raster );
 

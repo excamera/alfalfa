@@ -56,7 +56,7 @@ public:
 
   RasterHandle advance( void );
 
-  SerializedFrame serialize_next( RasterHandle & raster );
+  SerializedFrame serialize_next( void );
   
   bool eof( void ) const;
 

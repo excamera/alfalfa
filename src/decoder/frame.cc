@@ -374,7 +374,6 @@ References InterFrame::continuation_target_references( const References & target
 						       const References & source_references ) const
 {
   References diff_references = source_references;
-  string stats = "\t";
   if ( header_.copy_buffer_to_alternate.initialized() ) {
     if ( header_.copy_buffer_to_alternate.get() == 1 ) {
       diff_references.alternative_reference = source_references.last;

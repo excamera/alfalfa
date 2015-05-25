@@ -8,13 +8,19 @@ using namespace std;
 
 DiffGenerator::DiffGenerator( const uint16_t width, const uint16_t height )
   : Decoder( width, height ),
-    on_key_frame_ { true }
+    on_key_frame_( true ),
+    key_frame_(),
+    inter_frame_(),
+    prev_references_( width, height )
 {}
 
 /* Since frames are uncopyable, only copy the base */
 DiffGenerator::DiffGenerator( const DiffGenerator & other )
   : Decoder ( other ),
-    on_key_frame_ ( false )
+    on_key_frame_ ( false ),
+    key_frame_(),
+    inter_frame_(),
+    prev_references_( other.prev_references_ )
 {}
 
 bool DiffGenerator::decode_frame( const Chunk & frame, RasterHandle & raster )
@@ -46,6 +52,11 @@ bool DiffGenerator::decode_frame( const Chunk & frame, RasterHandle & raster )
 
     references_.update_continuation( raster );
 
+    /* Only need to copy prev_references for inter frames, since keyframes don't depend on them,
+     * also copy after update_continuation so prev_references_ has the latest preloop for
+     * diff creation */
+    prev_references_ = references_;
+
     inter_frame_.get().loopfilter( state_.segmentation, state_.filter_adjustments, raster );
 
     inter_frame_.get().copy_to( raster, references_ );
@@ -60,7 +71,22 @@ string DiffGenerator::cur_frame_stats( void ) const
     return "\tKeyFrame\n";
   }
   else {
-    return "\tInterFrame\n" + inter_frame_.get().stats();
+    string stats = "\tInterFrame\n" + inter_frame_.get().stats(); 
+    if ( inter_frame_.get().continuation_header().initialized() ) {
+      ContinuationHeader c_hdr = inter_frame_.get().continuation_header().get();
+      stats += "\t";
+      if ( c_hdr.missing_last_frame ) {
+	stats += "Missing Last ";
+      }
+      if ( c_hdr.missing_golden_frame ) {
+	stats += "Missing Gold ";
+      }
+      if ( c_hdr.missing_alternate_reference_frame ) {
+	stats += "Missing ALT ";
+      }
+      stats += "\n";
+    }
+    return stats;
   }
 }
 
@@ -68,13 +94,12 @@ string DiffGenerator::source_hash_str( const Decoder & source ) const
 {
   array<bool, 4> refs;
   if ( on_key_frame_ ) {
-    refs = key_frame_.get().used_references();
+    return "x_x_x_x_x";
   }
   else {
     refs = inter_frame_.get().used_references();
+    return source.hash_str( refs );
   }
-
-  return source.hash_str( refs );
 }
 
 // This needs to be made const, which means rewriting rewrite_as_diff into make_continuation_frame
@@ -82,10 +107,10 @@ SerializedFrame DiffGenerator::operator-( const DiffGenerator & source_decoder )
 {
   if ( on_key_frame_ ) {
     return SerializedFrame( key_frame_.get().serialize( state_.probability_tables ),
-			    "x_x_x_x", hash_str() );
+			    "x_x_x_x_x", hash_str() );
   } else {
     InterFrame diff_frame( inter_frame_.get(), source_decoder.state_, state_,
-			   source_decoder.references_, references_ );
+			   source_decoder.references_, prev_references_ );
 
     diff_frame.optimize_continuation_coefficients();
 

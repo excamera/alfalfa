@@ -44,9 +44,8 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
 
   /* Serialize source normally */
   while ( source_player.cur_displayed_frame() < switch_frame ) {
-    RasterHandle stream_raster( target_player.width(), target_player.height() );
-    SerializedFrame frame = source_player.serialize_next( stream_raster );
-    manifest << "N " << frame.name() << "\n";
+    SerializedFrame frame = source_player.serialize_next();
+    manifest << "N " << frame.name() << endl;
     cout << "N " << frame.name() << "\n";
     cout << source_player.cur_frame_stats();
     frame.write();
@@ -56,6 +55,7 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
   }
   
   /* At this point we generate the first continuation frame */
+  cout << "First Continuation\n";
 
   /* Catch up target_player */
   while ( target_player.cur_displayed_frame() < switch_frame ) {
@@ -65,12 +65,13 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
   FramePlayer<DiffGenerator> diff_player( source_player );
 
   SerializedFrame continuation = target_player - diff_player;
-  manifest << "C " << continuation.name() << "\n";
+  manifest << "C " << continuation.name() << endl;
   continuation.write();
   
+  cout << "C " << continuation.name() << "\n";
+
   diff_player.decode( continuation );
 
-  cout << "C " << continuation.name() << "\n";
   cout << "  Continuation Info\n";
   cout << diff_player.cur_frame_stats();
   cout << "  Corresponding Target Info\n";
@@ -78,13 +79,15 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
 
   unsigned int last_displayed_frame = target_player.cur_displayed_frame();
 
-  RasterHandle stream_raster( target_player.width(), target_player.height() );
-  SerializedFrame next_target = target_player.serialize_next( stream_raster );
+  SerializedFrame next_target = target_player.serialize_next();
 
   while ( not source_player.eof() and not target_player.eof() ) {
     /* Could get rid of the can_decode and just make this a try catch */
     if ( diff_player.can_decode( next_target ) ) {
-      manifest << "N " << next_target.name() << "\n";
+      manifest << "N " << next_target.name() << endl;
+      cout << "N " << next_target.name() << "\n";
+
+      cout << target_player.cur_frame_stats() << "\n";
       next_target.write();
 
       diff_player.decode( next_target );
@@ -93,15 +96,16 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
       /* next_target wasn't displayed */
       if ( target_player.cur_displayed_frame() == last_displayed_frame ) {
 	/* PSNR for continuation frames calculated from target raster */
-	stream_raster = target_player.advance();
+	target_player.advance();
       }
 
       /* Write out all the source frames up to the position of target_player */
       while ( source_player.cur_displayed_frame() < target_player.cur_displayed_frame() ) {
-	RasterHandle source_raster( source_player.width(), source_player.height() ); /* Don't really care about PSNR of S frames */
+	/* Don't really care about PSNR of S frames */
+	RasterHandle source_raster( source_player.width(), source_player.height() );
 
-	SerializedFrame source_frame = source_player.serialize_next( source_raster ); 
-	manifest << "S " << source_frame.name() << "\n";
+	SerializedFrame source_frame = source_player.serialize_next();
+	manifest << "S " << source_frame.name() << endl;
 
 	cout << "S " << source_frame.name() << "\n";
 	cout << source_player.cur_frame_stats();
@@ -112,8 +116,11 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
 
       /* Make another diff */
       continuation = target_player - diff_player;
+      continuation.write();
 
-      manifest << "C " << continuation.name() << "\n";
+      manifest << "C " << continuation.name() << endl;
+
+      diff_player.decode( continuation );
 
       cout << "C " << continuation.name() << "\n";
       cout << "  Continuation Info\n";
@@ -121,15 +128,12 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
       cout << "  Corresponding Target Info\n";
       cout << "   " << next_target.name() << "\n";
       cout << target_player.cur_frame_stats();
-
-      continuation.write();
-
-      diff_player.decode( continuation );
     }
     
     last_displayed_frame = target_player.cur_displayed_frame();
 
-    next_target = target_player.serialize_next( stream_raster );
+    next_target = target_player.serialize_next();
+    cout << "Next target name: " << next_target.name() << endl;
   }
 }
 

@@ -99,6 +99,10 @@ string Decoder::hash_str( void ) const
 
 bool Decoder::equal_references( const Decoder & other ) const
 {
+  if ( references_.continuation.get() == other.references_.continuation.get() ) {
+    cout << "Continuation refs equal\n";
+  }
+
   return references_.continuation.get() == other.references_.continuation.get() and
     references_.last.get() == other.references_.last.get() and
     references_.golden.get() == other.references_.golden.get() and
