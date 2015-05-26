@@ -47,6 +47,7 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
     SerializedFrame frame = source_player.serialize_next();
     manifest << "N " << frame.name() << endl;
     cout << "N " << frame.name() << "\n";
+    cout << "\tSize: " << frame.size() << "\n";
     cout << source_player.cur_frame_stats();
     frame.write();
     if ( source_player.eof() ) {
@@ -60,39 +61,25 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
   /* At this point we generate the first continuation frame */
   cout << "First Continuation\n";
 
-  /* Catch up target_player */
-  while ( target_player.cur_displayed_frame() < switch_frame ) {
+  /* Catch up target_player to one behind, since we serialize switch_frame */
+  while ( target_player.cur_displayed_frame() < switch_frame - 1 ) {
     target_player.advance();
   }
 
   FramePlayer<DiffGenerator> diff_player( source_player );
 
-  SerializedFrame continuation = target_player - diff_player;
-  manifest << "C " << continuation.name() << endl;
-  continuation.write();
-  continuation_frames_size += continuation.size();
-  
-  cout << "C " << continuation.name() << "\n";
-
-  diff_player.decode( continuation );
-
-  cout << "  Continuation Info\n";
-  cout << diff_player.cur_frame_stats();
-  cout << "  Corresponding Target Info\n";
-  cout << target_player.cur_frame_stats();
-
   unsigned int last_displayed_frame = target_player.cur_displayed_frame();
-
   SerializedFrame next_target = target_player.serialize_next();
 
   while ( not source_player.eof() and not target_player.eof() ) {
     /* Could get rid of the can_decode and just make this a try catch */
     if ( diff_player.can_decode( next_target ) ) {
       manifest << "N " << next_target.name() << endl;
-      cout << "N " << next_target.name() << "\n";
-
-      cout << target_player.cur_frame_stats() << "\n";
       next_target.write();
+
+      cout << "N " << next_target.name() << endl;
+      cout << "\tSize: " << next_target.size() << endl;
+      cout << target_player.cur_frame_stats() << endl;
 
       diff_player.decode( next_target );
     }
@@ -110,17 +97,19 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
 
 	SerializedFrame source_frame = source_player.serialize_next();
 	manifest << "S " << source_frame.name() << endl;
-
-	cout << "S " << source_frame.name() << "\n";
-	cout << source_player.cur_frame_stats();
       	source_frame.write();
+
 	source_frames_size += source_frame.size();
+
+	cout << "S " << source_frame.name() << endl;
+	cout << "\tSize: " << source_frame.size() << endl;
+	cout << source_player.cur_frame_stats();
       }
 
       diff_player.update_continuation( source_player );
 
       /* Make another diff */
-      continuation = target_player - diff_player;
+      SerializedFrame continuation = target_player - diff_player;
       continuation.write();
       continuation_frames_size += continuation.size();
 
@@ -132,8 +121,10 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
 
       cout << "C " << continuation.name() << "\n";
       cout << "  Continuation Info\n";
+      cout << "\tSize: " << continuation.size() << endl;
       cout << diff_player.cur_frame_stats();
       cout << "  Corresponding Target Info\n";
+      cout << "\tSize: " << next_target.size() << endl;
       cout << "   " << next_target.name() << "\n";
       cout << target_player.cur_frame_stats();
     }
