@@ -50,10 +50,13 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
     cout << source_player.cur_frame_stats();
     frame.write();
     if ( source_player.eof() ) {
-      throw Unsupported( "source ended before switch" );
+      throw Invalid( "source ended before switch" );
     }
   }
-  
+
+  unsigned source_frames_size = 0;
+  unsigned continuation_frames_size = 0;
+
   /* At this point we generate the first continuation frame */
   cout << "First Continuation\n";
 
@@ -67,6 +70,7 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
   SerializedFrame continuation = target_player - diff_player;
   manifest << "C " << continuation.name() << endl;
   continuation.write();
+  continuation_frames_size += continuation.size();
   
   cout << "C " << continuation.name() << "\n";
 
@@ -93,7 +97,7 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
       diff_player.decode( next_target );
     }
     else {
-      /* next_target wasn't displayed */
+      /* if the cur_displayed_frame is the same then next_target wasn't displayed, so advance */
       if ( target_player.cur_displayed_frame() == last_displayed_frame ) {
 	/* PSNR for continuation frames calculated from target raster */
 	target_player.advance();
@@ -110,6 +114,7 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
 	cout << "S " << source_frame.name() << "\n";
 	cout << source_player.cur_frame_stats();
       	source_frame.write();
+	source_frames_size += source_frame.size();
       }
 
       diff_player.update_continuation( source_player );
@@ -117,9 +122,12 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
       /* Make another diff */
       continuation = target_player - diff_player;
       continuation.write();
+      continuation_frames_size += continuation.size();
 
       manifest << "C " << continuation.name() << endl;
 
+      // Need to decode _before_ we call cur_frame_stats, 
+      // otherwise it will be the stats of the previous frame
       diff_player.decode( continuation );
 
       cout << "C " << continuation.name() << "\n";
@@ -135,6 +143,10 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
     next_target = target_player.serialize_next();
     cout << "Next target name: " << next_target.name() << endl;
   }
+
+  cout << "Total size of S frames: " << source_frames_size << endl;
+  cout << "Total size of C frames: " << continuation_frames_size << endl;
+  cout << "Total cost of switch: " << source_frames_size + continuation_frames_size << "\n";
 }
 
 int main( int argc, char * argv[] )

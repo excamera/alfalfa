@@ -92,6 +92,11 @@ string SerializedFrame::name( void ) const
   return source_hash_ + "#" + target_hash_;
 }
 
+unsigned SerializedFrame::size( void ) const
+{
+  return frame_.size();
+}
+
 void SerializedFrame::write( const string & path ) const
 {
   ofstream file( path + name(), ofstream::binary );

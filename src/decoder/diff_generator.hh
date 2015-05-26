@@ -29,6 +29,8 @@ public:
 
   std::string source_hash_str( const Decoder & source ) const;
 
+  std::string target_hash_str( void ) const;
+
   SerializedFrame operator-( const DiffGenerator & source_decoder ) const;
 
 };

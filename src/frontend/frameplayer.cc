@@ -27,6 +27,12 @@ int main( int argc, char * argv[] )
     string frame_name;
     manifest >> frame_type >> frame_name;
 
+    if ( frame_name == "" ) {
+      // Silly last line edge case
+      break;
+    }
+    cout << frame_type << " " << frame_name << endl;
+
     Optional<RasterHandle> raster;
     SerializedFrame frame( frame_name );
 

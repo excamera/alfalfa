@@ -66,6 +66,7 @@ class Frame
   const Optional< ContinuationHeader > & continuation_header( void ) const { return continuation_header_; }
 
   std::array<bool, 4> used_references( void ) const;
+  std::array<bool, 4> updated_references( void ) const;
 
   void parse_macroblock_headers( BoolDecoder & rest_of_first_partition,
 				 const ProbabilityTables & probability_tables );
@@ -85,9 +86,6 @@ class Frame
   std::string reference_update_stats( void ) const;
 
   std::string stats( void ) const;
-
-  References continuation_target_references( const References & references, 
-					     const References & source_references ) const;
 
   void optimize_continuation_coefficients( void );
 

@@ -55,6 +55,20 @@ array<bool, 4> InterFrame::used_references( void ) const
   return refs;
 }
 
+template<>
+array<bool, 4> KeyFrame::updated_references( void ) const
+{
+  return { true, true, true, true };
+}
+
+template<>
+array<bool, 4> InterFrame::updated_references( void ) const
+{
+  return { true, header_.refresh_last, header_.refresh_golden_frame,
+           header_.refresh_alternate_frame };
+}
+
+
 template <class FrameHeaderType, class MacroblockType>
 void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers( BoolDecoder & rest_of_first_partition,
 								       const ProbabilityTables & probability_tables )
@@ -368,45 +382,6 @@ string InterFrame::stats( void ) const
     " Alternate: " + to_string( (double)ref_percentages[ 3 ] * 100 / inter_coded_macroblocks ) + "%\n" +
     reference_update_stats();
 }
-
-template<>
-References InterFrame::continuation_target_references( const References & target_references, 
-						       const References & source_references ) const
-{
-  References diff_references = source_references;
-  if ( header_.copy_buffer_to_alternate.initialized() ) {
-    if ( header_.copy_buffer_to_alternate.get() == 1 ) {
-      diff_references.alternative_reference = source_references.last;
-    } else if ( header_.copy_buffer_to_alternate.get() == 2 ) {
-      diff_references.alternative_reference = source_references.golden;
-    }
-  }
-
-  if ( header_.copy_buffer_to_golden.initialized() ) {
-    if ( header_.copy_buffer_to_golden.get() == 1 ) {
-      diff_references.golden = source_references.last;
-    } else if ( header_.copy_buffer_to_golden.get() == 2 ) {
-      diff_references.golden = source_references.alternative_reference;
-    }
-  }
-
-  if ( header_.refresh_golden_frame ) {
-    diff_references.golden = target_references.golden;
-  }
-
-  if ( header_.refresh_alternate_frame ) {
-    diff_references.alternative_reference = target_references.alternative_reference;
-  }
-
-  if ( header_.refresh_last ) {
-    diff_references.last = target_references.last; 
-  }
-
-  diff_references.continuation = target_references.continuation;
-
-  return diff_references;
-}
-
 
 template class Frame< KeyFrameHeader, KeyFrameMacroblock >;
 template class Frame< InterFrameHeader, InterFrameMacroblock >;

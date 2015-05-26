@@ -92,14 +92,26 @@ string DiffGenerator::cur_frame_stats( void ) const
 
 string DiffGenerator::source_hash_str( const Decoder & source ) const
 {
-  array<bool, 4> refs;
   if ( on_key_frame_ ) {
     return "x_x_x_x_x";
   }
   else {
-    refs = inter_frame_.get().used_references();
+    array<bool, 4> refs = inter_frame_.get().used_references();
     return source.hash_str( refs );
   }
+}
+
+string DiffGenerator::target_hash_str( void ) const
+{
+  array<bool, 4> refs;
+  if ( on_key_frame_ ) {
+    refs = key_frame_.get().updated_references();
+  }
+  else {
+    refs = inter_frame_.get().updated_references();
+  }
+
+  return hash_str( refs );
 }
 
 // This needs to be made const, which means rewriting rewrite_as_diff into make_continuation_frame
@@ -114,10 +126,8 @@ SerializedFrame DiffGenerator::operator-( const DiffGenerator & source_decoder )
 
     diff_frame.optimize_continuation_coefficients();
 
-    References diff_references = diff_frame.continuation_target_references( references_, source_decoder.references_ );
-
     return SerializedFrame( diff_frame.serialize( state_.probability_tables ), 
 			    source_decoder.hash_str( diff_frame.used_references() ),
-			    hash_str( { true, true, true, true }, diff_references ) );
+			    hash_str( diff_frame.updated_references() ) );
   }
 }

@@ -26,7 +26,7 @@ Optional<RasterHandle> FramePlayer<DecoderType>::decode( const SerializedFrame &
   bool shown = decoder_.decode_frame( frame.chunk(), raster );
 
   if ( not frame.validate_target( decoder_ ) ) {
-    throw Invalid( "Target doesn't match after decode" );
+    throw Invalid( "Target doesn't match after decode: " + decoder_.hash_str() );
   }
 
   return Optional<RasterHandle>( shown, raster );
@@ -139,7 +139,7 @@ SerializedFrame FilePlayer<DiffGenerator>::serialize_next( void )
     displayed_frame_no_++;
   }
 
-  return SerializedFrame( frame, this->decoder_.source_hash_str( source ), this->decoder_.hash_str() );
+  return SerializedFrame( frame, this->decoder_.source_hash_str( source ), this->decoder_.target_hash_str() );
 }
 
 template<class DecoderType>

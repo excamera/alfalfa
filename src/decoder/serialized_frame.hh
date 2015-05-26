@@ -29,6 +29,8 @@ public:
 
   std::string name( void ) const;
 
+  unsigned size( void ) const;
+
   void write( const std::string & path = "" ) const;
 };
 
