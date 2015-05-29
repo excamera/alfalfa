@@ -32,3 +32,5 @@ Makefile.in
 /src/tests/encode-loopback
 /src/tests/extract-key-frames
 /src/tests/roundtrip
+/src/tests/frames-to-stdout
+/src/tests/switch-to-stdout

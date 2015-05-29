@@ -1,0 +1,33 @@
+#!/usr/bin/env perl
+
+use strict;
+use File::Path 'rmtree';
+
+sub switch_check {
+  my ( $switch_num, $source, $target ) = @_;
+  my $source_file = $ENV{'srcdir'} . '/../../alfalfa_test_vectors/' . ${source};
+  my $target_file = $ENV{'srcdir'} . '/../../alfalfa_test_vectors/' . ${target};
+
+  mkdir 'switch-dump';
+  chdir 'switch-dump';
+  system("../../frontend/frameify manifest $switch_num ../$source_file ../$target_file ../$target_file &> /dev/null");
+  my $frameify_sha1 = (split ' ', `../frames-to-stdout manifest | sha1sum`)[ 0 ];
+
+  chdir '..';
+  rmtree [ 'switch-dump' ];
+
+  my $correct_sha1 = (split ' ', `./switch-to-stdout $switch_num $source_file $target_file | sha1sum`)[ 0 ];
+
+  if ( $frameify_sha1 ne $correct_sha1 ) {
+    print STDERR "$0: switch mismatch: expected $correct_sha1, got $frameify_sha1\n";
+    exit ( 1 );
+  }
+  print STDERR "success.\n";
+};
+
+switch_check( 5, '353ee97f6cc145f43be2f67c893ec0347d822cc1', 
+	      'dbdd07032180b63689fc0475cdfac1ed927cd253' );
+
+print STDERR "$0: all tests passed\n";
+
+exit 0;

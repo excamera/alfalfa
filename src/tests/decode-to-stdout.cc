@@ -17,15 +17,7 @@ int main( int argc, char *argv[] )
     while ( not player.eof() ) {
       RasterHandle raster = player.advance();
 
-      for ( unsigned int row = 0; row < raster.get().display_height(); row++ ) {
-	fwrite( &raster.get().Y().at( 0, row ), raster.get().display_width(), 1, stdout );
-      }
-      for ( unsigned int row = 0; row < (1 + raster.get().display_height()) / 2; row++ ) {
-	fwrite( &raster.get().U().at( 0, row ), (1 + raster.get().display_width()) / 2, 1, stdout );
-      }
-      for ( unsigned int row = 0; row < (1 + raster.get().display_height()) / 2; row++ ) {
-	fwrite( &raster.get().V().at( 0, row ), (1 + raster.get().display_width()) / 2, 1, stdout );
-      }
+      raster.get().dump( stdout );
     }
   } catch ( const exception & e ) {
     print_exception( argv[ 0 ], e );

@@ -68,10 +68,11 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
 
   FramePlayer<DiffGenerator> diff_player( source_player );
 
-  unsigned int last_displayed_frame = target_player.cur_displayed_frame();
-  SerializedFrame next_target = target_player.serialize_next();
 
   while ( not source_player.eof() and not target_player.eof() ) {
+    unsigned int last_displayed_frame = target_player.cur_displayed_frame();
+    SerializedFrame next_target = target_player.serialize_next();
+
     /* Could get rid of the can_decode and just make this a try catch */
     if ( diff_player.can_decode( next_target ) ) {
       manifest << "N " << next_target.name() << endl;
@@ -128,11 +129,6 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
       cout << "   " << next_target.name() << "\n";
       cout << target_player.cur_frame_stats();
     }
-    
-    last_displayed_frame = target_player.cur_displayed_frame();
-
-    next_target = target_player.serialize_next();
-    cout << "Next target name: " << next_target.name() << endl;
   }
 
   cout << "Total size of S frames: " << source_frames_size << endl;

@@ -243,6 +243,19 @@ public:
     U_.copy_from( other.U_ );
     V_.copy_from( other.V_ );
   }
+
+  void dump( FILE * file ) const
+  {
+    for ( unsigned int row = 0; row < display_height(); row++ ) {
+      fwrite( &Y().at( 0, row ), display_width(), 1, file );
+    }
+    for ( unsigned int row = 0; row < (1 + display_height()) / 2; row++ ) {
+      fwrite( &U().at( 0, row ), (1 + display_width()) / 2, 1, file );
+    }
+    for ( unsigned int row = 0; row < (1 + display_height()) / 2; row++ ) {
+      fwrite( &V().at( 0, row ), (1 + display_width()) / 2, 1, file );
+    }
+  }
 };
 
 #endif /* RASTER_HH */
