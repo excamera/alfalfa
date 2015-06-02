@@ -64,6 +64,12 @@ void FramePlayer<DiffGenerator>::set_references( bool set_last, bool set_golden,
 }
 
 template<>
+array<bool, 3> FramePlayer<DiffGenerator>::missing_references( const FramePlayer & other ) const
+{
+  return decoder_.missing_references( other.decoder_ );
+}
+
+template<>
 string FramePlayer<DiffGenerator>::cur_frame_stats( void ) const
 {
   return decoder_.cur_frame_stats();

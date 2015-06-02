@@ -57,10 +57,14 @@ static void single_switch( ofstream & manifest, unsigned int switch_frame, const
       diff_player.decode( next_target );
     }
     else {
+      RasterHandle target_raster( target_player.width(), target_player.height() );
       /* if the cur_displayed_frame is the same then next_target wasn't displayed, so advance */
       if ( target_player.cur_displayed_frame() == last_displayed_frame ) {
 	/* PSNR for continuation frames calculated from target raster */
-	target_player.advance();
+	target_raster = target_player.advance();
+      }
+      else {
+        target_raster = next_target.get_output();
       }
 
       /* Write out all the source frames up to the position of target_player */
@@ -83,6 +87,7 @@ static void single_switch( ofstream & manifest, unsigned int switch_frame, const
 
       /* Make another diff */
       SerializedFrame continuation = target_player - diff_player;
+      continuation.set_output( target_raster );
       continuation.write();
       continuation_frames_size += continuation.size();
 
@@ -132,13 +137,14 @@ static SerializedFrame serialize_until_shown( FilePlayer<DiffGenerator> & player
 }
 
 static void generate_continuations( const FilePlayer<DiffGenerator> & source_player, const FilePlayer<DiffGenerator> & target_player,
-                                    const RasterHandle & target_raster, ofstream & frame_manifest )
+                                    const RasterHandle & target_raster, ofstream & frame_manifest, 
+                                    const vector<array<bool, 3>> & reference_combinations )
 {
   /* At the very least we should only generate combinations that will produce different continuations
    * ie if target only needs last, making different ones with gold on and off will make no difference */
-  bool reference_combinations[][ 3 ] = { { false, false, false }, { false, false, true }, { false, true, false },
-                                      { true, false, false }, { false, true, true }, { true, false, true },
-                                      { true, true, false } };
+  //bool reference_combinations[][ 3 ] = { { false, false, false }, { false, false, true }, { false, true, false },
+  //                                    { true, false, false }, { false, true, true }, { true, false, true },
+  //                                    { true, true, false } };
 
   for ( auto missing_refs : reference_combinations ) {
     FramePlayer<DiffGenerator> diff_player = source_player;
@@ -168,6 +174,9 @@ static void generate_frames( const string & original, const vector<string> & str
     stream_players.emplace_back( stream );
   }
 
+  vector<vector<array<bool, 3>>> upgrade_continuations( stream_players.size() - 1 );
+  vector<vector<array<bool, 3>>> downgrade_continuations( stream_players.size() - 1 );
+
   while ( not original_player.eof() ) {
     RasterHandle original_raster = original_player.advance();
     original_manifest << uppercase << hex << original_raster.get().hash() << endl;
@@ -184,8 +193,11 @@ static void generate_frames( const string & original, const vector<string> & str
       SerializedFrame target_frame = serialize_until_shown( target_player, frame_manifest );
       write_quality_manifest( quality_manifest, target_frame, original_raster );
 
-      generate_continuations( source_player, target_player, target_frame.get_output(), frame_manifest );
-      generate_continuations( target_player, source_player, source_frame.get_output(), frame_manifest );
+      array<bool, 3> missing_refs = source_player.missing_references( target_player );
+      upgrade_continuations[ stream_idx ].push_back( missing_refs );
+
+      generate_continuations( source_player, target_player, target_frame.get_output(), frame_manifest, upgrade_continuations[ stream_idx ] );
+      generate_continuations( target_player, source_player, source_frame.get_output(), frame_manifest, downgrade_continuations[ stream_idx ] );
     }
   }
 }

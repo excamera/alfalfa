@@ -33,6 +33,8 @@ public:
   void set_references( bool set_last, bool set_golden, bool set_alt,
                        const FramePlayer & target_player );
 
+  std::array<bool, 3> missing_references( const FramePlayer & other ) const;
+
   std::string cur_frame_stats( void ) const;
 
   uint16_t width( void ) const { return width_; }

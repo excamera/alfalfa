@@ -46,8 +46,10 @@ SerializedFrame::SerializedFrame( const string & path )
     throw internal_error( "Decoding frame", "invalid filename" );
   }
 
+  size_t output_pos = path.find( "#", separator_pos + 1 );
+
   source_hash_ = string( path, name_position, separator_pos );
-  target_hash_ = string( path, separator_pos + 1 );
+  target_hash_ = string( path, separator_pos + 1, output_pos - separator_pos - 1 );
 
   ifstream file( path, ifstream::binary );
   file.seekg( 0, file.end );

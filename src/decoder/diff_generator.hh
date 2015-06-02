@@ -34,6 +34,8 @@ public:
   void set_references( bool set_last, bool set_golden, bool set_alt,
                        const DiffGenerator & other );
 
+  std::array<bool, 3> missing_references( const DiffGenerator & other ) const;
+
   SerializedFrame operator-( const DiffGenerator & source_decoder ) const;
 
 };

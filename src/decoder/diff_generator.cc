@@ -130,6 +130,23 @@ void DiffGenerator::set_references( bool set_last, bool set_golden, bool set_alt
   }
 }
 
+array<bool, 3> DiffGenerator::missing_references( const DiffGenerator & other ) const
+{
+  array<bool, 3> missing { true, true, true };
+
+  if ( references_.last.get() != other.references_.last.get() ) {
+    missing[ 0 ] = true;
+  }
+  if ( references_.golden.get() != other.references_.golden.get() ) {
+    missing[ 1 ] = true;
+  }
+  if ( references_.alternative_reference.get() != 
+       other.references_.alternative_reference.get() ) {
+    missing[ 2 ] = true;
+  }
+
+  return missing;
+}
 
 // This needs to be made const, which means rewriting rewrite_as_diff into make_continuation_frame
 SerializedFrame DiffGenerator::operator-( const DiffGenerator & source_decoder ) const
