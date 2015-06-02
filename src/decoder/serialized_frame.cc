@@ -26,10 +26,11 @@ static bool hash_equal( const string & hash_str, const string & other_hash_str )
   return true;
 }
 
-SerializedFrame::SerializedFrame( const std::string & path )
-  : frame_ {},
-    source_hash_ {},
-    target_hash_ {}
+SerializedFrame::SerializedFrame( const string & path )
+  : frame_(),
+    source_hash_(),
+    target_hash_(),
+    shown_()
 {
   size_t name_position = path.rfind("/");
 
@@ -58,18 +59,21 @@ SerializedFrame::SerializedFrame( const std::string & path )
 }
 
 SerializedFrame::SerializedFrame( const vector<uint8_t> & frame,
+                                  bool shown,
 				  const string & source_hash,
 				  const string & target_hash )
   : frame_( frame ),
     source_hash_( source_hash ),
-    target_hash_( target_hash )
+    target_hash_( target_hash ),
+    shown_( shown )
 {}
 
 SerializedFrame::SerializedFrame( const Chunk & frame,
+                                  bool shown,
 				  const string & source_hash,
 				  const string & target_hash )
   : SerializedFrame( vector<uint8_t>( frame.buffer(), frame.buffer() + frame.size() ),
-		     source_hash, target_hash )
+		     shown, source_hash, target_hash )
 {}
 
 Chunk SerializedFrame::chunk( void ) const
@@ -89,7 +93,28 @@ bool SerializedFrame::validate_target( const Decoder & decoder ) const
 
 string SerializedFrame::name( void ) const
 {
-  return source_hash_ + "#" + target_hash_;
+  assert( output_raster_.initialized() );
+  stringstream name_stream;
+  name_stream << hex << uppercase << source_hash_ << "#" << target_hash_ << 
+              "#" << get_output().get().hash();
+
+  return name_stream.str();
+}
+
+double SerializedFrame::psnr( const RasterHandle & original ) const
+{
+  assert( output_raster_.initialized() );
+  return original.get().psnr( output_raster_.get() );
+}
+
+RasterHandle SerializedFrame::get_output( void ) const
+{
+  return output_raster_.get();
+}
+
+void SerializedFrame::set_output( const RasterHandle & raster )
+{
+  output_raster_.initialize( raster );
 }
 
 unsigned SerializedFrame::size( void ) const

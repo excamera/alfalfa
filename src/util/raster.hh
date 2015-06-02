@@ -9,6 +9,8 @@
 #include "safe_array.hh"
 #include <config.h>
 
+#include <iostream>
+
 #ifdef HAVE_SSE2
 #include "predictor_sse.hh"
 #endif
@@ -209,9 +211,11 @@ public:
     double y_mse = 0;
     Y_.forall_ij( [&]( uint8_t pixel, unsigned int column, unsigned int row )
 		  {
-		    y_mse += pow( pixel - other.Y_.at( column, row ), 2 );
+                    int diff = pixel - other.Y_.at( column, row );
+		    y_mse += pow( diff, 2 );
 		  } );
-    y_mse *= ( 1 / ( width_ * height_ ) );
+
+    y_mse *= ( 1 / ( (double)width_ * height_ ) );
 
     return 20 * log10( 255 ) - 10 * log10( y_mse );
   }

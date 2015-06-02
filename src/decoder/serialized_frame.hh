@@ -11,14 +11,17 @@ class SerializedFrame
 private:
   std::vector<uint8_t> frame_;
   std::string source_hash_, target_hash_;
+  bool shown_;
+
+  Optional<RasterHandle> output_raster_ {};
 
 public:
   SerializedFrame( const std::string & path );
 
-  SerializedFrame( const std::vector<uint8_t> & frame, const std::string & source_hash,
-		   const std::string & target_hash );
+  SerializedFrame( const std::vector<uint8_t> & frame, bool shown,
+                   const std::string & source_hash, const std::string & target_hash );
 
-  SerializedFrame( const Chunk & frame, const std::string & source_hash,
+  SerializedFrame( const Chunk & frame, bool shown, const std::string & source_hash,
 		   const std::string & target_hash );
 
   Chunk chunk( void ) const;
@@ -28,6 +31,14 @@ public:
   bool validate_target( const Decoder & decoder ) const;
 
   std::string name( void ) const;
+
+  bool shown( void ) const { return shown_; }
+
+  double psnr( const RasterHandle & original ) const;
+
+  RasterHandle get_output( void ) const;
+
+  void set_output( const RasterHandle & raster );
 
   unsigned size( void ) const;
 

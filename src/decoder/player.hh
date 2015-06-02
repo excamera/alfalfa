@@ -30,6 +30,9 @@ public:
 
   void update_continuation( const FramePlayer & other );
 
+  void set_references( bool set_last, bool set_golden, bool set_alt,
+                       const FramePlayer & target_player );
+
   std::string cur_frame_stats( void ) const;
 
   uint16_t width( void ) const { return width_; }

@@ -57,6 +57,13 @@ void FramePlayer<DecoderType>::update_continuation( const FramePlayer & other )
 }
 
 template<>
+void FramePlayer<DiffGenerator>::set_references( bool set_last, bool set_golden, bool set_alt,
+                                                 const FramePlayer & target_player )
+{
+  decoder_.set_references( set_last, set_golden, set_alt, target_player.decoder_ );
+}
+
+template<>
 string FramePlayer<DiffGenerator>::cur_frame_stats( void ) const
 {
   return decoder_.cur_frame_stats();
@@ -139,7 +146,11 @@ SerializedFrame FilePlayer<DiffGenerator>::serialize_next( void )
     displayed_frame_no_++;
   }
 
-  return SerializedFrame( frame, this->decoder_.source_hash_str( source ), this->decoder_.target_hash_str() );
+  SerializedFrame s_frame( frame, shown, this->decoder_.source_hash_str( source ), this->decoder_.target_hash_str() );
+
+  s_frame.set_output( raster );
+
+  return s_frame;
 }
 
 template<class DecoderType>

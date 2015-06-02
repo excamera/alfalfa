@@ -5,35 +5,7 @@
 
 using namespace std;
 
-#if 0
-
-void dump_vp8_frames( const string & video_path )
-{
-  FilePlayer<DiffGenerator> player( video_path );
-
-  while ( not player.eof() ) {
-    SerializedFrame frame = player.serialize_next();
-    frame.write();
-  }
-}
-
-void generate_diff_frames( const string & source, const string & target )
-{
-  FilePlayer<DiffGenerator> source_player( source );
-  FilePlayer<DiffGenerator> target_player( target );
-
-  while ( not source_player.eof() and not target_player.eof() ) {
-    source_player.advance();
-    target_player.advance();
-
-    SerializedFrame diff = target_player - source_player;
-    diff.write();
-  }
-}
-
-#endif
-
-void single_switch( ofstream & manifest, unsigned int switch_frame, const string & source, 
+static void single_switch( ofstream & manifest, unsigned int switch_frame, const string & source, 
 		    const string & target, const string & original )
 {
   FilePlayer<DiffGenerator> source_player( source );
@@ -136,22 +108,107 @@ void single_switch( ofstream & manifest, unsigned int switch_frame, const string
   cout << "Total cost of switch: " << source_frames_size + continuation_frames_size << "\n";
 }
 
+static void write_quality_manifest( ofstream & manifest, const SerializedFrame & frame, 
+                                    const RasterHandle & original )
+{
+  manifest << hex << uppercase << original.get().hash() << " " << 
+              frame.get_output().get().hash() << " " << frame.psnr( original ) << endl;
+}
+
+static SerializedFrame serialize_until_shown( FilePlayer<DiffGenerator> & player, ofstream & frame_manifest )
+{
+  SerializedFrame frame = player.serialize_next(); 
+
+  /* Serialize and write out undisplayed frames */
+  while ( not frame.shown() ) {
+    frame_manifest << frame.name() << endl;
+    frame.write();
+    frame = player.serialize_next();
+  }
+
+  frame_manifest << frame.name();
+  frame.write();
+  return frame;
+}
+
+static void generate_continuations( const FilePlayer<DiffGenerator> & source_player, const FilePlayer<DiffGenerator> & target_player,
+                                    const RasterHandle & target_raster, ofstream & frame_manifest )
+{
+  /* At the very least we should only generate combinations that will produce different continuations
+   * ie if target only needs last, making different ones with gold on and off will make no difference */
+  bool reference_combinations[][ 3 ] = { { false, false, false }, { false, false, true }, { false, true, false },
+                                      { true, false, false }, { false, true, true }, { true, false, true },
+                                      { true, true, false } };
+
+  for ( auto missing_refs : reference_combinations ) {
+    FramePlayer<DiffGenerator> diff_player = source_player;
+    diff_player.set_references( missing_refs[ 0 ], missing_refs[ 1 ], missing_refs[ 2 ], target_player );
+
+    SerializedFrame continuation = target_player - diff_player;
+    continuation.set_output( target_raster );
+
+    frame_manifest << continuation.name() << endl;
+    continuation.write();
+  }
+
+}
+
+static void generate_frames( const string & original, const vector<string> & streams )
+{
+  ofstream original_manifest( "original_manifest" );
+  ofstream quality_manifest( "quality_manifest" );
+  ofstream frame_manifest( "frame_manifest" );
+
+  Player original_player( original );
+
+  vector<FilePlayer<DiffGenerator>> stream_players;
+  stream_players.reserve( streams.size() );
+
+  for ( auto & stream : streams ) {
+    stream_players.emplace_back( stream );
+  }
+
+  while ( not original_player.eof() ) {
+    RasterHandle original_raster = original_player.advance();
+    original_manifest << uppercase << hex << original_raster.get().hash() << endl;
+
+    /* For every quality level, write out the normal frames and generate diffs */
+    for ( unsigned stream_idx = 0; stream_idx < stream_players.size() - 1; stream_idx++ ) {
+      FilePlayer<DiffGenerator> & source_player = stream_players[ stream_idx ];
+      FilePlayer<DiffGenerator> & target_player = stream_players[ stream_idx + 1 ];
+      assert( not target_player.eof() and not source_player.eof() );
+
+      SerializedFrame source_frame = serialize_until_shown( source_player, frame_manifest );
+      write_quality_manifest( quality_manifest, source_frame, original_raster );
+
+      SerializedFrame target_frame = serialize_until_shown( target_player, frame_manifest );
+      write_quality_manifest( quality_manifest, target_frame, original_raster );
+
+      generate_continuations( source_player, target_player, target_frame.get_output(), frame_manifest );
+      generate_continuations( target_player, source_player, source_frame.get_output(), frame_manifest );
+    }
+  }
+}
+
 int main( int argc, char * argv[] )
 {
   if ( argc < 3 ) {
-    cerr << "Usage: " << argv[ 0 ] << " MANIFEST SWITCH_NO SOURCE TARGET ORIGINAL" << endl;
+    cerr << "Multi switch usage: " << argv[ 0 ] << " OUTPUT_DIR ORIGINAL STREAM1 STREAM2" << endl;
+    cerr << "Single switch usage: " << argv[ 0 ] << " MANIFEST SWITCH_NO SOURCE TARGET ORIGINAL" << endl;
     return EXIT_FAILURE;
   }
 
-  ofstream manifest( argv[ 1 ] );
-
-  if ( argc == 3 ) {
-    //dump_vp8_frames( argv[ 2 ] );
-  }
-  else if ( argc == 4 ) {
-    //generate_diff_frames( argv[ 2 ], argv[ 3 ] );
+  if ( argc == 5 ) {
+    if ( mkdir( argv[ 1 ], 0644 ) ) {
+      throw unix_error( "mkdir failed" );
+    }
+    if ( chdir( argv[ 1 ] ) ) {
+      throw unix_error( "chdir failed" );
+    }
+    generate_frames( argv[ 2 ], { argv[ 3 ], argv[ 4 ] } );
   }
   else if ( argc == 6 ) {
+    ofstream manifest( argv[ 1 ] );
     single_switch( manifest, stoi( argv[ 2 ] ), argv[ 3 ], argv[ 4 ], argv[ 5 ] );
   }
 

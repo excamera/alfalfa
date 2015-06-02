@@ -31,6 +31,9 @@ public:
 
   std::string target_hash_str( void ) const;
 
+  void set_references( bool set_last, bool set_golden, bool set_alt,
+                       const DiffGenerator & other );
+
   SerializedFrame operator-( const DiffGenerator & source_decoder ) const;
 
 };
