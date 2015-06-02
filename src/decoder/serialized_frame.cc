@@ -1,6 +1,7 @@
 #include "serialized_frame.hh"
 
 #include <fstream>
+#include <sstream>
 
 using namespace std;
 
