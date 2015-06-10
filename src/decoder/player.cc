@@ -21,15 +21,13 @@ Optional<RasterHandle> FramePlayer<DecoderType>::decode( const SerializedFrame &
     throw Invalid( "Decoded frame from incorrect state" );
   }
 
-  RasterHandle raster( width_, height_ );
-
-  bool shown = decoder_.decode_frame( frame.chunk(), raster );
+  Optional<RasterHandle> raster = decoder_.decode_frame( frame.chunk() );
 
   if ( not frame.validate_target( decoder_ ) ) {
     throw Invalid( "Target doesn't match after decode: " + decoder_.hash_str() );
   }
 
-  return Optional<RasterHandle>( shown, raster );
+  return raster;
 }
   
 template<class DecoderType>
@@ -133,11 +131,11 @@ template<class DecoderType>
 RasterHandle FilePlayer<DecoderType>::advance( void )
 {
   while ( not eof() ) {
-    RasterHandle raster( this->width_, this->height_ );
-    if ( this->decoder_.decode_frame( file_.frame( frame_no_++ ), raster ) ) {
+    Optional<RasterHandle> raster = this->decoder_.decode_frame( file_.frame( frame_no_++ ) );
+    if ( raster.initialized() ) {
       displayed_frame_no_++;
 
-      return raster;
+      return raster.get();
     }
   }
 
@@ -150,17 +148,17 @@ SerializedFrame FilePlayer<DiffGenerator>::serialize_next( void )
   Decoder source = this->decoder_;
   Chunk frame = file_.frame( frame_no_++ );
 
-  RasterHandle raster( width_, height_ );
+  Optional<RasterHandle> raster = this->decoder_.decode_frame( frame );
 
-  bool shown = this->decoder_.decode_frame( frame, raster );
-
-  if ( shown ) {
+  if ( raster.initialized() ) {
     displayed_frame_no_++;
   }
 
-  SerializedFrame s_frame( frame, shown, this->decoder_.source_hash_str( source ), this->decoder_.target_hash_str() );
+  SerializedFrame s_frame( frame, raster.initialized(), this->decoder_.source_hash_str( source ), this->decoder_.target_hash_str() );
 
-  s_frame.set_output( raster );
+  if ( raster.initialized() ) {
+    s_frame.set_output( raster.get() );
+  } /* XXX need to account for unset output in SerializedFrame */
 
   return s_frame;
 }

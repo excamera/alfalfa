@@ -24,7 +24,7 @@ public:
 
   DiffGenerator( const DiffGenerator & other );
 
-  bool decode_frame( const Chunk & frame, RasterHandle & raster );
+  Optional<RasterHandle> decode_frame( const Chunk & frame );
 
   std::string cur_frame_stats( void ) const;
 

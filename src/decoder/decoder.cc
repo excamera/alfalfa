@@ -13,13 +13,20 @@ Decoder::Decoder( const uint16_t width, const uint16_t height )
     references_( width, height )
 {}
 
-bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
+Optional<RasterHandle> Decoder::decode_frame( const Chunk & frame )
 {
   /* parse uncompressed data chunk */
   UncompressedChunk uncompressed_chunk( frame, state_.width, state_.height );
 
+  /* get a RasterHandle */
+  /* XXX will become MutableRasterHandle */
+  RasterHandle raster { state_.width, state_.height };
+  bool shown;
+
   if ( uncompressed_chunk.key_frame() ) {
     const KeyFrame myframe = state_.parse_and_apply<KeyFrame>( uncompressed_chunk );
+
+    shown = myframe.show_frame();
 
     myframe.decode( state_.segmentation, raster );
 
@@ -28,10 +35,10 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
     myframe.loopfilter( state_.segmentation, state_.filter_adjustments, raster );
 
     myframe.copy_to( raster, references_ );
-
-    return myframe.show_frame();
   } else {
     const InterFrame myframe = state_.parse_and_apply<InterFrame>( uncompressed_chunk );
+
+    shown = myframe.show_frame();
 
     myframe.decode( state_.segmentation, references_, raster );
 
@@ -40,9 +47,9 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
     myframe.loopfilter( state_.segmentation, state_.filter_adjustments, raster );
 
     myframe.copy_to( raster, references_ );
-
-    return myframe.show_frame();
   }
+
+  return Optional<RasterHandle>( shown, move( raster ) );
 }
 
 string Decoder::hash_str( const ReferenceTracker & used_refs,

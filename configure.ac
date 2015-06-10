@@ -16,7 +16,7 @@ AS_IF([test x"$PERL" = x],
 
 # Add picky CXXFLAGS
 CXX11_FLAGS="-std=c++11"
-PICKY_CXXFLAGS="-pedantic -Wall -Wextra -Weffc++ -Werror"
+PICKY_CXXFLAGS="-pedantic -Wall -Wextra -Weffc++"
 AC_SUBST([CXX11_FLAGS])
 AC_SUBST([PICKY_CXXFLAGS])
 AC_LANG_PUSH(C++)

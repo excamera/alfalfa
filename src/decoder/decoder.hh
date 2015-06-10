@@ -154,7 +154,7 @@ public:
 
   std::string hash_str( void ) const;
 
-  bool decode_frame( const Chunk & frame, RasterHandle & raster );
+  Optional<RasterHandle> decode_frame( const Chunk & frame );
 
   bool equal_references( const Decoder & other ) const;
 
