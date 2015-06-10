@@ -207,6 +207,8 @@ static void generate_frames( const string & original, const vector<string> & str
 
   Player original_player( original );
 
+  original_manifest << original_player.width() << " " << original_player.height() << "\n";
+
   vector<FilePlayer<DiffGenerator>> stream_players;
   stream_players.reserve( streams.size() );
 
