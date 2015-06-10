@@ -8,13 +8,16 @@ sub switch_check {
   my $source_file = $ENV{'srcdir'} . '/../../alfalfa_test_vectors/' . ${source};
   my $target_file = $ENV{'srcdir'} . '/../../alfalfa_test_vectors/' . ${target};
 
-  mkdir 'switch-dump';
-  chdir 'switch-dump';
-  system("../../frontend/frameify manifest $switch_num ../$source_file ../$target_file ../$target_file &> /dev/null");
+  my $randsuffix = sprintf "%08X", rand(0xffffffff);
+  my $dirname = "switch-dump$randsuffix";
+
+  mkdir $dirname;
+  chdir $dirname;
+  system("../../frontend/frameify manifest $switch_num ../$source_file ../$target_file ../$target_file");
   my $frameify_sha1 = (split ' ', `../frames-to-stdout manifest | sha1sum`)[ 0 ];
 
   chdir '..';
-  rmtree [ 'switch-dump' ];
+  rmtree [ $dirname ];
 
   my $correct_sha1 = (split ' ', `./switch-to-stdout $switch_num $source_file $target_file | sha1sum`)[ 0 ];
 
