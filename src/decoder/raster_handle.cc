@@ -21,7 +21,7 @@ typedef unique_ptr<Raster, RasterDeleter> RasterHolder;
 
 /* helper to dequeue front element from a queue */
 template <typename T>
-T dequeue( queue<T> & q )
+static T dequeue( queue<T> & q )
 {
   T ret { move( q.front() ) };
   q.pop();
