@@ -96,22 +96,23 @@ string DiffGenerator::source_hash_str( const Decoder & source ) const
     return "x_x_x_x_x";
   }
   else {
-    array<bool, 4> refs = inter_frame_.get().used_references();
-    return source.hash_str( refs );
+    return source.hash_str( inter_frame_.get().used_references() );
+  }
+}
+
+ReferenceTracker DiffGenerator::updated_references( void ) const
+{
+  if ( on_key_frame_ ) {
+    return key_frame_.get().updated_references();
+  }
+  else {
+    return inter_frame_.get().updated_references();
   }
 }
 
 string DiffGenerator::target_hash_str( void ) const
 {
-  array<bool, 4> refs;
-  if ( on_key_frame_ ) {
-    refs = key_frame_.get().updated_references();
-  }
-  else {
-    refs = inter_frame_.get().updated_references();
-  }
-
-  return hash_str( refs );
+  return hash_str( updated_references() );
 }
 
 void DiffGenerator::set_references( bool set_last, bool set_golden, bool set_alt,
@@ -130,19 +131,19 @@ void DiffGenerator::set_references( bool set_last, bool set_golden, bool set_alt
   }
 }
 
-array<bool, 3> DiffGenerator::missing_references( const DiffGenerator & other ) const
+ReferenceTracker DiffGenerator::missing_references( const DiffGenerator & other ) const
 {
-  array<bool, 3> missing { true, true, true };
+  ReferenceTracker missing( true, true, true, true );
 
-  if ( references_.last.get() != other.references_.last.get() ) {
-    missing[ 0 ] = true;
+  if ( references_.last.get() == other.references_.last.get() ) {
+    missing.set_last( false );
   }
-  if ( references_.golden.get() != other.references_.golden.get() ) {
-    missing[ 1 ] = true;
+  if ( references_.golden.get() == other.references_.golden.get() ) {
+    missing.set_golden( false );
   }
-  if ( references_.alternative_reference.get() != 
+  if ( references_.alternative_reference.get() == 
        other.references_.alternative_reference.get() ) {
-    missing[ 2 ] = true;
+    missing.set_alternate( false );
   }
 
   return missing;

@@ -33,20 +33,19 @@ ProbabilityArray< num_segments > Frame<FrameHeaderType, MacroblockType>::calcula
 }
 
 template <>
-array<bool, 4> KeyFrame::used_references( void ) const
+ReferenceTracker KeyFrame::used_references( void ) const
 {
-  return { false, false, false, false };
+  return ReferenceTracker( false, false, false, false );
 }
 
 template <>
-array<bool, 4> InterFrame::used_references( void ) const
+ReferenceTracker InterFrame::used_references( void ) const
 {
-  array<bool, 4> refs;
-  refs.fill( false );
+  ReferenceTracker refs( false, false, false, false );
 
   macroblock_headers_.get().forall( [&] ( const InterFrameMacroblock & mb ) {
 				    if ( mb.continuation() ) {
-				      refs[ 0 ] = true;
+				      refs.set_continuation( true );
 				    }
 				    else if ( mb.inter_coded() ) {
 				      refs[ mb.header().reference() ] = true;
@@ -56,16 +55,16 @@ array<bool, 4> InterFrame::used_references( void ) const
 }
 
 template<>
-array<bool, 4> KeyFrame::updated_references( void ) const
+ReferenceTracker KeyFrame::updated_references( void ) const
 {
-  return { true, true, true, true };
+  return ReferenceTracker( true, true, true, true );
 }
 
 template<>
-array<bool, 4> InterFrame::updated_references( void ) const
+ReferenceTracker InterFrame::updated_references( void ) const
 {
-  return { true, header_.refresh_last, header_.refresh_golden_frame,
-           header_.refresh_alternate_frame };
+  return ReferenceTracker( true, header_.refresh_last, header_.refresh_golden_frame,
+                           header_.refresh_alternate_frame );
 }
 
 

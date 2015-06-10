@@ -45,7 +45,7 @@ bool Decoder::decode_frame( const Chunk & frame, RasterHandle & raster )
   }
 }
 
-string Decoder::hash_str( const array<bool, 4> & used_refs, 
+string Decoder::hash_str( const ReferenceTracker & used_refs,
 				  const References & references ) const
 {
   stringstream decoder_hash;
@@ -53,28 +53,28 @@ string Decoder::hash_str( const array<bool, 4> & used_refs,
 
   decoder_hash << state_.hash() << "_";
 
-  if ( used_refs[ 0 ] ) {
+  if ( used_refs.continuation() ) {
     decoder_hash << references.continuation.get().hash();
   } else {
     decoder_hash << "x";
   }
   decoder_hash << "_";
 
-  if ( used_refs[ 1 ] ) {
+  if ( used_refs.last() ) {
     decoder_hash << references.last.get().hash();
   } else {
     decoder_hash << "x";
   }
   decoder_hash << "_";
 
-  if ( used_refs[ 2 ] ) {
+  if ( used_refs.golden() ) {
     decoder_hash << references.golden.get().hash();
   } else {
     decoder_hash << "x";
   }
   decoder_hash << "_";
 
-  if ( used_refs[ 3 ] ) {
+  if ( used_refs.alternate() ) {
     decoder_hash << references.alternative_reference.get().hash();
   } else {
     decoder_hash << "x";
@@ -83,7 +83,7 @@ string Decoder::hash_str( const array<bool, 4> & used_refs,
   return decoder_hash.str();
 }
 
-string Decoder::hash_str( const array<bool, 4> & used_refs ) const
+string Decoder::hash_str( const ReferenceTracker & used_refs ) const
 {
   return hash_str( used_refs, references_ );
 }
@@ -91,10 +91,8 @@ string Decoder::hash_str( const array<bool, 4> & used_refs ) const
 string Decoder::hash_str( void ) const
 {
   /* All references set to used so partial_hash hashes every reference */
-  array<bool, 4> used_refs;
-  used_refs.fill( true );
 
-  return hash_str( used_refs );
+  return hash_str( ReferenceTracker( true, true, true, true ) );
 }
 
 bool Decoder::equal_references( const Decoder & other ) const

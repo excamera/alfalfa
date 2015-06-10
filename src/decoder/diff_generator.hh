@@ -4,6 +4,7 @@
 #include "decoder.hh"
 #include "frame.hh"
 #include "serialized_frame.hh"
+#include "reference_tracker.hh"
 
 /* Specialized version of Decoder which holds all necessary
  * state for generating diffs between streams */
@@ -34,7 +35,9 @@ public:
   void set_references( bool set_last, bool set_golden, bool set_alt,
                        const DiffGenerator & other );
 
-  std::array<bool, 3> missing_references( const DiffGenerator & other ) const;
+  ReferenceTracker updated_references( void ) const;
+
+  ReferenceTracker missing_references( const DiffGenerator & other ) const;
 
   SerializedFrame operator-( const DiffGenerator & source_decoder ) const;
 

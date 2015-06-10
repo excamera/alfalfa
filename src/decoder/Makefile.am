@@ -18,4 +18,4 @@ libalfalfadecoder_a_SOURCES = block.hh bool_decoder.hh decoder.cc decoder.hh \
 	subpixel_ssse3.asm idctllm_mmx.asm \
 	transform_sse.hh raster_handle.hh raster_handle.cc \
 	player.cc player.hh diff_generator.hh diff_generator.cc serialized_frame.hh \
-	serialized_frame.cc
+	serialized_frame.cc reference_tracker.hh

@@ -1,9 +1,22 @@
 #include <iostream>
 #include <fstream>
+#include <unordered_set>
 #include "player.hh"
 #include "diff_generator.cc"
 
 using namespace std;
+
+namespace std {
+  template<>
+  struct hash<ReferenceTracker>
+  {
+    size_t operator()( const ReferenceTracker & refs ) const
+    {
+      return refs.continuation() | ( refs.last() << 1 ) | ( refs.golden() << 2 ) |
+             ( refs.alternate() << 3 );
+    }
+  };
+}
 
 static void single_switch( ofstream & manifest, unsigned int switch_frame, const string & source, 
 		    const string & target, const string & original )
@@ -120,43 +133,70 @@ static void write_quality_manifest( ofstream & manifest, const SerializedFrame &
               frame.get_output().get().hash() << " " << frame.psnr( original ) << endl;
 }
 
+static void write_frame( const SerializedFrame & frame, ofstream & frame_manifest )
+{
+  frame_manifest << frame.name() << " " << frame.size() << endl;
+  frame.write();
+}
+
 static SerializedFrame serialize_until_shown( FilePlayer<DiffGenerator> & player, ofstream & frame_manifest )
 {
   SerializedFrame frame = player.serialize_next(); 
 
   /* Serialize and write out undisplayed frames */
   while ( not frame.shown() ) {
-    frame_manifest << frame.name() << endl;
-    frame.write();
+    write_frame( frame, frame_manifest );
     frame = player.serialize_next();
   }
 
-  frame_manifest << frame.name();
-  frame.write();
+  write_frame( frame, frame_manifest );
+
   return frame;
 }
 
-static void generate_continuations( const FilePlayer<DiffGenerator> & source_player, const FilePlayer<DiffGenerator> & target_player,
+static void generate_continuations( const FilePlayer<DiffGenerator> & source_player, 
+                                    const FilePlayer<DiffGenerator> & target_player,
                                     const RasterHandle & target_raster, ofstream & frame_manifest, 
-                                    const vector<array<bool, 3>> & reference_combinations )
+                                    const unordered_set<ReferenceTracker> & reference_combinations )
 {
-  /* At the very least we should only generate combinations that will produce different continuations
-   * ie if target only needs last, making different ones with gold on and off will make no difference */
-  //bool reference_combinations[][ 3 ] = { { false, false, false }, { false, false, true }, { false, true, false },
-  //                                    { true, false, false }, { false, true, true }, { true, false, true },
-  //                                    { true, true, false } };
-
-  for ( auto missing_refs : reference_combinations ) {
+  for ( const auto & missing_refs : reference_combinations ) {
     FramePlayer<DiffGenerator> diff_player = source_player;
-    diff_player.set_references( missing_refs[ 0 ], missing_refs[ 1 ], missing_refs[ 2 ], target_player );
+    diff_player.set_references( not missing_refs.last(), not missing_refs.golden(),
+                                not missing_refs.alternate(), target_player );
 
     SerializedFrame continuation = target_player - diff_player;
     continuation.set_output( target_raster );
 
-    frame_manifest << continuation.name() << endl;
-    continuation.write();
+    write_frame( continuation, frame_manifest );
+  }
+}
+
+static unordered_set<ReferenceTracker> new_reference_set( const unordered_set<ReferenceTracker> & refs_set,
+                                                          const ReferenceTracker & updated )
+{
+  unordered_set<ReferenceTracker> new_set;
+  for ( auto & refs : refs_set ) {
+    ReferenceTracker new_refs = refs;
+
+    if ( updated.last() ) {
+      new_refs.set_last( false );
+    }
+
+    if ( updated.golden() ) {
+      new_refs.set_golden( false );
+    }
+
+    if ( updated.alternate() ) {
+      new_refs.set_alternate( false );
+    }
+
+    /* If any references are still missing add this to the updated set */
+    if ( refs.last() or refs.golden() or refs.alternate() ) {
+      new_set.insert( new_refs );
+    }
   }
 
+  return new_set;
 }
 
 static void generate_frames( const string & original, const vector<string> & streams )
@@ -174,8 +214,8 @@ static void generate_frames( const string & original, const vector<string> & str
     stream_players.emplace_back( stream );
   }
 
-  vector<vector<array<bool, 3>>> upgrade_continuations( stream_players.size() - 1 );
-  vector<vector<array<bool, 3>>> downgrade_continuations( stream_players.size() - 1 );
+  vector<unordered_set<ReferenceTracker>> upgrade_continuations( stream_players.size() - 1 );
+  vector<unordered_set<ReferenceTracker>> downgrade_continuations( stream_players.size() - 1 );
 
   while ( not original_player.eof() ) {
     RasterHandle original_raster = original_player.advance();
@@ -193,8 +233,19 @@ static void generate_frames( const string & original, const vector<string> & str
       SerializedFrame target_frame = serialize_until_shown( target_player, frame_manifest );
       write_quality_manifest( quality_manifest, target_frame, original_raster );
 
-      array<bool, 3> missing_refs = source_player.missing_references( target_player );
-      upgrade_continuations[ stream_idx ].push_back( missing_refs );
+      // We need to look at missing refs plus updated refs. Insert a new entry from missing_references,
+      // then check which refs have been updated in the target and the source. Use the set of updated
+      // refs to iterate through and update the missing refs in the vector, throwing out any instances
+      // which now have no missing refs
+      ReferenceTracker target_updated_refs = target_player.updated_references(); 
+      upgrade_continuations[ stream_idx ] = new_reference_set( upgrade_continuations[ stream_idx ], target_updated_refs );
+
+      ReferenceTracker source_updated_refs = source_player.updated_references(); 
+      downgrade_continuations[ stream_idx ] = new_reference_set( downgrade_continuations[ stream_idx ], source_updated_refs );
+
+      ReferenceTracker missing_refs = source_player.missing_references( target_player );
+      upgrade_continuations[ stream_idx ].insert( missing_refs );
+      downgrade_continuations[ stream_idx ].insert( missing_refs );
 
       generate_continuations( source_player, target_player, target_frame.get_output(), frame_manifest, upgrade_continuations[ stream_idx ] );
       generate_continuations( target_player, source_player, source_frame.get_output(), frame_manifest, downgrade_continuations[ stream_idx ] );
@@ -211,7 +262,7 @@ int main( int argc, char * argv[] )
   }
 
   if ( argc == 5 ) {
-    if ( mkdir( argv[ 1 ], 0644 ) ) {
+    if ( mkdir( argv[ 1 ], 0777 ) ) {
       throw unix_error( "mkdir failed" );
     }
     if ( chdir( argv[ 1 ] ) ) {

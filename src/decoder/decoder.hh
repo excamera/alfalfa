@@ -9,6 +9,7 @@
 #include "quantization.hh"
 #include "exception.hh"
 #include "raster_handle.hh"
+#include "reference_tracker.hh"
 
 class Chunk;
 class Raster;
@@ -146,10 +147,10 @@ public:
 
   const Raster & example_raster( void ) const { return references_.last; }
 
-  std::string hash_str( const std::array<bool, 4> & used_refs, 
+  std::string hash_str( const ReferenceTracker & used_refs, 
 			const References & references ) const;
 
-  std::string hash_str( const std::array<bool, 4> & used_refs ) const;
+  std::string hash_str( const ReferenceTracker & used_refs ) const;
 
   std::string hash_str( void ) const;
 
