@@ -11,15 +11,28 @@ private:
   std::shared_ptr< Raster > raster_;
 
 public:
-  RasterHandle( const unsigned int display_width, const unsigned int display_height );
-
-  RasterHandle( const unsigned int display_width, const unsigned int display_height, RasterPool & raster_pool );
+  RasterHandle( MutableRasterHandle && raster );
 
   operator const Raster & () const { return *raster_; }
-  operator Raster & () __attribute((deprecated)) { return *raster_; }
 
   const Raster & get( void ) const { return *raster_; }
-  Raster & get( void ) __attribute((deprecated)) { return *raster_; }
+};
+
+class MutableRasterHandle
+{
+private:
+  std::unique_ptr< Raster > raster_;
+
+public:
+  MutableRasterHandle( const unsigned int display_width, const unsigned int display_height );
+
+  MutableRasterHandle( const unsigned int display_width, const unsigned int display_height, RasterPool & raster_pool );
+
+  operator const Raster & () const { return *raster_; }
+  operator Raster & () { return *raster_; }
+
+  const Raster & get( void ) const { return *raster_; }
+  Raster & get( void ) { return *raster_; }
 };
 
 #endif /* RASTER_POOL_HH */
