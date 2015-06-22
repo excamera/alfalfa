@@ -70,7 +70,7 @@ static void single_switch( ofstream & manifest, unsigned int switch_frame, const
       diff_player.decode( next_target );
     }
     else {
-      RasterHandle target_raster( target_player.width(), target_player.height() );
+      RasterHandle target_raster( MutableRasterHandle( target_player.width(), target_player.height() ) );
       /* if the cur_displayed_frame is the same then next_target wasn't displayed, so advance */
       if ( target_player.cur_displayed_frame() == last_displayed_frame ) {
 	/* PSNR for continuation frames calculated from target raster */
@@ -83,8 +83,6 @@ static void single_switch( ofstream & manifest, unsigned int switch_frame, const
       /* Write out all the source frames up to the position of target_player */
       while ( source_player.cur_displayed_frame() < target_player.cur_displayed_frame() ) {
 	/* Don't really care about PSNR of S frames */
-	RasterHandle source_raster( source_player.width(), source_player.height() );
-
 	SerializedFrame source_frame = source_player.serialize_next();
 	manifest << "S " << source_frame.name() << endl;
       	source_frame.write();

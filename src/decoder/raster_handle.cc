@@ -7,18 +7,6 @@
 
 using namespace std;
 
-class RasterDeleter
-{
-private:
-  RasterPool * raster_pool_ = nullptr;
-
-public:
-  void operator()( Raster * raster ) const;
-  void set_raster_pool( RasterPool * pool );
-};
-
-typedef unique_ptr<Raster, RasterDeleter> RasterHolder;
-
 /* helper to dequeue front element from a queue */
 template <typename T>
 static T dequeue( queue<T> & q )
@@ -82,10 +70,19 @@ static RasterPool & global_raster_pool( void )
   return pool;
 }
 
-RasterHandle::RasterHandle( const unsigned int display_width, const unsigned int display_height )
-  : RasterHandle( display_width, display_height, global_raster_pool() )
+RasterHolder & MutableRasterHandle::get_holder( void )
+{
+  return raster_;
+}
+
+MutableRasterHandle::MutableRasterHandle( const unsigned int display_width, const unsigned int display_height )
+  : MutableRasterHandle( display_width, display_height, global_raster_pool() )
 {}
 
-RasterHandle::RasterHandle( const unsigned int display_width, const unsigned int display_height, RasterPool & raster_pool )
+MutableRasterHandle::MutableRasterHandle( const unsigned int display_width, const unsigned int display_height, RasterPool & raster_pool )
   : raster_( raster_pool.make_raster( display_width, display_height ) )
+{}
+
+RasterHandle::RasterHandle( MutableRasterHandle && mutable_raster )
+  : raster_( move( mutable_raster.get_holder() ) )
 {}

@@ -158,7 +158,7 @@ SerializedFrame FilePlayer<DiffGenerator>::serialize_next( void )
 
   if ( raster.initialized() ) {
     s_frame.set_output( raster.get() );
-  } /* XXX need to account for unset output in SerializedFrame */
+  }
 
   return s_frame;
 }

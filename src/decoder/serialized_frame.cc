@@ -96,10 +96,15 @@ bool SerializedFrame::validate_target( const Decoder & decoder ) const
 
 string SerializedFrame::name( void ) const
 {
-  assert( output_raster_.initialized() );
   stringstream name_stream;
   name_stream << hex << uppercase << source_hash_ << "#" << target_hash_ << 
-              "#" << get_output().get().hash();
+              "#";
+  if ( output_raster_.initialized() ) {
+    name_stream << get_output().get().hash();
+  }
+  else {
+    name_stream << "x";
+  }
 
   return name_stream.str();
 }

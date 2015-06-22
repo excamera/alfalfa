@@ -70,7 +70,9 @@ struct References
 
   References( const uint16_t width, const uint16_t height );
 
-  void update_continuation( const RasterHandle & raster );
+  References( MutableRasterHandle && raster );
+
+  void update_continuation( const MutableRasterHandle & raster );
 
   const Raster & at( const reference_frame reference_id ) const
   {

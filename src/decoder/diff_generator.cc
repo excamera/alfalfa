@@ -29,8 +29,7 @@ Optional<RasterHandle> DiffGenerator::decode_frame( const Chunk & frame )
   UncompressedChunk uncompressed_chunk( frame, state_.width, state_.height );
 
   /* get a RasterHandle */
-  /* XXX will become MutableRasterHandle */
-  RasterHandle raster { state_.width, state_.height };
+  MutableRasterHandle raster { state_.width, state_.height };
   bool shown;
 
   if ( uncompressed_chunk.key_frame() ) {
@@ -47,7 +46,11 @@ Optional<RasterHandle> DiffGenerator::decode_frame( const Chunk & frame )
 
     key_frame_.get().loopfilter( state_.segmentation, state_.filter_adjustments, raster );
 
-    key_frame_.get().copy_to( raster, references_ );
+    RasterHandle immutable_raster( move( raster ) );
+
+    key_frame_.get().copy_to( immutable_raster, references_ );
+
+    return Optional<RasterHandle>( shown, immutable_raster );
   } else {
     on_key_frame_ = false;
 
@@ -66,10 +69,13 @@ Optional<RasterHandle> DiffGenerator::decode_frame( const Chunk & frame )
 
     inter_frame_.get().loopfilter( state_.segmentation, state_.filter_adjustments, raster );
 
-    inter_frame_.get().copy_to( raster, references_ );
+    RasterHandle immutable_raster( move( raster ) );
+
+    inter_frame_.get().copy_to( immutable_raster, references_ );
+
+    return Optional<RasterHandle>( shown, immutable_raster );
   }
 
-  return Optional<RasterHandle>( shown, move( raster ) );
 }
 
 string DiffGenerator::cur_frame_stats( void ) const

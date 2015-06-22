@@ -19,8 +19,7 @@ Optional<RasterHandle> Decoder::decode_frame( const Chunk & frame )
   UncompressedChunk uncompressed_chunk( frame, state_.width, state_.height );
 
   /* get a RasterHandle */
-  /* XXX will become MutableRasterHandle */
-  RasterHandle raster { state_.width, state_.height };
+  MutableRasterHandle raster { state_.width, state_.height };
   bool shown;
 
   if ( uncompressed_chunk.key_frame() ) {
@@ -34,7 +33,11 @@ Optional<RasterHandle> Decoder::decode_frame( const Chunk & frame )
 
     myframe.loopfilter( state_.segmentation, state_.filter_adjustments, raster );
 
-    myframe.copy_to( raster, references_ );
+    RasterHandle immutable_raster( move( raster ) );
+
+    myframe.copy_to( immutable_raster, references_ );
+
+    return Optional<RasterHandle>( shown, immutable_raster );
   } else {
     const InterFrame myframe = state_.parse_and_apply<InterFrame>( uncompressed_chunk );
 
@@ -46,10 +49,12 @@ Optional<RasterHandle> Decoder::decode_frame( const Chunk & frame )
 
     myframe.loopfilter( state_.segmentation, state_.filter_adjustments, raster );
 
-    myframe.copy_to( raster, references_ );
-  }
+    RasterHandle immutable_raster( move( raster ) );
 
-  return Optional<RasterHandle>( shown, move( raster ) );
+    myframe.copy_to( immutable_raster, references_ );
+
+    return Optional<RasterHandle>( shown, immutable_raster );
+  }
 }
 
 string Decoder::hash_str( const ReferenceTracker & used_refs,
@@ -116,7 +121,7 @@ bool Decoder::equal_references( const Decoder & other ) const
 
 void Decoder::update_continuation( const Decoder & other )
 {
-  references_.update_continuation( other.references_.continuation );
+  references_.continuation = other.references_.continuation;
 }
 
 bool Decoder::operator==( const Decoder & other ) const
@@ -126,15 +131,22 @@ bool Decoder::operator==( const Decoder & other ) const
 }
 
 References::References( const uint16_t width, const uint16_t height )
-  : last( width, height ),
-    golden( width, height ),
-    alternative_reference( width, height ),
-    continuation( width, height )
+  : References( MutableRasterHandle( width, height ) )
 {}
 
-void References::update_continuation( const RasterHandle & raster )
+References::References( MutableRasterHandle && raster )
+  : last( move( raster ) ),
+    golden( last ),
+    alternative_reference( last ),
+    continuation( last )
+{}
+
+void References::update_continuation( const MutableRasterHandle & raster )
 {
-  continuation.get().copy_from( raster );
+  MutableRasterHandle copy_raster( raster.get().display_width(), raster.get().display_height() );
+
+  copy_raster.get().copy_from( raster );
+  continuation = RasterHandle( move( copy_raster ) );
 }
 
 DecoderState::DecoderState( const unsigned int s_width, const unsigned int s_height )

@@ -4,24 +4,29 @@
 #include "raster.hh"
 
 class RasterPool;
+class RasterHandle;
 
-class RasterHandle
+class RasterDeleter
 {
 private:
-  std::shared_ptr< Raster > raster_;
+  RasterPool * raster_pool_ = nullptr;
 
 public:
-  RasterHandle( MutableRasterHandle && raster );
-
-  operator const Raster & () const { return *raster_; }
-
-  const Raster & get( void ) const { return *raster_; }
+  void operator()( Raster * raster ) const;
+  void set_raster_pool( RasterPool * pool );
 };
+
+typedef std::unique_ptr<Raster, RasterDeleter> RasterHolder;
 
 class MutableRasterHandle
 {
+friend class RasterHandle;
+
 private:
-  std::unique_ptr< Raster > raster_;
+  RasterHolder raster_;
+
+protected:
+  RasterHolder & get_holder( void ); 
 
 public:
   MutableRasterHandle( const unsigned int display_width, const unsigned int display_height );
@@ -34,5 +39,19 @@ public:
   const Raster & get( void ) const { return *raster_; }
   Raster & get( void ) { return *raster_; }
 };
+
+class RasterHandle
+{
+private:
+  std::shared_ptr<Raster> raster_;
+
+public:
+  RasterHandle( MutableRasterHandle && mutable_raster );
+
+  operator const Raster & () const { return *raster_; }
+
+  const Raster & get( void ) const { return *raster_; }
+};
+
 
 #endif /* RASTER_POOL_HH */
