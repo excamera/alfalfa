@@ -13,6 +13,8 @@ private:
 
 public:
   void operator()( Raster * raster ) const;
+
+  RasterPool * get_raster_pool( void ) const;
   void set_raster_pool( RasterPool * pool );
 };
 
@@ -51,6 +53,11 @@ public:
   operator const Raster & () const { return *raster_; }
 
   const Raster & get( void ) const { return *raster_; }
+
+  size_t hash( void ) const;
+
+  bool operator==( const RasterHandle & other ) const;
+  bool operator!=( const RasterHandle & other ) const;
 };
 
 

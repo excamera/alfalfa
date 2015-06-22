@@ -66,28 +66,28 @@ string Decoder::hash_str( const ReferenceTracker & used_refs,
   decoder_hash << state_.hash() << "_";
 
   if ( used_refs.continuation() ) {
-    decoder_hash << references.continuation.get().hash();
+    decoder_hash << references.continuation.hash();
   } else {
     decoder_hash << "x";
   }
   decoder_hash << "_";
 
   if ( used_refs.last() ) {
-    decoder_hash << references.last.get().hash();
+    decoder_hash << references.last.hash();
   } else {
     decoder_hash << "x";
   }
   decoder_hash << "_";
 
   if ( used_refs.golden() ) {
-    decoder_hash << references.golden.get().hash();
+    decoder_hash << references.golden.hash();
   } else {
     decoder_hash << "x";
   }
   decoder_hash << "_";
 
   if ( used_refs.alternate() ) {
-    decoder_hash << references.alternative_reference.get().hash();
+    decoder_hash << references.alternative_reference.hash();
   } else {
     decoder_hash << "x";
   }
@@ -109,14 +109,14 @@ string Decoder::hash_str( void ) const
 
 bool Decoder::equal_references( const Decoder & other ) const
 {
-  if ( references_.continuation.get() == other.references_.continuation.get() ) {
+  if ( references_.continuation == other.references_.continuation ) {
     cout << "Continuation refs equal\n";
   }
 
-  return references_.continuation.get() == other.references_.continuation.get() and
-    references_.last.get() == other.references_.last.get() and
-    references_.golden.get() == other.references_.golden.get() and
-    references_.alternative_reference.get() == other.references_.alternative_reference.get();
+  return references_.continuation == other.references_.continuation and
+    references_.last == other.references_.last and
+    references_.golden == other.references_.golden and
+    references_.alternative_reference == other.references_.alternative_reference;
 }
 
 void Decoder::update_continuation( const Decoder & other )
@@ -127,7 +127,7 @@ void Decoder::update_continuation( const Decoder & other )
 bool Decoder::operator==( const Decoder & other ) const
 {
   return state_ == other.state_ and
-    references_.continuation.get() == other.references_.continuation.get();
+    references_.continuation == other.references_.continuation;
 }
 
 References::References( const uint16_t width, const uint16_t height )

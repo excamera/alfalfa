@@ -100,7 +100,7 @@ string SerializedFrame::name( void ) const
   name_stream << hex << uppercase << source_hash_ << "#" << target_hash_ << 
               "#";
   if ( output_raster_.initialized() ) {
-    name_stream << get_output().get().hash();
+    name_stream << get_output().hash();
   }
   else {
     name_stream << "x";

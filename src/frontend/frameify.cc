@@ -127,8 +127,8 @@ static void single_switch( ofstream & manifest, unsigned int switch_frame, const
 static void write_quality_manifest( ofstream & manifest, const SerializedFrame & frame, 
                                     const RasterHandle & original )
 {
-  manifest << hex << uppercase << original.get().hash() << " " << 
-              frame.get_output().get().hash() << " " << frame.psnr( original ) << endl;
+  manifest << hex << uppercase << original.hash() << " " << 
+              frame.get_output().hash() << " " << frame.psnr( original ) << endl;
 }
 
 static void write_frame( const SerializedFrame & frame, ofstream & frame_manifest )
@@ -219,7 +219,7 @@ static void generate_frames( const string & original, const vector<string> & str
 
   while ( not original_player.eof() ) {
     RasterHandle original_raster = original_player.advance();
-    original_manifest << uppercase << hex << original_raster.get().hash() << endl;
+    original_manifest << uppercase << hex << original_raster.hash() << endl;
 
     /* For every quality level, write out the normal frames and generate diffs */
     for ( unsigned stream_idx = 0; stream_idx < stream_players.size() - 1; stream_idx++ ) {
