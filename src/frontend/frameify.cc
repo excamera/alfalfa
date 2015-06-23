@@ -197,11 +197,17 @@ static unordered_set<ReferenceTracker> new_reference_set( const unordered_set<Re
   return new_set;
 }
 
+static void write_optional_manifest( ofstream & manifest, const SerializedFrame & frame, unsigned stream_idx )
+{
+  manifest << stream_idx << " " << frame.name() << endl;
+}
+
 static void generate_frames( const string & original, const vector<string> & streams )
 {
   ofstream original_manifest( "original_manifest" );
   ofstream quality_manifest( "quality_manifest" );
   ofstream frame_manifest( "frame_manifest" );
+  ofstream optional_manifest( "optional_manifest" );
 
   Player original_player( original );
 
@@ -229,9 +235,11 @@ static void generate_frames( const string & original, const vector<string> & str
 
       SerializedFrame source_frame = serialize_until_shown( source_player, frame_manifest );
       write_quality_manifest( quality_manifest, source_frame, original_raster );
+      write_optional_manifest( optional_manifest, source_frame, stream_idx );
 
       SerializedFrame target_frame = serialize_until_shown( target_player, frame_manifest );
       write_quality_manifest( quality_manifest, target_frame, original_raster );
+      write_optional_manifest( optional_manifest, target_frame, stream_idx + 1 );
 
       // We need to look at missing refs plus updated refs. Insert a new entry from missing_references,
       // then check which refs have been updated in the target and the source. Use the set of updated
