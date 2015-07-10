@@ -30,8 +30,8 @@ public:
 
   void update_continuation( const FramePlayer & other );
 
-  void set_references( bool set_last, bool set_golden, bool set_alt,
-                       const FramePlayer & target_player );
+  void update( bool set_state, bool set_last, bool set_golden, bool set_alt,
+               const FramePlayer & target_player );
 
   ReferenceTracker updated_references( void ) const;
 

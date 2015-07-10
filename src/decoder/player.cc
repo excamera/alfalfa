@@ -55,10 +55,10 @@ void FramePlayer<DecoderType>::update_continuation( const FramePlayer & other )
 }
 
 template<>
-void FramePlayer<DiffGenerator>::set_references( bool set_last, bool set_golden, bool set_alt,
-                                                 const FramePlayer & target_player )
+void FramePlayer<DiffGenerator>::update( bool set_state, bool set_last, bool set_golden, bool set_alt,
+                                         const FramePlayer & target_player )
 {
-  decoder_.set_references( set_last, set_golden, set_alt, target_player.decoder_ );
+  decoder_.update( set_state, set_last, set_golden, set_alt, target_player.decoder_ );
 }
 
 template<>

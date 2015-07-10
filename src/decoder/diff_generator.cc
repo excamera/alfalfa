@@ -11,7 +11,8 @@ DiffGenerator::DiffGenerator( const uint16_t width, const uint16_t height )
     on_key_frame_( true ),
     key_frame_(),
     inter_frame_(),
-    prev_references_( width, height )
+    prev_references_( width, height ),
+    prev_state_( width, height )
 {}
 
 /* Since frames are uncopyable, only copy the base */
@@ -20,11 +21,13 @@ DiffGenerator::DiffGenerator( const DiffGenerator & other )
     on_key_frame_ ( false ),
     key_frame_(),
     inter_frame_(),
-    prev_references_( other.prev_references_ )
+    prev_references_( other.prev_references_ ),
+    prev_state_( other.prev_state_ )
 {}
 
 Optional<RasterHandle> DiffGenerator::decode_frame( const Chunk & frame )
 {
+  prev_state_ = state_;
   /* parse uncompressed data chunk */
   UncompressedChunk uncompressed_chunk( frame, state_.width, state_.height );
 
@@ -128,9 +131,13 @@ string DiffGenerator::target_hash_str( void ) const
   return hash_str( updated_references() );
 }
 
-void DiffGenerator::set_references( bool set_last, bool set_golden, bool set_alt,
-                                    const DiffGenerator & other )
+void DiffGenerator::update(bool set_state, bool set_last, bool set_golden, bool set_alt,
+                           const DiffGenerator & other )
 {
+  if ( set_state ) {
+    state_ = other.prev_state_;
+  }
+
   if ( set_last ) {
     references_.last = other.references_.last;
   }

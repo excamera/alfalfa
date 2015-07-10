@@ -6,14 +6,36 @@
 
 using namespace std;
 
+class DiffTracker : public ReferenceTracker {
+private:
+  bool state_; // True if we should use the target state
+
+public:
+  DiffTracker( bool state, bool continuation, bool last, bool golden,
+               bool alternate )
+  : ReferenceTracker( continuation, last, golden, alternate ),
+    state_( state )
+  {}
+
+  // Fresh diffs shouldn't use the target state
+  DiffTracker( const ReferenceTracker & other )
+    : ReferenceTracker( other ),
+      state_( false )
+  {}
+
+  bool state( void ) const { return state_; }
+
+  void set_state( bool state ) { state_ = state; }
+};
+
 namespace std {
   template<>
-  struct hash<ReferenceTracker>
+  struct hash<DiffTracker>
   {
-    size_t operator()( const ReferenceTracker & refs ) const
+    size_t operator()( const DiffTracker & tracker ) const
     {
-      return refs.continuation() | ( refs.last() << 1 ) | ( refs.golden() << 2 ) |
-             ( refs.alternate() << 3 );
+      return tracker.continuation() | ( tracker.last() << 1 ) | ( tracker.golden() << 2 ) |
+             ( tracker.alternate() << 3 ) | ( tracker.state() << 4 );
     }
   };
 }
@@ -155,12 +177,13 @@ static SerializedFrame serialize_until_shown( FilePlayer<DiffGenerator> & player
 static void generate_continuations( const FilePlayer<DiffGenerator> & source_player, 
                                     const FilePlayer<DiffGenerator> & target_player,
                                     const RasterHandle & target_raster, ofstream & frame_manifest, 
-                                    const unordered_set<ReferenceTracker> & reference_combinations )
+                                    const unordered_set<DiffTracker> & diff_combinations )
 {
-  for ( const auto & missing_refs : reference_combinations ) {
+  for ( const auto & tracker : diff_combinations ) {
     FramePlayer<DiffGenerator> diff_player = source_player;
-    diff_player.set_references( not missing_refs.last(), not missing_refs.golden(),
-                                not missing_refs.alternate(), target_player );
+    
+    diff_player.update( tracker.state(), not tracker.last(), not tracker.golden(),
+                        not tracker.alternate(), target_player );
 
     SerializedFrame continuation = target_player - diff_player;
     continuation.set_output( target_raster );
@@ -169,12 +192,15 @@ static void generate_continuations( const FilePlayer<DiffGenerator> & source_pla
   }
 }
 
-static unordered_set<ReferenceTracker> new_reference_set( const unordered_set<ReferenceTracker> & refs_set,
-                                                          const ReferenceTracker & updated )
+static unordered_set<DiffTracker> new_reference_set( const unordered_set<DiffTracker> & refs_set,
+                                                     const ReferenceTracker & updated )
 {
-  unordered_set<ReferenceTracker> new_set;
+  unordered_set<DiffTracker> new_set;
   for ( auto & refs : refs_set ) {
-    ReferenceTracker new_refs = refs;
+    DiffTracker new_refs = refs;
+
+    // Use the target state on all but the first continuation frame
+    new_refs.set_state( true );
 
     if ( updated.last() ) {
       new_refs.set_last( false );
@@ -189,7 +215,7 @@ static unordered_set<ReferenceTracker> new_reference_set( const unordered_set<Re
     }
 
     /* If any references are still missing add this to the updated set */
-    if ( refs.last() or refs.golden() or refs.alternate() ) {
+    if ( new_refs.last() or new_refs.golden() or new_refs.alternate() ) {
       new_set.insert( new_refs );
     }
   }
@@ -220,8 +246,8 @@ static void generate_frames( const string & original, const vector<string> & str
     stream_players.emplace_back( stream );
   }
 
-  vector<unordered_set<ReferenceTracker>> upgrade_continuations( stream_players.size() - 1 );
-  vector<unordered_set<ReferenceTracker>> downgrade_continuations( stream_players.size() - 1 );
+  vector<unordered_set<DiffTracker>> upgrade_continuations( stream_players.size() - 1 );
+  vector<unordered_set<DiffTracker>> downgrade_continuations( stream_players.size() - 1 );
 
   while ( not original_player.eof() ) {
     RasterHandle original_raster = original_player.advance();
@@ -251,9 +277,9 @@ static void generate_frames( const string & original, const vector<string> & str
       ReferenceTracker source_updated_refs = source_player.updated_references(); 
       downgrade_continuations[ stream_idx ] = new_reference_set( downgrade_continuations[ stream_idx ], source_updated_refs );
 
-      ReferenceTracker missing_refs = source_player.missing_references( target_player );
-      upgrade_continuations[ stream_idx ].insert( missing_refs );
-      downgrade_continuations[ stream_idx ].insert( missing_refs );
+      DiffTracker missing_tracker( source_player.missing_references( target_player ) );
+      upgrade_continuations[ stream_idx ].insert( missing_tracker );
+      downgrade_continuations[ stream_idx ].insert( missing_tracker );
 
       generate_continuations( source_player, target_player, target_frame.get_output(), frame_manifest, upgrade_continuations[ stream_idx ] );
       generate_continuations( target_player, source_player, source_frame.get_output(), frame_manifest, downgrade_continuations[ stream_idx ] );

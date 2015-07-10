@@ -90,6 +90,11 @@ void InterFrameMacroblock::rewrite_as_diff( const Raster::Macroblock & raster,
 }
 
 // Make Diff Frame
+// FIXME: target_references is the previous set of references with the exception of
+// continuation, because the continuation frame is applied after the source frame.
+// Continuation has to be current since the diff is based off of it. In other words
+// target_references is used for two largely unrelated purposes.
+// This seems unnecessarily convoluted, revisit.
 template <>
 InterFrame::Frame( const InterFrame & original,
 		   const DecoderState & source_decoder_state,

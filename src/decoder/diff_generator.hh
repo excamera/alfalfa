@@ -18,6 +18,7 @@ private:
   /* Need to know the previous set of references to calculate which references
    * are missing for a continuation frame */
   References prev_references_;
+  DecoderState prev_state_;
 
 public:
   DiffGenerator( const uint16_t width, const uint16_t height );
@@ -32,8 +33,8 @@ public:
 
   std::string target_hash_str( void ) const;
 
-  void set_references( bool set_last, bool set_golden, bool set_alt,
-                       const DiffGenerator & other );
+  void update( bool set_state, bool set_last, bool set_golden, bool set_alt,
+               const DiffGenerator & other );
 
   ReferenceTracker updated_references( void ) const;
 
