@@ -16,8 +16,8 @@ int main( int argc, char * argv[] )
   uint16_t width, height;
   manifest >> width >> height;
 
-  FramePlayer<Decoder> player( width, height );
-  Optional<FramePlayer<Decoder>> source_copy;
+  FramePlayer player( width, height );
+  Optional<FramePlayer> source_copy;
 
   while ( not manifest.eof() ) {
     char frame_type;
@@ -46,7 +46,7 @@ int main( int argc, char * argv[] )
 
       source_copy.get().decode( frame );
 
-      player.update_continuation( source_copy.get() );
+      player.sync_continuation_raster( source_copy.get() );
     }
     else {
       raster = player.decode( frame );

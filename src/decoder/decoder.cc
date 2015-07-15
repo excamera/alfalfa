@@ -2,7 +2,7 @@
 #include "uncompressed_chunk.hh"
 #include "frame.hh"
 #include "decoder_state.hh"
-#include "diff_generator.hh"
+#include "continuation_state.hh"
 
 #include <sstream>
 
@@ -10,7 +10,8 @@ using namespace std;
 
 Decoder::Decoder( const uint16_t width, const uint16_t height )
   : state_( width, height ),
-    references_( width, height )
+    references_( width, height ),
+    continuation_raster_( references_.last )
 {}
 
 Optional<RasterHandle> Decoder::decode_frame( const Chunk & frame )
@@ -20,16 +21,15 @@ Optional<RasterHandle> Decoder::decode_frame( const Chunk & frame )
 
   /* get a RasterHandle */
   MutableRasterHandle raster { state_.width, state_.height };
-  bool shown;
 
   if ( uncompressed_chunk.key_frame() ) {
     const KeyFrame myframe = state_.parse_and_apply<KeyFrame>( uncompressed_chunk );
 
-    shown = myframe.show_frame();
+    const bool shown = myframe.show_frame();
 
     myframe.decode( state_.segmentation, raster );
 
-    references_.update_continuation( raster );
+    update_continuation( raster );
 
     myframe.loopfilter( state_.segmentation, state_.filter_adjustments, raster );
 
@@ -41,11 +41,11 @@ Optional<RasterHandle> Decoder::decode_frame( const Chunk & frame )
   } else {
     const InterFrame myframe = state_.parse_and_apply<InterFrame>( uncompressed_chunk );
 
-    shown = myframe.show_frame();
+    const bool shown = myframe.show_frame();
 
-    myframe.decode( state_.segmentation, references_, raster );
+    myframe.decode( state_.segmentation, references_, continuation_raster_, raster );
 
-    references_.update_continuation( raster );
+    update_continuation( raster );
 
     myframe.loopfilter( state_.segmentation, state_.filter_adjustments, raster );
 
@@ -57,77 +57,82 @@ Optional<RasterHandle> Decoder::decode_frame( const Chunk & frame )
   }
 }
 
-string Decoder::hash_str( const ReferenceTracker & used_refs,
-				  const References & references ) const
+ContinuationState Decoder::next_continuation_state( const Chunk & frame )
 {
-  stringstream decoder_hash;
-  decoder_hash << hex << uppercase;
+  References prev_references = references_;
 
-  decoder_hash << state_.hash() << "_";
+  /* parse uncompressed data chunk */
+  UncompressedChunk uncompressed_chunk( frame, state_.width, state_.height );
 
-  if ( used_refs.continuation() ) {
-    decoder_hash << references.continuation.hash();
+  /* get a RasterHandle */
+  MutableRasterHandle raster { state_.width, state_.height };
+
+  if ( uncompressed_chunk.key_frame() ) {
+    KeyFrame myframe = state_.parse_and_apply<KeyFrame>( uncompressed_chunk );
+
+    bool shown = myframe.show_frame();
+
+    myframe.decode( state_.segmentation, raster );
+
+    update_continuation( raster );
+
+    myframe.loopfilter( state_.segmentation, state_.filter_adjustments, raster );
+
+    RasterHandle immutable_raster( move( raster ) );
+
+    myframe.copy_to( immutable_raster, references_ );
+
+    return ContinuationState( move( myframe ), Optional<RasterHandle>( shown, immutable_raster ),
+                              prev_references );
   } else {
-    decoder_hash << "x";
-  }
-  decoder_hash << "_";
+    InterFrame myframe = state_.parse_and_apply<InterFrame>( uncompressed_chunk );
 
-  if ( used_refs.last() ) {
-    decoder_hash << references.last.hash();
-  } else {
-    decoder_hash << "x";
-  }
-  decoder_hash << "_";
+    bool shown = myframe.show_frame();
 
-  if ( used_refs.golden() ) {
-    decoder_hash << references.golden.hash();
-  } else {
-    decoder_hash << "x";
-  }
-  decoder_hash << "_";
+    myframe.decode( state_.segmentation, references_, continuation_raster_, raster );
 
-  if ( used_refs.alternate() ) {
-    decoder_hash << references.alternative_reference.hash();
-  } else {
-    decoder_hash << "x";
-  }
+    update_continuation( raster );
 
-  return decoder_hash.str();
+    myframe.loopfilter( state_.segmentation, state_.filter_adjustments, raster );
+
+    RasterHandle immutable_raster( move( raster ) );
+
+    myframe.copy_to( immutable_raster, references_ );
+
+    return ContinuationState( move( myframe ), Optional<RasterHandle>( shown, immutable_raster ),
+                              prev_references );
+  }
 }
 
-string Decoder::hash_str( const ReferenceTracker & used_refs ) const
+DecoderHash Decoder::get_hash( void ) const
 {
-  return hash_str( used_refs, references_ );
+  return DecoderHash( state_.hash(), continuation_raster_.hash(),
+                      references_.last.hash(), references_.golden.hash(),
+                      references_.alternative_reference.hash() );
 }
 
-string Decoder::hash_str( void ) const
+void Decoder::sync_continuation_raster( const Decoder & other )
 {
-  /* All references set to used so partial_hash hashes every reference */
-
-  return hash_str( ReferenceTracker( true, true, true, true ) );
-}
-
-bool Decoder::equal_references( const Decoder & other ) const
-{
-  if ( references_.continuation == other.references_.continuation ) {
-    cout << "Continuation refs equal\n";
-  }
-
-  return references_.continuation == other.references_.continuation and
-    references_.last == other.references_.last and
-    references_.golden == other.references_.golden and
-    references_.alternative_reference == other.references_.alternative_reference;
-}
-
-void Decoder::update_continuation( const Decoder & other )
-{
-  references_.continuation = other.references_.continuation;
+  continuation_raster_ = other.continuation_raster_;
 }
 
 bool Decoder::operator==( const Decoder & other ) const
 {
-  return state_ == other.state_ and
-    references_.continuation == other.references_.continuation;
+  return state_ == other.state_ and continuation_raster_ == other.continuation_raster_ and
+    references_.last == other.references_.last and references_.golden == other.references_.golden and
+    references_.alternative_reference == other.references_.alternative_reference;
+}
+
+DecoderDiff Decoder::operator-( const Decoder & other ) const
+{
+  // FIXME maybe DecoderState should just go in here, since the state calculations we
+  // do are useless for keyframes
+  return DecoderDiff { RasterDiff( continuation_raster_, other.continuation_raster_ ),
+                       other.get_hash(), get_hash(),
+                       state_.get_replacement_probs( other.state_ ),
+                       state_.probability_tables,
+                       state_.get_filter_update(),
+                       state_.get_segment_update() };
 }
 
 References::References( const uint16_t width, const uint16_t height )
@@ -137,16 +142,15 @@ References::References( const uint16_t width, const uint16_t height )
 References::References( MutableRasterHandle && raster )
   : last( move( raster ) ),
     golden( last ),
-    alternative_reference( last ),
-    continuation( last )
+    alternative_reference( last )
 {}
 
-void References::update_continuation( const MutableRasterHandle & raster )
+void Decoder::update_continuation( const MutableRasterHandle & raster )
 {
   MutableRasterHandle copy_raster( raster.get().display_width(), raster.get().display_height() );
 
   copy_raster.get().copy_from( raster );
-  continuation = RasterHandle( move( copy_raster ) );
+  continuation_raster_ = RasterHandle( move( copy_raster ) );
 }
 
 DecoderState::DecoderState( const unsigned int s_width, const unsigned int s_height )
@@ -168,6 +172,127 @@ bool DecoderState::operator==( const DecoderState & other ) const
     and probability_tables == other.probability_tables
     and segmentation == other.segmentation
     and filter_adjustments == other.filter_adjustments;
+}
+
+// FIXME These functions should probably go in continuation.cc
+ReplacementEntropyHeader DecoderState::get_replacement_probs( const DecoderState & other ) const
+{
+  ReplacementEntropyHeader replacement_entropy_header;
+
+  /* match (normal) coefficient probabilities in frame header */
+  for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
+    for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
+      for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
+	for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
+	  const auto & source = other.probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l );
+	  const auto & target = probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l );
+
+	  replacement_entropy_header.token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( source != target, target );
+	}
+      }
+    }
+  }
+
+  /* match intra_16x16_probs in frame header */
+  bool update_y_mode_probs = false;
+  Array< Unsigned< 8 >, 4 > new_y_mode_probs;
+
+  for ( unsigned int i = 0; i < 4; i++ ) {
+    const auto & source = other.probability_tables.y_mode_probs.at( i );
+    const auto & target = probability_tables.y_mode_probs.at( i );
+
+    new_y_mode_probs.at( i ) = target;
+
+    if ( source != target ) {
+      update_y_mode_probs = true;
+    }
+  }
+
+  if ( update_y_mode_probs ) {
+    replacement_entropy_header.intra_16x16_prob.initialize( new_y_mode_probs );
+  }
+
+  /* match intra_chroma_prob in frame header */
+  bool update_chroma_mode_probs = false;
+  Array< Unsigned< 8 >, 3 > new_chroma_mode_probs;
+
+  for ( unsigned int i = 0; i < 3; i++ ) {
+    const auto & source = other.probability_tables.uv_mode_probs.at( i );
+    const auto & target = probability_tables.uv_mode_probs.at( i );
+
+    new_chroma_mode_probs.at( i ) = target;
+
+    if ( source != target ) {
+      update_chroma_mode_probs = true;
+    }
+  }
+
+  if ( update_chroma_mode_probs ) {
+    replacement_entropy_header.intra_chroma_prob.initialize( new_chroma_mode_probs );
+  }
+
+  /* match motion_vector_probs in frame header */
+  for ( uint8_t i = 0; i < 2; i++ ) {
+    for ( uint8_t j = 0; j < MV_PROB_CNT; j++ ) {
+      const auto & source = other.probability_tables.motion_vector_probs.at( i ).at( j );
+      const auto & target = probability_tables.motion_vector_probs.at( i ).at( j );
+
+      replacement_entropy_header.mv_prob_update.at( i ).at( j ) = MVProbReplacement( source != target, target );
+    }
+  }
+
+  return replacement_entropy_header;
+}
+
+Optional<ModeRefLFDeltaUpdate> DecoderState::get_filter_update( void ) const
+{
+  if ( not filter_adjustments.initialized() ) {
+    return Optional<ModeRefLFDeltaUpdate>();
+  }
+  ModeRefLFDeltaUpdate filter_update;
+
+  /* these are 0 if not set */
+  for ( unsigned int i = 0; i < filter_adjustments.get().loopfilter_ref_adjustments.size(); i++ ) {
+    const auto & value = filter_adjustments.get().loopfilter_ref_adjustments.at( i );
+    if ( value ) {
+      filter_update.ref_update.at( i ).initialize( value );
+    }
+  }
+
+  for ( unsigned int i = 0; i < filter_adjustments.get().loopfilter_mode_adjustments.size(); i++ ) {
+    const auto & value = filter_adjustments.get().loopfilter_mode_adjustments.at( i );
+    if ( value ) {
+      filter_update.mode_update.at( i ).initialize( value );
+    }
+  }
+
+  return Optional<ModeRefLFDeltaUpdate>( move( filter_update ) );
+}
+
+Optional<SegmentFeatureData> DecoderState::get_segment_update( void ) const
+{
+  if ( not segmentation.initialized() ) {
+    return Optional<SegmentFeatureData>();
+  }
+
+  SegmentFeatureData segment_feature_data;
+
+  segment_feature_data.segment_feature_mode = segmentation.get().absolute_segment_adjustments;
+
+  for ( unsigned int i = 0; i < num_segments; i++ ) {
+    /* these also default to 0 */
+    const auto & q_adjustment = segmentation.get().segment_quantizer_adjustments.at( i );
+    const auto & lf_adjustment = segmentation.get().segment_filter_adjustments.at( i );
+    if ( q_adjustment ) {
+      segment_feature_data.quantizer_update.at( i ).initialize( q_adjustment );
+    }
+
+    if ( lf_adjustment ) {
+      segment_feature_data.loop_filter_update.at( i ).initialize( lf_adjustment );
+    }
+  }
+
+  return Optional<SegmentFeatureData>( move( segment_feature_data ) );
 }
 
 size_t DecoderState::hash( void ) const

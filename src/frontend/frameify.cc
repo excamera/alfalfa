@@ -1,312 +1,181 @@
 #include <iostream>
 #include <fstream>
 #include <unordered_set>
-#include "player.hh"
-#include "diff_generator.cc"
+#include <algorithm>
+#include "continuation_player.hh"
 
 using namespace std;
 
-class DiffTracker : public ReferenceTracker {
+// Streams keep track of all the players converging onto them,
+// because they need to be able to update the states of those
+// frames with their continuation frames
+class StreamState {
 private:
-  bool state_; // True if we should use the target state
+  ContinuationPlayer stream_player_;
+
+  // Reference to the FrameGenerator's manifest
+  ofstream & frame_manifest_;
+
+  vector<FramePlayer> continuation_players_ {};
+
+  Optional<SerializedFrame> last_shown_frame_ {};
+
+  void update_continuation_players( const SerializedFrame & frame )
+  {
+    for ( FramePlayer & player : continuation_players_ ) {
+      if ( player.can_decode( frame ) ) {
+        player.decode( frame );
+      }
+    }
+
+    // Don't need to track players which have fully converged
+    remove( continuation_players_.begin(), continuation_players_.end(), stream_player_ );
+  }
+
+  void write_frame( const SerializedFrame & frame )
+  {
+    frame_manifest_ << frame.name() << " " << frame.size() << endl;
+    frame.write();
+  }
+
 
 public:
-  DiffTracker( bool state, bool continuation, bool last, bool golden,
-               bool alternate )
-  : ReferenceTracker( continuation, last, golden, alternate ),
-    state_( state )
+  StreamState( const string & stream_file, ofstream & frame_manifest )
+    : stream_player_( stream_file ),
+      frame_manifest_( frame_manifest )
   {}
 
-  // Fresh diffs shouldn't use the target state
-  DiffTracker( const ReferenceTracker & other )
-    : ReferenceTracker( other ),
-      state_( false )
-  {}
-
-  bool state( void ) const { return state_; }
-
-  void set_state( bool state ) { state_ = state; }
-};
-
-namespace std {
-  template<>
-  struct hash<DiffTracker>
+  SerializedFrame advance_until_shown( void )
   {
-    size_t operator()( const DiffTracker & tracker ) const
-    {
-      return tracker.continuation() | ( tracker.last() << 1 ) | ( tracker.golden() << 2 ) |
-             ( tracker.alternate() << 3 ) | ( tracker.state() << 4 );
+    /* Serialize and write until next displayed frame */
+    while ( not stream_player_.eof() ) {
+      SerializedFrame frame = stream_player_.serialize_next(); 
+      write_frame( frame );
+
+      if ( frame.shown() ) {
+        // FIXME this is ugly
+        if ( last_shown_frame_.initialized() ) {
+          last_shown_frame_.clear();
+        }
+        last_shown_frame_.initialize( frame );
+        return frame;
+      }
+
+      // For unshown frames, update the continuation players, shown
+      // frames will be accounted for when continuation frames are made
+      update_continuation_players( frame );
+      update_continuation_players( frame );
+
     }
-  };
-}
-
-static void single_switch( ofstream & manifest, unsigned int switch_frame, const string & source, 
-		    const string & target, const string & original )
-{
-  FilePlayer<DiffGenerator> source_player( source );
-  FilePlayer<DiffGenerator> target_player( target );
-  FilePlayer<DiffGenerator> original_player( original );
-
-  manifest << source_player.width() << " " << source_player.height() << "\n";
-
-  /* Serialize source normally */
-  while ( source_player.cur_displayed_frame() < switch_frame ) {
-    SerializedFrame frame = source_player.serialize_next();
-    manifest << "N " << frame.name() << endl;
-    cout << "N " << frame.name() << "\n";
-    cout << "\tSize: " << frame.size() << "\n";
-    cout << source_player.cur_frame_stats();
-    frame.write();
-    if ( source_player.eof() ) {
-      throw Invalid( "source ended before switch" );
-    }
+    throw Unsupported( "Undisplayed frames at end of video unsupported" );
   }
 
-  unsigned source_frames_size = 0;
-  unsigned continuation_frames_size = 0;
-
-  /* At this point we generate the first continuation frame */
-  cout << "First Continuation\n";
-
-  /* Catch up target_player to one behind, since we serialize switch_frame */
-  while ( target_player.cur_displayed_frame() < switch_frame - 1 ) {
-    target_player.advance();
+  void add_continuation( const StreamState & other )
+  {
+    continuation_players_.emplace_back( other.stream_player_ );
   }
 
-  FramePlayer<DiffGenerator> diff_player( source_player );
+  void make_continuations( void )
+  {
+    // If a source player has converged on target_player remove it from consideration
+    // for further continuation frames
+    remove( continuation_players_.begin(), continuation_players_.end(), stream_player_ );
 
-
-  while ( not source_player.eof() and not target_player.eof() ) {
-    unsigned int last_displayed_frame = target_player.cur_displayed_frame();
-    SerializedFrame next_target = target_player.serialize_next();
-
-    /* Could get rid of the can_decode and just make this a try catch */
-    if ( diff_player.can_decode( next_target ) ) {
-      manifest << "N " << next_target.name() << endl;
-      next_target.write();
-
-      cout << "N " << next_target.name() << endl;
-      cout << "\tSize: " << next_target.size() << endl;
-      cout << target_player.cur_frame_stats() << endl;
-
-      diff_player.decode( next_target );
-    }
-    else {
-      RasterHandle target_raster( MutableRasterHandle( target_player.width(), target_player.height() ) );
-      /* if the cur_displayed_frame is the same then next_target wasn't displayed, so advance */
-      if ( target_player.cur_displayed_frame() == last_displayed_frame ) {
-	/* PSNR for continuation frames calculated from target raster */
-	target_raster = target_player.advance();
+    for ( FramePlayer & source_player : continuation_players_ ) {
+      if ( source_player.can_decode( last_shown_frame_.get() ) ) {
+        source_player.decode( last_shown_frame_.get() );
       }
       else {
-        target_raster = next_target.get_output();
+        SerializedFrame continuation = stream_player_ - source_player; 
+
+        write_frame( continuation );
+
+        // FIXME same as above fixme
+        source_player.decode( continuation );
+      }
+    }
+  }
+};
+
+class FrameGenerator {
+private: 
+
+  ofstream original_manifest_ { "original_manifest" };
+  ofstream quality_manifest_ { "quality_manifest" };
+  ofstream frame_manifest_ { "frame_manifest" };
+  vector<StreamState> streams_ {};
+
+  Player original_player_;
+
+  void record_quality( const SerializedFrame & frame, const RasterHandle & original )
+  {
+    quality_manifest_ << hex << uppercase << original.hash() << " " << 
+                frame.get_output().hash() << " " << frame.psnr( original ) << endl;
+  }
+
+  void record_original( const RasterHandle & original )
+  {
+    original_manifest_ << uppercase << hex << original.hash() << endl;
+  }
+
+public:
+  FrameGenerator( const string & original, const char * const streams[] )
+    : original_player_( original )
+  {
+    original_manifest_ << original_player_.width() << " " << original_player_.height() << "\n";
+
+    // Argument list is null terminated
+    for ( int i = 0; streams[ i ] != nullptr; i++ ) {
+      streams_.emplace_back( streams[ i ], frame_manifest_ );
+    }
+  }
+
+  void generate( void )
+  {
+    while ( not original_player_.eof() ) {
+      RasterHandle original_raster = original_player_.advance();
+      record_original( original_raster );
+
+      for ( StreamState & stream : streams_ ) {
+        SerializedFrame shown_frame =  stream.advance_until_shown();
+        assert( shown_frame.shown() );
+
+        record_quality( shown_frame, original_raster );
       }
 
-      /* Write out all the source frames up to the position of target_player */
-      while ( source_player.cur_displayed_frame() < target_player.cur_displayed_frame() ) {
-	/* Don't really care about PSNR of S frames */
-	SerializedFrame source_frame = source_player.serialize_next();
-	manifest << "S " << source_frame.name() << endl;
-      	source_frame.write();
+      // Add new starting points for continuations
+      for ( unsigned stream_idx = 0; stream_idx < streams_.size() - 1; stream_idx++ ) {
+        StreamState & source_stream = streams_[ stream_idx ];
+        StreamState & target_stream = streams_[ stream_idx + 1 ];
 
-	source_frames_size += source_frame.size();
+        // Insert new copies of source_player and target_players for continuations starting
+        // at this frame
 
-	cout << "S " << source_frame.name() << endl;
-	cout << "\tSize: " << source_frame.size() << endl;
-	cout << source_player.cur_frame_stats();
+        target_stream.add_continuation( source_stream );
+        source_stream.add_continuation( target_stream );
       }
 
-      diff_player.update_continuation( source_player );
-
-      /* Make another diff */
-      SerializedFrame continuation = target_player - diff_player;
-      continuation.set_output( target_raster );
-      continuation.write();
-      continuation_frames_size += continuation.size();
-
-      manifest << "C " << continuation.name() << endl;
-
-      // Need to decode _before_ we call cur_frame_stats, 
-      // otherwise it will be the stats of the previous frame
-      diff_player.decode( continuation );
-
-      cout << "C " << continuation.name() << "\n";
-      cout << "  Continuation Info\n";
-      cout << "\tSize: " << continuation.size() << endl;
-      cout << diff_player.cur_frame_stats();
-      cout << "  Corresponding Target Info\n";
-      cout << "\tSize: " << next_target.size() << endl;
-      cout << "   " << next_target.name() << "\n";
-      cout << target_player.cur_frame_stats();
+      // Make the continuations for each stream
+      for ( StreamState & stream : streams_ ) {
+        stream.make_continuations();
+      }
     }
   }
+};
 
-  cout << "Total size of S frames: " << source_frames_size << endl;
-  cout << "Total size of C frames: " << continuation_frames_size << endl;
-  cout << "Total cost of switch: " << source_frames_size + continuation_frames_size << "\n";
-}
-
-static void write_quality_manifest( ofstream & manifest, const SerializedFrame & frame, 
-                                    const RasterHandle & original )
+int main( int argc, const char * const argv[] )
 {
-  manifest << hex << uppercase << original.hash() << " " << 
-              frame.get_output().hash() << " " << frame.psnr( original ) << endl;
-}
-
-static void write_frame( const SerializedFrame & frame, ofstream & frame_manifest )
-{
-  frame_manifest << frame.name() << " " << frame.size() << endl;
-  frame.write();
-}
-
-static SerializedFrame serialize_until_shown( FilePlayer<DiffGenerator> & player, ofstream & frame_manifest )
-{
-  SerializedFrame frame = player.serialize_next(); 
-
-  /* Serialize and write out undisplayed frames */
-  while ( not frame.shown() ) {
-    write_frame( frame, frame_manifest );
-    frame = player.serialize_next();
-  }
-
-  write_frame( frame, frame_manifest );
-
-  return frame;
-}
-
-static void generate_continuations( const FilePlayer<DiffGenerator> & source_player, 
-                                    const FilePlayer<DiffGenerator> & target_player,
-                                    const RasterHandle & target_raster, ofstream & frame_manifest, 
-                                    const unordered_set<DiffTracker> & diff_combinations )
-{
-  for ( const auto & tracker : diff_combinations ) {
-    FramePlayer<DiffGenerator> diff_player = source_player;
-    
-    diff_player.update( tracker.state(), not tracker.last(), not tracker.golden(),
-                        not tracker.alternate(), target_player );
-
-    SerializedFrame continuation = target_player - diff_player;
-    continuation.set_output( target_raster );
-
-    write_frame( continuation, frame_manifest );
-  }
-}
-
-static unordered_set<DiffTracker> new_reference_set( const unordered_set<DiffTracker> & refs_set,
-                                                     const ReferenceTracker & updated )
-{
-  unordered_set<DiffTracker> new_set;
-  for ( auto & refs : refs_set ) {
-    DiffTracker new_refs = refs;
-
-    // Use the target state on all but the first continuation frame
-    new_refs.set_state( true );
-
-    if ( updated.last() ) {
-      new_refs.set_last( false );
-    }
-
-    if ( updated.golden() ) {
-      new_refs.set_golden( false );
-    }
-
-    if ( updated.alternate() ) {
-      new_refs.set_alternate( false );
-    }
-
-    /* If any references are still missing add this to the updated set */
-    if ( new_refs.last() or new_refs.golden() or new_refs.alternate() ) {
-      new_set.insert( new_refs );
-    }
-  }
-
-  return new_set;
-}
-
-static void write_optional_manifest( ofstream & manifest, const SerializedFrame & frame, unsigned stream_idx )
-{
-  manifest << stream_idx << " " << frame.name() << endl;
-}
-
-static void generate_frames( const string & original, const vector<string> & streams )
-{
-  ofstream original_manifest( "original_manifest" );
-  ofstream quality_manifest( "quality_manifest" );
-  ofstream frame_manifest( "frame_manifest" );
-  ofstream optional_manifest( "optional_manifest" );
-
-  Player original_player( original );
-
-  original_manifest << original_player.width() << " " << original_player.height() << "\n";
-
-  vector<FilePlayer<DiffGenerator>> stream_players;
-  stream_players.reserve( streams.size() );
-
-  for ( auto & stream : streams ) {
-    stream_players.emplace_back( stream );
-  }
-
-  vector<unordered_set<DiffTracker>> upgrade_continuations( stream_players.size() - 1 );
-  vector<unordered_set<DiffTracker>> downgrade_continuations( stream_players.size() - 1 );
-
-  while ( not original_player.eof() ) {
-    RasterHandle original_raster = original_player.advance();
-    original_manifest << uppercase << hex << original_raster.hash() << endl;
-
-    /* For every quality level, write out the normal frames and generate diffs */
-    for ( unsigned stream_idx = 0; stream_idx < stream_players.size() - 1; stream_idx++ ) {
-      FilePlayer<DiffGenerator> & source_player = stream_players[ stream_idx ];
-      FilePlayer<DiffGenerator> & target_player = stream_players[ stream_idx + 1 ];
-      assert( not target_player.eof() and not source_player.eof() );
-
-      SerializedFrame source_frame = serialize_until_shown( source_player, frame_manifest );
-      write_quality_manifest( quality_manifest, source_frame, original_raster );
-      write_optional_manifest( optional_manifest, source_frame, stream_idx );
-
-      SerializedFrame target_frame = serialize_until_shown( target_player, frame_manifest );
-      write_quality_manifest( quality_manifest, target_frame, original_raster );
-      write_optional_manifest( optional_manifest, target_frame, stream_idx + 1 );
-
-      // We need to look at missing refs plus updated refs. Insert a new entry from missing_references,
-      // then check which refs have been updated in the target and the source. Use the set of updated
-      // refs to iterate through and update the missing refs in the vector, throwing out any instances
-      // which now have no missing refs
-      ReferenceTracker target_updated_refs = target_player.updated_references(); 
-      upgrade_continuations[ stream_idx ] = new_reference_set( upgrade_continuations[ stream_idx ], target_updated_refs );
-
-      ReferenceTracker source_updated_refs = source_player.updated_references(); 
-      downgrade_continuations[ stream_idx ] = new_reference_set( downgrade_continuations[ stream_idx ], source_updated_refs );
-
-      DiffTracker missing_tracker( source_player.missing_references( target_player ) );
-      upgrade_continuations[ stream_idx ].insert( missing_tracker );
-      downgrade_continuations[ stream_idx ].insert( missing_tracker );
-
-      generate_continuations( source_player, target_player, target_frame.get_output(), frame_manifest, upgrade_continuations[ stream_idx ] );
-      generate_continuations( target_player, source_player, source_frame.get_output(), frame_manifest, downgrade_continuations[ stream_idx ] );
-    }
-  }
-}
-
-int main( int argc, char * argv[] )
-{
-  if ( argc < 3 ) {
-    cerr << "Multi switch usage: " << argv[ 0 ] << " OUTPUT_DIR ORIGINAL STREAM1 STREAM2" << endl;
-    cerr << "Single switch usage: " << argv[ 0 ] << " MANIFEST SWITCH_NO SOURCE TARGET ORIGINAL" << endl;
+  if ( argc < 5 ) {
+    cerr << "Usage: " << argv[ 0 ] << " OUTPUT_DIR ORIGINAL STREAM1 STREAM2 [ MORE_STREAMS ]" << endl;
     return EXIT_FAILURE;
   }
 
-  if ( argc == 5 ) {
-    if ( mkdir( argv[ 1 ], 0777 ) ) {
-      throw unix_error( "mkdir failed" );
-    }
-    if ( chdir( argv[ 1 ] ) ) {
-      throw unix_error( "chdir failed" );
-    }
-    generate_frames( argv[ 2 ], { argv[ 3 ], argv[ 4 ] } );
+  if ( mkdir( argv[ 1 ], 0777 ) ) {
+    throw unix_error( "mkdir failed" );
   }
-  else if ( argc == 6 ) {
-    ofstream manifest( argv[ 1 ] );
-    single_switch( manifest, stoi( argv[ 2 ] ), argv[ 3 ], argv[ 4 ], argv[ 5 ] );
+  if ( chdir( argv[ 1 ] ) ) {
+    throw unix_error( "chdir failed" );
   }
-
+  FrameGenerator generator( argv[ 2 ], argv + 3 );
+  generator.generate();
 }

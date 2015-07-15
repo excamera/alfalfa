@@ -4,7 +4,7 @@
 #include "2d.hh"
 #include "block.hh"
 #include "macroblock.hh"
-#include "reference_tracker.hh"
+#include "dependency_tracker.hh"
 
 struct References;
 struct Segmentation;
@@ -56,18 +56,19 @@ class Frame
 	 const unsigned int height,
 	 BoolDecoder & first_partition );
 
-  // Diff Constructor
-  Frame( const Frame & original,
-	 const DecoderState & source_decoder_state,
-	 const DecoderState & target_decoder_state,
-	 const References & source_references,
-	 const References & target_references );
+  // Continuation Constructor
+  Frame( const Frame & original, const RasterDiff & continuation_diff,
+         const bool last_missing, const bool golden_missing, const bool alt_missing,
+         const ReplacementEntropyHeader & replacement_entropy_header,
+         const Optional<ModeRefLFDeltaUpdate> & filter_update,
+         const Optional<SegmentFeatureData> & segment_update );
 
   const FrameHeaderType & header( void ) const { return header_; }
   const Optional< ContinuationHeader > & continuation_header( void ) const { return continuation_header_; }
 
-  ReferenceTracker used_references( void ) const;
-  ReferenceTracker updated_references( void ) const;
+  // FIXME this is more than references now
+  DependencyTracker get_used( void ) const;
+  DependencyTracker get_updated( void ) const;
 
   void parse_macroblock_headers( BoolDecoder & rest_of_first_partition,
 				 const ProbabilityTables & probability_tables );
@@ -79,8 +80,8 @@ class Frame
   void decode( const Optional< Segmentation > & segmentation,
 	       Raster & raster ) const;
 
-  void decode( const Optional< Segmentation > & segmentation,
-	       const References & references, Raster & raster ) const;
+  void decode( const Optional< Segmentation > & segmentation, const References & references,
+               const RasterHandle & continuation_raster, Raster & raster ) const;
 
   void copy_to( const RasterHandle & raster, References & references ) const;
 

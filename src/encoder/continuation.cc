@@ -1,6 +1,8 @@
 #include "frame.hh"
 #include "macroblock.hh"
 
+using namespace std;
+
 template <unsigned int size>
 SafeArray< SafeArray< int16_t, size >, size > Raster::Block<size>::operator-( const Raster::Block<size> & other ) const
 {
@@ -25,12 +27,8 @@ void Block<initial_block_type, PredictionMode>::recalculate_has_nonzero( void )
 
 template <BlockType initial_block_type, class PredictionMode>
 static void rewrite_block_as_intra( Block<initial_block_type, PredictionMode> & block,
-				    const Raster::Block4 & prediction,
-				    const Raster::Block4 & raster )
+                                    const RasterDiff::Residue & residue )
 {
-  /* Get the residue */
-  const auto residue = raster - prediction;
-
   for ( uint8_t i = 0; i < 16; i++ ) {
     block.mutable_coefficients().at( zigzag.at( i ) ) = residue.at( i / 4 ).at( i % 4 );
   }
@@ -39,8 +37,7 @@ static void rewrite_block_as_intra( Block<initial_block_type, PredictionMode> & 
 }
 
 template <>
-void InterFrameMacroblock::rewrite_as_diff( const Raster::Macroblock & raster,
-					    const Raster::Macroblock & prediction )
+void InterFrameMacroblock::rewrite_as_diff( const RasterDiff::MacroblockDiff & difference )
 {
   assert( inter_coded() );
 
@@ -61,25 +58,19 @@ void InterFrameMacroblock::rewrite_as_diff( const Raster::Macroblock & raster,
 
   /* rewrite the Y subblocks */
   Y_.forall_ij( [&] ( YBlock & block, unsigned int column, unsigned int row ) {
-      rewrite_block_as_intra( block,
-			      prediction.Y_sub.at( column, row ),
-			      raster.Y_sub.at( column, row ) );
+      rewrite_block_as_intra( block, difference.y_residue( column, row ) );
       block.set_Y_without_Y2();
       has_nonzero_ |= block.has_nonzero();
     } );
 
   U_.forall_ij( [&] ( UVBlock & block, unsigned int column, unsigned int row ) {
-      rewrite_block_as_intra( block,
-			      prediction.U_sub.at( column, row ),
-			      raster.U_sub.at( column, row ) );
+      rewrite_block_as_intra( block, difference.u_residue( column, row ) );
 
       has_nonzero_ |= block.has_nonzero();
     } );
 
   V_.forall_ij( [&] ( UVBlock & block, unsigned int column, unsigned int row ) {
-      rewrite_block_as_intra( block,
-			      prediction.V_sub.at( column, row ),
-			      raster.V_sub.at( column, row ) );
+      rewrite_block_as_intra( block, difference.v_residue( column, row ) );
 
       has_nonzero_ |= block.has_nonzero();
     } );
@@ -90,24 +81,17 @@ void InterFrameMacroblock::rewrite_as_diff( const Raster::Macroblock & raster,
 }
 
 // Make Diff Frame
-// FIXME: target_references is the previous set of references with the exception of
-// continuation, because the continuation frame is applied after the source frame.
-// Continuation has to be current since the diff is based off of it. In other words
-// target_references is used for two largely unrelated purposes.
-// This seems unnecessarily convoluted, revisit.
 template <>
-InterFrame::Frame( const InterFrame & original,
-		   const DecoderState & source_decoder_state,
-		   const DecoderState & target_decoder_state,
-		   const References & source_references,
-		   const References & target_references )
+InterFrame::Frame( const InterFrame & original, const RasterDiff & continuation_diff,
+                   const bool last_missing, const bool golden_missing, const bool alt_missing,
+                   const ReplacementEntropyHeader & replacement_entropy_header,
+                   const Optional<ModeRefLFDeltaUpdate> & filter_update,
+                   const Optional<SegmentFeatureData> & segment_update )
   : show_ { original.show_ },
     display_width_ { original.display_width_ },
     display_height_ { original.display_height_ },
     header_ { original.header_ },
-    continuation_header_ { true, source_references.last != target_references.last, 
-			   source_references.golden != target_references.golden,
-			   source_references.alternative_reference != target_references.alternative_reference },
+    continuation_header_ { true, last_missing, golden_missing, alt_missing },
     macroblock_headers_ { true, macroblock_width_, macroblock_height_,
 			  original.macroblock_headers_.get(),
 			  Y2_, Y_, U_, V_ }
@@ -117,121 +101,24 @@ InterFrame::Frame( const InterFrame & original,
   U_.copy_from( original.U_ );
   V_.copy_from( original.V_ );
 
-  ReplacementEntropyHeader replacement_entropy_header;
-
   header_.refresh_entropy_probs = false;
-
-  /* match (normal) coefficient probabilities in frame header */
-  for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
-    for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
-      for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
-	for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
-	  const auto & source = source_decoder_state.probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l );
-	  const auto & target = target_decoder_state.probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l );
-
-	  replacement_entropy_header.token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( source != target, target );
-	}
-      }
-    }
-  }
-
-  /* match intra_16x16_probs in frame header */
-  bool update_y_mode_probs = false;
-  Array< Unsigned< 8 >, 4 > new_y_mode_probs;
-
-  for ( unsigned int i = 0; i < 4; i++ ) {
-    const auto & source = source_decoder_state.probability_tables.y_mode_probs.at( i );
-    const auto & target = target_decoder_state.probability_tables.y_mode_probs.at( i );
-
-    new_y_mode_probs.at( i ) = target;
-
-    if ( source != target ) {
-      update_y_mode_probs = true;
-    }
-  }
-
-  if ( update_y_mode_probs ) {
-    replacement_entropy_header.intra_16x16_prob.initialize( new_y_mode_probs );
-  }
-
-  /* match intra_chroma_prob in frame header */
-  bool update_chroma_mode_probs = false;
-  Array< Unsigned< 8 >, 3 > new_chroma_mode_probs;
-
-  for ( unsigned int i = 0; i < 3; i++ ) {
-    const auto & source = source_decoder_state.probability_tables.uv_mode_probs.at( i );
-    const auto & target = target_decoder_state.probability_tables.uv_mode_probs.at( i );
-
-    new_chroma_mode_probs.at( i ) = target;
-
-    if ( source != target ) {
-      update_chroma_mode_probs = true;
-    }
-  }
-
-  if ( update_chroma_mode_probs ) {
-    replacement_entropy_header.intra_chroma_prob.initialize( new_chroma_mode_probs );
-  }
-
-  /* match motion_vector_probs in frame header */
-  for ( uint8_t i = 0; i < 2; i++ ) {
-    for ( uint8_t j = 0; j < MV_PROB_CNT; j++ ) {
-      const auto & source = source_decoder_state.probability_tables.motion_vector_probs.at( i ).at( j );
-      const auto & target = target_decoder_state.probability_tables.motion_vector_probs.at( i ).at( j );
-
-      replacement_entropy_header.mv_prob_update.at( i ).at( j ) = MVProbReplacement( source != target, target );
-    }
-  }
+  continuation_header_.get().replacement_entropy_header.initialize( replacement_entropy_header ); 
 
   /* match FilterAdjustments if necessary */
-  if ( target_decoder_state.filter_adjustments.initialized() ) {
+  if ( filter_update.initialized() ) {
     assert( header_.mode_lf_adjustments.initialized() );
 
-    ModeRefLFDeltaUpdate filter_update;
-
-    /* these are 0 if not set */
-    for ( unsigned int i = 0; i < target_decoder_state.filter_adjustments.get().loopfilter_ref_adjustments.size(); i++ ) {
-      const auto & value = target_decoder_state.filter_adjustments.get().loopfilter_ref_adjustments.at( i );
-      if ( value ) {
-	filter_update.ref_update.at( i ).initialize( value );
-      }
-    }
-
-    for ( unsigned int i = 0; i < target_decoder_state.filter_adjustments.get().loopfilter_mode_adjustments.size(); i++ ) {
-      const auto & value = target_decoder_state.filter_adjustments.get().loopfilter_mode_adjustments.at( i );
-      if ( value ) {
-	filter_update.mode_update.at( i ).initialize( value );
-      }
-    }
-
-    header_.mode_lf_adjustments.get() = Flagged< ModeRefLFDeltaUpdate >( true, filter_update );
+    header_.mode_lf_adjustments.get() = Flagged< ModeRefLFDeltaUpdate >( true, filter_update.get() );
   }
 
   /* match segmentation if necessary */
-  if ( target_decoder_state.segmentation.initialized() ) {
+  if ( segment_update.initialized() ) {
     assert( header_.update_segmentation.initialized() );  
 
-    SegmentFeatureData segment_feature_data;
-
-    segment_feature_data.segment_feature_mode = target_decoder_state.segmentation.get().absolute_segment_adjustments;
-
-    for ( unsigned int i = 0; i < num_segments; i++ ) {
-      /* these also default to 0 */
-      const auto & q_adjustment = target_decoder_state.segmentation.get().segment_quantizer_adjustments.at( i );
-      const auto & lf_adjustment = target_decoder_state.segmentation.get().segment_filter_adjustments.at( i );
-      if ( q_adjustment ) {
-	segment_feature_data.quantizer_update.at( i ).initialize( q_adjustment );
-      }
-
-      if ( lf_adjustment ) {
-	segment_feature_data.loop_filter_update.at( i ).initialize( lf_adjustment );
-      }
-    }
-
     if ( header_.update_segmentation.get().segment_feature_data.initialized() ) {
-      header_.update_segmentation.get().segment_feature_data.get() = segment_feature_data;
+      header_.update_segmentation.get().segment_feature_data.get() = segment_update.get();
     } else {
-      header_.update_segmentation.get().segment_feature_data.initialize( segment_feature_data );
+      header_.update_segmentation.get().segment_feature_data.initialize( segment_update.get() );
     }
 
     if ( not header_.update_segmentation.get().update_mb_segmentation_map ) {
@@ -258,16 +145,75 @@ InterFrame::Frame( const InterFrame & original,
     }
   }
 
-  continuation_header_.get().replacement_entropy_header.initialize( replacement_entropy_header ); 
-  
   /* process each macroblock */
   macroblock_headers_.get().forall_ij( [&]( InterFrameMacroblock & macroblock,
 					    const unsigned int column,
 					    const unsigned int row ) {
 					 if ( macroblock.inter_coded() and
 					      continuation_header_.get().is_missing( macroblock.header().reference() ) ) {
-					   macroblock.rewrite_as_diff( target_references.continuation.get().macroblock( column, row ),
-								       source_references.continuation.get().macroblock( column, row ) );
+					   macroblock.rewrite_as_diff( continuation_diff.macroblock( column, row ) );
 					 } } );
   relink_y2_blocks();
+}
+
+// FIXME, probably not the right place for this...
+RasterDiff::RasterDiff( const RasterHandle & lhs, const RasterHandle & rhs )
+  : lhs_( lhs ), rhs_( rhs ),
+    cache_( Raster::macroblock_dimension( lhs_.get().display_height() ), 
+            vector<Optional<RasterDiff::MacroblockDiff>>( 
+              Raster::macroblock_dimension( lhs_.get().display_width() ) ) )
+            
+{}
+
+RasterDiff::MacroblockDiff RasterDiff::macroblock( const unsigned int column,
+                                                   const unsigned int row ) const
+{
+  Optional<RasterDiff::MacroblockDiff> & macroblock = cache_[ row ][ column ];
+
+  if ( not macroblock.initialized() ) {
+    macroblock.initialize( lhs_.get().macroblock( column, row ), rhs_.get().macroblock( column, row ) );
+  }
+
+  return macroblock.get();
+}
+
+RasterDiff::MacroblockDiff::MacroblockDiff( const Raster::Macroblock & lhs,
+                                            const Raster::Macroblock & rhs )
+  :Y_(), U_(), V_(), lhs_( lhs ), rhs_( rhs )
+{}
+
+RasterDiff::Residue RasterDiff::MacroblockDiff::y_residue( const unsigned int column,
+                                                           const unsigned int row ) const
+{
+  Optional<RasterDiff::Residue> & residue = Y_.at( row ).at( column );
+
+  if ( not residue.initialized() ) {
+    residue.initialize( lhs_.Y_sub.at( column, row ) - rhs_.Y_sub.at( column, row ) );
+  }
+
+  return residue.get();
+}
+
+RasterDiff::Residue RasterDiff::MacroblockDiff::u_residue( const unsigned int column,
+                                                           const unsigned int row ) const
+{
+  Optional<RasterDiff::Residue> & residue = U_.at( row ).at( column );
+
+  if ( not residue.initialized() ) {
+    residue.initialize( lhs_.U_sub.at( column, row ) - rhs_.U_sub.at( column, row ) );
+  }
+
+  return residue.get();
+}
+
+RasterDiff::Residue RasterDiff::MacroblockDiff::v_residue( const unsigned int column,
+                                                           const unsigned int row ) const
+{
+  Optional<RasterDiff::Residue> & residue = V_.at( row ).at( column );
+
+  if ( not residue.initialized() ) {
+    residue.initialize( lhs_.V_sub.at( column, row ) - rhs_.V_sub.at( column, row ) );
+  }
+
+  return residue.get();
 }

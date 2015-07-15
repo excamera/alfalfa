@@ -489,14 +489,14 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::reconstruct_intra( const
 }
 
 template <>
-void InterFrameMacroblock::reconstruct_continuation( const References & references,
+void InterFrameMacroblock::reconstruct_continuation( const RasterHandle & continuation,
 						     Raster::Macroblock & raster ) const
 {
   assert( continuation_ );
 
   const MotionVector zeromv;
 
-  const Raster & reference = references.continuation;
+  const Raster & reference = continuation;
 
   raster.Y.inter_predict( zeromv, reference.Y() );
   raster.U.inter_predict( zeromv, reference.U() );

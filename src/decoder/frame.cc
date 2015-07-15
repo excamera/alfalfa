@@ -33,38 +33,39 @@ ProbabilityArray< num_segments > Frame<FrameHeaderType, MacroblockType>::calcula
 }
 
 template <>
-ReferenceTracker KeyFrame::used_references( void ) const
+DependencyTracker KeyFrame::get_used( void ) const
 {
-  return ReferenceTracker( false, false, false, false );
+  return DependencyTracker( false, false, false, false, false );
 }
 
 template <>
-ReferenceTracker InterFrame::used_references( void ) const
+DependencyTracker InterFrame::get_used( void ) const
 {
-  ReferenceTracker refs( false, false, false, false );
+  DependencyTracker deps( true, false, false, false, false );
 
   macroblock_headers_.get().forall( [&] ( const InterFrameMacroblock & mb ) {
 				    if ( mb.continuation() ) {
-				      refs.set_continuation( true );
+				      deps.set_continuation( true );
 				    }
 				    else if ( mb.inter_coded() ) {
-				      refs[ mb.header().reference() ] = true;
+				      deps.set_reference( mb.header().reference(), true );
 				    } } );
   
-  return refs;
+  return deps;
 }
 
 template<>
-ReferenceTracker KeyFrame::updated_references( void ) const
+DependencyTracker KeyFrame::get_updated( void ) const
 {
-  return ReferenceTracker( true, true, true, true );
+  return DependencyTracker( true, true, true, true, true );
 }
 
 template<>
-ReferenceTracker InterFrame::updated_references( void ) const
+DependencyTracker InterFrame::get_updated( void ) const
 {
-  return ReferenceTracker( true, header_.refresh_last, header_.refresh_golden_frame,
-                           header_.refresh_alternate_frame );
+  // FIXME Does an interframe always update the state?
+  return DependencyTracker( true, true, header_.refresh_last, header_.refresh_golden_frame,
+                            header_.refresh_alternate_frame );
 }
 
 
@@ -224,8 +225,8 @@ void KeyFrame::decode( const Optional< Segmentation > & segmentation,
 }
 
 template <>
-void InterFrame::decode( const Optional< Segmentation > & segmentation,
-			 const References & references, Raster & raster ) const
+void InterFrame::decode( const Optional< Segmentation > & segmentation, const References & references,
+                         const RasterHandle & continuation_raster, Raster & raster ) const
 {
   const Quantizer frame_quantizer( header_.quant_indices );
   const auto segment_quantizers = calculate_segment_quantizers( segmentation );
@@ -239,7 +240,7 @@ void InterFrame::decode( const Optional< Segmentation > & segmentation,
 					   : frame_quantizer;
 					 if ( macroblock.inter_coded() ) {
 					   if ( macroblock.continuation() ) {
-					     macroblock.reconstruct_continuation( references,
+					     macroblock.reconstruct_continuation( continuation_raster,
 										  raster.macroblock( column, row ) );
 					   } else {
 					     macroblock.reconstruct_inter( quantizer,

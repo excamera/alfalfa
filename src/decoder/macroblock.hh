@@ -79,9 +79,9 @@ public:
   void reconstruct_inter( const Quantizer & quantizer,
 			  const References & references,
 			  Raster::Macroblock & raster ) const;
-  void reconstruct_continuation( const References & references, Raster::Macroblock & raster ) const;
+  void reconstruct_continuation( const RasterHandle & continuation, Raster::Macroblock & raster ) const;
 
-  void rewrite_as_diff( const Raster::Macroblock & raster, const Raster::Macroblock & prediction );
+  void rewrite_as_diff( const RasterDiff::MacroblockDiff & difference );
 
   void loopfilter( const Optional< FilterAdjustments > & filter_adjustments,
 		   const FilterParameters & loopfilter,
