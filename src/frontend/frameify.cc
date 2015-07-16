@@ -142,10 +142,12 @@ public:
       if ( source_player.need_continuation() ) {
         source_player.sync_continuation_raster();
 
+        // FIXME this isn't taking advantage of RasterDiff...
         SerializedFrame continuation = stream_player_ - source_player; 
 
         write_frame( continuation );
 
+        assert( source_player.can_decode( continuation ) );
         // FIXME same as above
         source_player.decode( continuation );
       }

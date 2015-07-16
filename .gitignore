@@ -34,3 +34,4 @@ Makefile.in
 /src/tests/roundtrip
 /src/tests/frames-to-stdout
 /src/tests/switch-to-stdout
+/src/tests/single-frameify
