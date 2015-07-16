@@ -44,7 +44,7 @@ static SafeArray<Optional<size_t>, 5> split_source( const string & frame_name )
   return split( frame_name, -1 );
 }
 
-DecoderHash::DecoderHash( const std::string & frame_name, bool target )
+DecoderHash::DecoderHash( const string & frame_name, bool target )
   : hashes_( target ? split_target( frame_name ) : split_source( frame_name ) )
 {}
 
@@ -56,8 +56,8 @@ DecoderHash::DecoderHash( Optional<size_t> state_hash, Optional<size_t> continua
 
 DecoderHash::DecoderHash( size_t state_hash, size_t continuation_hash, size_t last_hash,
                           size_t golden_hash, size_t alt_hash )
-  : DecoderHash( Optional<size_t>( state_hash ), Optional<size_t>( continuation_hash ),
-                 Optional<size_t>( last_hash ), Optional<size_t>( golden_hash ), Optional<size_t>( alt_hash ) )
+  : DecoderHash( Optional<size_t>( true, state_hash ), Optional<size_t>( true, continuation_hash ),
+                 Optional<size_t>( true, last_hash ), Optional<size_t>( true, golden_hash ), Optional<size_t>( true, alt_hash ) )
 {}
 
 DecoderHash DecoderHash::filter( const DependencyTracker & tracker ) const

@@ -6,30 +6,100 @@
 
 using namespace std;
 
+class SourcePlayer : public FramePlayer
+{
+private:
+  const ContinuationPlayer * orig_player_;
+  bool need_continuation_;
+
+public:
+  SourcePlayer( const ContinuationPlayer & original )
+    : FramePlayer( original ),
+      orig_player_( &original ),
+      need_continuation_( true ) // Assume we're making a continuation frame unless we've shown otherwise
+  {}
+
+  SourcePlayer( const SourcePlayer & other )
+    : FramePlayer( other ),
+      orig_player_( other.orig_player_ ),
+      need_continuation_( true )
+  {}
+
+  SourcePlayer & operator=( const SourcePlayer & other )
+  {
+    FramePlayer::operator=( other );
+    orig_player_ = other.orig_player_;
+    need_continuation_ = other.need_continuation_;
+
+    return *this;
+  }
+
+  void set_need_continuation( bool b )
+  {
+    need_continuation_ = b;
+  }
+
+  bool need_continuation( void )
+  {
+    return need_continuation_;
+  }
+
+  void sync_continuation_raster( void )
+  {
+    FramePlayer::sync_continuation_raster( *orig_player_ );
+  }
+
+  bool operator==( const SourcePlayer & other ) const
+  {
+    return FramePlayer::operator==( other ) and need_continuation_ == other.need_continuation_ and orig_player_ == other.orig_player_;
+  }
+};
+
 // Streams keep track of all the players converging onto them,
 // because they need to be able to update the states of those
 // frames with their continuation frames
-class StreamState {
+class StreamState
+{
 private:
   ContinuationPlayer stream_player_;
 
   // Reference to the FrameGenerator's manifest
   ofstream & frame_manifest_;
 
-  vector<FramePlayer> continuation_players_ {};
+  vector<SourcePlayer> source_players_ {};
 
-  Optional<SerializedFrame> last_shown_frame_ {};
+  // Remove any players that have converged onto stream_player
+  // and any duplicates
+  void cleanup_source_players( void ) {
+    vector<SourcePlayer> new_players {};
+    new_players.reserve( source_players_.size() );
 
-  void update_continuation_players( const SerializedFrame & frame )
-  {
-    for ( FramePlayer & player : continuation_players_ ) {
-      if ( player.can_decode( frame ) ) {
-        player.decode( frame );
+    for ( SourcePlayer & player : source_players_ ) {
+      if ( player != stream_player_ && find( new_players.begin(), new_players.end(), player ) == new_players.end() ) {
+        new_players.emplace_back( move( player ) );
       }
     }
 
-    // Don't need to track players which have fully converged
-    remove( continuation_players_.begin(), continuation_players_.end(), stream_player_ );
+    source_players_ = move( new_players );
+  }
+
+  void update_source_players( const SerializedFrame & frame )
+  {
+    for ( SourcePlayer & player : source_players_ ) {
+      if ( player.can_decode( frame ) ) {
+        //FIXME it would probably be faster to emulate this since all the necessary information is
+        // in the stream_player's
+        player.decode( frame );
+        player.set_need_continuation( false );
+      }
+      else {
+        player.set_need_continuation( true );
+      }
+    }
+
+    cleanup_source_players();
+
+    cout << source_players_.size() << "\n";
   }
 
   void write_frame( const SerializedFrame & frame )
@@ -52,52 +122,39 @@ public:
       SerializedFrame frame = stream_player_.serialize_next(); 
       write_frame( frame );
 
+      update_source_players( frame );
+
       if ( frame.shown() ) {
-        // FIXME this is ugly
-        if ( last_shown_frame_.initialized() ) {
-          last_shown_frame_.clear();
-        }
-        last_shown_frame_.initialize( frame );
         return frame;
       }
-
-      // For unshown frames, update the continuation players, shown
-      // frames will be accounted for when continuation frames are made
-      update_continuation_players( frame );
-      update_continuation_players( frame );
-
     }
     throw Unsupported( "Undisplayed frames at end of video unsupported" );
   }
 
-  void add_continuation( const StreamState & other )
+  void new_source( StreamState & other )
   {
-    continuation_players_.emplace_back( other.stream_player_ );
+    source_players_.emplace_back( other.stream_player_ );
   }
 
   void make_continuations( void )
   {
-    // If a source player has converged on target_player remove it from consideration
-    // for further continuation frames
-    remove( continuation_players_.begin(), continuation_players_.end(), stream_player_ );
+    for ( SourcePlayer & source_player : source_players_ ) {
+      if ( source_player.need_continuation() ) {
+        source_player.sync_continuation_raster();
 
-    for ( FramePlayer & source_player : continuation_players_ ) {
-      if ( source_player.can_decode( last_shown_frame_.get() ) ) {
-        source_player.decode( last_shown_frame_.get() );
-      }
-      else {
         SerializedFrame continuation = stream_player_ - source_player; 
 
         write_frame( continuation );
 
-        // FIXME same as above fixme
+        // FIXME same as above
         source_player.decode( continuation );
       }
     }
   }
 };
 
-class FrameGenerator {
+class FrameGenerator
+{
 private: 
 
   ofstream original_manifest_ { "original_manifest" };
@@ -151,8 +208,9 @@ public:
         // Insert new copies of source_player and target_players for continuations starting
         // at this frame
 
-        target_stream.add_continuation( source_stream );
-        source_stream.add_continuation( target_stream );
+        target_stream.new_source( source_stream );
+
+        source_stream.new_source( target_stream );
       }
 
       // Make the continuations for each stream
