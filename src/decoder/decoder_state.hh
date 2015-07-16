@@ -141,6 +141,7 @@ inline InterFrame DecoderState::parse_and_apply<InterFrame>( const UncompressedC
 
   /* update probability tables if prescribed by continuation header */
   if ( myframe.continuation_header().initialized()
+       // FIXME ask keith replacement_entropy_header should not be optional?
        and myframe.continuation_header().get().replacement_entropy_header.initialized() ) {
     probability_tables.update( myframe.continuation_header().get().replacement_entropy_header.get() );
   }

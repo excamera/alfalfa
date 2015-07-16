@@ -13,7 +13,7 @@ sub switch_check {
 
   mkdir $dirname;
   chdir $dirname;
-  system("../../frontend/frameify manifest $switch_num ../$source_file ../$target_file ../$target_file");
+  system("../single-frameify manifest $switch_num ../$source_file ../$target_file");
   my $frameify_sha1 = (split ' ', `../frames-to-stdout manifest | sha1sum`)[ 0 ];
 
   chdir '..';

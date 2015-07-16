@@ -1,7 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include "player.hh"
-#include "diff_generator.hh"
+#include "continuation_player.hh"
 #include "display.hh"
 
 using namespace std;
@@ -13,8 +12,8 @@ int main( int argc, char * argv[] )
     return EXIT_FAILURE;
   }
 
-  FilePlayer<DiffGenerator> source_player( argv[ 1 ] );
-  FilePlayer<DiffGenerator> target_player( argv[ 2 ] );
+  ContinuationPlayer source_player( argv[ 1 ] );
+  ContinuationPlayer target_player( argv[ 2 ] );
 
   while ( not source_player.eof() and not target_player.eof() ) {
     source_player.advance();

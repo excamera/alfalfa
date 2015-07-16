@@ -21,6 +21,7 @@ public:
   Optional( T && other ) : initialized_( true ), object_( std::move( other ) ) {}
 
   /* conditional constructor */
+  // FIXME, this leads to very misleading results when constructing optional ints
   template <typename... Targs>
   Optional( const bool is_present, Targs&&... Fargs )
     : initialized_( is_present )

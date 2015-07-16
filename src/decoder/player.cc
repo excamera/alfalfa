@@ -1,117 +1,87 @@
 #include "player.hh"
 #include "uncompressed_chunk.hh"
 #include "decoder_state.hh"
-#include "diff_generator.hh"
 #include "serialized_frame.hh"
 
 #include <fstream>
 
 using namespace std;
 
-template<class DecoderType>
-FramePlayer<DecoderType>::FramePlayer( const uint16_t width, const uint16_t height )
+FramePlayer::FramePlayer( const uint16_t width, const uint16_t height )
   : width_( width ),
-    height_( height )
+    height_( height ),
+    decoder_( width, height )
 {}
 
-template<class DecoderType>
-Optional<RasterHandle> FramePlayer<DecoderType>::decode( const SerializedFrame & frame )
+Optional<RasterHandle> FramePlayer::decode( const Chunk & chunk )
 {
-  if ( not frame.validate_source( decoder_ ) ) {
-    throw Invalid( "Decoded frame from incorrect state" );
-  }
+  return decoder_.decode_frame( chunk );
+}
 
-  RasterHandle raster( width_, height_ );
+Optional<RasterHandle> FramePlayer::decode( const SerializedFrame & frame )
+{
+  assert( frame.validate_source( decoder_.get_hash() ) );
 
-  bool shown = decoder_.decode_frame( frame.chunk(), raster );
+  Optional<RasterHandle> raster = decode( frame.chunk() );
 
-  if ( not frame.validate_target( decoder_ ) ) {
-    throw Invalid( "Target doesn't match after decode: " + decoder_.hash_str() );
-  }
+  assert( frame.validate_target( decoder_.get_hash() ) );
 
-  return Optional<RasterHandle>( shown, raster );
+  return raster;
 }
   
-template<class DecoderType>
-bool FramePlayer<DecoderType>::can_decode( const SerializedFrame & frame ) const
+bool FramePlayer::can_decode( const SerializedFrame & frame ) const
 {
-  return frame.validate_source( decoder_ );
+  return frame.validate_source( decoder_.get_hash() );
 }
 
-template<class DecoderType>
-const Raster & FramePlayer<DecoderType>::example_raster( void ) const
+const Raster & FramePlayer::example_raster( void ) const
 {
   return decoder_.example_raster();
 }
 
-template<class DecoderType>
-bool FramePlayer<DecoderType>::equal_references( const FramePlayer & other ) const
+void FramePlayer::sync_continuation_raster( const FramePlayer & other )
 {
-  return decoder_.equal_references( other.decoder_ );
+  return decoder_.sync_continuation_raster( other.decoder_ );
 }
 
-template<class DecoderType>
-void FramePlayer<DecoderType>::update_continuation( const FramePlayer & other )
+DecoderDiff FramePlayer::decoder_difference( const FramePlayer & other ) const
 {
-  return decoder_.update_continuation( other.decoder_ );
-}
-
-template<>
-void FramePlayer<DiffGenerator>::set_references( bool set_last, bool set_golden, bool set_alt,
-                                                 const FramePlayer & target_player )
-{
-  decoder_.set_references( set_last, set_golden, set_alt, target_player.decoder_ );
-}
-
-template<>
-ReferenceTracker FramePlayer<DiffGenerator>::updated_references( void ) const
-{
-  return decoder_.updated_references();
-}
-
-template<>
-ReferenceTracker FramePlayer<DiffGenerator>::missing_references( const FramePlayer & other ) const
-{
-  return decoder_.missing_references( other.decoder_ );
-}
-
-template<>
-string FramePlayer<DiffGenerator>::cur_frame_stats( void ) const
-{
-  return decoder_.cur_frame_stats();
-}
-
-template<>
-SerializedFrame FramePlayer<DiffGenerator>::operator-( const FramePlayer & source_player ) const
-{
-  if ( width_ != source_player.width_ or
-       height_ != source_player.height_ ) {
+  if ( width_ != other.width_ or
+       height_ != other.height_ ) {
     throw Unsupported( "stream size mismatch" );
   }
 
-  return decoder_ - source_player.decoder_;
+  return decoder_ - other.decoder_;
 }
 
-template<class DecoderType>
-bool FramePlayer<DecoderType>::operator==( const FramePlayer & other ) const
+// Don't update the continuation diff. Since frameify generates potentially
+// many continuation frames off the same displayed rasters, this is big time
+// saver FIXME, this could be better
+void FramePlayer::update_difference( DecoderDiff & diff, const FramePlayer & other ) const
+{
+  DecoderDiff new_diff = decoder_difference( other );
+
+  new_diff.continuation_diff = diff.continuation_diff;
+
+  diff = new_diff;
+}
+
+bool FramePlayer::operator==( const FramePlayer & other ) const
 {
   return decoder_ == other.decoder_;
 }
 
-template<class DecoderType>
-bool FramePlayer<DecoderType>::operator!=( const FramePlayer & other ) const
+bool FramePlayer::operator!=( const FramePlayer & other ) const
 {
   return not operator==( other );
 }
 
-template<class DecoderType>
-FilePlayer<DecoderType>::FilePlayer( const string & file_name )
+FilePlayer::FilePlayer( const string & file_name )
   : FilePlayer( IVF( file_name ) )
 {}
 
-template<class DecoderType>
-FilePlayer<DecoderType>::FilePlayer( IVF && file )
-  : FramePlayer<DecoderType>( file.width(), file.height() ),
+FilePlayer::FilePlayer( IVF && file )
+  : FramePlayer( file.width(), file.height() ),
     file_ ( move( file ) )
 {
   if ( file_.fourcc() != "VP80" ) {
@@ -129,55 +99,29 @@ FilePlayer<DecoderType>::FilePlayer( IVF && file )
   }
 }
 
-template<class DecoderType>
-RasterHandle FilePlayer<DecoderType>::advance( void )
+Chunk FilePlayer::get_next_frame( void )
+{
+  return file_.frame( frame_no_++ );
+}
+
+RasterHandle FilePlayer::advance( void )
 {
   while ( not eof() ) {
-    RasterHandle raster( this->width_, this->height_ );
-    if ( this->decoder_.decode_frame( file_.frame( frame_no_++ ), raster ) ) {
-      displayed_frame_no_++;
-
-      return raster;
+    Optional<RasterHandle> raster = decode( get_next_frame() );
+    if ( raster.initialized() ) {
+      return raster.get();
     }
   }
 
   throw Unsupported( "hidden frames at end of file" );
 }
 
-template<>
-SerializedFrame FilePlayer<DiffGenerator>::serialize_next( void )
-{
-  Decoder source = this->decoder_;
-  Chunk frame = file_.frame( frame_no_++ );
-
-  RasterHandle raster( width_, height_ );
-
-  bool shown = this->decoder_.decode_frame( frame, raster );
-
-  if ( shown ) {
-    displayed_frame_no_++;
-  }
-
-  SerializedFrame s_frame( frame, shown, this->decoder_.source_hash_str( source ), this->decoder_.target_hash_str() );
-
-  s_frame.set_output( raster );
-
-  return s_frame;
-}
-
-template<class DecoderType>
-bool FilePlayer<DecoderType>::eof( void ) const
+bool FilePlayer::eof( void ) const
 {
   return frame_no_ == file_.frame_count();
 }
 
-template<>
-long unsigned int FilePlayer<DiffGenerator>::original_size( void ) const
+long unsigned int FilePlayer::original_size( void ) const
 {
   return file_.frame( cur_frame_no() ).size();
 }
-
-template class FramePlayer< Decoder >;
-template class FramePlayer< DiffGenerator >;
-template class FilePlayer< Decoder >;
-template class FilePlayer< DiffGenerator >;

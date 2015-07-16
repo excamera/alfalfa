@@ -17,13 +17,17 @@ int main( int argc, char * argv[] )
     Player source_player( argv[ 2 ] );
     Player target_player( argv[ 3 ] );
 
-    while ( source_player.cur_displayed_frame() < switch_frame ) {
+    unsigned cur_displayed_frame = 0;
+    while ( cur_displayed_frame < switch_frame ) {
       RasterHandle output = source_player.advance();
+      cur_displayed_frame++;
       output.get().dump( stdout );
     }
 
-    while ( target_player.cur_displayed_frame() < switch_frame - 1 ) {
+    cur_displayed_frame = 0;
+    while ( cur_displayed_frame < switch_frame - 1 ) {
       target_player.advance();
+      cur_displayed_frame++;
     }
 
     while ( not target_player.eof() ) {

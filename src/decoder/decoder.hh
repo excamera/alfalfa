@@ -9,13 +9,15 @@
 #include "quantization.hh"
 #include "exception.hh"
 #include "raster_handle.hh"
-#include "reference_tracker.hh"
+#include "decoder_hash.hh"
+#include "frame_header.hh"
 
 class Chunk;
 class Raster;
 class UncompressedChunk;
 struct KeyFrameHeader;
 struct InterFrameHeader;
+struct ContinuationState;
 
 struct ProbabilityTables
 {
@@ -66,11 +68,11 @@ struct FilterAdjustments
 
 struct References
 {
-  RasterHandle last, golden, alternative_reference, continuation;
+  RasterHandle last, golden, alternative_reference;
 
   References( const uint16_t width, const uint16_t height );
 
-  void update_continuation( const RasterHandle & raster );
+  References( MutableRasterHandle && raster );
 
   const Raster & at( const reference_frame reference_id ) const
   {
@@ -133,34 +135,50 @@ struct DecoderState
 
   bool operator==( const DecoderState & other ) const;
 
+  ReplacementEntropyHeader get_replacement_probs( const DecoderState & other ) const;
+  Optional<ModeRefLFDeltaUpdate> get_filter_update( void ) const;
+  Optional<SegmentFeatureData> get_segment_update( void ) const;
+
   size_t hash( void ) const;
+};
+
+struct DecoderDiff
+{
+  RasterDiff continuation_diff;
+  DecoderHash source_hash;
+  DecoderHash target_hash;
+  ReplacementEntropyHeader entropy_header;
+  ProbabilityTables target_probabilities;
+
+  Optional<ModeRefLFDeltaUpdate> filter_update;
+  Optional<SegmentFeatureData> segment_update;
 };
 
 class Decoder
 {
-protected:
+private:
   DecoderState state_;  
   References references_;
+  RasterHandle continuation_raster_;
+
+  void update_continuation( const MutableRasterHandle & raster );
 
 public:
   Decoder( const uint16_t width, const uint16_t height );
 
   const Raster & example_raster( void ) const { return references_.last; }
 
-  std::string hash_str( const ReferenceTracker & used_refs, 
-			const References & references ) const;
+  DecoderHash get_hash( void ) const;
 
-  std::string hash_str( const ReferenceTracker & used_refs ) const;
+  Optional<RasterHandle> decode_frame( const Chunk & frame );
 
-  std::string hash_str( void ) const;
+  ContinuationState next_continuation_state( const Chunk & frame );
 
-  bool decode_frame( const Chunk & frame, RasterHandle & raster );
-
-  bool equal_references( const Decoder & other ) const;
-
-  void update_continuation( const Decoder & other );
+  void sync_continuation_raster( const Decoder & other );
 
   bool operator==( const Decoder & other ) const;
+
+  DecoderDiff operator-( const Decoder & other ) const;
 };
 
 #endif /* DECODER_HH */

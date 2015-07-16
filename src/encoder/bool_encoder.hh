@@ -5,6 +5,28 @@
 
 #include "bool_decoder.hh"
 
+/* libvpx lookup table to avoid the need for a loop in
+ * BoolEncoder::put. Taken from libvpx/vp8/common/entropy.c
+ */
+const uint8_t vp8_norm[ 256 ] = {
+    0, 7, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4,
+    3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+    2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+    2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+
 /* Routines taken from RFC 6386 */
 
 class BoolEncoder
@@ -13,7 +35,7 @@ private:
   std::vector< uint8_t > output_ {};
 
   uint32_t range_ { 255 }, bottom_ { 0 };
-  char bit_count_ { 24 };
+  char bit_count_ { -24 };
 
   void add_one_to_output( void )
   {
@@ -52,7 +74,10 @@ private:
   }
 
 public:
-  BoolEncoder() {}
+  BoolEncoder() 
+  {
+    output_.reserve( 1024 * 1024 ); //allocate a lot of space so we never have to realloc
+  }
 
   void put( const bool value, const Probability probability = 128 )
   {
@@ -65,21 +90,28 @@ public:
       range_ = split;   /* decrease range, leaving bottom alone */
     }
 
-    while ( range_ < 128 ) {
-      range_ <<= 1;
+    /* Taken from libvpx vp8/encoder/boolhuff.h */
+    uint32_t shift = vp8_norm[ range_ ];
 
-      if ( bottom_ & (1 << 31) ) { /* detect carry */
-	add_one_to_output();
+    range_ <<= shift;
+    bit_count_ += shift;
+
+    if ( bit_count_ >= 0 ) {
+      int offset = shift - bit_count_;
+
+      if ( ( bottom_ << (offset - 1)) & 0x80000000 ) {
+        add_one_to_output();
       }
 
-      bottom_ <<= 1;        /* before shifting bottom */
+      output_.push_back( bottom_ >> ( 24 - offset ) );
 
-      if ( ! --bit_count_ ) {  /* write out high byte of bottom ... */
-	output_.emplace_back( bottom_ >> 24 );
-	bottom_ &= (1 << 24) - 1;  /* ... keeping low 3 bytes */
-	bit_count_ = 8;            /* 8 shifts until next output */
-      }
+      bottom_ <<= offset;
+      shift = bit_count_;
+      bottom_ &= 0xffffff;
+      bit_count_ -= 8;
     }
+
+    bottom_ <<= shift;
   }
 
   std::vector< uint8_t > finish( void )
