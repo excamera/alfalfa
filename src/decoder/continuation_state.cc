@@ -40,9 +40,9 @@ SerializedFrame ContinuationState::make_continuation( const DecoderDiff & differ
                             source_hash, target_hash, last_shown_ );
   }
   else {
-    bool last_missing = prev_references_.last.hash() != difference.source_hash.last_ref();
-    bool golden_missing = prev_references_.golden.hash() != difference.source_hash.golden_ref();
-    bool alt_missing = prev_references_.alternative_reference.hash() != difference.source_hash.alt_ref();
+    bool last_missing = prev_references_.last.hash() != difference.source_hash.last_ref().get();
+    bool golden_missing = prev_references_.golden.hash() != difference.source_hash.golden_ref().get();
+    bool alt_missing = prev_references_.alternative_reference.hash() != difference.source_hash.alt_ref().get();
 
     InterFrame continuation_frame( inter_frame_.get(), difference.continuation_diff,
                                    last_missing, golden_missing, alt_missing,

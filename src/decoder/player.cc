@@ -76,6 +76,11 @@ bool FramePlayer::operator!=( const FramePlayer & other ) const
   return not operator==( other );
 }
 
+ostream& operator<<( ostream & out, const FramePlayer & player)
+{
+  return out << player.decoder_.get_hash().str();
+}
+
 FilePlayer::FilePlayer( const string & file_name )
   : FilePlayer( IVF( file_name ) )
 {}

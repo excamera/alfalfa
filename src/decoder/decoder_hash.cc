@@ -2,6 +2,7 @@
 
 #include <sstream>
 #include <string>
+#include <boost/functional/hash.hpp>
 
 using namespace std;
 
@@ -83,19 +84,29 @@ DecoderHash DecoderHash::filter( const DependencyTracker & tracker ) const
   return new_hash;
 }
 
-size_t DecoderHash::last_ref( void ) const
+Optional<size_t> DecoderHash::state( void ) const
 {
-  return hashes_.at( 2 ).get();
+  return hashes_.at( 0 );
 }
 
-size_t DecoderHash::golden_ref( void ) const
+Optional<size_t> DecoderHash::continuation( void ) const
 {
-  return hashes_.at( 3 ).get();
+  return hashes_.at( 1 );
 }
 
-size_t DecoderHash::alt_ref( void ) const
+Optional<size_t> DecoderHash::last_ref( void ) const
 {
-  return hashes_.at( 4 ).get();
+  return hashes_.at( 2 );
+}
+
+Optional<size_t> DecoderHash::golden_ref( void ) const
+{
+  return hashes_.at( 3 );
+}
+
+Optional<size_t> DecoderHash::alt_ref( void ) const
+{
+  return hashes_.at( 4 );
 }
 
 
@@ -130,4 +141,72 @@ bool DecoderHash::operator==( const DecoderHash & other ) const
     }
   }
   return true;
+}
+
+FullDecoderHash::FullDecoderHash( size_t state_hash, size_t continuation_hash, size_t last_hash, size_t golden_hash, size_t alt_hash )
+  : hashes_ { state_hash, continuation_hash, last_hash, golden_hash, alt_hash }
+{}
+
+bool FullDecoderHash::can_decode( const DecoderHash & source_hash ) const
+{
+  if ( source_hash.state().initialized() && source_hash.state().get() != hashes_.at( 0 ) ) {
+    return false;
+  }
+
+  if ( source_hash.continuation().initialized() && source_hash.continuation().get() != hashes_.at( 1 ) ) {
+    return false;
+  }
+
+  if ( source_hash.last_ref().initialized() && source_hash.last_ref().get() != hashes_.at( 2 ) ) {
+    return false;
+  }
+
+  if ( source_hash.golden_ref().initialized() && source_hash.golden_ref().get() != hashes_.at( 3 ) ) {
+    return false;
+  }
+
+  if ( source_hash.alt_ref().initialized() && source_hash.alt_ref().get() != hashes_.at( 4 ) ) {
+    return false;
+  }
+
+  return true;
+}
+
+void FullDecoderHash::update( const DecoderHash & target_hash )
+{
+  if ( target_hash.state().initialized() ) {
+    hashes_.at( 0 ) = target_hash.state().get();
+  }
+
+  if ( target_hash.continuation().initialized() ) {
+    hashes_.at( 1 ) = target_hash.continuation().get();
+  }
+
+  if ( target_hash.last_ref().initialized() ) {
+    hashes_.at( 2 ) = target_hash.last_ref().get();
+  }
+
+  if ( target_hash.golden_ref().initialized() ) {
+    hashes_.at( 3 ) = target_hash.golden_ref().get();
+  }
+
+  if ( target_hash.alt_ref().initialized() ) {
+    hashes_.at( 4 ) = target_hash.alt_ref().get();
+  }
+}
+
+size_t FullDecoderHash::hash( void ) const
+{
+  return boost::hash_range( hashes_.begin(), hashes_.end() );
+}
+
+string FullDecoderHash::str( void ) const
+{
+  stringstream hash_str;
+  hash_str << hex << uppercase;
+
+  hash_str << hashes_.at( 0 ) << "_" << hashes_.at( 1 ) << "_" <<
+    hashes_.at( 2 ) << "_" << hashes_.at( 3 ) << "_" << hashes_.at( 4 );
+
+  return hash_str.str();
 }

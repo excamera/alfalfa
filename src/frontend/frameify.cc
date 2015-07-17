@@ -46,7 +46,11 @@ public:
 
   void sync_continuation_raster( void )
   {
+  // This hugely complicates graph generation and doesn't seem to have a positive impact
+  // tested cq8 cq9
+#if 0
     FramePlayer::sync_continuation_raster( *orig_player_ );
+#endif
   }
 
   bool operator==( const SourcePlayer & other ) const
@@ -96,10 +100,6 @@ private:
         player.set_need_continuation( true );
       }
     }
-
-    cleanup_source_players();
-
-    cout << source_players_.size() << "\n";
   }
 
   void write_frame( const SerializedFrame & frame )
@@ -138,6 +138,8 @@ public:
 
   void make_continuations( void )
   {
+    cleanup_source_players();
+
     for ( SourcePlayer & source_player : source_players_ ) {
       if ( source_player.need_continuation() ) {
         source_player.sync_continuation_raster();
@@ -145,6 +147,7 @@ public:
         // FIXME this isn't taking advantage of RasterDiff...
         SerializedFrame continuation = stream_player_ - source_player; 
 
+        frame_manifest_ << "continuation\n";
         write_frame( continuation );
 
         assert( source_player.can_decode( continuation ) );

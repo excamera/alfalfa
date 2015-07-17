@@ -12,6 +12,7 @@
 
 class FramePlayer
 {
+friend std::ostream& operator<<( std::ostream &, const FramePlayer &);
 private:
   uint16_t width_, height_;
 
