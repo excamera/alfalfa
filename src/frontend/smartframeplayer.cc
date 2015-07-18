@@ -12,6 +12,7 @@
 #include <boost/graph/johnson_all_pairs_shortest.hpp>
 #include <boost/graph/graphviz.hpp>
 #include <limits>
+#include <unordered_map>
 
 using namespace std;
 
