@@ -47,7 +47,7 @@ public:
   void sync_continuation_raster( void )
   {
   // This hugely complicates graph generation and doesn't seem to have a positive impact
-  // tested cq8 cq9
+  // tested cq8 cq9 and cq55 cq60
 #if 0
     FramePlayer::sync_continuation_raster( *orig_player_ );
 #endif
@@ -147,7 +147,6 @@ public:
         // FIXME this isn't taking advantage of RasterDiff...
         SerializedFrame continuation = stream_player_ - source_player; 
 
-        frame_manifest_ << "continuation\n";
         write_frame( continuation );
 
         assert( source_player.can_decode( continuation ) );
