@@ -25,6 +25,7 @@ struct VertexState
 {
   DecoderHash cur_decoder;
   Optional<size_t> output_hash;
+  Optional<double> psnr;
   size_t id;
 };
 
@@ -58,6 +59,9 @@ class GraphManager
 private:
   unordered_map<string, FrameInfo> frame_map_;
   unordered_map<size_t, vector<Vertex>> output_to_vertices_;
+  unordered_map<size_t, vector<size_t>> orig_to_approx_;
+  unordered_map<size_t, double> output_to_psnr_;
+
   FrameGraph graph_;
   vector<Vertex> new_vertices_;
   // FIXME Keeping a separate map for the vertices may be less efficient than
@@ -81,14 +85,16 @@ private:
   Vertex add_vertex( const DecoderHash & cur_decoder, Optional<size_t> output_hash ) {
     size_t vertex_hash = cur_decoder.hash();
     auto v_iter = vertex_map_.find( vertex_hash );
+    Optional<double> psnr {};
     if ( v_iter != vertex_map_.end() ) {
       if ( output_hash.initialized() ) {
         output_to_vertices_[ output_hash.get() ].push_back( v_iter->second );
+        psnr.initialize( output_to_psnr_[ output_hash.get() ] );
       }
       return v_iter->second;
     }
 
-    Vertex new_vert = boost::add_vertex( VertexState { cur_decoder, output_hash, num_vertices() }, graph_ );
+    Vertex new_vert = boost::add_vertex( VertexState { cur_decoder, output_hash, psnr, num_vertices() }, graph_ );
     vertex_map_.insert( make_pair( vertex_hash, new_vert ) );
 
     new_vertices_.push_back( new_vert );
@@ -106,8 +112,30 @@ private:
   }
 
   // Read frame info into frame_map_ and populate graph_ with the keyframes
-  void read_frames( ifstream & frame_manifest )
+  void read_frames( ifstream & frame_manifest, ifstream & quality_manifest )
   {
+    while ( not quality_manifest.eof() ) {
+      string original, approx, psnr_string;
+      quality_manifest >> original >> approx >> psnr_string;
+      if ( original == "" ) {
+        break;
+      }
+
+      double psnr;
+      if ( psnr_string == "INF" ) {
+        psnr = INFINITY;
+      }
+      else {
+        psnr = stod( psnr_string );
+      }
+
+      size_t original_hash = stoul( original, nullptr, 16 );
+      size_t output_hash = stoul( approx, nullptr, 16 );
+
+      output_to_psnr_[ output_hash ] = psnr;
+      orig_to_approx_[ original_hash ].push_back( output_hash );
+    }
+
     while ( not frame_manifest.eof() ) {
       string frame_name;
       unsigned size;
@@ -187,16 +215,18 @@ private:
 
 
 public:
-  GraphManager( ifstream & frame_manifest )
+  GraphManager( ifstream & frame_manifest, ifstream & optional_manifest )
     : frame_map_(),
       output_to_vertices_(),
+      orig_to_approx_(),
+      output_to_psnr_(),
       graph_(),
       new_vertices_(),
       vertex_map_(),
       cur_vertex_( 0 ),
       distances_()
   {
-    read_frames( frame_manifest );
+    read_frames( frame_manifest, optional_manifest );
     make_graph();
     all_pairs();
   }
@@ -211,11 +241,10 @@ public:
     boost::write_graphviz( dot_file, graph_, boost::make_label_writer( vertex_name ), boost::make_label_writer( edge_name ), boost::default_writer(), boost::get( &VertexState::id, graph_ ) );
   }
 
-  vector<Vertex> get_vertices_for_outputs( const vector<pair<size_t, double>> & approxs ) const
+  vector<Vertex> get_vertices_for_outputs( const vector<size_t> & approxs ) const
   {
     vector<Vertex> vertices;
-    for ( const auto & approx_pair : approxs ) {
-      size_t approx_hash = approx_pair.second;
+    for ( size_t approx_hash : approxs ) {
 
       auto verts = output_to_vertices_.find( approx_hash );
 
@@ -226,14 +255,14 @@ public:
     return vertices;
   }
 
-  vector<vector<Vertex>> find_output_paths( const vector<size_t> & originals, const unordered_map<size_t, vector<pair<size_t, double>>> & orig_to_approx ) const
+  vector<vector<Vertex>> find_output_paths( const vector<size_t> & originals ) const
   {
     vector<vector<Vertex>> frame_vertices( originals.size() );
 
     size_t orig = originals.back();
 
     // Start out with the list of vertices for the final output
-    auto last_outputs = orig_to_approx.find( orig );
+    auto last_outputs = orig_to_approx_.find( orig );
     frame_vertices.back() = get_vertices_for_outputs( last_outputs->second );
     
     // Work backwards through the list of originals, skipping the final output
@@ -243,7 +272,7 @@ public:
 
       // only select vertices that can reach the next output frame
 
-      auto outputs = orig_to_approx.find( orig );
+      auto outputs = orig_to_approx_.find( orig );
       for ( Vertex potential : get_vertices_for_outputs( outputs->second ) ) {
         size_t p_id = graph_[ potential ].id;
         bool found = false;
@@ -286,33 +315,9 @@ int main( int argc, char * argv[] )
   ifstream original_manifest( "original_manifest" );
   ifstream quality_manifest( "quality_manifest" );
   ifstream frame_manifest( "frame_manifest" );
-  ifstream optional_manifest( "optional_manifest" );
 
   uint16_t width, height;
   original_manifest >> width >> height;
-
-  unordered_map<size_t, vector<pair<size_t, double>>> orig_to_approx;
-
-  while ( not quality_manifest.eof() ) {
-    string original, approx, psnr_string;
-    quality_manifest >> original >> approx >> psnr_string;
-    if ( original == "" ) {
-      break;
-    }
-
-    double psnr;
-    if ( psnr_string == "INF" ) {
-      psnr = INFINITY;
-    }
-    else {
-      psnr = stod( psnr_string );
-    }
-
-    size_t original_hash = stoul( original, nullptr, 16 );
-    size_t approx_hash = stoul( approx, nullptr, 16 );
-
-    orig_to_approx[ original_hash ].push_back( make_pair( approx_hash, psnr ) );
-  }
 
   // Store all the originals in a vector
   vector<size_t> original_hashes;
@@ -328,9 +333,9 @@ int main( int argc, char * argv[] )
     original_hashes.push_back( stoul( original_hash, nullptr, 16 ) );
   }
 
-  GraphManager graph( frame_manifest );
+  GraphManager graph( frame_manifest, quality_manifest );
   graph.dump_graph( "graph_out.dot" );
-  vector<vector<Vertex>> verts = graph.find_output_paths( original_hashes, orig_to_approx );
+  vector<vector<Vertex>> verts = graph.find_output_paths( original_hashes );
 
   for ( auto v : verts ) {
     for ( auto u : v ) {
