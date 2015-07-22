@@ -10,20 +10,20 @@ class SerializedFrame
 {
 private:
   std::vector<uint8_t> frame_;
-  DecoderHash source_hash_, target_hash_;
+  SourceHash source_hash_;
+  TargetHash target_hash_;
 
-  // FIXME turn output_raster_ into output_hash_, calc PSNR at construction time
   Optional<RasterHandle> output_raster_;
 
 public:
   SerializedFrame( const std::string & path );
 
   SerializedFrame( const std::vector<uint8_t> & frame,
-                   const DecoderHash & source_hash, const DecoderHash & target_hash,
+                   const SourceHash & source_hash, const TargetHash & target_hash,
                    const Optional<RasterHandle> & output );
 
   SerializedFrame( const Chunk & frame,
-		   const DecoderHash & source_hash, const DecoderHash & target_hash,
+		   const SourceHash & source_hash, const TargetHash & target_hash,
                    const Optional<RasterHandle> & output );
 
   Chunk chunk( void ) const;

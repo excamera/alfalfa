@@ -35,39 +35,59 @@ ProbabilityArray< num_segments > Frame<FrameHeaderType, MacroblockType>::calcula
 template <>
 DependencyTracker KeyFrame::get_used( void ) const
 {
-  return DependencyTracker( false, false, false, false, false );
+  return DependencyTracker { false, false, false, false, false };
 }
 
 template <>
 DependencyTracker InterFrame::get_used( void ) const
 {
-  DependencyTracker deps( true, false, false, false, false );
+  DependencyTracker deps { true, false, false, false, false };
 
   macroblock_headers_.get().forall( [&] ( const InterFrameMacroblock & mb ) {
 				    if ( mb.continuation() ) {
-				      deps.set_continuation( true );
+                                      deps.need_continuation = true;
 				    }
 				    else if ( mb.inter_coded() ) {
-				      deps.set_reference( mb.header().reference(), true );
+				      deps.reference( mb.header().reference() ) = true;
 				    } } );
   
   return deps;
 }
 
 template<>
-DependencyTracker KeyFrame::get_updated( void ) const
+UpdateTracker KeyFrame::get_updated( void ) const
 {
-  return DependencyTracker( true, true, true, true, true );
+  // Update all references
+  return UpdateTracker( true, true, true, false, false, false, false );
 }
 
 template<>
-DependencyTracker InterFrame::get_updated( void ) const
+UpdateTracker InterFrame::get_updated( void ) const
 {
-  // FIXME Does an interframe always update the state?
-  return DependencyTracker( true, true, header_.refresh_last, header_.refresh_golden_frame,
-                            header_.refresh_alternate_frame );
-}
+  UpdateTracker tracker( false, false, false, false, false, false, false );
 
+  if ( header_.copy_buffer_to_alternate.initialized() ) {
+    if ( header_.copy_buffer_to_alternate.get() == 1 ) {
+      tracker.last_to_alternate = true;
+    } else if ( header_.copy_buffer_to_alternate.get() == 2 ) {
+      tracker.golden_to_alternate = true;
+    }
+  }
+
+  if ( header_.copy_buffer_to_golden.initialized() ) {
+    if ( header_.copy_buffer_to_golden.get() == 1 ) {
+      tracker.last_to_golden = true;
+    } else if ( header_.copy_buffer_to_golden.get() == 2 ) {
+      tracker.alternate_to_golden = true;
+    }
+  }
+
+  tracker.update_golden = header_.refresh_golden_frame;
+  tracker.update_alternate = header_.refresh_alternate_frame;
+  tracker.update_last = header_.refresh_last;
+
+  return tracker;
+}
 
 template <class FrameHeaderType, class MacroblockType>
 void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers( BoolDecoder & rest_of_first_partition,

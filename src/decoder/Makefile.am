@@ -18,5 +18,5 @@ libalfalfadecoder_a_SOURCES = block.hh bool_decoder.hh decoder.cc decoder.hh \
 	subpixel_ssse3.asm idctllm_mmx.asm \
 	transform_sse.hh raster_handle.hh raster_handle.cc \
 	player.cc player.hh serialized_frame.hh serialized_frame.cc \
-	dependency_tracker.hh continuation_state.hh continuation_state.cc \
-	decoder_hash.hh decoder_hash.cc continuation_player.hh continuation_player.cc
+	continuation_state.hh continuation_state.cc \
+	decoder_tracking.hh decoder_tracking.cc continuation_player.hh continuation_player.cc

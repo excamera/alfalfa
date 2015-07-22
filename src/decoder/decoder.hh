@@ -9,7 +9,7 @@
 #include "quantization.hh"
 #include "exception.hh"
 #include "raster_handle.hh"
-#include "decoder_hash.hh"
+#include "decoder_tracking.hh"
 #include "frame_header.hh"
 
 class Chunk;
@@ -145,8 +145,9 @@ struct DecoderState
 struct DecoderDiff
 {
   RasterDiff continuation_diff;
-  DecoderHash source_hash;
-  DecoderHash target_hash;
+  std::function<SourceHash( const DependencyTracker & deps )> get_source_hash;
+  std::function<TargetHash( const UpdateTracker & updates, const RasterHandle & output, bool shown )> get_target_hash;
+  References source_refs;
   ReplacementEntropyHeader entropy_header;
   ProbabilityTables target_probabilities;
 
@@ -168,6 +169,8 @@ public:
 
   const Raster & example_raster( void ) const { return references_.last; }
 
+  SourceHash source_hash( const DependencyTracker & deps ) const;
+  TargetHash target_hash( const UpdateTracker & updates, const RasterHandle & output, bool shown ) const;
   DecoderHash get_hash( void ) const;
 
   Optional<RasterHandle> decode_frame( const Chunk & frame );

@@ -4,7 +4,7 @@
 #include "2d.hh"
 #include "block.hh"
 #include "macroblock.hh"
-#include "dependency_tracker.hh"
+#include "decoder_tracking.hh"
 
 struct References;
 struct Segmentation;
@@ -66,9 +66,8 @@ class Frame
   const FrameHeaderType & header( void ) const { return header_; }
   const Optional< ContinuationHeader > & continuation_header( void ) const { return continuation_header_; }
 
-  // FIXME this is more than references now
   DependencyTracker get_used( void ) const;
-  DependencyTracker get_updated( void ) const;
+  UpdateTracker get_updated( void ) const;
 
   void parse_macroblock_headers( BoolDecoder & rest_of_first_partition,
 				 const ProbabilityTables & probability_tables );

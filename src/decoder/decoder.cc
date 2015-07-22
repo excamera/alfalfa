@@ -82,7 +82,7 @@ ContinuationState Decoder::next_continuation_state( const Chunk & frame )
 
     myframe.copy_to( immutable_raster, references_ );
 
-    return ContinuationState( move( myframe ), Optional<RasterHandle>( shown, immutable_raster ),
+    return ContinuationState( move( myframe ), shown, immutable_raster,
                               prev_references );
   } else {
     InterFrame myframe = state_.parse_and_apply<InterFrame>( uncompressed_chunk );
@@ -99,16 +99,31 @@ ContinuationState Decoder::next_continuation_state( const Chunk & frame )
 
     myframe.copy_to( immutable_raster, references_ );
 
-    return ContinuationState( move( myframe ), Optional<RasterHandle>( shown, immutable_raster ),
+    return ContinuationState( move( myframe ), shown, immutable_raster,
                               prev_references );
   }
 }
 
+SourceHash Decoder::source_hash( const DependencyTracker & deps ) const
+{
+  // FIXME, check if GCC optimizes this
+  return SourceHash( make_optional( deps.need_state, state_.hash() ),
+                     make_optional( deps.need_continuation, continuation_raster_.hash() ),
+                     make_optional( deps.need_last, references_.last.hash() ),
+                     make_optional( deps.need_golden, references_.golden.hash() ),
+                     make_optional( deps.need_alternate, references_.alternative_reference.hash() ) );
+}
+
+TargetHash Decoder::target_hash( const UpdateTracker & updates, const RasterHandle & output,
+                                 bool shown ) const
+{
+  return TargetHash( updates, state_.hash(), continuation_raster_.hash(), output.hash(), shown );
+}
+
 DecoderHash Decoder::get_hash( void ) const
 {
-  return DecoderHash( state_.hash(), continuation_raster_.hash(),
-                      references_.last.hash(), references_.golden.hash(),
-                      references_.alternative_reference.hash() );
+  return DecoderHash( state_.hash(), continuation_raster_.hash(), references_.last.hash(),
+                      references_.golden.hash(), references_.alternative_reference.hash() );
 }
 
 void Decoder::sync_continuation_raster( const Decoder & other )
@@ -125,10 +140,16 @@ bool Decoder::operator==( const Decoder & other ) const
 
 DecoderDiff Decoder::operator-( const Decoder & other ) const
 {
-  // FIXME maybe DecoderState should just go in here, since the state calculations we
-  // do are useless for keyframes
+  // FIXME this is a little crazy
   return DecoderDiff { RasterDiff( continuation_raster_, other.continuation_raster_ ),
-                       other.get_hash(), get_hash(),
+                       [ & ]( const DependencyTracker & deps ) {
+                         return other.source_hash( deps );
+                       },
+                       [ & ]( const UpdateTracker & updates, const RasterHandle & output,
+                              bool shown ) {
+                         return target_hash( updates, output, shown );
+                       },
+                       other.references_,
                        state_.get_replacement_probs( other.state_ ),
                        state_.probability_tables,
                        state_.get_filter_update(),

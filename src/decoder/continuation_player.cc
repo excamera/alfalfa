@@ -11,13 +11,16 @@ SerializedFrame ContinuationPlayer::serialize_next( void )
 {
   Chunk frame = get_next_frame();
 
-  // DecoderHash is a light wrapper around SafeArray
-  DecoderHash source_hash = decoder_.get_hash();
+  // Save the source so we can hash the parts of it that are used by
+  // the next frame;
+  Decoder source = decoder_;
 
   continuation_state_ = decoder_.next_continuation_state( frame );
 
-  source_hash = source_hash.filter( continuation_state_.get_frame_used() );
-  DecoderHash target_hash = decoder_.get_hash().filter( continuation_state_.get_frame_updated() );
+  SourceHash source_hash = source.source_hash( continuation_state_.get_frame_used() );
+  TargetHash target_hash = decoder_.target_hash( continuation_state_.get_frame_updated(),
+                                                 continuation_state_.get_output(),
+                                                 continuation_state_.is_shown() );
 
   return SerializedFrame( frame, source_hash, target_hash, continuation_state_.get_shown() );
 }

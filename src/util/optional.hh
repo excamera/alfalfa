@@ -111,4 +111,10 @@ public:
   void clear( void ) { if ( initialized() ) { object_.~T(); } initialized_ = false; }
 };
 
+template <class T>
+Optional<T> make_optional( bool initialized, const T & val )
+{
+  return Optional<T>( initialized, val );
+}
+
 #endif /* OPTIONAL_HH */

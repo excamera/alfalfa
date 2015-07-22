@@ -20,8 +20,8 @@ static string get_name( const string & path )
 
 SerializedFrame::SerializedFrame( const string & path )
   : frame_(),
-    source_hash_( get_name( path ), false ),
-    target_hash_( get_name( path ), true ),
+    source_hash_( get_name( path ) ),
+    target_hash_( get_name( path ) ),
     output_raster_()
 {
   ifstream file( path, ifstream::binary );
@@ -34,8 +34,8 @@ SerializedFrame::SerializedFrame( const string & path )
 }
 
 SerializedFrame::SerializedFrame( const vector<uint8_t> & frame,
-				  const DecoderHash & source_hash,
-				  const DecoderHash & target_hash, 
+				  const SourceHash & source_hash,
+				  const TargetHash & target_hash, 
                                   const Optional<RasterHandle> & output )
   : frame_( frame ),
     source_hash_( source_hash ),
@@ -44,8 +44,8 @@ SerializedFrame::SerializedFrame( const vector<uint8_t> & frame,
 {}
 
 SerializedFrame::SerializedFrame( const Chunk & frame,
-				  const DecoderHash & source_hash,
-				  const DecoderHash & target_hash,
+				  const SourceHash & source_hash,
+				  const TargetHash & target_hash,
                                   const Optional<RasterHandle> & output )
   : SerializedFrame( vector<uint8_t>( frame.buffer(), frame.buffer() + frame.size() ),
 		     source_hash, target_hash, output )
@@ -58,25 +58,19 @@ Chunk SerializedFrame::chunk( void ) const
 
 bool SerializedFrame::validate_source( const DecoderHash & decoder_hash ) const
 {
-  return source_hash_ == decoder_hash;
+  return decoder_hash.can_decode( source_hash_ );
 }
 
 bool SerializedFrame::validate_target( const DecoderHash & decoder_hash ) const
 {
-  return target_hash_ == decoder_hash;
+  // FIXME, could be more rigorous
+  return target_hash_.continuation_hash == decoder_hash.continuation_hash();
 }
 
 string SerializedFrame::name( void ) const
 {
   stringstream name_stream;
-  name_stream << hex << uppercase << source_hash_.str() << "#" << target_hash_.str() << 
-              "#";
-  if ( output_raster_.initialized() ) {
-    name_stream << output_raster_.get().hash();
-  }
-  else {
-    name_stream << "x";
-  }
+  name_stream << hex << uppercase << source_hash_.str() << "#" << target_hash_.str();
 
   return name_stream.str();
 }

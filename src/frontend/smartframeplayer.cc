@@ -16,40 +16,35 @@
 
 using namespace std;
 
-ostream& operator<<( ostream & out, const FullDecoderHash & hash )
+ostream& operator<<( ostream & out, const DecoderHash & hash )
 {
   return out << hash.str();
 }
 
 struct VertexState
 {
-  FullDecoderHash cur_decoder;
+  DecoderHash cur_decoder;
   Optional<size_t> output_hash;
   size_t id;
 };
 
 struct EdgeState
 {
-  DecoderHash updater;
+  TargetHash updater;
   string frame_name;
   size_t size;
 };
 
 struct FrameInfo
 {
-  DecoderHash source;
-  DecoderHash target;
+  SourceHash source;
+  TargetHash target;
   unsigned int size;
 };
 
-static Optional<size_t> get_output_hash( const string & frame_name )
+static Optional<size_t> get_shown_hash( const TargetHash & target )
 {
-  string output_str( frame_name, frame_name.rfind( '#' ) + 1 );
-  if ( output_str == "x" ) {
-    return Optional<size_t>();
-  }
-
-  return Optional<size_t>( true, stoul( output_str,  nullptr, 16 ) );
+  return make_optional( target.shown, target.output_hash );
 }
 
 // listS for VertexList to ensure that Vertex's aren't invalidates
@@ -68,7 +63,7 @@ private:
   // FIXME Keeping a separate map for the vertices may be less efficient than
   // a custom container that enforces it
   //
-  // Hash of FullDecoderHash -> actual vertex
+  // Hash of DecoderHash -> actual vertex
   unordered_map<size_t, Vertex> vertex_map_; //tracks existing vertices;
   unsigned cur_vertex_; // Each vertex needs a unique number
 
@@ -83,7 +78,7 @@ private:
   }
 
   // Enforces uniqueness
-  Vertex add_vertex( const FullDecoderHash & cur_decoder, Optional<size_t> output_hash ) {
+  Vertex add_vertex( const DecoderHash & cur_decoder, Optional<size_t> output_hash ) {
     size_t vertex_hash = cur_decoder.hash();
     auto v_iter = vertex_map_.find( vertex_hash );
     if ( v_iter != vertex_map_.end() ) {
@@ -123,31 +118,29 @@ private:
         break;
       }
 
-      DecoderHash source_hash( frame_name, false );
-      DecoderHash target_hash( frame_name, true );
+      SourceHash source_hash( frame_name );
+      TargetHash target_hash( frame_name );
 
       auto inserted = frame_map_.insert( make_pair( frame_name, FrameInfo { source_hash, target_hash, size } ) );
 
       if ( not inserted.second ) {
         // Come up with the list of starting vertices
         // Check if frame_name is a keyframe
-        if ( not source_hash.state().initialized() and
-             not source_hash.continuation().initialized() and
-             not source_hash.last_ref().initialized() and
-             not source_hash.golden_ref().initialized() and
-             not source_hash.alt_ref().initialized() and 
-             target_hash.state().initialized() and
-             target_hash.continuation().initialized() and
-             target_hash.last_ref().initialized() and
-             target_hash.golden_ref().initialized() and
-             target_hash.alt_ref().initialized() ) {
+        if ( not source_hash.state_hash.initialized() and
+             not source_hash.continuation_hash.initialized() and
+             not source_hash.last_hash.initialized() and
+             not source_hash.golden_hash.initialized() and
+             not source_hash.alt_hash.initialized() and 
+             target_hash.update_last and
+             target_hash.update_golden and
+             target_hash.update_alternate ) {
 
-          add_vertex( FullDecoderHash( target_hash.state().get(),
-                                       target_hash.continuation().get(),
-                                       target_hash.last_ref().get(),
-                                       target_hash.golden_ref().get(),
-                                       target_hash.alt_ref().get() ),
-                      get_output_hash( frame_name ) );
+          add_vertex( DecoderHash( target_hash.state_hash,
+                                   target_hash.continuation_hash,
+                                   target_hash.output_hash,
+                                   target_hash.output_hash,
+                                   target_hash.output_hash ),
+                      get_shown_hash( target_hash ) );
         }
       }
     }
@@ -164,13 +157,13 @@ private:
         const FrameInfo & frame_info = frame.second;
 
         for ( const Vertex v : prev_new_vertices ) {
-          const FullDecoderHash & cur_decoder = graph_[ v ].cur_decoder;
+          const DecoderHash & cur_decoder = graph_[ v ].cur_decoder;
           if ( cur_decoder.can_decode( frame_info.source ) ) {
-            FullDecoderHash new_state = cur_decoder;
+            DecoderHash new_state = cur_decoder;
             new_state.update( frame_info.target );
 
 
-            Vertex new_v = add_vertex( new_state, get_output_hash( frame_name ) );
+            Vertex new_v = add_vertex( new_state, get_shown_hash( frame_info.target ) );
 
             add_edge( v, new_v, EdgeState { frame_info.target, frame_name, frame_info.size } );
           }
