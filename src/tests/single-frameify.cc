@@ -64,14 +64,9 @@ static void single_switch( ofstream & manifest, unsigned int switch_frame, const
       diff_player.decode( next_target );
     }
     else {
-      RasterHandle target_raster( MutableRasterHandle( target_player.width(), target_player.height() ) );
-      /* if the cur_displayed_frame is the same then next_target wasn't displayed, so advance */
       /* PSNR for continuation frames calculated from target raster */
-      if ( next_target.shown() ) {
-        target_raster = next_target.get_output();
-      }
-      else { 
-	target_raster = target_player.advance();
+      if ( not next_target.shown() ) {
+	target_player.advance();
       }
 
       /* Write out all the source frames up to the position of target_player */

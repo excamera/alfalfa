@@ -22,6 +22,10 @@ SerializedFrame ContinuationPlayer::serialize_next( void )
                                                  continuation_state_.get_output(),
                                                  continuation_state_.is_shown() );
 
+  // Check this is a sane frame
+  assert( source.get_hash().can_decode( source_hash ) );
+  assert( decoder_.get_hash().continuation_hash() == target_hash.continuation_hash );
+
   return SerializedFrame( frame, source_hash, target_hash, continuation_state_.get_shown() );
 }
 
