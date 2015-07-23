@@ -85,13 +85,17 @@ private:
   Vertex add_vertex( const DecoderHash & cur_decoder, Optional<size_t> output_hash ) {
     size_t vertex_hash = cur_decoder.hash();
     auto v_iter = vertex_map_.find( vertex_hash );
-    Optional<double> psnr {};
     if ( v_iter != vertex_map_.end() ) {
       if ( output_hash.initialized() ) {
+        // FIXME this seems unnecessary
         output_to_vertices_[ output_hash.get() ].push_back( v_iter->second );
-        psnr.initialize( output_to_psnr_[ output_hash.get() ] );
       }
       return v_iter->second;
+    }
+
+    Optional<double> psnr {};
+    if ( output_hash.initialized() ) {
+      psnr.initialize( output_to_psnr_[ output_hash.get() ] );
     }
 
     Vertex new_vert = boost::add_vertex( VertexState { cur_decoder, output_hash, psnr, num_vertices() }, graph_ );
@@ -199,7 +203,8 @@ private:
       }
     }
 
-    cout << "Graph has " << num_vertices() << " vertices\n";
+    cout << "Graph has " << num_vertices() << " vertices and " <<
+      boost::num_edges( graph_ ) << " edges\n";
   }
 
   void all_pairs( void )
@@ -228,7 +233,6 @@ public:
   {
     read_frames( frame_manifest, optional_manifest );
     make_graph();
-    all_pairs();
   }
 
   void dump_graph( const string & graph_name ) const 
@@ -253,6 +257,47 @@ public:
       }
     }
     return vertices;
+  }
+
+#if 0
+  class PathTree {
+  private:
+    unsigned frame_no_; // For efficient lookup of the previous output
+    Edge edge_;
+    vector<const Path *> next_choices_;
+  public:
+
+  };
+
+  struct TraversalState {
+    vector<bool> visited_frames;
+
+  };
+
+
+  // Returns a vector of possible output paths, using a modified BFS which
+  // works backwards through the graph
+  vector<PathTree> find_valid_paths( const vector<size_t> & originals ) const
+  {
+    vector<TraversalState> traveral_states( num_vertices(), TraversalState { vector<bool>( false, originals.size() } );
+    queue<Vertex> search_queue {};
+
+    // Start the search from all vertices that display the desired last output
+    size_t last_orig = originals.back();
+    auto last_outputs = orig_to_approx_.find( last_orig );
+    assert( last_outputs != orig_to_approx.end() );
+
+    for ( Vertex v : last_outputs->second() ) {
+      search_queue.push( v );
+      
+      vertex_colors[ graph_[ v ].id ].visited_frames[
+    }
+
+    while ( not queue.empty() ) {
+    }
+
+    // iterate through the starter points and return their PathTree's
+
   }
 
   vector<vector<Vertex>> find_output_paths( const vector<size_t> & originals ) const
@@ -298,6 +343,7 @@ public:
 
     return frame_vertices;
   }
+#endif
 };
 
 int main( int argc, char * argv[] )
@@ -335,6 +381,7 @@ int main( int argc, char * argv[] )
 
   GraphManager graph( frame_manifest, quality_manifest );
   graph.dump_graph( "graph_out.dot" );
+#if 0
   vector<vector<Vertex>> verts = graph.find_output_paths( original_hashes );
 
   for ( auto v : verts ) {
@@ -342,6 +389,7 @@ int main( int argc, char * argv[] )
       cout << u << "\n";
     }
   }
+#endif
 
   // These factors determine if a path ends of being viable or not
   //long max_buffer_size = stol( argv[ 2 ] );
