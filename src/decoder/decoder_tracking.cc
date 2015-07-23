@@ -242,3 +242,12 @@ string DecoderHash::str( void ) const
 
   return hash_str.str();
 }
+
+bool DecoderHash::operator==( const DecoderHash & other ) const
+{
+  return state_hash_ == other.state_hash_ and
+         continuation_hash_ == other.continuation_hash_ and
+         last_hash_ == other.last_hash_ and
+         golden_hash_ == other.golden_hash_ and
+         alt_hash_ == other.alt_hash_;
+}

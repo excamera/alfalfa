@@ -77,6 +77,8 @@ public:
   size_t hash( void ) const;
 
   std::string str( void ) const;
+
+  bool operator==( const DecoderHash & other ) const;
 };
 
 #endif
