@@ -13,6 +13,7 @@ public:
 
   SerializedFrame serialize_next( void );
 
+  RasterHandle next_output( void );
   RasterHandle advance( void );
 
   std::string get_frame_stats( void ) const;

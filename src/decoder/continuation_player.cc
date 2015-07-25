@@ -29,6 +29,12 @@ SerializedFrame ContinuationPlayer::serialize_next( void )
   return SerializedFrame( frame, source_hash, target_hash, continuation_state_.get_shown() );
 }
 
+RasterHandle ContinuationPlayer::next_output( void )
+{
+  continuation_state_ = decoder_.next_continuation_state( get_next_frame() );
+  return continuation_state_.get_output();
+}
+
 // Override FilePlayer's version so we track continuation_state_
 RasterHandle ContinuationPlayer::advance( void )
 {
