@@ -16,6 +16,8 @@ public:
   RasterHandle next_output( void );
   RasterHandle advance( void );
 
+  void apply_changes( Decoder & other ) const;
+
   std::string get_frame_stats( void ) const;
 
   SerializedFrame operator-( const FramePlayer & source ) const;

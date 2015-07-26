@@ -26,6 +26,11 @@ public:
   {
     return need_continuation_;
   }
+
+  void sync_changes( const ContinuationPlayer & target_player )
+  {
+    target_player.apply_changes( decoder_ );
+  }
 };
 
 // Streams keep track of all the players converging onto them,
@@ -60,9 +65,7 @@ private:
   {
     for ( SourcePlayer & player : source_players_ ) {
       if ( player.can_decode( frame ) ) {
-        //FIXME it would probably be faster to emulate this since all the necessary information is
-        // in the stream_player's
-        player.decode( frame );
+        player.sync_changes( stream_player_ );
         player.set_need_continuation( false );
       }
       else {
@@ -117,8 +120,8 @@ public:
         write_frame( continuation );
 
         assert( source_player.can_decode( continuation ) );
-        // FIXME same as above
-        source_player.decode( continuation );
+        // Sync the most recent changes from stream player (the same effect as decoding continuation would have)
+        source_player.sync_changes( stream_player_ );
       }
     }
   }
@@ -127,7 +130,6 @@ public:
 class FrameGenerator
 {
 private: 
-
   ofstream original_manifest_ { "original_manifest" };
   ofstream quality_manifest_ { "quality_manifest" };
   ofstream frame_manifest_ { "frame_manifest" };

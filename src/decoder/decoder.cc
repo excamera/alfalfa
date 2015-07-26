@@ -127,11 +127,6 @@ DecoderHash Decoder::get_hash( void ) const
                       references_.golden.hash(), references_.alternative_reference.hash() );
 }
 
-void Decoder::sync_continuation_raster( const Decoder & other )
-{
-  continuation_raster_ = other.continuation_raster_;
-}
-
 bool Decoder::operator==( const Decoder & other ) const
 {
   return state_ == other.state_ and continuation_raster_ == other.continuation_raster_ and

@@ -27,6 +27,8 @@ public:
 
   SerializedFrame make_continuation( const DecoderDiff & difference ) const;
 
+  void apply_last_frame( Decoder & source, const Decoder & target ) const;
+
   bool is_shown( void ) const;
   RasterHandle get_output( void ) const;
   Optional<RasterHandle> get_shown( void ) const;

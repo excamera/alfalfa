@@ -176,8 +176,14 @@ public:
   Optional<RasterHandle> decode_frame( const Chunk & frame );
 
   ContinuationState next_continuation_state( const Chunk & frame );
-
-  void sync_continuation_raster( const Decoder & other );
+  
+  template <class FrameType>
+  void apply_decoded_frame( const FrameType & frame, const RasterHandle & output, const Decoder & target )
+  {
+    state_ = target.state_;
+    continuation_raster_ = target.continuation_raster_;
+    frame.copy_to( output, references_ );
+  }
 
   bool operator==( const Decoder & other ) const;
 

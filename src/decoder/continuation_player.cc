@@ -48,6 +48,11 @@ RasterHandle ContinuationPlayer::advance( void )
   throw Unsupported( "hidden frames at end of file" );
 }
 
+void ContinuationPlayer::apply_changes( Decoder & other ) const
+{
+  continuation_state_.apply_last_frame( other, decoder_ );
+}
+
 string ContinuationPlayer::get_frame_stats( void ) const
 {
   return continuation_state_.get_frame_stats();

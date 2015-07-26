@@ -63,6 +63,16 @@ SerializedFrame ContinuationState::make_continuation( const DecoderDiff & differ
   }
 }
 
+void ContinuationState::apply_last_frame( Decoder & source, const Decoder & target ) const
+{
+  if ( on_key_frame_ ) {
+    source.apply_decoded_frame( key_frame_.get(), last_output_, target );
+  }
+  else {
+    source.apply_decoded_frame( inter_frame_.get(), last_output_, target );
+  }
+}
+
 bool ContinuationState::is_shown( void ) const
 {
   return shown_;
