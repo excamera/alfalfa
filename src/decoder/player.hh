@@ -29,13 +29,10 @@ public:
 
   bool can_decode( const SerializedFrame & frame ) const;
 
-  void sync_continuation_raster( const FramePlayer & other );
-
   uint16_t width( void ) const { return width_; }
   uint16_t height( void ) const { return height_; }
 
   DecoderDiff decoder_difference( const FramePlayer & other ) const;
-  void update_difference( DecoderDiff & diff, const FramePlayer & other ) const;
 
   bool operator==( const FramePlayer & other ) const;
   bool operator!=( const FramePlayer & other ) const;
@@ -66,7 +63,6 @@ public:
   }
 
   long unsigned int original_size( void ) const;
-
 };
 
 using Player = FilePlayer;

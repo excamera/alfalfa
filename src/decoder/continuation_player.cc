@@ -40,8 +40,8 @@ RasterHandle ContinuationPlayer::advance( void )
 {
   while ( not eof() ) {
     continuation_state_ = decoder_.next_continuation_state( get_next_frame() );
-    if ( continuation_state_.get_shown().initialized() ) {
-      return continuation_state_.get_shown().get();
+    if ( continuation_state_.is_shown() ) {
+      return continuation_state_.get_output();
     }
   }
 

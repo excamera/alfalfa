@@ -106,12 +106,13 @@ ContinuationState Decoder::next_continuation_state( const Chunk & frame )
 
 SourceHash Decoder::source_hash( const DependencyTracker & deps ) const
 {
-  // FIXME, check if GCC optimizes this
-  return SourceHash( make_optional( deps.need_state, state_.hash() ),
-                     make_optional( deps.need_continuation, continuation_raster_.hash() ),
-                     make_optional( deps.need_last, references_.last.hash() ),
-                     make_optional( deps.need_golden, references_.golden.hash() ),
-                     make_optional( deps.need_alternate, references_.alternative_reference.hash() ) );
+  using OptHash = Optional<size_t>;
+
+  return SourceHash( deps.need_state ? OptHash( true, state_.hash() ) : OptHash( false ),
+                     deps.need_continuation ? OptHash( true, continuation_raster_.hash() ) : OptHash( false ),
+                     deps.need_last ? OptHash( true, references_.last.hash() ) : OptHash( false ),
+                     deps.need_golden ? OptHash( true, references_.golden.hash() ) : OptHash( false ),
+                     deps.need_alternate ? OptHash( true, references_.alternative_reference.hash() ) : OptHash( false ) );
 }
 
 TargetHash Decoder::target_hash( const UpdateTracker & updates, const RasterHandle & output,

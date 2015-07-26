@@ -17,7 +17,7 @@ static void single_switch( ofstream & manifest, unsigned int switch_frame, const
   unsigned source_cur_frame = 0;
   while ( source_cur_frame < switch_frame ) {
     SerializedFrame frame = source_player.serialize_next();
-    manifest << "N " << frame.name() << endl;
+    manifest << frame.name() << endl;
     cout << "N " << frame.name() << "\n";
     cout << "\tSize: " << frame.size() << "\n";
     cout << source_player.get_frame_stats();
@@ -54,7 +54,7 @@ static void single_switch( ofstream & manifest, unsigned int switch_frame, const
 
     /* Could get rid of the can_decode and just make this a try catch */
     if ( diff_player.can_decode( next_target ) ) {
-      manifest << "N " << next_target.name() << endl;
+      manifest << next_target.name() << endl;
       next_target.write();
 
       cout << "N " << next_target.name() << endl;
@@ -69,32 +69,12 @@ static void single_switch( ofstream & manifest, unsigned int switch_frame, const
 	target_player.advance();
       }
 
-      /* Write out all the source frames up to the position of target_player */
-      while ( source_cur_frame < target_cur_frame ) {
-	/* Don't really care about PSNR of S frames */
-	SerializedFrame source_frame = source_player.serialize_next();
-	manifest << "S " << source_frame.name() << endl;
-      	source_frame.write();
-
-        if ( source_frame.shown() ) {
-          source_cur_frame++;
-        }
-
-	source_frames_size += source_frame.size();
-
-	cout << "S " << source_frame.name() << endl;
-	cout << "\tSize: " << source_frame.size() << endl;
-	cout << source_player.get_frame_stats();
-      }
-
-      diff_player.sync_continuation_raster( source_player );
-
       /* Make another diff */
       SerializedFrame continuation = target_player - diff_player;
       continuation.write();
       continuation_frames_size += continuation.size();
 
-      manifest << "C " << continuation.name() << endl;
+      manifest << continuation.name() << endl;
 
       // Need to decode _before_ we call cur_frame_stats, 
       // otherwise it will be the stats of the previous frame
