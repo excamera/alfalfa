@@ -9,53 +9,22 @@ using namespace std;
 class SourcePlayer : public FramePlayer
 {
 private:
-  const ContinuationPlayer * orig_player_;
   bool need_continuation_;
 
 public:
   SourcePlayer( const ContinuationPlayer & original )
     : FramePlayer( original ),
-      orig_player_( &original ),
       need_continuation_( true ) // Assume we're making a continuation frame unless we've shown otherwise
   {}
-
-  SourcePlayer( const SourcePlayer & other )
-    : FramePlayer( other ),
-      orig_player_( other.orig_player_ ),
-      need_continuation_( true )
-  {}
-
-  SourcePlayer & operator=( const SourcePlayer & other )
-  {
-    FramePlayer::operator=( other );
-    orig_player_ = other.orig_player_;
-    need_continuation_ = other.need_continuation_;
-
-    return *this;
-  }
 
   void set_need_continuation( bool b )
   {
     need_continuation_ = b;
   }
 
-  bool need_continuation( void )
+  bool need_continuation( void ) const
   {
     return need_continuation_;
-  }
-
-  void sync_continuation_raster( void )
-  {
-  // This hugely complicates graph generation and doesn't seem to have a positive impact
-  // tested cq8 cq9 and cq55 cq60
-#if 0
-    FramePlayer::sync_continuation_raster( *orig_player_ );
-#endif
-  }
-
-  bool operator==( const SourcePlayer & other ) const
-  {
-    return FramePlayer::operator==( other ) and need_continuation_ == other.need_continuation_ and orig_player_ == other.orig_player_;
   }
 };
 
@@ -142,8 +111,6 @@ public:
 
     for ( SourcePlayer & source_player : source_players_ ) {
       if ( source_player.need_continuation() ) {
-        source_player.sync_continuation_raster();
-
         // FIXME this isn't taking advantage of RasterDiff...
         SerializedFrame continuation = stream_player_ - source_player; 
 
