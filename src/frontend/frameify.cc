@@ -41,10 +41,14 @@ class StreamState
 private:
   ContinuationPlayer stream_player_;
 
-  // Reference to the FrameGenerator's manifest
+  // Reference to the manifest stored in FrameGenerator
   ofstream & frame_manifest_;
 
+  // List of players we are generating continuations from
   vector<SourcePlayer> source_players_ {};
+
+  // Shared set of all the frames generated so far
+  static unordered_set<string> frame_names_;
 
   // Remove any players that have converged onto stream_player
   // and any duplicates
@@ -76,10 +80,16 @@ private:
 
   void write_frame( const SerializedFrame & frame )
   {
-    frame_manifest_ << frame.name() << " " << frame.size() << endl;
-    frame.write();
-  }
+    string frame_name = frame.name();
 
+    // FIXME, ideally we could guarantee that write_frame was never
+    // called with dups and could avoid this check
+    if ( not frame_names_.count( frame_name ) ) {
+      frame_names_.insert( frame_name );
+      frame_manifest_ << frame_name << " " << frame.size() << endl;
+      frame.write();
+    }
+  }
 
 public:
   StreamState( const string & stream_file, ofstream & frame_manifest )
@@ -126,6 +136,7 @@ public:
     }
   }
 };
+unordered_set<string> StreamState::frame_names_ = unordered_set<string>();
 
 class FrameGenerator
 {
@@ -133,6 +144,7 @@ private:
   ofstream original_manifest_ { "original_manifest" };
   ofstream quality_manifest_ { "quality_manifest" };
   ofstream frame_manifest_ { "frame_manifest" };
+
   vector<StreamState> streams_ {};
 
   Player original_player_;
