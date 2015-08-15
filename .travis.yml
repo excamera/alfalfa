@@ -12,4 +12,4 @@ addons:
     - libglu-dev
     - libboost-dev
 
-script: "./autogen.sh && ./configure --enable-debug CXX="g++-4.9" && make && make check"
+script: "./autogen.sh && ./configure --enable-debug CXX='g++-4.9' && make && make check"
