@@ -10,7 +10,7 @@ addons:
     - g++-4.9
     - yasm
     - libx11-xcb-dev
-    - libglu-dev
+    - libglu1-mesa-dev
     - libboost-dev
 
 script: "./autogen.sh && ./configure --enable-debug CXX='g++-4.9' && make && make check"
