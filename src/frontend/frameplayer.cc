@@ -53,7 +53,7 @@ private:
   // This stores all the actual FrameInfo's, everything else points to it
   list<FrameInfo> all_frames_;
 
-  vector<set<FrameInfo *>> frames_by_number_;
+  vector<vector<FrameInfo *>> frames_by_number_;
   unordered_map<size_t, set<FrameInfo *>> frames_by_state_;
   unordered_map<size_t, set<FrameInfo *>> frames_by_continuation_;
   unordered_map<size_t, set<FrameInfo *>> frames_by_last_;
@@ -146,14 +146,14 @@ public:
       if ( not target.shown ) {
         FrameInfo frame { source, target, Optional<double>(), size, frame_name };
         all_frames_.push_back( frame );
-        frames_by_number_[ unshown_idx ].insert( &all_frames_.back() );
+        frames_by_number_[ unshown_idx ].push_back( &all_frames_.back() );
       }
       else {
         // For each possible output
         for ( const auto & output_info : output_quality_map.find( target.output_hash )->second ) {
           FrameInfo frame { source, target, make_optional( true, output_info.first ), size, frame_name };
           all_frames_.push_back( frame );
-          frames_by_number_[ output_info.second ].insert( &all_frames_.back() );
+          frames_by_number_[ output_info.second ].push_back( &all_frames_.back() );
         }
       }
     }
@@ -328,11 +328,6 @@ private:
   // but are used for the shortest paths algorithm
   Vertex start_, end_;
 
-  size_t num_vertices( void ) const
-  {
-    return boost::num_vertices( graph_ );
-  }
-
   // Enforces uniqueness
   Vertex add_vertex( const DecoderHash & cur_decoder, unsigned frame_no, bool last )
   {
@@ -347,7 +342,8 @@ private:
       return v_iter->second;
     }
 
-    Vertex new_vert = boost::add_vertex( VertexState { cur_decoder, frame_no, num_vertices() }, graph_ );
+    Vertex new_vert = boost::add_vertex( VertexState { cur_decoder, frame_no, cur_vertex_ }, graph_ );
+    cur_vertex_++;
     vertex_map_.insert( make_pair( vertex_hash, new_vert ) );
 
     if ( not last ) {
@@ -366,37 +362,8 @@ private:
       size = frame->size;
     }
     boost::add_edge( v, u, EdgeState { frame, quality, size, cur_edge_ }, graph_ );
-    cur_edge_ += 1;
+    cur_edge_++;
   }
-
-#if 0
-  // FIXME this might need to check the uniqueness of predecessors
-  void cleanup_dead_end( const Vertex & v )
-  {
-    auto in_edge_iters = boost::in_edges( v, graph_ );
-
-    // Record all the predecessors in the graph
-    // FIXME the unordered_set is a hack to work around the multigraph issue
-    unordered_set<Vertex> predecessors;
-    for ( auto edge_iter = in_edge_iters.first; edge_iter != in_edge_iters.second; edge_iter++ ) {
-      Vertex pred = boost::source( *edge_iter, graph_ );
-      assert( pred != v ); // Loop
-      assert( graph_[ pred ].frame_no <= graph_[ v ].frame_no );
-
-      predecessors.insert( pred );
-    }
-    
-    boost::clear_vertex( v, graph_ );
-    boost::remove_vertex( v, graph_ );
-
-    // After removing v if the predecessors have no children remove them too
-    for ( Vertex pred : predecessors ) {
-      if ( boost::out_degree( pred, graph_ ) == 0 ) {
-        cleanup_dead_end( pred );
-      }
-    }
-  }
-#endif
 
 public:
   GraphManager( const FrameManager & frames )
@@ -454,7 +421,7 @@ public:
         }
       }
     }
-    cout << "Graph has " << num_vertices() << " vertices and " <<
+    cout << "Graph has " << cur_vertex_ << " vertices and " <<
       boost::num_edges( graph_ ) << " edges\n";
   }
 
