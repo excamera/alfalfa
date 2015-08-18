@@ -48,6 +48,13 @@ struct UpdateTracker
                  bool set_alternate_to_golden );
 };
 
+struct MissingTracker
+{
+  bool last;
+  bool golden;
+  bool alternate;
+};
+
 struct TargetHash : public UpdateTracker
 {
   size_t state_hash, continuation_hash, output_hash;
@@ -72,7 +79,15 @@ public:
 
   void update( const TargetHash & target_hash );
 
+  size_t state_hash( void ) const;
+
   size_t continuation_hash( void ) const;
+
+  size_t last_hash( void ) const;
+
+  size_t golden_hash( void ) const;
+
+  size_t alt_hash( void ) const;
 
   size_t hash( void ) const;
 

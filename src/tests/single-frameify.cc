@@ -31,7 +31,6 @@ static void single_switch( ofstream & manifest, unsigned int switch_frame, const
     }
   }
 
-  unsigned source_frames_size = 0;
   unsigned continuation_frames_size = 0;
 
   /* At this point we generate the first continuation frame */
@@ -43,9 +42,9 @@ static void single_switch( ofstream & manifest, unsigned int switch_frame, const
     target_player.advance();
   }
 
-  FramePlayer diff_player( source_player );
+  SourcePlayer diff_player( source_player );
 
-  while ( not source_player.eof() and not target_player.eof() ) {
+  while ( not target_player.eof() ) {
     SerializedFrame next_target = target_player.serialize_next();
 
     if ( next_target.shown() ) {
@@ -92,9 +91,7 @@ static void single_switch( ofstream & manifest, unsigned int switch_frame, const
     }
   }
 
-  cout << "Total size of S frames: " << source_frames_size << endl;
-  cout << "Total size of C frames: " << continuation_frames_size << endl;
-  cout << "Total cost of switch: " << source_frames_size + continuation_frames_size << "\n";
+  cout << "Total cost of switch: " << continuation_frames_size << endl;
 }
 
 int main( int argc, char * argv[] )

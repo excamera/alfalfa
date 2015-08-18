@@ -216,9 +216,29 @@ void DecoderHash::update( const TargetHash & target_hash )
   }
 }
 
+size_t DecoderHash::state_hash( void ) const
+{
+  return state_hash_;
+}
+
 size_t DecoderHash::continuation_hash( void ) const
 {
   return continuation_hash_;
+}
+
+size_t DecoderHash::last_hash( void ) const
+{
+  return last_hash_;
+}
+
+size_t DecoderHash::golden_hash( void ) const
+{
+  return golden_hash_;
+}
+
+size_t DecoderHash::alt_hash( void ) const
+{
+  return alt_hash_;
 }
 
 size_t DecoderHash::hash( void ) const

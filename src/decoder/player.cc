@@ -40,16 +40,6 @@ const Raster & FramePlayer::example_raster( void ) const
   return decoder_.example_raster();
 }
 
-DecoderDiff FramePlayer::decoder_difference( const FramePlayer & other ) const
-{
-  if ( width_ != other.width_ or
-       height_ != other.height_ ) {
-    throw Unsupported( "stream size mismatch" );
-  }
-
-  return decoder_ - other.decoder_;
-}
-
 bool FramePlayer::operator==( const FramePlayer & other ) const
 {
   return decoder_ == other.decoder_;

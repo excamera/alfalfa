@@ -32,8 +32,6 @@ public:
   uint16_t width( void ) const { return width_; }
   uint16_t height( void ) const { return height_; }
 
-  DecoderDiff decoder_difference( const FramePlayer & other ) const;
-
   bool operator==( const FramePlayer & other ) const;
   bool operator!=( const FramePlayer & other ) const;
 };

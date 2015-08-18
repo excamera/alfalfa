@@ -58,8 +58,27 @@ string ContinuationPlayer::get_frame_stats( void ) const
   return continuation_state_.get_frame_stats();
 }
 
-SerializedFrame ContinuationPlayer::operator-( const FramePlayer & source ) const
+bool ContinuationPlayer::need_gen_continuation( void ) const
 {
-  DecoderDiff difference = decoder_difference( source );
-  return continuation_state_.make_continuation( difference );
+  return not continuation_state_.on_key_frame();
+}
+
+PreContinuation ContinuationPlayer::make_pre_continuation( const SourcePlayer & source ) const
+{
+  // The first continuation needs to be unshown, because it is outputting an upgraded
+  // image of the same frame. If it is shown, graph generation will skip over it,
+  // because it is looking for shown frames for the next frame, not the current one
+  return continuation_state_.make_pre_continuation( decoder_, source.decoder_, not source.first_continuation() );
+}
+
+SerializedFrame ContinuationPlayer::make_continuation( const PreContinuation & pre,
+                                                       const SourcePlayer & source ) const
+{
+  DecoderDiff diff = decoder_ - source.decoder_;
+  return continuation_state_.make_continuation( diff, pre );
+}
+
+SerializedFrame ContinuationPlayer::operator-( const SourcePlayer & source ) const
+{
+  return make_continuation( make_pre_continuation( source ), source );
 }

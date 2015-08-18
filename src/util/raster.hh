@@ -206,7 +206,7 @@ public:
 
   static unsigned int macroblock_dimension( const unsigned int num ) { return ( num + 15 ) / 16; }
 
-  double psnr( const Raster & other ) const
+  double quality( const Raster & other ) const
   {
     double y_mse = 0;
     Y_.forall_ij( [&]( uint8_t pixel, unsigned int column, unsigned int row )
@@ -214,10 +214,7 @@ public:
                     int diff = pixel - other.Y_.at( column, row );
 		    y_mse += pow( diff, 2 );
 		  } );
-
-    y_mse *= ( 1 / ( (double)width_ * height_ ) );
-
-    return 20 * log10( 255 ) - 10 * log10( y_mse );
+    return y_mse;
   }
 
   bool operator==( const Raster & other ) const

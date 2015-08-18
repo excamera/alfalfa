@@ -80,9 +80,9 @@ ContinuationState Decoder::next_continuation_state( const Chunk & frame )
 
     RasterHandle immutable_raster( move( raster ) );
 
-    myframe.copy_to( immutable_raster, references_ );
+    UpdateTracker updates = myframe.copy_to( immutable_raster, references_ );
 
-    return ContinuationState( move( myframe ), shown, immutable_raster,
+    return ContinuationState( move( myframe ), shown, immutable_raster, updates,
                               prev_references );
   } else {
     InterFrame myframe = state_.parse_and_apply<InterFrame>( uncompressed_chunk );
@@ -97,9 +97,9 @@ ContinuationState Decoder::next_continuation_state( const Chunk & frame )
 
     RasterHandle immutable_raster( move( raster ) );
 
-    myframe.copy_to( immutable_raster, references_ );
+    UpdateTracker updates = myframe.copy_to( immutable_raster, references_ );
 
-    return ContinuationState( move( myframe ), shown, immutable_raster,
+    return ContinuationState( move( myframe ), shown, immutable_raster, updates,
                               prev_references );
   }
 }
@@ -127,25 +127,22 @@ DecoderHash Decoder::get_hash( void ) const
                       references_.golden.hash(), references_.alternative_reference.hash() );
 }
 
+MissingTracker Decoder::find_missing( const References & refs ) const
+{
+  return MissingTracker { references_.last != refs.last, references_.golden != refs.golden,
+                          references_.alternative_reference != refs.alternative_reference };
+}
+
 bool Decoder::operator==( const Decoder & other ) const
 {
   return state_ == other.state_ and continuation_raster_ == other.continuation_raster_ and
     references_.last == other.references_.last and references_.golden == other.references_.golden and
     references_.alternative_reference == other.references_.alternative_reference;
 }
-
+   
 DecoderDiff Decoder::operator-( const Decoder & other ) const
 {
-  // FIXME this is a little crazy
   return DecoderDiff { RasterDiff( continuation_raster_, other.continuation_raster_ ),
-                       [ & ]( const DependencyTracker & deps ) {
-                         return other.source_hash( deps );
-                       },
-                       [ & ]( const UpdateTracker & updates, const RasterHandle & output,
-                              bool shown ) {
-                         return target_hash( updates, output, shown );
-                       },
-                       other.references_,
                        state_.get_replacement_probs( other.state_ ),
                        state_.probability_tables,
                        state_.get_filter_update(),

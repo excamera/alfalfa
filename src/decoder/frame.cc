@@ -54,41 +54,6 @@ DependencyTracker InterFrame::get_used( void ) const
   return deps;
 }
 
-template<>
-UpdateTracker KeyFrame::get_updated( void ) const
-{
-  // Update all references
-  return UpdateTracker( true, true, true, false, false, false, false );
-}
-
-template<>
-UpdateTracker InterFrame::get_updated( void ) const
-{
-  UpdateTracker tracker( false, false, false, false, false, false, false );
-
-  if ( header_.copy_buffer_to_alternate.initialized() ) {
-    if ( header_.copy_buffer_to_alternate.get() == 1 ) {
-      tracker.last_to_alternate = true;
-    } else if ( header_.copy_buffer_to_alternate.get() == 2 ) {
-      tracker.golden_to_alternate = true;
-    }
-  }
-
-  if ( header_.copy_buffer_to_golden.initialized() ) {
-    if ( header_.copy_buffer_to_golden.get() == 1 ) {
-      tracker.last_to_golden = true;
-    } else if ( header_.copy_buffer_to_golden.get() == 2 ) {
-      tracker.alternate_to_golden = true;
-    }
-  }
-
-  tracker.update_golden = header_.refresh_golden_frame;
-  tracker.update_alternate = header_.refresh_alternate_frame;
-  tracker.update_last = header_.refresh_last;
-
-  return tracker;
-}
-
 template <class FrameHeaderType, class MacroblockType>
 void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers( BoolDecoder & rest_of_first_partition,
 								       const ProbabilityTables & probability_tables )
@@ -293,42 +258,53 @@ void Frame<FrameHeaderType, MacroblockType>::relink_y2_blocks( void )
 }
 
 template<>
-void KeyFrame::copy_to( const RasterHandle & raster, References & references ) const
+UpdateTracker KeyFrame::copy_to( const RasterHandle & raster, References & references ) const
 {
   references.last = references.golden = references.alternative_reference = raster;
+  // Update all references
+  return UpdateTracker( true, true, true, false, false, false, false );
 }
 
-
 template<>
-void InterFrame::copy_to( const RasterHandle & raster, References & references ) const
+UpdateTracker InterFrame::copy_to( const RasterHandle & raster, References & references ) const
 {
+  UpdateTracker tracker( false, false, false, false, false, false, false );
   if ( header_.copy_buffer_to_alternate.initialized() ) {
     if ( header_.copy_buffer_to_alternate.get() == 1 ) {
       references.alternative_reference = references.last;
+      tracker.last_to_alternate = true;
     } else if ( header_.copy_buffer_to_alternate.get() == 2 ) {
       references.alternative_reference = references.golden;
+      tracker.golden_to_alternate = true;
     }
   }
 
   if ( header_.copy_buffer_to_golden.initialized() ) {
     if ( header_.copy_buffer_to_golden.get() == 1 ) {
       references.golden = references.last;
+      tracker.last_to_golden = true;
     } else if ( header_.copy_buffer_to_golden.get() == 2 ) {
       references.golden = references.alternative_reference;
+      tracker.alternate_to_golden = true;
     }
   }
 
   if ( header_.refresh_golden_frame ) {
     references.golden = raster;
+    tracker.update_golden = true;
   }
 
   if ( header_.refresh_alternate_frame ) {
     references.alternative_reference = raster;
+    tracker.update_alternate = true;
   }
 
   if ( header_.refresh_last ) {
     references.last = raster;
+    tracker.update_last = true;
   }
+
+  return tracker;
 }
 
 template<>
