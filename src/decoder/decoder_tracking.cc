@@ -58,15 +58,64 @@ SourceHash::SourceHash( const string & frame_name )
   : SourceHash( decode_source( frame_name ) )
 {}
 
+template<bool state_init, bool continuation_init, bool last_init, bool golden_init, bool alternate_init>
+bool generic_can_decode( const SourceHash & source, const DecoderHash & decoder )
+{
+  return ( !state_init or source.state_hash.get() == decoder.state_hash() ) and
+    ( !continuation_init or source.continuation_hash.get() == decoder.continuation_hash() ) and 
+    ( !last_init or source.last_hash.get() == decoder.last_hash() ) and
+    ( !golden_init or source.golden_hash.get() == decoder.golden_hash() ) and 
+    ( !alternate_init or source.alt_hash.get() == decoder.alt_hash() );
+}
+
 SourceHash::SourceHash( const Optional<size_t> & state, const Optional<size_t> & continuation,
-                         const Optional<size_t> & last, const Optional<size_t> & golden,
-                         const Optional<size_t> & alt )
+                        const Optional<size_t> & last, const Optional<size_t> & golden,
+                        const Optional<size_t> & alt )
   : state_hash( state ),
     continuation_hash( continuation ),
     last_hash( last ),
     golden_hash( golden ),
-    alt_hash( alt )
-{}
+    alt_hash( alt ),
+    check( nullptr )
+{
+  unsigned idx = 0;
+  if ( state_hash.initialized() ) {
+    idx |= 1;
+  }
+  if ( continuation_hash.initialized() ) {
+    idx |= 2;
+  }
+  if ( last_hash.initialized() ) {
+    idx |= 4;
+  }
+  if ( golden_hash.initialized() ) {
+    idx |= 8;
+  }
+  if ( alt_hash.initialized() ) {
+    idx |= 16;
+  }
+
+  CheckFunc func_lookup[ 32 ] = {
+    &generic_can_decode<false, false, false, false, false>, &generic_can_decode<true, false, false, false, false>,
+    &generic_can_decode<false, true, false, false, false>, &generic_can_decode<true, true, false, false, false>,
+    &generic_can_decode<false, false, true, false, false>, &generic_can_decode<true, false, true, false, false>,
+    &generic_can_decode<false, true, true, false, false>, &generic_can_decode<true, true, true, false, false>,
+    &generic_can_decode<false, false, false, true, false>, &generic_can_decode<true, false, false, true, false>,
+    &generic_can_decode<false, true, false, true, false>, &generic_can_decode<true, true, false, true, false>,
+    &generic_can_decode<false, false, true, true, false>, &generic_can_decode<true, false, true, true, false>,
+    &generic_can_decode<false, true, true, true, false>, &generic_can_decode<true, true, true, true, false>,
+    &generic_can_decode<false, false, false, false, true>, &generic_can_decode<true, false, false, false, true>,
+    &generic_can_decode<false, true, false, false, true>, &generic_can_decode<true, true, false, false, true>,
+    &generic_can_decode<false, false, true, false, true>, &generic_can_decode<true, false, true, false, true>,
+    &generic_can_decode<false, true, true, false, true>, &generic_can_decode<true, true, true, false, true>,
+    &generic_can_decode<false, false, false, true, true>, &generic_can_decode<true, false, false, true, true>,
+    &generic_can_decode<false, true, false, true, true>, &generic_can_decode<true, true, false, true, true>,
+    &generic_can_decode<false, false, true, true, true>, &generic_can_decode<true, false, true, true, true>,
+    &generic_can_decode<false, true, true, true, true>, &generic_can_decode<true, true, true, true, true>
+  };
+
+  check = func_lookup[ idx ];
+}
 
 static ostream& operator<<( ostream & out, const Optional<size_t> & hash )
 {
@@ -160,27 +209,7 @@ DecoderHash::DecoderHash( size_t state_hash, size_t continuation_hash, size_t la
 
 bool DecoderHash::can_decode( const SourceHash & source_hash ) const
 {
-  if ( source_hash.state_hash.initialized() && source_hash.state_hash.get() != state_hash_ ) {
-    return false;
-  }
-
-  if ( source_hash.continuation_hash.initialized() && source_hash.continuation_hash.get() != continuation_hash_ ) {
-    return false;
-  }
-
-  if ( source_hash.last_hash.initialized() && source_hash.last_hash.get() != last_hash_ ) {
-    return false;
-  }
-
-  if ( source_hash.golden_hash.initialized() && source_hash.golden_hash.get() != golden_hash_ ) {
-    return false;
-  }
-
-  if ( source_hash.alt_hash.initialized() && source_hash.alt_hash.get() != alt_hash_ ) {
-    return false;
-  }
-
-  return true;
+  return source_hash.check( source_hash, *this );
 }
 
 void DecoderHash::update( const TargetHash & target_hash )

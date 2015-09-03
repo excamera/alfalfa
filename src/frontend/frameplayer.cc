@@ -30,6 +30,8 @@ struct FrameInfo
   Optional<double> quality;
   unsigned int size;
   string name;
+
+  vector<const FrameInfo *> guaranteed_nexts;
 };
 
 class FrameManager
@@ -38,30 +40,12 @@ private:
   // This stores all the actual FrameInfo's, everything else points to it
   list<FrameInfo> all_frames_;
 
-  vector<vector<const FrameInfo *>> frames_by_number_;
-  vector<const FrameInfo *> unshown_frames_;
+  vector<vector<FrameInfo *>> frames_by_number_;
+  vector<FrameInfo *> unshown_frames_;
 
-  unordered_map<size_t, set<FrameInfo *>> frames_by_state_;
-  unordered_map<size_t, set<FrameInfo *>> frames_by_continuation_;
-  unordered_map<size_t, set<FrameInfo *>> frames_by_last_;
-  unordered_map<size_t, set<FrameInfo *>> frames_by_golden_;
-  unordered_map<size_t, set<FrameInfo *>> frames_by_alternate_;
-
-  void index_frames() {
-    // FIXME we use index 0 for "x" but could that theoretically be hashed to?
-    //for (const FrameInfo & frame : all_frames_ ) {
-    //  const SourceHash & source = frame.source;
-    //  frames_by_state_[ source.state.get_or(0) ].insert( &frame );
-    //  frames_by_continuation_[ source.continuation.get_or(0) ].insert( &frame );
-    //  frames_by_last_[ source.last.get_or(0) ].insert( &frame );
-    //  frames_by_golden_[ source.golden.get_or(0) ].insert( &frame );
-    //  frames_by_alternate_[ source.alternate.get_or(0) ].insert( &frame );
-    //}
-  }
 public:
   FrameManager( ifstream & original_manifest, ifstream & quality_manifest, ifstream & frame_manifest )
-    : all_frames_(), frames_by_number_(), unshown_frames_(), frames_by_state_(), frames_by_continuation_(),
-      frames_by_last_(), frames_by_golden_(), frames_by_alternate_()
+    : all_frames_(), frames_by_number_(), unshown_frames_()
   {
     // Map from original hash to the frame numbers that use it
     unordered_map<size_t, vector<unsigned>> orig_to_num;
@@ -113,6 +97,7 @@ public:
     // The frames_by_number_ vector holds a list of every possible frame for each displayed frame number
     // ( frames[ 0 ] = all frames for the first displayed frame in video )
     frames_by_number_.resize( frame_no );
+    vector<const FrameInfo *> unambiguous_deps;
 
     while ( not frame_manifest.eof() ) {
       string frame_name;
@@ -128,20 +113,53 @@ public:
       TargetHash target( frame_name );
 
       if ( not target.shown ) {
-        FrameInfo frame { source, target, Optional<double>(), size, frame_name };
+        FrameInfo frame { source, target, Optional<double>(), size, frame_name, {} };
         all_frames_.push_back( frame );
-        unshown_frames_.push_back( &all_frames_.back() );
+        if ( not source.last_hash.initialized() and not source.golden_hash.initialized() and
+             not source.alt_hash.initialized() and source.state_hash.initialized() and 
+             source.continuation_hash.initialized() ) {
+          unambiguous_deps.push_back( &all_frames_.back() );
+        }
+        else {
+          unshown_frames_.push_back( &all_frames_.back() );
+        }
       }
       else {
         // For each possible output
         for ( const auto & output_info : output_quality_map.find( target.output_hash )->second ) {
-          FrameInfo frame { source, target, make_optional( true, output_info.first ), size, frame_name };
+          FrameInfo frame { source, target, make_optional( true, output_info.first ), size, frame_name, {} };
           all_frames_.push_back( frame );
           frames_by_number_[ output_info.second ].push_back( &all_frames_.back() );
         }
       }
     }
-    index_frames();
+
+    // Huge amount of time is spent figuring out which unshown frames can be decoded, so precalculate it here
+    for ( const vector<FrameInfo *> & cur_frames : frames_by_number_ ) {
+      for ( FrameInfo * frame : cur_frames ) {
+        size_t cur_state = frame->target.state_hash;
+        size_t cur_continuation = frame->target.continuation_hash;
+
+        for ( const FrameInfo * unshown_frame : unambiguous_deps ) {
+          if ( cur_state == unshown_frame->source.state_hash.get() and
+               cur_continuation == unshown_frame->source.continuation_hash.get() ) {
+            frame->guaranteed_nexts.push_back( unshown_frame );
+          }
+        }
+      }
+    }
+
+    for ( FrameInfo * frame : unshown_frames_ ) {
+      size_t cur_state = frame->target.state_hash;
+      size_t cur_continuation = frame->target.continuation_hash;
+
+      for ( const FrameInfo * unshown_frame : unambiguous_deps ) {
+        if ( cur_state == unshown_frame->source.state_hash.get() and
+             cur_continuation == unshown_frame->source.continuation_hash.get() ) {
+          frame->guaranteed_nexts.push_back( unshown_frame );
+        }
+      }
+    }
   }
 
   unsigned num_frames( void ) const
@@ -176,43 +194,25 @@ public:
 
   vector<const FrameInfo *> get_frames( unsigned frame_no ) const
   {
-    vector<const FrameInfo *> intersection;
+    vector<const FrameInfo *> possibles;
 
     for ( const FrameInfo * frame : frames_by_number_[ frame_no ] ) {
-      intersection.push_back( frame );
+      possibles.push_back( frame );
     }
 
     for ( const FrameInfo * frame : unshown_frames_ ) {
       assert( not frame->quality.initialized() );
-      intersection.push_back( frame );
+      possibles.push_back( frame );
     }
 
-    return intersection;
-
-    //const set<FrameInfo *> by_number = frames_by_number_[ frame_no ];
-    //const set<FrameInfo *> unshown = frames_by_number_[ frames_by_number.size() - 1 ];
-    //const set<FrameInfo *> no_state = frames_by_state_[ 0 ];
-    //const set<FrameInfo *> by_state = frames_by_state_[ decoder.state_hash() ];
-    //const set<FrameInfo *> by_last = frames_by_last_[ decoder.last_hash() ];
-  }
-
-  vector<const FrameInfo *> filter_frames( const vector<const FrameInfo *> & frames, const DecoderHash & cur_decoder ) const
-  {
-    // FIXME do something smarter here
-    vector<const FrameInfo *> intersection;
-    for ( const FrameInfo * frame : frames ) {
-      if ( cur_decoder.can_decode( frame->source ) ) {
-        intersection.push_back( frame );
-      }
-    }
-
-    return intersection;
+    return possibles;
   }
 };
 
 struct VertexState
 {
   DecoderHash cur_decoder;
+  const FrameInfo * last_frame;
   size_t id;
 };
 
@@ -235,7 +235,7 @@ struct EdgeState
       size += frame->size;
     }
     // Round up size to nearest 10, this makes path equivalence more likely
-    // size = ((size + 10 - 1) / 10) * 10;
+    size = ((size + 10 - 1) / 10) * 10;
 
     // FIXME get rid of the special case for the fake last edge with no frames
     if ( frames.size() > 0 and frames.back()->target.shown ) {
@@ -363,7 +363,8 @@ private:
   Vertex start_, end_;
 
   // Enforces uniqueness
-  Vertex add_vertex( const DecoderHash & cur_decoder, vector<Vertex> & vertices, unordered_map<size_t, Vertex> & vertex_hashes )
+  Vertex add_vertex( const DecoderHash & cur_decoder, const FrameInfo * frame,
+                     vector<Vertex> & vertices, unordered_map<size_t, Vertex> & vertex_hashes )
   {
     size_t vertex_hash = cur_decoder.hash();
 
@@ -377,21 +378,21 @@ private:
     // Give every vertex an id of 0. After graph pruning is done we will iterate
     // through and assign each vertex a real id (otherwise there are gaps in the
     // range after pruning)
-    Vertex new_vert = boost::add_vertex( VertexState { cur_decoder, 0 }, graph_ );
+    Vertex new_vert = boost::add_vertex( VertexState { cur_decoder, frame, 0 }, graph_ );
     vertex_hashes.insert( make_pair( vertex_hash, new_vert ) );
     vertices.push_back( new_vert );
 
     return new_vert;
   }
 
-  Vertex add_unshown_vertex( const DecoderHash & cur_decoder )
+  Vertex add_unshown_vertex( const DecoderHash & cur_decoder, const FrameInfo * frame )
   {
-    return add_vertex( cur_decoder, unshown_vertices_, unshown_vertex_hashes_ );
+    return add_vertex( cur_decoder, frame, unshown_vertices_, unshown_vertex_hashes_ );
   }
 
-  Vertex add_shown_vertex( const DecoderHash & cur_decoder )
+  Vertex add_shown_vertex( const DecoderHash & cur_decoder, const FrameInfo * frame )
   {
-    return add_vertex( cur_decoder, shown_vertices_, shown_vertex_hashes_ );
+    return add_vertex( cur_decoder, frame, shown_vertices_, shown_vertex_hashes_ );
   }
 
   void add_edge( const Vertex & v, const Vertex & u, const vector<const FrameInfo *> & frames )
@@ -442,7 +443,45 @@ private:
     }
   }
 
-  vector<Vertex> extend_unshowns(const FrameManager & frame_manager, const vector<const FrameInfo *> & possible_frames )
+  void make_new_vertex( const Vertex & old_vertex, const DecoderHash & old_state,
+                        const FrameInfo * frame )
+  {
+    DecoderHash new_state( old_state );
+    new_state.update( frame->target );
+
+    if ( frame->target.shown ) {
+      Vertex new_shown = add_shown_vertex( new_state, frame );
+      // Since this is a shown vertex this should never be the case
+      assert( old_vertex != new_shown );
+      add_edge( old_vertex, new_shown, { frame } );
+    }
+    else {
+      Vertex new_unshown = add_unshown_vertex( new_state, frame );
+
+      // There seem to be nop unshown frames... (these would make a loop)
+      if ( old_vertex != new_unshown ) {
+        add_edge( old_vertex, new_unshown, { frame } );
+      }
+    }
+  }
+
+  void make_new_vertices( const vector<Vertex> & vertices, const vector<const FrameInfo *> & possible_frames )
+  {
+    for ( Vertex cur_vertex : vertices ) {
+      const DecoderHash & cur_decoder = graph_[ cur_vertex ].cur_decoder;
+      for ( const FrameInfo * frame : possible_frames ) {
+        if ( cur_decoder.can_decode( frame->source ) ) {
+          make_new_vertex( cur_vertex, cur_decoder, frame );
+        }
+      }
+      for ( const FrameInfo * frame : graph_[ cur_vertex ].last_frame->guaranteed_nexts ) {
+        assert( cur_decoder.can_decode( frame->source ) );
+        make_new_vertex( cur_vertex, cur_decoder, frame );
+      }
+    }
+  }
+
+  vector<Vertex> extend_unshowns( const vector<const FrameInfo *> & possible_frames )
   {
     vector<Vertex> all_unshown;
 
@@ -452,27 +491,7 @@ private:
 
       all_unshown.insert( all_unshown.end(), prev_unshown.begin(), prev_unshown.end() );
 
-      for ( Vertex unshown : prev_unshown ) {
-        const DecoderHash & cur_decoder = graph_[ unshown ].cur_decoder;
-        for ( const FrameInfo * frame : frame_manager.filter_frames( possible_frames, cur_decoder ) ) {
-          DecoderHash new_state( cur_decoder );
-          new_state.update( frame->target );
-
-          if ( frame->target.shown ) {
-            Vertex new_shown = add_shown_vertex( new_state );
-            // Since there are no unshown vertices this should never be the case
-            assert( unshown != new_shown );
-            add_edge( unshown, new_shown, { frame } );
-          }
-          else {
-            Vertex new_unshown = add_unshown_vertex( new_state );
-
-            if ( unshown != new_unshown ) {
-              add_edge( unshown, new_unshown, { frame } );
-            }
-          }
-        }
-      }
+      make_new_vertices( prev_unshown, possible_frames );
     }
 
     return all_unshown;
@@ -485,15 +504,15 @@ public:
       shown_vertex_hashes_(),
       unshown_vertices_(),
       unshown_vertex_hashes_(),
-      start_( boost::add_vertex( VertexState { DecoderHash( 0, 0, 0, 0, 0 ), 0 }, graph_ ) ),
-      end_( boost::add_vertex( VertexState { DecoderHash( 0, 0, 0, 0, 0 ), 0 }, graph_ ) )
+      start_( boost::add_vertex( VertexState { DecoderHash( 0, 0, 0, 0, 0 ), nullptr, 0 }, graph_ ) ),
+      end_( boost::add_vertex( VertexState { DecoderHash( 0, 0, 0, 0, 0 ), nullptr, 0 }, graph_ ) )
   {
     for ( const FrameInfo * frame : frames.start_frames() ) {
       Vertex v = add_shown_vertex( DecoderHash( frame->target.state_hash,
                                                 frame->target.continuation_hash,
                                                 frame->target.output_hash,
                                                 frame->target.output_hash,
-                                                frame->target.output_hash ) );
+                                                frame->target.output_hash ), frame );
       add_edge( start_, v, { frame } );
     }
 
@@ -508,33 +527,12 @@ public:
       unshown_vertices_.clear();
       unshown_vertex_hashes_.clear();
 
-      const vector<const FrameInfo *> possible_frames = frames.get_frames( cur_frame_num );
+      vector<const FrameInfo *> possible_frames = frames.get_frames( cur_frame_num );
 
       // Go through all the vertices from the previous frames
-      for ( Vertex v : prev_frame_vertices ) {
-        const DecoderHash & cur_decoder = graph_[ v ].cur_decoder;
+      make_new_vertices( prev_frame_vertices, possible_frames );
 
-        for ( const FrameInfo * frame : frames.filter_frames( possible_frames, cur_decoder ) )  {
-          DecoderHash new_state = cur_decoder;
-          new_state.update( frame->target );
-
-          if ( frame->target.shown ) {
-            Vertex new_vert = add_shown_vertex( new_state );
-            // Since there are no unshown vertices this should never be the case
-            assert( v != new_vert );
-            add_edge( v, new_vert, { frame } );
-          }
-          else {
-            Vertex unshown_vert = add_unshown_vertex( new_state );
-            // Loops can bizarrely occur with unshown frames
-            if ( v != unshown_vert ) {
-              add_edge( v, unshown_vert, { frame } );
-            }
-          }
-        }
-      }
-
-      vector<Vertex> unshowns = extend_unshowns( frames, possible_frames );
+      vector<Vertex> unshowns = extend_unshowns( possible_frames );
 
       // Merge unshown frame edges
       for ( Vertex unshown_vert : unshowns ) {
