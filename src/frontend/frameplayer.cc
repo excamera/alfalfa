@@ -401,21 +401,20 @@ private:
     bool duplicate;
     tie( old_edge, duplicate ) = boost::edge( v, u, graph_ );
 
+    // Same as vertices, id's will be assigned after pruning
+    EdgeState new_edge_state( frames );
+
     // If an edge already exists here, pick the smallest one
     if ( duplicate ) {
       unsigned old_size = graph_[ old_edge ].size;
-      EdgeState new_edge( frames );
 
-      assert( new_edge.error == graph_[ old_edge ].error );
-      if ( new_edge.size < old_size ) {
-        graph_[ old_edge ] = new_edge;
+      assert( new_edge_state.error == graph_[ old_edge ].error );
+      if ( new_edge_state.size < old_size ) {
+        graph_[ old_edge ] = new_edge_state;
       }
     }
     else {
-      // Same as vertices, id's will be assigned after pruning
-      EdgeState new_edge( frames );
-
-      boost::add_edge( v, u, new_edge, graph_ );
+      boost::add_edge( v, u, new_edge_state, graph_ );
     }
   }
 
