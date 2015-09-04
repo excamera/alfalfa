@@ -11,6 +11,9 @@ addons:
     - yasm
     - libx11-xcb-dev
     - libglu1-mesa-dev
-    - libboost-dev
+    - libboost1.55-dev
 
 script: "./autogen.sh && ./configure --enable-debug CXX='g++-4.9' && make && make check"
+
+notifications:
+  slack: keithw:2nINWkhRQ60BzeTDNYXgpLkU
