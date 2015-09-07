@@ -496,6 +496,32 @@ private:
     return all_unshown;
   }
 
+  void merge_unshown_edges( const vector<Vertex> & unshown_vertices )
+  {
+    for ( Vertex unshown_vert : unshown_vertices ) {
+      OutEdgeIterator outgoing_start, outgoing_end;
+      InEdgeIterator incoming_start, incoming_end;
+      tie( outgoing_start, outgoing_end ) = boost::out_edges( unshown_vert, graph_ );
+      tie( incoming_start, incoming_end ) = boost::in_edges( unshown_vert, graph_ );
+      for ( OutEdgeIterator outgoing_iter = outgoing_start; outgoing_iter != outgoing_end; outgoing_iter++ ) {
+        Vertex target = boost::target( *outgoing_iter, graph_ );
+        const vector<const FrameInfo *> & target_frames( graph_[ *outgoing_iter ].frames );
+        for ( InEdgeIterator incoming_iter = incoming_start; incoming_iter != incoming_end; incoming_iter++ ) {
+          Vertex source = boost::source( *incoming_iter, graph_ );
+
+          vector<const FrameInfo *> combined_frames( graph_[ *incoming_iter ].frames );
+
+          combined_frames.insert( combined_frames.end(), target_frames.begin(), target_frames.end() );
+
+          add_edge( source, target, combined_frames );
+        }
+      }
+
+      boost::clear_vertex( unshown_vert, graph_ );
+      boost::remove_vertex( unshown_vert, graph_ );
+    }
+  }
+
 public:
   GraphManager( const FrameManager & frames )
     : graph_(),
@@ -534,28 +560,7 @@ public:
       vector<Vertex> unshowns = extend_unshowns( possible_frames );
 
       // Merge unshown frame edges
-      for ( Vertex unshown_vert : unshowns ) {
-        OutEdgeIterator outgoing_start, outgoing_end;
-        InEdgeIterator incoming_start, incoming_end;
-        tie( outgoing_start, outgoing_end ) = boost::out_edges( unshown_vert, graph_ );
-        tie( incoming_start, incoming_end ) = boost::in_edges( unshown_vert, graph_ );
-        for ( OutEdgeIterator outgoing_iter = outgoing_start; outgoing_iter != outgoing_end; outgoing_iter++ ) {
-          Vertex target = boost::target( *outgoing_iter, graph_ );
-          const vector<const FrameInfo *> & target_frames( graph_[ *outgoing_iter ].frames );
-          for ( InEdgeIterator incoming_iter = incoming_start; incoming_iter != incoming_end; incoming_iter++ ) {
-            Vertex source = boost::source( *incoming_iter, graph_ );
-
-            vector<const FrameInfo *> combined_frames( graph_[ *incoming_iter ].frames );
-
-            combined_frames.insert( combined_frames.end(), target_frames.begin(), target_frames.end() );
-
-            add_edge( source, target, combined_frames );
-          }
-        }
-
-        boost::clear_vertex( unshown_vert, graph_ );
-        boost::remove_vertex( unshown_vert, graph_ );
-      }
+      merge_unshown_edges( unshowns );
     }
 
     // shown_vertices_ holds all the vertices that were reached with the last frame
