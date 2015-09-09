@@ -1,263 +1,27 @@
 #include "player.hh"
 #include "display.hh"
 
-#include <tuple>
 #include <fstream>
-#include <utility>
-#include <algorithm>
-#include <set>
-#include <unordered_set>
+#include <sstream>
+
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/graphviz.hpp>
-#include <boost/functional/hash.hpp>
 #include <boost/graph/r_c_shortest_paths.hpp>
-#include <limits>
-#include <unordered_map>
 #include <ctime>
 
 using namespace std;
 
-ostream& operator<<( ostream & out, const DecoderHash & hash )
-{
-  return out << hash.str();
-}
-
-struct FrameInfo
-{
-  SourceHash source;
-  TargetHash target;
-  Optional<double> quality;
-  unsigned int size;
-  string name;
-
-  vector<const FrameInfo *> guaranteed_nexts;
-};
-
-class FrameManager
-{
-private:
-  // This stores all the actual FrameInfo's, everything else points to it
-  list<FrameInfo> all_frames_;
-
-  vector<vector<FrameInfo *>> frames_by_number_;
-  vector<FrameInfo *> unshown_frames_;
-
-public:
-  FrameManager( ifstream & original_manifest, ifstream & quality_manifest, ifstream & frame_manifest )
-    : all_frames_(), frames_by_number_(), unshown_frames_()
-  {
-    // Map from original hash to the frame numbers that use it
-    unordered_map<size_t, vector<unsigned>> orig_to_num;
-
-    unsigned frame_no = 0;
-    while ( not original_manifest.eof() ) {
-      string original_hash;
-      original_manifest >> original_hash;
-
-      if ( original_hash == "" ) {
-        // Silly last line edge case
-        break;
-      }
-
-      orig_to_num[ stoul( original_hash, nullptr, 16 ) ].push_back( frame_no );
-
-      frame_no++;
-    }
-
-    // From approximation to a vector quality and frame number pairs.
-    // The key can approximate any of the frame numbers in the vector
-    // The vector seems necessarily because two originals could compress
-    // to the same approximation?
-    unordered_map<size_t, vector<pair<double, unsigned>>> output_quality_map;
-    // Read in the quality manifest
-    while ( not quality_manifest.eof() ) {
-      string original, approx, quality_string;
-      quality_manifest >> original >> approx >> quality_string;
-      if ( original == "" ) {
-        break;
-      }
-
-      double quality;
-      if ( quality_string == "INF" ) {
-        quality = INFINITY;
-      }
-      else {
-        quality = stod( quality_string );
-      }
-      size_t output_hash = stoul( approx, nullptr, 16 );
-      size_t original_hash = stoul( original, nullptr, 16 );
-
-      // Record the possible frames this approximation satisfies
-      for ( unsigned frame_no : orig_to_num[ original_hash ] ) {
-        output_quality_map[ output_hash ].push_back( make_pair( quality, frame_no ) );
-      }
-    }
-
-    // The frames_by_number_ vector holds a list of every possible frame for each displayed frame number
-    // ( frames[ 0 ] = all frames for the first displayed frame in video )
-    frames_by_number_.resize( frame_no );
-    vector<const FrameInfo *> unambiguous_deps;
-
-    while ( not frame_manifest.eof() ) {
-      string frame_name;
-      unsigned size;
-
-      frame_manifest >> frame_name >> size;
-      
-      if ( frame_name == "" ) {
-        break;
-      }
-
-      SourceHash source( frame_name );
-      TargetHash target( frame_name );
-
-      if ( not target.shown ) {
-        FrameInfo frame { source, target, Optional<double>(), size, frame_name, {} };
-        all_frames_.push_back( frame );
-        if ( not source.last_hash.initialized() and not source.golden_hash.initialized() and
-             not source.alt_hash.initialized() and source.state_hash.initialized() and 
-             source.continuation_hash.initialized() ) {
-          unambiguous_deps.push_back( &all_frames_.back() );
-        }
-        else {
-          unshown_frames_.push_back( &all_frames_.back() );
-        }
-      }
-      else {
-        // For each possible output
-        for ( const auto & output_info : output_quality_map.find( target.output_hash )->second ) {
-          FrameInfo frame { source, target, make_optional( true, output_info.first ), size, frame_name, {} };
-          all_frames_.push_back( frame );
-          frames_by_number_[ output_info.second ].push_back( &all_frames_.back() );
-        }
-      }
-    }
-
-    // Huge amount of time is spent figuring out which unshown frames can be decoded, so precalculate it here
-    for ( const vector<FrameInfo *> & cur_frames : frames_by_number_ ) {
-      for ( FrameInfo * frame : cur_frames ) {
-        size_t cur_state = frame->target.state_hash;
-        size_t cur_continuation = frame->target.continuation_hash;
-
-        for ( const FrameInfo * unshown_frame : unambiguous_deps ) {
-          if ( cur_state == unshown_frame->source.state_hash.get() and
-               cur_continuation == unshown_frame->source.continuation_hash.get() ) {
-            frame->guaranteed_nexts.push_back( unshown_frame );
-          }
-        }
-      }
-    }
-
-    for ( FrameInfo * frame : unshown_frames_ ) {
-      size_t cur_state = frame->target.state_hash;
-      size_t cur_continuation = frame->target.continuation_hash;
-
-      for ( const FrameInfo * unshown_frame : unambiguous_deps ) {
-        if ( cur_state == unshown_frame->source.state_hash.get() and
-             cur_continuation == unshown_frame->source.continuation_hash.get() ) {
-          frame->guaranteed_nexts.push_back( unshown_frame );
-        }
-      }
-    }
-  }
-
-  unsigned num_frames( void ) const
-  {
-    return frames_by_number_.size();
-  }
-
-  vector<const FrameInfo *> start_frames() const
-  {
-    vector<const FrameInfo *> starts;
-    // Find all the keyframes that display the first raster
-    // These are the starting vertices
-    for ( const FrameInfo * frame : frames_by_number_[ 0 ] ) {
-      const SourceHash & source = frame->source;
-      const TargetHash & target = frame->target;
-
-      // Check if frame is a keyframe
-      if ( not source.state_hash.initialized() and
-           not source.continuation_hash.initialized() and
-           not source.last_hash.initialized() and
-           not source.golden_hash.initialized() and
-           not source.alt_hash.initialized() and 
-           target.shown and
-           target.update_last and
-           target.update_golden and
-           target.update_alternate ) {
-        starts.push_back( frame );
-      }
-    }
-    return starts;
-  }
-
-  vector<const FrameInfo *> get_frames( unsigned frame_no ) const
-  {
-    vector<const FrameInfo *> possibles;
-
-    for ( const FrameInfo * frame : frames_by_number_[ frame_no ] ) {
-      possibles.push_back( frame );
-    }
-
-    for ( const FrameInfo * frame : unshown_frames_ ) {
-      assert( not frame->quality.initialized() );
-      possibles.push_back( frame );
-    }
-
-    return possibles;
-  }
-};
-
-struct VertexState
-{
-  DecoderHash cur_decoder;
-  const FrameInfo * last_frame;
-  size_t id;
-};
-
-// One edge can represent multiple frames, at most one frame can be
-// shown, and it is always the last entry in frames. This considerably reduces the
-// complexity of rc_shortest_paths, since error is now strictly increasing 
-// ( with error of 0 rounded up to a low number ), and the algorithm will no longer
-// make incorrect choices by preferring a path with fewer edges
 struct EdgeState
 {
-  vector<const FrameInfo *> frames;
   double error; // Error from shown frame, cached for use by rc_shortest
   size_t size; // cumulative size of frames, cached for use as edge weight
-  size_t id;
-
-  EdgeState( const vector<const FrameInfo *> & edge_frames )
-    : frames( move( edge_frames ) ), error( 0 ), size( 0 ), id( 0 )
-  {
-    for ( const FrameInfo * frame : frames ) {
-      size += frame->size;
-    }
-    // Round up size to nearest 10, this makes path equivalence more likely
-    size = ((size + 10 - 1) / 10) * 10;
-
-    // FIXME get rid of the special case for the fake last edge with no frames
-    if ( frames.size() > 0 and frames.back()->target.shown ) {
-      error = frames.back()->quality.get();
-    }
-    if ( error == 0 ) {
-      // FIXME error has to be strictly increasing so we give it a small error
-      // even though it is technically perfect. Should come up with a real lower
-      // bound for this
-      error = 0.000001;
-    }
-  }
+  unsigned id;
 };
 
-// listS for VertexList to ensure that vertex iterators aren't invalidated
-using FrameGraph = boost::adjacency_list<boost::listS, boost::listS, boost::bidirectionalS, VertexState, EdgeState>;
+using FrameGraph = boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, boost::no_property, EdgeState>;
 using Vertex = FrameGraph::vertex_descriptor;
-using VertexIterator = FrameGraph::vertex_iterator;
 using Edge = FrameGraph::edge_descriptor;
-using EdgeIterator = FrameGraph::edge_iterator;
-using OutEdgeIterator = FrameGraph::out_edge_iterator;
-using InEdgeIterator = FrameGraph::in_edge_iterator;
+using VertexIterator = FrameGraph::vertex_iterator;
 
 // Tracks the resource consumption along a path
 // for shortest path with resource constraints
@@ -331,9 +95,6 @@ public:
 
     new_path.error += graph[ edge ].error;
 
-    // The last frame in each edge should be shown
-    assert( graph[ edge ].frames.size() == 0 or graph[ edge ].frames.back()->target.shown );
-
     // Error needs to be strictly increasing, and graph gen should take care of that
     assert( new_path.error != old_path.error );
 
@@ -346,356 +107,172 @@ public:
 
 class GraphManager
 {
-private:
   FrameGraph graph_;
-
-  vector<Vertex> shown_vertices_; // Tracks the shown vertices added in a given step
-  // Hash of DecoderHash -> actual vertex
-  unordered_map<size_t, Vertex> shown_vertex_hashes_; // This stops us from introducing duplicate vertices
-
-  vector<Vertex> unshown_vertices_;
-  // Separate hash for unshown vertices to avoid strange cases where unshown frames lead to the same state
-  // as a shown frame
-  unordered_map<size_t, Vertex> unshown_vertex_hashes_;
 
   // Special terminator vertices, these don't represent actual decoder states
   // but are used for the shortest paths algorithm
   Vertex start_, end_;
 
-  // Enforces uniqueness
-  Vertex add_vertex( const DecoderHash & cur_decoder, const FrameInfo * frame,
-                     vector<Vertex> & vertices, unordered_map<size_t, Vertex> & vertex_hashes )
-  {
-    size_t vertex_hash = cur_decoder.hash();
-
-    auto v_iter = vertex_hashes.find( vertex_hash );
-    if ( v_iter != vertex_hashes.end() ) {
-      // Some hash collision asserts...
-      assert( graph_[ v_iter->second ].cur_decoder == cur_decoder ); 
-      return v_iter->second;
-    }
-
-    // Give every vertex an id of 0. After graph pruning is done we will iterate
-    // through and assign each vertex a real id (otherwise there are gaps in the
-    // range after pruning)
-    Vertex new_vert = boost::add_vertex( VertexState { cur_decoder, frame, 0 }, graph_ );
-    vertex_hashes.insert( make_pair( vertex_hash, new_vert ) );
-    vertices.push_back( new_vert );
-
-    return new_vert;
-  }
-
-  Vertex add_unshown_vertex( const DecoderHash & cur_decoder, const FrameInfo * frame )
-  {
-    return add_vertex( cur_decoder, frame, unshown_vertices_, unshown_vertex_hashes_ );
-  }
-
-  Vertex add_shown_vertex( const DecoderHash & cur_decoder, const FrameInfo * frame )
-  {
-    return add_vertex( cur_decoder, frame, shown_vertices_, shown_vertex_hashes_ );
-  }
-
-  void add_edge( const Vertex & v, const Vertex & u, const vector<const FrameInfo *> & frames )
-  {
-    Edge old_edge;
-    bool duplicate;
-    tie( old_edge, duplicate ) = boost::edge( v, u, graph_ );
-
-    // Same as vertices, id's will be assigned after pruning
-    EdgeState new_edge_state( frames );
-
-    // If an edge already exists here, pick the smallest one
-    if ( duplicate ) {
-      unsigned old_size = graph_[ old_edge ].size;
-
-      assert( new_edge_state.error == graph_[ old_edge ].error );
-      if ( new_edge_state.size < old_size ) {
-        graph_[ old_edge ] = new_edge_state;
-      }
-    }
-    else {
-      boost::add_edge( v, u, new_edge_state, graph_ );
-    }
-  }
-
-  void cleanup_dead_end( const Vertex & v )
-  {
-    auto in_edge_iters = boost::in_edges( v, graph_ );
-
-    // Record all the predecessors in the graph
-    vector<Vertex> predecessors;
-    for ( auto edge_iter = in_edge_iters.first; edge_iter != in_edge_iters.second; edge_iter++ ) {
-      Vertex pred = boost::source( *edge_iter, graph_ );
-      assert( pred != v ); // Loop
-
-      predecessors.push_back( pred );
-    }
-
-    boost::clear_vertex( v, graph_ );
-    boost::remove_vertex( v, graph_ );
-
-    // After removing v if the predecessors have no children remove them too
-    for ( Vertex pred : predecessors ) {
-      if ( boost::out_degree( pred, graph_ ) == 0 ) {
-        cleanup_dead_end( pred );
-      }
-    }
-  }
-
-  void make_new_vertex( const Vertex & old_vertex, const DecoderHash & old_state,
-                        const FrameInfo * frame )
-  {
-    DecoderHash new_state( old_state );
-    new_state.update( frame->target );
-
-    if ( frame->target.shown ) {
-      Vertex new_shown = add_shown_vertex( new_state, frame );
-      // Since this is a shown vertex this should never be the case
-      assert( old_vertex != new_shown );
-      add_edge( old_vertex, new_shown, { frame } );
-    }
-    else {
-      Vertex new_unshown = add_unshown_vertex( new_state, frame );
-
-      // There seem to be nop unshown frames... (these would make a loop)
-      if ( old_vertex != new_unshown ) {
-        add_edge( old_vertex, new_unshown, { frame } );
-      }
-    }
-  }
-
-  void make_new_vertices( const vector<Vertex> & vertices, const vector<const FrameInfo *> & possible_frames )
-  {
-    for ( Vertex cur_vertex : vertices ) {
-      const DecoderHash & cur_decoder = graph_[ cur_vertex ].cur_decoder;
-      for ( const FrameInfo * frame : possible_frames ) {
-        if ( cur_decoder.can_decode( frame->source ) ) {
-          make_new_vertex( cur_vertex, cur_decoder, frame );
-        }
-      }
-      for ( const FrameInfo * frame : graph_[ cur_vertex ].last_frame->guaranteed_nexts ) {
-        assert( cur_decoder.can_decode( frame->source ) );
-        make_new_vertex( cur_vertex, cur_decoder, frame );
-      }
-    }
-  }
-
-  vector<Vertex> extend_unshowns( const vector<const FrameInfo *> & possible_frames )
-  {
-    vector<Vertex> all_unshown;
-
-    while ( not unshown_vertices_.empty() ) {
-      vector<Vertex> prev_unshown( move( unshown_vertices_ ) );
-      unshown_vertices_.clear();
-
-      all_unshown.insert( all_unshown.end(), prev_unshown.begin(), prev_unshown.end() );
-
-      make_new_vertices( prev_unshown, possible_frames );
-    }
-
-    return all_unshown;
-  }
-
-  void merge_unshown_edges( const vector<Vertex> & unshown_vertices )
-  {
-    for ( Vertex unshown_vert : unshown_vertices ) {
-      OutEdgeIterator outgoing_start, outgoing_end;
-      InEdgeIterator incoming_start, incoming_end;
-      tie( outgoing_start, outgoing_end ) = boost::out_edges( unshown_vert, graph_ );
-      tie( incoming_start, incoming_end ) = boost::in_edges( unshown_vert, graph_ );
-      for ( OutEdgeIterator outgoing_iter = outgoing_start; outgoing_iter != outgoing_end; outgoing_iter++ ) {
-        Vertex target = boost::target( *outgoing_iter, graph_ );
-        const vector<const FrameInfo *> & target_frames( graph_[ *outgoing_iter ].frames );
-        for ( InEdgeIterator incoming_iter = incoming_start; incoming_iter != incoming_end; incoming_iter++ ) {
-          Vertex source = boost::source( *incoming_iter, graph_ );
-
-          vector<const FrameInfo *> combined_frames( graph_[ *incoming_iter ].frames );
-
-          combined_frames.insert( combined_frames.end(), target_frames.begin(), target_frames.end() );
-
-          add_edge( source, target, combined_frames );
-        }
-      }
-
-      boost::clear_vertex( unshown_vert, graph_ );
-      boost::remove_vertex( unshown_vert, graph_ );
-    }
-  }
+  // FIXME This is a bit of a hack, but the width and height are currently just
+  // serialized into the same file as everything else (
+  unsigned width_, height_;
 
 public:
-  GraphManager( const FrameManager & frames )
+  GraphManager( const string & serialized_filename )
     : graph_(),
-      shown_vertices_(),
-      shown_vertex_hashes_(),
-      unshown_vertices_(),
-      unshown_vertex_hashes_(),
-      start_( boost::add_vertex( VertexState { DecoderHash( 0, 0, 0, 0, 0 ), nullptr, 0 }, graph_ ) ),
-      end_( boost::add_vertex( VertexState { DecoderHash( 0, 0, 0, 0, 0 ), nullptr, 0 }, graph_ ) )
+      start_(),
+      end_(),
+      width_(),
+      height_()
   {
-    for ( const FrameInfo * frame : frames.start_frames() ) {
-      Vertex v = add_shown_vertex( DecoderHash( frame->target.state_hash,
-                                                frame->target.continuation_hash,
-                                                frame->target.output_hash,
-                                                frame->target.output_hash,
-                                                frame->target.output_hash ), frame );
-      add_edge( start_, v, { frame } );
+    ifstream graph_file( serialized_filename );
+
+    graph_file >> width_ >> height_;
+    unsigned num_vertices, num_edges;
+
+    // Setup vertices
+    graph_file >> num_vertices;
+    graph_ = FrameGraph( num_vertices );
+    VertexIterator begin_vert, end_vert;
+    tie( begin_vert, end_vert ) = boost::vertices( graph_ );
+    start_ = *begin_vert;
+    end_ = *( begin_vert + 1 );
+
+    // Setup edges
+    graph_file >> num_edges;
+    for ( unsigned id = 0; id < num_edges; id++ ) {
+      unsigned source_id, target_id;
+      double error;
+      size_t size;
+      graph_file >> source_id >> target_id >> error >> size;
+
+      boost::add_edge( source_id, target_id, EdgeState { error, size, id }, graph_ );
     }
 
-    // For every frame in the video generate all the possible vertices for it
-
-    for ( unsigned int cur_frame_num = 1; cur_frame_num < frames.num_frames(); cur_frame_num++ ) {
-      assert( not shown_vertices_.empty() ); // No valid way to play the video??
-
-      vector<Vertex> prev_frame_vertices( move( shown_vertices_ ) );
-      shown_vertices_.clear();
-      shown_vertex_hashes_.clear();
-      unshown_vertices_.clear();
-      unshown_vertex_hashes_.clear();
-
-      vector<const FrameInfo *> possible_frames = frames.get_frames( cur_frame_num );
-
-      // Go through all the vertices from the previous frames
-      make_new_vertices( prev_frame_vertices, possible_frames );
-
-      vector<Vertex> unshowns = extend_unshowns( possible_frames );
-
-      // Merge unshown frame edges
-      merge_unshown_edges( unshowns );
-    }
-
-    // shown_vertices_ holds all the vertices that were reached with the last frame
-    // Loop through these and connect them to the special terminator vertex
-    for ( Vertex last : shown_vertices_ ) {
-      add_edge( last, end_, {} );
-    }
-
-    // Cleanup dead ends at the end otherwise we have to update all our tracking containers
-    VertexIterator cur_vert, end_vert;
-    tie( cur_vert, end_vert ) = boost::vertices( graph_ );
-    for ( ; cur_vert != end_vert; cur_vert++ ) {
-      Vertex v = *cur_vert;
-
-      // If the vertex isn't the special terminator vertex and has no adjacent vertices, it's a dead end
-      if ( boost::out_degree( v, graph_ ) == 0 and v != end_ ) {
-        cleanup_dead_end( v );
-        // Reset out iterators after the deletion this is inefficient (we iterate over the whole list,
-        // when we've already checked a bunch potentially) but it's easy
-        tie( cur_vert, end_vert ) = boost::vertices( graph_ );
-      }
-    }
-
-    // Assign id's
-    tie( cur_vert, end_vert ) = boost::vertices( graph_ );
-    for ( unsigned id = 0; cur_vert != end_vert; cur_vert++, id++ ) {
-      graph_[ *cur_vert ].id = id;
-    }
-
-    EdgeIterator cur_edge, end_edge;
-    tie( cur_edge, end_edge ) = boost::edges( graph_ );
-    for ( unsigned id = 0; cur_edge != end_edge; cur_edge++, id++ ) {
-      graph_[ *cur_edge ].id = id;
-    }
-
-    cout << "Graph has " << boost::num_vertices( graph_ ) << " vertices and " <<
-      boost::num_edges( graph_ ) << " edges\n";
+    cout << boost::num_vertices( graph_ ) << " " << boost::num_edges( graph_ ) << endl;
   }
 
   // Just don't do it
   GraphManager( const GraphManager & ) = delete;
   GraphManager& operator=( const GraphManager & ) = delete;
 
-  vector<string> get_path( unsigned buffer_size, unsigned byte_rate, unsigned delay_ms ) const
+  vector<unsigned> get_path( unsigned buffer_size, unsigned byte_rate, unsigned delay_ms ) const
   {
-    auto vertex_id = boost::get( &VertexState::id, graph_ );
-    auto edge_id = boost::get( &VertexState::id, graph_ );
+    auto vertex_id = boost::get( boost::vertex_index, graph_ );
+    auto edge_id = boost::get( &EdgeState::id, graph_ );
 
     unsigned start_buffer = byte_rate * delay_ms / 1000;
 
-    vector<Edge> solution;
-    PathState solution_state( 0, 0 );
+    vector<vector<Edge>> solutions;
+    vector<PathState> solution_states;
 
-    boost::r_c_shortest_paths( graph_, vertex_id, edge_id, start_, end_, solution,
-        solution_state, PathState( 0, start_buffer ), PathExtender( byte_rate, buffer_size ), path_dominate );
+    boost::r_c_shortest_paths( graph_, vertex_id, edge_id, start_, end_, solutions,
+        solution_states, PathState( 0, start_buffer ), PathExtender( byte_rate, buffer_size ), path_dominate );
 
-    vector<string> frames;
-    if ( solution.size() == 0 ) {
+    vector<unsigned> solution_edges;
+    if ( solutions.size() == 0 ) {
       cout << "No path found within resource constraints\n";
       // FIXME call djikstra to get absolute minimum size path (or precalc this?)
-      return frames;
+      return solution_edges;
     }
 
-    frames.reserve( solution.size() * 2 );
-    // Boost stores the path backwards. Don't want the last component which is a fake frame to a
-    // terminating vertex
-    for ( unsigned i = solution.size() - 1 ; i > 0; i-- ) {
-      for ( const FrameInfo * frame : graph_[ solution[ i ] ].frames ) {
-        frames.push_back( frame->name );
+    // solutions contains all the undominated paths, since a path only dominates another
+    // path if it's error is less than or equal *and* it has more ( or equal ) buffer,
+    // solutions will contain a lot of paths with different errors, so at this point pick
+    // the one with the lowest error since we don't care about remaining buffer at the end
+    // of the video
+    double minerror = INFINITY;
+    unsigned best_path_idx = 0;
+    for ( unsigned i = 0; i < solution_states.size(); i++ ) {
+      const PathState & path = solution_states[ i ];
+      if ( path.error < minerror ) {
+        best_path_idx = i;
       }
     }
+    const vector<Edge> & solution = solutions[ best_path_idx ];
 
-    return frames;
+    solution_edges.reserve( solution.size() );
+    // Boost stores the path backwards. Don't want the last edge which doesn't have a frame
+    // ( since it is going to the fake terminating vertex )
+    for ( auto edge_iter = solution.rbegin(); edge_iter != solution.rend() - 1; edge_iter++ ) {
+      solution_edges.push_back( graph_[ *edge_iter ].id );
+    }
+
+    return solution_edges;
   }
 
-  void dump_graph( const string & graph_name ) const 
+  uint16_t get_video_width( void )
   {
-    ofstream dot_file( graph_name );
+    return width_;
+  }
 
-    auto vertex_name = boost::get( &VertexState::cur_decoder, graph_ );
-    auto edge_name = boost::get( &EdgeState::id, graph_ );
-
-    boost::write_graphviz( dot_file, graph_, boost::make_label_writer( vertex_name ), boost::make_label_writer( edge_name ), boost::default_writer(), boost::get( &VertexState::id, graph_ ) );
+  uint16_t get_video_height( void )
+  {
+    return height_;
   }
 };
 
+static vector<vector<string>> process_edge_map( ifstream & edge_file )
+{
+  vector<vector<string>> edge_map;
+
+  while ( not edge_file.eof() ) {
+    string edge_line;
+    getline( edge_file, edge_line );
+    istringstream line_stream( edge_line );
+
+    vector<string> edge_frames { istream_iterator<string>{ line_stream }, istream_iterator<string>{} };
+
+    edge_map.emplace_back( move( edge_frames ) );
+  }
+
+  return edge_map;
+}
+
 int main( int argc, char * argv[] )
 {
-  // DELAY
-  if ( argc < 5 ) {
-    cerr << "Usage: VIDEO_DIR BUFFER_SIZE BIT_RATE DELAY";
+  if ( argc < 7 ) {
+    cerr << "Usage: GRAPH_FILE EDGE_MAP VIDEO_DIR BUFFER_SIZE BIT_RATE DELAY\n";
     return EXIT_FAILURE;
   }
 
-  if ( chdir( argv[ 1 ] ) ) {
+  // These factors determine if a path ends of being viable or not
+  long max_buffer_size = stol( argv[ 4 ] );
+  unsigned long byte_rate = stoul( argv [ 5 ] ) / 8;
+  unsigned long delay = stoul( argv[ 6 ] );
+
+  GraphManager graph( argv[ 1 ] );
+  ifstream edge_map_file( argv[ 2 ] );
+
+  // In a real network player, the edge_map would be stored on the server side
+  // and the client would send the edge list to the server and the server
+  // would send back the frames
+  vector<vector<string>> edge_map = process_edge_map( edge_map_file );
+
+  clock_t start = clock();
+  vector<unsigned> path = graph.get_path( max_buffer_size, byte_rate, delay );
+  clock_t done = clock();
+  
+  cout << "Finding path took " << ( done - start ) * 1000 / CLOCKS_PER_SEC << " milliseconds\n";
+  cout << "Path is " << path.size() << " frames long\n";
+
+  // chdir into the video directory so we can open the frames to play them back
+  if ( chdir( argv[ 3 ] ) ) {
     throw unix_error( "Couldn't chdir into VIDEO_DIR" );
   }
 
-  // These factors determine if a path ends of being viable or not
-  long max_buffer_size = stol( argv[ 2 ] );
-  unsigned long byte_rate = stoul( argv [ 3 ] ) / 8;
-  unsigned long delay = stoul( argv[ 4 ] );
-
-  ifstream original_manifest( "original_manifest" );
-  ifstream quality_manifest( "quality_manifest" );
-  ifstream frame_manifest( "frame_manifest" );
-
-  uint16_t width, height;
-  original_manifest >> width >> height;
-
-  FrameManager frames( original_manifest, quality_manifest, frame_manifest );
-
-  clock_t start = clock();
-  GraphManager graph( frames );
-  //graph.dump_graph( "graph_out.dot" );
-  clock_t done = clock();
-  cout << "Generating graph took " << ( done - start )*1000 / CLOCKS_PER_SEC << " milliseconds\n";
-  start = clock();
-  vector<string> path = graph.get_path( max_buffer_size, byte_rate, delay );
-  done = clock();
-  cout << "Finding path took " << ( done - start )*1000 / CLOCKS_PER_SEC << " milliseconds\n";
-
-  cout << "Video is " << frames.num_frames() << " frames long\n";
-  cout << "Path is " << path.size() << " frames long\n";
-
-  FramePlayer player { width, height };
+  FramePlayer player { graph.get_video_width(), graph.get_video_height() };
   VideoDisplay display { player.example_raster() };
 
-  for ( string frame_name : path ) {
-    SerializedFrame frame { frame_name };
-    cout << frame_name << "\n";
+  for ( unsigned edge_id : path ) {
+    for ( const string & frame_name : edge_map[ edge_id ] ) {
+      SerializedFrame frame { frame_name };
+      cout << frame_name << "\n";
 
-    Optional<RasterHandle> output = player.decode( frame );
-    if ( output.initialized() ) {
-      display.draw( output.get() );
+      Optional<RasterHandle> output = player.decode( frame );
+      if ( output.initialized() ) {
+        display.draw( output.get() );
+      }
     }
   }
 }
