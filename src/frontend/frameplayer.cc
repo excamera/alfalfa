@@ -148,8 +148,6 @@ public:
 
       boost::add_edge( source_id, target_id, EdgeState { error, size, id }, graph_ );
     }
-
-    cout << boost::num_vertices( graph_ ) << " " << boost::num_edges( graph_ ) << endl;
   }
 
   // Just don't do it
@@ -175,6 +173,8 @@ public:
       // FIXME call djikstra to get absolute minimum size path (or precalc this?)
       return solution_edges;
     }
+
+    cout << solution_states.size() << " undominated paths\n";
 
     // solutions contains all the undominated paths, since a path only dominates another
     // path if it's error is less than or equal *and* it has more ( or equal ) buffer,
