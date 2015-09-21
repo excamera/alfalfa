@@ -31,9 +31,8 @@ AC_SUBST(NODEBUG_CXXFLAGS)
 # Checks for assemblers
 # TODO only check this when arch is x86
 AC_CHECK_PROGS([AS], [yasm nasm], [none])
-AS_IF([test x$YASM == xnone], [
-  AC_MSG_WARN(yasm or nasm required for assembly; ASM functions are disabled.)
-  AC_MSG_WARN(Install one of these to use SSE2 in the decoder.)
+AS_IF([test x$AS == xnone], [
+  AC_MSG_ERROR(yasm or nasm required for assembly; ASM functions are disabled. Install one of those to use SSE2 in the decoder.)
 ], [
   ASFLAGS="-f elf64"
 
