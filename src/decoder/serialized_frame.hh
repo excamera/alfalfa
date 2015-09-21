@@ -38,7 +38,7 @@ public:
 
   RasterHandle get_output( void ) const { return output_raster_.get(); }
 
-  double psnr( const RasterHandle & original ) const;
+  double quality( const RasterHandle & original ) const;
 
   unsigned size( void ) const;
 

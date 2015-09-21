@@ -19,6 +19,8 @@ struct DependencyTracker
   bool & reference( const reference_frame reference_id );
 };
 
+class DecoderHash;
+
 struct SourceHash
 {
   Optional<size_t> state_hash, continuation_hash,
@@ -28,6 +30,10 @@ struct SourceHash
   SourceHash( const Optional<size_t> & state, const Optional<size_t> & continuation,
               const Optional<size_t> & last, const Optional<size_t> & golden,
               const Optional<size_t> & alt );
+
+  using CheckFunc = bool ( * )( const SourceHash & source, const DecoderHash & decoder );
+
+  CheckFunc check;
 
   std::string str() const;
 };
@@ -46,6 +52,13 @@ struct UpdateTracker
                  bool set_update_alternate, bool set_last_to_golden,
                  bool set_last_to_alternate, bool set_golden_to_alternate,
                  bool set_alternate_to_golden );
+};
+
+struct MissingTracker
+{
+  bool last;
+  bool golden;
+  bool alternate;
 };
 
 struct TargetHash : public UpdateTracker
@@ -72,7 +85,15 @@ public:
 
   void update( const TargetHash & target_hash );
 
+  size_t state_hash( void ) const;
+
   size_t continuation_hash( void ) const;
+
+  size_t last_hash( void ) const;
+
+  size_t golden_hash( void ) const;
+
+  size_t alt_hash( void ) const;
 
   size_t hash( void ) const;
 

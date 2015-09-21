@@ -75,10 +75,10 @@ string SerializedFrame::name( void ) const
   return name_stream.str();
 }
 
-double SerializedFrame::psnr( const RasterHandle & original ) const
+double SerializedFrame::quality( const RasterHandle & original ) const
 {
   assert( output_raster_.initialized() );
-  return original.get().psnr( output_raster_.get() );
+  return original.get().quality( output_raster_.get() );
 }
 
 unsigned SerializedFrame::size( void ) const

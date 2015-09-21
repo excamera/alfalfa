@@ -31,39 +31,13 @@ Optional<RasterHandle> FramePlayer::decode( const SerializedFrame & frame )
   
 bool FramePlayer::can_decode( const SerializedFrame & frame ) const
 {
+  // FIXME shouldn't have to fully hash this?
   return frame.validate_source( decoder_.get_hash() );
 }
 
 const Raster & FramePlayer::example_raster( void ) const
 {
   return decoder_.example_raster();
-}
-
-void FramePlayer::sync_continuation_raster( const FramePlayer & other )
-{
-  return decoder_.sync_continuation_raster( other.decoder_ );
-}
-
-DecoderDiff FramePlayer::decoder_difference( const FramePlayer & other ) const
-{
-  if ( width_ != other.width_ or
-       height_ != other.height_ ) {
-    throw Unsupported( "stream size mismatch" );
-  }
-
-  return decoder_ - other.decoder_;
-}
-
-// Don't update the continuation diff. Since frameify generates potentially
-// many continuation frames off the same displayed rasters, this is big time
-// saver FIXME, this could be better
-void FramePlayer::update_difference( DecoderDiff & diff, const FramePlayer & other ) const
-{
-  DecoderDiff new_diff = decoder_difference( other );
-
-  new_diff.continuation_diff = diff.continuation_diff;
-
-  diff = new_diff;
 }
 
 bool FramePlayer::operator==( const FramePlayer & other ) const

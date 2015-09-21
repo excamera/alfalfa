@@ -80,9 +80,9 @@ ContinuationState Decoder::next_continuation_state( const Chunk & frame )
 
     RasterHandle immutable_raster( move( raster ) );
 
-    myframe.copy_to( immutable_raster, references_ );
+    UpdateTracker updates = myframe.copy_to( immutable_raster, references_ );
 
-    return ContinuationState( move( myframe ), shown, immutable_raster,
+    return ContinuationState( move( myframe ), shown, immutable_raster, updates,
                               prev_references );
   } else {
     InterFrame myframe = state_.parse_and_apply<InterFrame>( uncompressed_chunk );
@@ -97,21 +97,22 @@ ContinuationState Decoder::next_continuation_state( const Chunk & frame )
 
     RasterHandle immutable_raster( move( raster ) );
 
-    myframe.copy_to( immutable_raster, references_ );
+    UpdateTracker updates = myframe.copy_to( immutable_raster, references_ );
 
-    return ContinuationState( move( myframe ), shown, immutable_raster,
+    return ContinuationState( move( myframe ), shown, immutable_raster, updates,
                               prev_references );
   }
 }
 
 SourceHash Decoder::source_hash( const DependencyTracker & deps ) const
 {
-  // FIXME, check if GCC optimizes this
-  return SourceHash( make_optional( deps.need_state, state_.hash() ),
-                     make_optional( deps.need_continuation, continuation_raster_.hash() ),
-                     make_optional( deps.need_last, references_.last.hash() ),
-                     make_optional( deps.need_golden, references_.golden.hash() ),
-                     make_optional( deps.need_alternate, references_.alternative_reference.hash() ) );
+  using OptHash = Optional<size_t>;
+
+  return SourceHash( deps.need_state ? OptHash( true, state_.hash() ) : OptHash( false ),
+                     deps.need_continuation ? OptHash( true, continuation_raster_.hash() ) : OptHash( false ),
+                     deps.need_last ? OptHash( true, references_.last.hash() ) : OptHash( false ),
+                     deps.need_golden ? OptHash( true, references_.golden.hash() ) : OptHash( false ),
+                     deps.need_alternate ? OptHash( true, references_.alternative_reference.hash() ) : OptHash( false ) );
 }
 
 TargetHash Decoder::target_hash( const UpdateTracker & updates, const RasterHandle & output,
@@ -126,9 +127,10 @@ DecoderHash Decoder::get_hash( void ) const
                       references_.golden.hash(), references_.alternative_reference.hash() );
 }
 
-void Decoder::sync_continuation_raster( const Decoder & other )
+MissingTracker Decoder::find_missing( const References & refs ) const
 {
-  continuation_raster_ = other.continuation_raster_;
+  return MissingTracker { references_.last != refs.last, references_.golden != refs.golden,
+                          references_.alternative_reference != refs.alternative_reference };
 }
 
 bool Decoder::operator==( const Decoder & other ) const
@@ -137,19 +139,10 @@ bool Decoder::operator==( const Decoder & other ) const
     references_.last == other.references_.last and references_.golden == other.references_.golden and
     references_.alternative_reference == other.references_.alternative_reference;
 }
-
+   
 DecoderDiff Decoder::operator-( const Decoder & other ) const
 {
-  // FIXME this is a little crazy
   return DecoderDiff { RasterDiff( continuation_raster_, other.continuation_raster_ ),
-                       [ & ]( const DependencyTracker & deps ) {
-                         return other.source_hash( deps );
-                       },
-                       [ & ]( const UpdateTracker & updates, const RasterHandle & output,
-                              bool shown ) {
-                         return target_hash( updates, output, shown );
-                       },
-                       other.references_,
                        state_.get_replacement_probs( other.state_ ),
                        state_.probability_tables,
                        state_.get_filter_update(),
