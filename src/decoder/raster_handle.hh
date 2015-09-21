@@ -28,7 +28,7 @@ private:
   RasterHolder raster_;
 
 protected:
-  RasterHolder & get_holder( void ); 
+  RasterHolder & get_holder( void );
 
 public:
   MutableRasterHandle( const unsigned int display_width, const unsigned int display_height );
@@ -45,7 +45,7 @@ public:
 class RasterHandle
 {
 private:
-  std::shared_ptr<Raster> raster_;
+  std::shared_ptr<HashCachedRaster> raster_;
 
 public:
   RasterHandle( MutableRasterHandle && mutable_raster );
@@ -90,7 +90,7 @@ public:
   RasterDiff( const RasterHandle & lhs, const RasterHandle & rhs );
 
   RasterDiff::MacroblockDiff macroblock( const unsigned int column, const unsigned int row ) const;
-  
+
 };
 
 

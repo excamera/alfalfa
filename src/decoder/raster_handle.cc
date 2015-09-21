@@ -47,7 +47,6 @@ public:
   {
     assert( raster );
 
-    raster->clear_hash();
     unused_rasters_.emplace( raster );
   }
 };
@@ -92,7 +91,7 @@ MutableRasterHandle::MutableRasterHandle( const unsigned int display_width, cons
 {}
 
 RasterHandle::RasterHandle( MutableRasterHandle && mutable_raster )
-  : raster_( move( mutable_raster.get_holder() ) )
+  : raster_( make_shared<HashCachedRaster>( move( *mutable_raster.get_holder() ) ) )
 {}
 
 size_t RasterHandle::hash( void ) const
