@@ -82,12 +82,12 @@ void InterFrameMacroblock::rewrite_as_diff( const RasterDiff::MacroblockDiff & d
 
 // Make Diff Frame
 template <>
-InterFrame::Frame( const InterFrame & original, const RasterDiff & continuation_diff,
+InterFrame::Frame( const InterFrame & original, const RasterDiff & continuation_diff, const bool shown,
                    const bool last_missing, const bool golden_missing, const bool alt_missing,
                    const ReplacementEntropyHeader & replacement_entropy_header,
                    const Optional<ModeRefLFDeltaUpdate> & filter_update,
                    const Optional<SegmentFeatureData> & segment_update )
-  : show_ { original.show_ },
+  : show_ { shown },
     display_width_ { original.display_width_ },
     display_height_ { original.display_height_ },
     header_ { original.header_ },

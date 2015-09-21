@@ -25,10 +25,11 @@ Makefile.in
 
 /src/frontend/diff-sizes
 /src/frontend/frameify
-/src/frontend/smartframeplayer
 /src/frontend/frameplayer
+/src/frontend/graphgen
 /src/frontend/vp8play
 /src/frontend/vp8decode
+/src/frontend/collisions
 /src/tests/decode-to-stdout
 /src/tests/encode-loopback
 /src/tests/extract-key-frames
@@ -36,3 +37,4 @@ Makefile.in
 /src/tests/frames-to-stdout
 /src/tests/switch-to-stdout
 /src/tests/single-frameify
+/src/tests/state-collisions

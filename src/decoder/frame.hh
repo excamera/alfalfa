@@ -57,7 +57,7 @@ class Frame
 	 BoolDecoder & first_partition );
 
   // Continuation Constructor
-  Frame( const Frame & original, const RasterDiff & continuation_diff,
+  Frame( const Frame & original, const RasterDiff & continuation_diff, const bool shown,
          const bool last_missing, const bool golden_missing, const bool alt_missing,
          const ReplacementEntropyHeader & replacement_entropy_header,
          const Optional<ModeRefLFDeltaUpdate> & filter_update,
@@ -67,7 +67,6 @@ class Frame
   const Optional< ContinuationHeader > & continuation_header( void ) const { return continuation_header_; }
 
   DependencyTracker get_used( void ) const;
-  UpdateTracker get_updated( void ) const;
 
   void parse_macroblock_headers( BoolDecoder & rest_of_first_partition,
 				 const ProbabilityTables & probability_tables );
@@ -82,7 +81,7 @@ class Frame
   void decode( const Optional< Segmentation > & segmentation, const References & references,
                const RasterHandle & continuation_raster, Raster & raster ) const;
 
-  void copy_to( const RasterHandle & raster, References & references ) const;
+  UpdateTracker copy_to( const RasterHandle & raster, References & references ) const;
 
   std::string reference_update_stats( void ) const;
 

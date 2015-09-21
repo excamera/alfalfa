@@ -145,12 +145,8 @@ struct DecoderState
 struct DecoderDiff
 {
   RasterDiff continuation_diff;
-  std::function<SourceHash( const DependencyTracker & deps )> get_source_hash;
-  std::function<TargetHash( const UpdateTracker & updates, const RasterHandle & output, bool shown )> get_target_hash;
-  References source_refs;
   ReplacementEntropyHeader entropy_header;
   ProbabilityTables target_probabilities;
-
   Optional<ModeRefLFDeltaUpdate> filter_update;
   Optional<SegmentFeatureData> segment_update;
 };
@@ -176,8 +172,16 @@ public:
   Optional<RasterHandle> decode_frame( const Chunk & frame );
 
   ContinuationState next_continuation_state( const Chunk & frame );
+  
+  template <class FrameType>
+  void apply_decoded_frame( const FrameType & frame, const RasterHandle & output, const Decoder & target )
+  {
+    state_ = target.state_;
+    continuation_raster_ = target.continuation_raster_;
+    frame.copy_to( output, references_ );
+  }
 
-  void sync_continuation_raster( const Decoder & other );
+  MissingTracker find_missing( const References & refs ) const;
 
   bool operator==( const Decoder & other ) const;
 

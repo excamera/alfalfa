@@ -6,11 +6,22 @@
 #include "serialized_frame.hh"
 #include "frame.hh"
 
+struct PreContinuation
+{
+  bool shown;
+  MissingTracker missing;
+  SourceHash source_hash;
+  TargetHash target_hash;
+
+  std::string continuation_name( void ) const;
+};
+
 class ContinuationState
 {
 private:
   References prev_references_;
   RasterHandle last_output_;
+  UpdateTracker cur_updates_;
   bool shown_;
 
   // Put these in a union?
@@ -21,13 +32,19 @@ private:
 public:
   ContinuationState( const uint16_t width, const uint16_t height );
   ContinuationState( KeyFrame && frame, bool shown, const RasterHandle & raster,
-                     const References & refs );
+                     const UpdateTracker & updates, const References & refs );
   ContinuationState( InterFrame && frame, bool shown, const RasterHandle & raster,
-                     const References & refs );
+                     const UpdateTracker & updates, const References & refs );
 
-  SerializedFrame make_continuation( const DecoderDiff & difference ) const;
+  PreContinuation make_pre_continuation( const Decoder & target, const Decoder & source,
+                                         const bool shown ) const;
+
+  SerializedFrame make_continuation( const DecoderDiff & difference, const PreContinuation & pre ) const;
+
+  void apply_last_frame( Decoder & source, const Decoder & target ) const;
 
   bool is_shown( void ) const;
+  bool on_key_frame( void ) const;
   RasterHandle get_output( void ) const;
   Optional<RasterHandle> get_shown( void ) const;
 

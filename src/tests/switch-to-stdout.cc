@@ -25,7 +25,7 @@ int main( int argc, char * argv[] )
     }
 
     cur_displayed_frame = 0;
-    while ( cur_displayed_frame < switch_frame - 1 ) {
+    while ( cur_displayed_frame < switch_frame ) {
       target_player.advance();
       cur_displayed_frame++;
     }

@@ -1,63 +1,13 @@
 #include <iostream>
 #include <fstream>
 #include <unordered_set>
+#include <unordered_map>
 #include <algorithm>
+#include <cstdlib>
+#include <climits>
 #include "continuation_player.hh"
 
 using namespace std;
-
-class SourcePlayer : public FramePlayer
-{
-private:
-  const ContinuationPlayer * orig_player_;
-  bool need_continuation_;
-
-public:
-  SourcePlayer( const ContinuationPlayer & original )
-    : FramePlayer( original ),
-      orig_player_( &original ),
-      need_continuation_( true ) // Assume we're making a continuation frame unless we've shown otherwise
-  {}
-
-  SourcePlayer( const SourcePlayer & other )
-    : FramePlayer( other ),
-      orig_player_( other.orig_player_ ),
-      need_continuation_( true )
-  {}
-
-  SourcePlayer & operator=( const SourcePlayer & other )
-  {
-    FramePlayer::operator=( other );
-    orig_player_ = other.orig_player_;
-    need_continuation_ = other.need_continuation_;
-
-    return *this;
-  }
-
-  void set_need_continuation( bool b )
-  {
-    need_continuation_ = b;
-  }
-
-  bool need_continuation( void )
-  {
-    return need_continuation_;
-  }
-
-  void sync_continuation_raster( void )
-  {
-  // This hugely complicates graph generation and doesn't seem to have a positive impact
-  // tested cq8 cq9 and cq55 cq60
-#if 0
-    FramePlayer::sync_continuation_raster( *orig_player_ );
-#endif
-  }
-
-  bool operator==( const SourcePlayer & other ) const
-  {
-    return FramePlayer::operator==( other ) and need_continuation_ == other.need_continuation_ and orig_player_ == other.orig_player_;
-  }
-};
 
 // Streams keep track of all the players converging onto them,
 // because they need to be able to update the states of those
@@ -67,10 +17,14 @@ class StreamState
 private:
   ContinuationPlayer stream_player_;
 
-  // Reference to the FrameGenerator's manifest
+  // Reference to the manifest stored in FrameGenerator
   ofstream & frame_manifest_;
 
+  // List of players we are generating continuations from
   vector<SourcePlayer> source_players_ {};
+
+  // Shared set of all the frames generated so far
+  static unordered_set<string> frame_names_;
 
   // Remove any players that have converged onto stream_player
   // and any duplicates
@@ -91,9 +45,7 @@ private:
   {
     for ( SourcePlayer & player : source_players_ ) {
       if ( player.can_decode( frame ) ) {
-        //FIXME it would probably be faster to emulate this since all the necessary information is
-        // in the stream_player's
-        player.decode( frame );
+        player.sync_changes( stream_player_ );
         player.set_need_continuation( false );
       }
       else {
@@ -104,10 +56,16 @@ private:
 
   void write_frame( const SerializedFrame & frame )
   {
-    frame_manifest_ << frame.name() << " " << frame.size() << endl;
-    frame.write();
-  }
+    string frame_name = frame.name();
 
+    // FIXME, ideally we could guarantee that write_frame was never
+    // called with dups and could avoid this check
+    if ( not frame_names_.count( frame_name ) ) {
+      frame_names_.insert( frame_name );
+      frame_manifest_ << frame_name << " " << frame.size() << endl;
+      frame.write();
+    }
+  }
 
 public:
   StreamState( const string & stream_file, ofstream & frame_manifest )
@@ -141,37 +99,55 @@ public:
     cleanup_source_players();
 
     for ( SourcePlayer & source_player : source_players_ ) {
+      // Check if the source needs a continuation at this point
       if ( source_player.need_continuation() ) {
-        source_player.sync_continuation_raster();
+        // Only make a continuation if the player is on an interframe
+        // (keyframes are free switches, so by checking explicitly here the
+        // continuation code can ignore the possibility of a keyframe
+        if ( stream_player_.need_gen_continuation() ) {
+          PreContinuation pre = stream_player_.make_pre_continuation( source_player );
+          // Serializing these continuations is *very* expensive, so check if we already have the necessary continuation frame
+          if ( not frame_names_.count( pre.continuation_name() ) ) {
+            // FIXME this isn't taking advantage of RasterDiff...
+            
+            SerializedFrame continuation =
+              stream_player_.make_continuation( pre, source_player ); 
 
-        // FIXME this isn't taking advantage of RasterDiff...
-        SerializedFrame continuation = stream_player_ - source_player; 
+            write_frame( continuation );
 
-        write_frame( continuation );
+            assert( source_player.can_decode( continuation ) );
+          }
+        }
 
-        assert( source_player.can_decode( continuation ) );
-        // FIXME same as above
-        source_player.decode( continuation );
+        // Even if we didn't need to make a new continuation frame, we still need to sync the most recent
+        // changes from stream player (the same effect as decoding stream_player's last frame))
+        source_player.sync_changes( stream_player_ );
       }
     }
   }
 };
+unordered_set<string> StreamState::frame_names_ = unordered_set<string>();
 
 class FrameGenerator
 {
 private: 
-
   ofstream original_manifest_ { "original_manifest" };
   ofstream quality_manifest_ { "quality_manifest" };
   ofstream frame_manifest_ { "frame_manifest" };
+
+  unordered_map<size_t, unordered_set<size_t>> recorded_qualities_ {};
+
   vector<StreamState> streams_ {};
 
   Player original_player_;
 
   void record_quality( const SerializedFrame & frame, const RasterHandle & original )
   {
-    quality_manifest_ << hex << uppercase << original.hash() << " " << 
-                frame.get_output().hash() << " " << frame.psnr( original ) << endl;
+    if ( not recorded_qualities_[ original.hash() ].count( frame.get_output().hash() ) ) {
+      recorded_qualities_[ original.hash() ].insert( frame.get_output().hash() );
+      quality_manifest_ << hex << uppercase << original.hash() << " " << frame.get_output().hash()
+      << " " << frame.quality( original ) << endl;
+    }
   }
 
   void record_original( const RasterHandle & original )
@@ -180,14 +156,13 @@ private:
   }
 
 public:
-  FrameGenerator( const string & original, const char * const streams[] )
+  FrameGenerator( const string & original, const vector<string> & streams )
     : original_player_( original )
   {
     original_manifest_ << original_player_.width() << " " << original_player_.height() << "\n";
 
-    // Argument list is null terminated
-    for ( int i = 0; streams[ i ] != nullptr; i++ ) {
-      streams_.emplace_back( streams[ i ], frame_manifest_ );
+    for ( const string & stream : streams ) {
+      streams_.emplace_back( stream, frame_manifest_ );
     }
   }
 
@@ -227,9 +202,24 @@ public:
 
 int main( int argc, const char * const argv[] )
 {
-  if ( argc < 5 ) {
-    cerr << "Usage: " << argv[ 0 ] << " OUTPUT_DIR ORIGINAL STREAM1 STREAM2 [ MORE_STREAMS ]" << endl;
+  if ( argc < 4 ) {
+    cerr << "Usage: " << argv[ 0 ] << " OUTPUT_DIR ORIGINAL STREAM1 [ MORE_STREAMS ]" << endl;
     return EXIT_FAILURE;
+  }
+  char absolute[ PATH_MAX ];
+  if ( not realpath( argv[ 2 ], absolute ) ) {
+    throw unix_error( "realpath failed" );
+  }
+  string original( absolute );
+
+  // Calculate absolute paths for all arguments before we chdir into OUTPUT_DIR
+  vector<string> absolute_streams;
+  // Argument list is null terminated
+  for ( int i = 3; i < argc; i++ ) {
+    if ( not realpath( argv[ i ], absolute ) ) {
+      throw unix_error( "realpath failed" );
+    }
+    absolute_streams.emplace_back( absolute );
   }
 
   if ( mkdir( argv[ 1 ], 0777 ) ) {
@@ -238,6 +228,6 @@ int main( int argc, const char * const argv[] )
   if ( chdir( argv[ 1 ] ) ) {
     throw unix_error( "chdir failed" );
   }
-  FrameGenerator generator( argv[ 2 ], argv + 3 );
+  FrameGenerator generator( absolute, absolute_streams );
   generator.generate();
 }
