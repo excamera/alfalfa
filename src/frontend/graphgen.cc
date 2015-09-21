@@ -5,6 +5,8 @@
 #include <iterator>
 #include <climits>
 #include <cstdlib>
+#include <vector>
+#include <unordered_map>
 
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
