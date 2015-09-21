@@ -21,7 +21,6 @@ class RasterPool
 {
 private:
   queue<RasterHolder> unused_rasters_ {};
-  unordered_map<const Raster *, size_t> raster_hashes_ {};
 
 public:
   RasterHolder make_raster( const unsigned int display_width,
@@ -44,25 +43,12 @@ public:
     return ret;
   }
 
-  size_t get_hash( const Raster * raster ) {
-    auto iter = raster_hashes_.find( raster );
-    if ( iter == raster_hashes_.end() ) {
-      size_t hash = raster->hash();
-      raster_hashes_[ raster ] = hash;
-      return hash;
-    } else {
-      return iter->second;
-    }
-  }
-
   void free_raster( Raster * raster )
   {
     assert( raster );
-    unused_rasters_.emplace( raster );
 
-    // This raster can now be be used to back a MutableRasterHandle,
-    // so erase the cached hash
-    raster_hashes_.erase( raster );
+    raster->clear_hash();
+    unused_rasters_.emplace( raster );
   }
 };
 
@@ -111,7 +97,7 @@ RasterHandle::RasterHandle( MutableRasterHandle && mutable_raster )
 
 size_t RasterHandle::hash( void ) const
 {
-  return get_deleter<RasterDeleter>( raster_ )->get_raster_pool()->get_hash( raster_.get() );
+  return raster_->hash();
 }
 
 bool RasterHandle::operator==( const RasterHandle & other ) const

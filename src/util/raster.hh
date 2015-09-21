@@ -164,6 +164,8 @@ private:
   unsigned int width_ { 16 * macroblock_dimension( display_width_ ) },
     height_ { 16 * macroblock_dimension( display_height_ ) };
 
+  mutable Optional<size_t> frozen_hash_;
+
   TwoD< uint8_t > Y_ { width_, height_ },
     U_ { width_ / 2, height_ / 2 },
     V_ { width_ / 2, height_ / 2 };
@@ -191,6 +193,9 @@ public:
 
   Macroblock & macroblock( const unsigned int column, const unsigned int row )
   {
+    // Sadjad: The macroblock might be edited after this point, so I thought
+    // it could be a good idea to invalidate hash cache at this point.
+    clear_hash();
     return macroblocks_.at( column, row );
   }
 
@@ -203,6 +208,14 @@ public:
   unsigned int height( void ) const { return height_; }
   unsigned int display_width( void ) const { return display_width_; }
   unsigned int display_height( void ) const { return display_height_; }
+
+  void clear_hash( void )
+  {
+    if( frozen_hash_.initialized() )
+    {
+      frozen_hash_.clear();
+    }
+  }
 
   static unsigned int macroblock_dimension( const unsigned int num ) { return ( num + 15 ) / 16; }
 
@@ -232,17 +245,26 @@ public:
 
   size_t hash( void ) const
   {
+    if( frozen_hash_.initialized() )
+    {
+      return frozen_hash_.get();
+    }
+
     size_t hash_val = 0;
 
     boost::hash_range( hash_val, Y_.begin(), Y_.end() );
     boost::hash_range( hash_val, U_.begin(), U_.end() );
     boost::hash_range( hash_val, V_.begin(), V_.end() );
 
+    frozen_hash_ = make_optional( true, hash_val );
+
     return hash_val;
   }
 
   void copy_from( const Raster & other )
   {
+    clear_hash();
+
     Y_.copy_from( other.Y_ );
     U_.copy_from( other.U_ );
     V_.copy_from( other.V_ );
