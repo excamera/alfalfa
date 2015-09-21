@@ -45,7 +45,7 @@ public:
 class RasterHandle
 {
 private:
-  std::shared_ptr<HashCachedRaster> raster_;
+  std::shared_ptr<Raster> raster_;
 
 public:
   RasterHandle( MutableRasterHandle && mutable_raster );

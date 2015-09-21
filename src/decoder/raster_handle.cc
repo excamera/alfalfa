@@ -46,7 +46,7 @@ public:
   void free_raster( Raster * raster )
   {
     assert( raster );
-
+    raster->set_hash_caching_enabled(false);
     unused_rasters_.emplace( raster );
   }
 };
@@ -91,8 +91,10 @@ MutableRasterHandle::MutableRasterHandle( const unsigned int display_width, cons
 {}
 
 RasterHandle::RasterHandle( MutableRasterHandle && mutable_raster )
-  : raster_( make_shared<HashCachedRaster>( move( *mutable_raster.get_holder() ) ) )
-{}
+ : raster_( move( mutable_raster.get_holder() ) )
+{
+  raster_->set_hash_caching_enabled(true);
+}
 
 size_t RasterHandle::hash( void ) const
 {
