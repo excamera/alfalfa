@@ -38,7 +38,7 @@ Raster::Macroblock::Macroblock( const TwoD< Macroblock >::Context & c, Raster & 
 }
 
 Raster::Raster( const unsigned int display_width, const unsigned int display_height )
-  : display_width_( display_width ), display_height_( display_height )
+  : SimpleRaster( display_width, display_height )
 {}
 
 template <unsigned int size>
@@ -315,7 +315,7 @@ void Raster::Block4::intra_predict( const bmode b_mode )
   /* Luma prediction */
 
   switch ( b_mode ) {
-  case B_DC_PRED: dc_predict_simple(); break; 
+  case B_DC_PRED: dc_predict_simple(); break;
   case B_TM_PRED: true_motion_predict(); break;
   case B_VE_PRED: vertical_smoothed_predict(); break;
   case B_HE_PRED: horizontal_smoothed_predict(); break;
