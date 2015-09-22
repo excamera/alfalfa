@@ -21,7 +21,6 @@ class RasterPool
 {
 private:
   queue<RasterHolder> unused_rasters_ {};
-  unordered_map<const Raster *, size_t> raster_hashes_ {};
 
 public:
   RasterHolder make_raster( const unsigned int display_width,
@@ -30,7 +29,7 @@ public:
     RasterHolder ret;
 
     if ( unused_rasters_.empty() ) {
-      ret.reset( new Raster( display_width, display_height ) );
+      ret.reset( new HashCachedRaster( display_width, display_height ) );
     } else {
       if ( (unused_rasters_.front()->display_width() != display_width)
 	   or (unused_rasters_.front()->display_height() != display_height) ) {
@@ -44,29 +43,15 @@ public:
     return ret;
   }
 
-  size_t get_hash( const Raster * raster ) {
-    auto iter = raster_hashes_.find( raster );
-    if ( iter == raster_hashes_.end() ) {
-      size_t hash = raster->hash();
-      raster_hashes_[ raster ] = hash;
-      return hash;
-    } else {
-      return iter->second;
-    }
-  }
-
-  void free_raster( Raster * raster )
+  void free_raster( HashCachedRaster * raster )
   {
     assert( raster );
+    raster->reset_cache();
     unused_rasters_.emplace( raster );
-
-    // This raster can now be be used to back a MutableRasterHandle,
-    // so erase the cached hash
-    raster_hashes_.erase( raster );
   }
 };
 
-void RasterDeleter::operator()( Raster * raster ) const
+void RasterDeleter::operator()( HashCachedRaster * raster ) const
 {
   if ( raster_pool_ ) {
     raster_pool_->free_raster( raster );
@@ -107,11 +92,13 @@ MutableRasterHandle::MutableRasterHandle( const unsigned int display_width, cons
 
 RasterHandle::RasterHandle( MutableRasterHandle && mutable_raster )
   : raster_( move( mutable_raster.get_holder() ) )
-{}
+{
+  raster_->assert_no_cache();
+}
 
 size_t RasterHandle::hash( void ) const
 {
-  return get_deleter<RasterDeleter>( raster_ )->get_raster_pool()->get_hash( raster_.get() );
+  return raster_->hash();
 }
 
 bool RasterHandle::operator==( const RasterHandle & other ) const
@@ -122,4 +109,23 @@ bool RasterHandle::operator==( const RasterHandle & other ) const
 bool RasterHandle::operator!=( const RasterHandle & other ) const
 {
   return not operator==( other );
+}
+
+size_t HashCachedRaster::hash() const
+{
+  if ( not frozen_hash_.initialized() ) {
+    frozen_hash_.initialize( Raster::raw_hash() );
+  }
+
+  return frozen_hash_.get();
+}
+
+void HashCachedRaster::reset_cache()
+{
+  frozen_hash_.clear();
+}
+
+void HashCachedRaster::assert_no_cache() const
+{
+  assert( not frozen_hash_.initialized() );
 }

@@ -6,19 +6,32 @@
 class RasterPool;
 class RasterHandle;
 
+class HashCachedRaster : public Raster
+{
+private:
+  mutable Optional<size_t> frozen_hash_ {};
+
+public:
+  using Raster::Raster;
+
+  size_t hash() const;
+  void reset_cache();
+  void assert_no_cache() const;
+};
+
 class RasterDeleter
 {
 private:
   RasterPool * raster_pool_ = nullptr;
 
 public:
-  void operator()( Raster * raster ) const;
+  void operator()( HashCachedRaster * raster ) const;
 
   RasterPool * get_raster_pool( void ) const;
   void set_raster_pool( RasterPool * pool );
 };
 
-typedef std::unique_ptr<Raster, RasterDeleter> RasterHolder;
+typedef std::unique_ptr<HashCachedRaster, RasterDeleter> RasterHolder;
 
 class MutableRasterHandle
 {
@@ -45,7 +58,7 @@ public:
 class RasterHandle
 {
 private:
-  std::shared_ptr<Raster> raster_;
+  std::shared_ptr<HashCachedRaster> raster_;
 
 public:
   RasterHandle( MutableRasterHandle && mutable_raster );

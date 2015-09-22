@@ -179,6 +179,18 @@ private:
 
   TwoD< Macroblock > macroblocks_ { width_ / 16, height_ / 16, *this };
 
+protected:
+  size_t raw_hash( void ) const
+  {
+    size_t hash_val = 0;
+
+    boost::hash_range( hash_val, Y_.begin(), Y_.end() );
+    boost::hash_range( hash_val, U_.begin(), U_.end() );
+    boost::hash_range( hash_val, V_.begin(), V_.end() );
+
+    return hash_val;
+  }
+
 public:
   Raster( const unsigned int display_width, const unsigned int display_height );
 
@@ -221,17 +233,6 @@ public:
   bool operator!=( const Raster & other ) const
   {
     return not operator==( other );
-  }
-
-  size_t hash( void ) const
-  {
-    size_t hash_val = 0;
-
-    boost::hash_range( hash_val, Y_.begin(), Y_.end() );
-    boost::hash_range( hash_val, U_.begin(), U_.end() );
-    boost::hash_range( hash_val, V_.begin(), V_.end() );
-
-    return hash_val;
   }
 
   void copy_from( const Raster & other )
