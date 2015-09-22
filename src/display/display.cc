@@ -119,7 +119,7 @@ GLContext::GLContext( Display * display, const XWindow & window )
   GLcheck( "glXMakeCurrent" );
 }
 
-VideoDisplay::VideoDisplay( const Raster & raster )
+VideoDisplay::VideoDisplay( const SimpleRaster & raster )
   : display_width_( raster.display_width() ), display_height_( raster.display_height() ),
     raster_width_( raster.width() ), raster_height_( raster.height() ),
     display_( "XOpenDisplay", XOpenDisplay( nullptr ), []( Display *x ) { XCloseDisplay( x ); } ),
@@ -185,7 +185,7 @@ GLShader::~GLShader()
   glDeleteProgramsARB( 1, &id_ );
 }
 
-void VideoDisplay::draw( const Raster & raster )
+void VideoDisplay::draw( const SimpleRaster & raster )
 {
   assert( raster.width() == raster_width_ );
   assert( raster.height() == raster_height_ );

@@ -5,7 +5,7 @@
 #include "frame_header.hh"
 #include "2d.hh"
 #include "block.hh"
-#include "raster.hh"
+#include "vp8_raster.hh"
 #include "decoder.hh"
 
 struct ProbabilityTables;

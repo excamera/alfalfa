@@ -1,7 +1,7 @@
 #ifndef RASTER_POOL_HH
 #define RASTER_POOL_HH
 
-#include "raster.hh"
+#include "vp8_raster.hh"
 
 class RasterPool;
 class RasterHandle;
@@ -101,7 +101,7 @@ public:
   RasterDiff( const RasterHandle & lhs, const RasterHandle & rhs );
 
   RasterDiff::MacroblockDiff macroblock( const unsigned int column, const unsigned int row ) const;
-  
+
 };
 
 

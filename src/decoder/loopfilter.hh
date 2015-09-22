@@ -7,7 +7,7 @@
 
 #include "optional.hh"
 #include "modemv_data.hh"
-#include "raster.hh"
+#include "vp8_raster.hh"
 
 struct KeyFrameHeader;
 struct UpdateSegmentation;
@@ -37,7 +37,7 @@ class SimpleLoopFilter
 private:
   // libvpx SSE2 routines expect preloaded vectors for arguments rather than pointers
   // to single elements
-  alignas(16) std::array<uint8_t, 16> interior_limit_vector_; 
+  alignas(16) std::array<uint8_t, 16> interior_limit_vector_;
   alignas(16) std::array<uint8_t, 16> macroblock_limit_vector_;
   alignas(16) std::array<uint8_t, 16> subblock_limit_vector_;
   uint8_t filter_level_;

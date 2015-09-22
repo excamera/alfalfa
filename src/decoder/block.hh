@@ -3,7 +3,7 @@
 
 #include "modemv_data.hh"
 #include "2d.hh"
-#include "raster.hh"
+#include "vp8_raster.hh"
 #include "safe_array.hh"
 #include "vp8_header_structures.hh"
 
