@@ -2,7 +2,7 @@
 #include <algorithm>
 
 #include "macroblock.hh"
-#include "raster.hh"
+#include "vp8_raster.hh"
 
 using namespace std;
 

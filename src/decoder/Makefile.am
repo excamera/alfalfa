@@ -7,7 +7,7 @@ SUFFIXES = .asm
 
 noinst_LIBRARIES = libalfalfadecoder.a
 
-libalfalfadecoder_a_SOURCES = block.hh bool_decoder.hh decoder.cc decoder.hh \
+libalfalfadecoder_a_SOURCES = vp8_raster.hh block.hh bool_decoder.hh decoder.cc decoder.hh \
 	frame.cc frame_header.hh frame.hh \
 	loopfilter.cc loopfilter_filters.hh loopfilter.hh \
 	macroblock.cc macroblock.hh modemv_data.cc modemv_data.hh \
