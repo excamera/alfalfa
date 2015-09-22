@@ -165,6 +165,10 @@ private:
   unsigned int width_ { 16 * macroblock_dimension( display_width_ ) },
     height_ { 16 * macroblock_dimension( display_height_ ) };
 
+  bool hash_caching_enabled_;
+
+  mutable Optional<size_t> frozen_hash_;
+
   TwoD< uint8_t > Y_ { width_, height_ },
     U_ { width_ / 2, height_ / 2 },
     V_ { width_ / 2, height_ / 2 };
@@ -223,13 +227,33 @@ public:
     return not operator==( other );
   }
 
+  void set_hash_caching_enabled( bool enabled )
+  {
+    if( not enabled and frozen_hash_.initialized() )
+    {
+      frozen_hash_.clear();
+    }
+
+    hash_caching_enabled_ = enabled;
+  }
+
   size_t hash( void ) const
   {
+    if( hash_caching_enabled_ and frozen_hash_.initialized() )
+    {
+      return frozen_hash_.get();
+    }
+
     size_t hash_val = 0;
 
     boost::hash_range( hash_val, Y_.begin(), Y_.end() );
     boost::hash_range( hash_val, U_.begin(), U_.end() );
     boost::hash_range( hash_val, V_.begin(), V_.end() );
+
+    if( hash_caching_enabled_ )
+    {
+      frozen_hash_ = make_optional( true, hash_val );
+    }
 
     return hash_val;
   }
