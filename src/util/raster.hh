@@ -36,7 +36,91 @@ static inline uint8_t clamp255( const integer value )
   return value;
 }
 
-class Raster
+class SimpleRaster
+{
+private:
+
+protected:
+  unsigned int display_width_, display_height_;
+
+  // FIXME This is not completely right as this is something internal to
+  // VP8, not a simple raster file.
+  unsigned int width_ { 16 * macroblock_dimension( display_width_ ) },
+    height_ { 16 * macroblock_dimension( display_height_ ) };
+
+  TwoD< uint8_t > Y_ { width_, height_ },
+    U_ { width_ / 2, height_ / 2 },
+    V_ { width_ / 2, height_ / 2 };
+
+  size_t raw_hash( void ) const
+  {
+    size_t hash_val = 0;
+
+    boost::hash_range( hash_val, Y_.begin(), Y_.end() );
+    boost::hash_range( hash_val, U_.begin(), U_.end() );
+    boost::hash_range( hash_val, V_.begin(), V_.end() );
+
+    return hash_val;
+  }
+
+public:
+  SimpleRaster( const unsigned int display_width, const unsigned int display_height )
+    : display_width_( display_width ), display_height_( display_height )
+  {}
+
+  TwoD< uint8_t > & Y( void ) { return Y_; }
+  TwoD< uint8_t > & U( void ) { return U_; }
+  TwoD< uint8_t > & V( void ) { return V_; }
+
+  const TwoD< uint8_t > & Y( void ) const { return Y_; }
+  const TwoD< uint8_t > & U( void ) const { return U_; }
+  const TwoD< uint8_t > & V( void ) const { return V_; }
+
+  unsigned int width( void ) const { return width_; }
+  unsigned int height( void ) const { return height_; }
+  unsigned int display_width( void ) const { return display_width_; }
+  unsigned int display_height( void ) const { return display_height_; }
+
+  // SSIM as determined by libx264
+  double quality( const SimpleRaster & other ) const
+  {
+    return ssim( Y(), other.Y() );
+  }
+
+  bool operator==( const SimpleRaster & other ) const
+  {
+    return (Y_ == other.Y_) and (U_ == other.U_) and (V_ == other.V_);
+  }
+
+  bool operator!=( const SimpleRaster & other ) const
+  {
+    return not operator==( other );
+  }
+
+  void copy_from( const SimpleRaster & other )
+  {
+    Y_.copy_from( other.Y_ );
+    U_.copy_from( other.U_ );
+    V_.copy_from( other.V_ );
+  }
+
+  void dump( FILE * file ) const
+  {
+    for ( unsigned int row = 0; row < display_height(); row++ ) {
+      fwrite( &Y().at( 0, row ), display_width(), 1, file );
+    }
+    for ( unsigned int row = 0; row < (1 + display_height()) / 2; row++ ) {
+      fwrite( &U().at( 0, row ), (1 + display_width()) / 2, 1, file );
+    }
+    for ( unsigned int row = 0; row < (1 + display_height()) / 2; row++ ) {
+      fwrite( &V().at( 0, row ), (1 + display_width()) / 2, 1, file );
+    }
+  }
+
+  static unsigned int macroblock_dimension( const unsigned int num ) { return ( num + 15 ) / 16; }
+};
+
+class Raster : public SimpleRaster
 {
 public:
   template <unsigned int size>
@@ -74,11 +158,11 @@ public:
 
       /* non-const so macroblock can adjust the rightmost subblocks */
       struct AboveRightBottomRowPredictor {
-	Row above_right_bottom_row;
-	const uint8_t * above_bottom_right_pixel;
-	bool use_row;
+        Row above_right_bottom_row;
+        const uint8_t * above_bottom_right_pixel;
+        bool use_row;
 
-	uint8_t above_right( const unsigned int column ) const;
+        uint8_t above_right( const unsigned int column ) const;
       } above_right_bottom_row_predictor;
 
       uint8_t above( const int8_t column ) const;
@@ -121,12 +205,12 @@ public:
 
 #ifdef HAVE_SSE2
     void sse_horiz_inter_predict( const uint8_t * src, const unsigned int pixels_per_line,
-				  const uint8_t * dst, const unsigned int dst_pitch,
-				  const unsigned int dst_height, const unsigned int filter_idx );
+      const uint8_t * dst, const unsigned int dst_pitch,
+      const unsigned int dst_height, const unsigned int filter_idx );
 
     void sse_vert_inter_predict( const uint8_t * src, const unsigned int pixels_per_line,
-				 const uint8_t * dst, const unsigned int dst_pitch,
-				 const unsigned int dst_height, const unsigned int filter_idx );
+      const uint8_t * dst, const unsigned int dst_pitch,
+      const unsigned int dst_height, const unsigned int filter_idx );
 #endif
 
     void set_above_right_bottom_row_predictor( const typename Predictors::AboveRightBottomRowPredictor & replacement );
@@ -155,20 +239,12 @@ public:
     bool operator==( const Macroblock & other ) const
     {
       return Y.contents() == other.Y.contents()
-	and U.contents() == other.U.contents()
-	and V.contents() == other.V.contents();
+        and U.contents() == other.U.contents()
+        and V.contents() == other.V.contents();
     }
   };
 
 private:
-  unsigned int display_width_, display_height_;
-  unsigned int width_ { 16 * macroblock_dimension( display_width_ ) },
-    height_ { 16 * macroblock_dimension( display_height_ ) };
-
-  TwoD< uint8_t > Y_ { width_, height_ },
-    U_ { width_ / 2, height_ / 2 },
-    V_ { width_ / 2, height_ / 2 };
-
   TwoD< Block4 > Y_subblocks_ { width_ / 4, height_ / 4, Y_ },
     U_subblocks_ { width_ / 8, height_ / 8, U_ },
     V_subblocks_ { width_ / 8, height_ / 8, V_ };
@@ -179,28 +255,8 @@ private:
 
   TwoD< Macroblock > macroblocks_ { width_ / 16, height_ / 16, *this };
 
-protected:
-  size_t raw_hash( void ) const
-  {
-    size_t hash_val = 0;
-
-    boost::hash_range( hash_val, Y_.begin(), Y_.end() );
-    boost::hash_range( hash_val, U_.begin(), U_.end() );
-    boost::hash_range( hash_val, V_.begin(), V_.end() );
-
-    return hash_val;
-  }
-
 public:
   Raster( const unsigned int display_width, const unsigned int display_height );
-
-  TwoD< uint8_t > & Y( void ) { return Y_; }
-  TwoD< uint8_t > & U( void ) { return U_; }
-  TwoD< uint8_t > & V( void ) { return V_; }
-
-  const TwoD< uint8_t > & Y( void ) const { return Y_; }
-  const TwoD< uint8_t > & U( void ) const { return U_; }
-  const TwoD< uint8_t > & V( void ) const { return V_; }
 
   Macroblock & macroblock( const unsigned int column, const unsigned int row )
   {
@@ -210,49 +266,6 @@ public:
   const Macroblock & macroblock( const unsigned int column, const unsigned int row ) const
   {
     return macroblocks_.at( column, row );
-  }
-
-  unsigned int width( void ) const { return width_; }
-  unsigned int height( void ) const { return height_; }
-  unsigned int display_width( void ) const { return display_width_; }
-  unsigned int display_height( void ) const { return display_height_; }
-
-  static unsigned int macroblock_dimension( const unsigned int num ) { return ( num + 15 ) / 16; }
-
-  // SSIM as determined by libx264
-  double quality( const Raster & other ) const
-  {
-    return ssim( Y(), other.Y() );
-  }
-
-  bool operator==( const Raster & other ) const
-  {
-    return (Y_ == other.Y_) and (U_ == other.U_) and (V_ == other.V_);
-  }
-
-  bool operator!=( const Raster & other ) const
-  {
-    return not operator==( other );
-  }
-
-  void copy_from( const Raster & other )
-  {
-    Y_.copy_from( other.Y_ );
-    U_.copy_from( other.U_ );
-    V_.copy_from( other.V_ );
-  }
-
-  void dump( FILE * file ) const
-  {
-    for ( unsigned int row = 0; row < display_height(); row++ ) {
-      fwrite( &Y().at( 0, row ), display_width(), 1, file );
-    }
-    for ( unsigned int row = 0; row < (1 + display_height()) / 2; row++ ) {
-      fwrite( &U().at( 0, row ), (1 + display_width()) / 2, 1, file );
-    }
-    for ( unsigned int row = 0; row < (1 + display_height()) / 2; row++ ) {
-      fwrite( &V().at( 0, row ), (1 + display_width()) / 2, 1, file );
-    }
   }
 };
 
