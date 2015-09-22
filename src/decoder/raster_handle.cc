@@ -113,6 +113,7 @@ bool RasterHandle::operator!=( const RasterHandle & other ) const
 
 size_t HashCachedRaster::hash() const
 {
+  /* XXX need thread safety here in the future */
   if ( not frozen_hash_.initialized() ) {
     frozen_hash_.initialize( Raster::raw_hash() );
   }
