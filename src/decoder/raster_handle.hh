@@ -41,9 +41,6 @@ friend class RasterHandle;
 private:
   RasterHolder raster_;
 
-protected:
-  RasterHolder & get_holder( void ); 
-
 public:
   MutableRasterHandle( const unsigned int display_width, const unsigned int display_height );
 

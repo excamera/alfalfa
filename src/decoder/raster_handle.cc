@@ -80,11 +80,6 @@ static RasterPool & global_raster_pool( void )
   return pool;
 }
 
-RasterHolder & MutableRasterHandle::get_holder( void )
-{
-  return raster_;
-}
-
 MutableRasterHandle::MutableRasterHandle( const unsigned int display_width, const unsigned int display_height )
   : MutableRasterHandle( display_width, display_height, global_raster_pool() )
 {}
@@ -96,7 +91,7 @@ MutableRasterHandle::MutableRasterHandle( const unsigned int display_width, cons
 }
 
 RasterHandle::RasterHandle( MutableRasterHandle && mutable_raster )
-  : raster_( move( mutable_raster.get_holder() ) )
+  : raster_( move( mutable_raster.raster_ ) )
 {
   assert( not raster_->has_cache() );
 }
