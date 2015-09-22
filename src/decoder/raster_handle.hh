@@ -16,7 +16,8 @@ public:
 
   size_t hash() const;
   void reset_cache();
-  void assert_no_cache() const;
+
+  bool has_cache() const;
 };
 
 class RasterDeleter

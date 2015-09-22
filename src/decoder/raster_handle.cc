@@ -2,6 +2,7 @@
 #include <queue>
 #include <functional>
 #include <unordered_map>
+#include <cassert>
 
 #include "exception.hh"
 #include "raster_handle.hh"
@@ -40,13 +41,14 @@ public:
     }
 
     ret.get_deleter().set_raster_pool( this );
+    assert( not ret->has_cache() );
     return ret;
   }
 
   void free_raster( HashCachedRaster * raster )
   {
     assert( raster );
-    raster->reset_cache();
+    assert( not raster->has_cache() );
     unused_rasters_.emplace( raster );
   }
 };
@@ -54,6 +56,7 @@ public:
 void RasterDeleter::operator()( HashCachedRaster * raster ) const
 {
   if ( raster_pool_ ) {
+    raster->reset_cache();
     raster_pool_->free_raster( raster );
   } else {
     delete raster;
@@ -88,12 +91,14 @@ MutableRasterHandle::MutableRasterHandle( const unsigned int display_width, cons
 
 MutableRasterHandle::MutableRasterHandle( const unsigned int display_width, const unsigned int display_height, RasterPool & raster_pool )
   : raster_( raster_pool.make_raster( display_width, display_height ) )
-{}
+{
+  assert( not raster_->has_cache() );
+}
 
 RasterHandle::RasterHandle( MutableRasterHandle && mutable_raster )
   : raster_( move( mutable_raster.get_holder() ) )
 {
-  raster_->assert_no_cache();
+  assert( not raster_->has_cache() );
 }
 
 size_t RasterHandle::hash( void ) const
@@ -125,7 +130,7 @@ void HashCachedRaster::reset_cache()
   frozen_hash_.clear();
 }
 
-void HashCachedRaster::assert_no_cache() const
+bool HashCachedRaster::has_cache() const
 {
-  assert( not frozen_hash_.initialized() );
+  return frozen_hash_.initialized();
 }
