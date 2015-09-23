@@ -1,3 +1,4 @@
+#include "exception.hh"
 #include "raster.hh"
 
 BaseRaster::BaseRaster( const unsigned int display_width, const unsigned int display_height,
@@ -5,8 +6,13 @@ BaseRaster::BaseRaster( const unsigned int display_width, const unsigned int dis
   : display_width_( display_width ), display_height_( display_height ),
     width_( width ), height_( height )
 {
-  assert( display_width_ <= width_ );
-  assert( display_height_ <= height_);
+  if ( display_width_ > width_ ) {
+    throw Invalid( "display_width is greater than width." );
+  }
+
+  if ( display_height_ > height_ ) {
+    throw Invalid( "display_height is greater than height." );
+  }
 }
 
 size_t BaseRaster::raw_hash( void ) const
