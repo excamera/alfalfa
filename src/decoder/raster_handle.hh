@@ -6,13 +6,13 @@
 class RasterPool;
 class RasterHandle;
 
-class HashCachedRaster : public Raster
+class HashCachedRaster : public VP8Raster
 {
 private:
   mutable Optional<size_t> frozen_hash_ {};
 
 public:
-  using Raster::Raster;
+  using VP8Raster::VP8Raster;
 
   size_t hash() const;
   void reset_cache();
@@ -46,11 +46,11 @@ public:
 
   MutableRasterHandle( const unsigned int display_width, const unsigned int display_height, RasterPool & raster_pool );
 
-  operator const Raster & () const { return *raster_; }
-  operator Raster & () { return *raster_; }
+  operator const VP8Raster & () const { return *raster_; }
+  operator VP8Raster & () { return *raster_; }
 
-  const Raster & get( void ) const { return *raster_; }
-  Raster & get( void ) { return *raster_; }
+  const VP8Raster & get( void ) const { return *raster_; }
+  VP8Raster & get( void ) { return *raster_; }
 };
 
 class RasterHandle
@@ -61,9 +61,9 @@ private:
 public:
   RasterHandle( MutableRasterHandle && mutable_raster );
 
-  operator const Raster & () const { return *raster_; }
+  operator const VP8Raster & () const { return *raster_; }
 
-  const Raster & get( void ) const { return *raster_; }
+  const VP8Raster & get( void ) const { return *raster_; }
 
   size_t hash( void ) const;
 
@@ -82,10 +82,10 @@ public:
     mutable SafeArray<SafeArray<Optional<Residue>, 2>, 2> U_;
     mutable SafeArray<SafeArray<Optional<Residue>, 2>, 2> V_;
 
-    const Raster::Macroblock & lhs_;
-    const Raster::Macroblock & rhs_;
+    const VP8Raster::Macroblock & lhs_;
+    const VP8Raster::Macroblock & rhs_;
   public:
-    MacroblockDiff( const Raster::Macroblock & lhs, const Raster::Macroblock & rhs );
+    MacroblockDiff( const VP8Raster::Macroblock & lhs, const VP8Raster::Macroblock & rhs );
 
     Residue y_residue( const unsigned int column, const unsigned int row ) const;
     Residue u_residue( const unsigned int column, const unsigned int row ) const;

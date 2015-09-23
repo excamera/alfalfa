@@ -25,7 +25,7 @@ public:
 
   Optional<RasterHandle> decode( const SerializedFrame & frame );
 
-  const Raster & example_raster( void ) const;
+  const VP8Raster & example_raster( void ) const;
 
   bool can_decode( const SerializedFrame & frame ) const;
 

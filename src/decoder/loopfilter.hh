@@ -53,7 +53,7 @@ public:
   uint8_t subblock_edge_limit( void ) const { return subblock_limit_vector_[0]; }
   const std::array<uint8_t, 16>& subblock_limit_vector( void ) const { return subblock_limit_vector_; }
 
-  void filter( Raster::Macroblock & raster, const bool skip_subblock_edges );
+  void filter( VP8Raster::Macroblock & raster, const bool skip_subblock_edges );
 };
 
 class NormalLoopFilter
@@ -62,13 +62,13 @@ private:
   SimpleLoopFilter simple_;
   alignas(16) std::array<uint8_t, 16> hev_threshold_vector_;
 
-  void filter_mb_vertical( Raster::Macroblock & raster );
+  void filter_mb_vertical( VP8Raster::Macroblock & raster );
 
-  void filter_mb_horizontal( Raster::Macroblock & raster );
+  void filter_mb_horizontal( VP8Raster::Macroblock & raster );
 
-  void filter_sb_vertical( Raster::Macroblock & raster );
+  void filter_sb_vertical( VP8Raster::Macroblock & raster );
 
-  void filter_sb_horizontal( Raster::Macroblock & raster );
+  void filter_sb_horizontal( VP8Raster::Macroblock & raster );
 
   template <class BlockType>
   void filter_mb_vertical_c( BlockType & block );
@@ -85,7 +85,7 @@ private:
 public:
   NormalLoopFilter( const bool key_frame, const FilterParameters & params );
 
-  void filter( Raster::Macroblock & raster, const bool skip_subblock_edges );
+  void filter( VP8Raster::Macroblock & raster, const bool skip_subblock_edges );
 };
 
 #endif /* LOOPFILTER_HH */

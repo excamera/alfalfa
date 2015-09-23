@@ -48,7 +48,7 @@ private:
 
   void set_base_motion_vector( const MotionVector & mv );
 
-  void apply_walsh( const Quantizer & quantizer, Raster::Macroblock & raster ) const;
+  void apply_walsh( const Quantizer & quantizer, VP8Raster::Macroblock & raster ) const;
 
 public:
   Macroblock( const typename TwoD< Macroblock >::Context & c,
@@ -75,17 +75,17 @@ public:
   void parse_tokens( BoolDecoder & data,
 		     const ProbabilityTables & probability_tables );
 
-  void reconstruct_intra( const Quantizer & quantizer, Raster::Macroblock & raster ) const;
+  void reconstruct_intra( const Quantizer & quantizer, VP8Raster::Macroblock & raster ) const;
   void reconstruct_inter( const Quantizer & quantizer,
 			  const References & references,
-			  Raster::Macroblock & raster ) const;
-  void reconstruct_continuation( const RasterHandle & continuation, Raster::Macroblock & raster ) const;
+			  VP8Raster::Macroblock & raster ) const;
+  void reconstruct_continuation( const RasterHandle & continuation, VP8Raster::Macroblock & raster ) const;
 
   void rewrite_as_diff( const RasterDiff::MacroblockDiff & difference );
 
   void loopfilter( const Optional< FilterAdjustments > & filter_adjustments,
 		   const FilterParameters & loopfilter,
-		   Raster::Macroblock & raster ) const;
+		   VP8Raster::Macroblock & raster ) const;
 
   const MacroblockHeaderType & header( void ) const { return header_; }
   const MotionVector & base_motion_vector( void ) const;

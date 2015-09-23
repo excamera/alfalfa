@@ -35,7 +35,7 @@ bool FramePlayer::can_decode( const SerializedFrame & frame ) const
   return frame.validate_source( decoder_.get_hash() );
 }
 
-const Raster & FramePlayer::example_raster( void ) const
+const VP8Raster & FramePlayer::example_raster( void ) const
 {
   return decoder_.example_raster();
 }

@@ -13,7 +13,7 @@
 #include "frame_header.hh"
 
 class Chunk;
-class Raster;
+class VP8Raster;
 class UncompressedChunk;
 struct KeyFrameHeader;
 struct InterFrameHeader;
@@ -74,7 +74,7 @@ struct References
 
   References( MutableRasterHandle && raster );
 
-  const Raster & at( const reference_frame reference_id ) const
+  const VP8Raster & at( const reference_frame reference_id ) const
   {
     switch ( reference_id ) {
     case LAST_FRAME: return last;
@@ -163,7 +163,7 @@ private:
 public:
   Decoder( const uint16_t width, const uint16_t height );
 
-  const Raster & example_raster( void ) const { return references_.last; }
+  const VP8Raster & example_raster( void ) const { return references_.last; }
 
   SourceHash source_hash( const DependencyTracker & deps ) const;
   TargetHash target_hash( const UpdateTracker & updates, const RasterHandle & output, bool shown ) const;

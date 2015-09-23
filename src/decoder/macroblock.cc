@@ -442,7 +442,7 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::parse_tokens( BoolDecode
 
 template <class FrameHeaderType, class MacroblockHeaderType>
 void Macroblock<FrameHeaderType, MacroblockHeaderType>::apply_walsh( const Quantizer & quantizer,
-								     Raster::Macroblock & raster ) const
+								     VP8Raster::Macroblock & raster ) const
 {
     SafeArray< SafeArray< DCTCoefficients, 4 >, 4 > Y_dequant_coeffs;
     for ( int row = 0; row < 4; row++ ) {
@@ -460,7 +460,7 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::apply_walsh( const Quant
 
 template <class FrameHeaderType, class MacroblockHeaderType>
 void Macroblock<FrameHeaderType, MacroblockHeaderType>::reconstruct_intra( const Quantizer & quantizer,
-									   Raster::Macroblock & raster ) const
+									   VP8Raster::Macroblock & raster ) const
 {
   /* Chroma */
   raster.U.intra_predict( uv_prediction_mode() );
@@ -490,13 +490,13 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::reconstruct_intra( const
 
 template <>
 void InterFrameMacroblock::reconstruct_continuation( const RasterHandle & continuation,
-						     Raster::Macroblock & raster ) const
+						     VP8Raster::Macroblock & raster ) const
 {
   assert( continuation_ );
 
   const MotionVector zeromv;
 
-  const Raster & reference = continuation;
+  const VP8Raster & reference = continuation;
 
   raster.Y.inter_predict( zeromv, reference.Y() );
   raster.U.inter_predict( zeromv, reference.U() );
@@ -517,11 +517,11 @@ void InterFrameMacroblock::reconstruct_continuation( const RasterHandle & contin
 template <>
 void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
 					      const References & references,
-					      Raster::Macroblock & raster ) const
+					      VP8Raster::Macroblock & raster ) const
 {
   assert( not continuation_ );
 
-  const Raster & reference = references.at( header_.reference() );
+  const VP8Raster & reference = references.at( header_.reference() );
 
   if ( Y2_.prediction_mode() == SPLITMV ) {
     Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
@@ -559,7 +559,7 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
 template <class FrameHeaderType, class MacroblockHeaderType>
 void Macroblock<FrameHeaderType, MacroblockHeaderType>::loopfilter( const Optional< FilterAdjustments > & filter_adjustments,
 								    const FilterParameters & loopfilter,
-								    Raster::Macroblock & raster ) const
+								    VP8Raster::Macroblock & raster ) const
 {
   const bool skip_subblock_edges = loopfilter_skip_subblock_edges_.get_or( Y2_.coded() and ( not has_nonzero_ ) );
 
