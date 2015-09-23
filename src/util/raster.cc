@@ -1,10 +1,12 @@
 #include "raster.hh"
 
-SimpleRaster::SimpleRaster( const unsigned int display_width, const unsigned int display_height )
-  : display_width_( display_width ), display_height_( display_height )
+BaseRaster::BaseRaster( const unsigned int display_width, const unsigned int display_height,
+  const unsigned int width, const unsigned int height)
+  : display_width_( display_width ), display_height_( display_height ),
+    width_( width ), height_( height )
 {}
 
-size_t SimpleRaster::raw_hash( void ) const
+size_t BaseRaster::raw_hash( void ) const
 {
   size_t hash_val = 0;
 
@@ -15,29 +17,29 @@ size_t SimpleRaster::raw_hash( void ) const
   return hash_val;
 }
 
-double SimpleRaster::quality( const SimpleRaster & other ) const
+double BaseRaster::quality( const BaseRaster & other ) const
 {
   return ssim( Y(), other.Y() );
 }
 
-bool SimpleRaster::operator==( const SimpleRaster & other ) const
+bool BaseRaster::operator==( const BaseRaster & other ) const
 {
   return (Y_ == other.Y_) and (U_ == other.U_) and (V_ == other.V_);
 }
 
-bool SimpleRaster::operator!=( const SimpleRaster & other ) const
+bool BaseRaster::operator!=( const BaseRaster & other ) const
 {
   return not operator==( other );
 }
 
-void SimpleRaster::copy_from( const SimpleRaster & other )
+void BaseRaster::copy_from( const BaseRaster & other )
 {
   Y_.copy_from( other.Y_ );
   U_.copy_from( other.U_ );
   V_.copy_from( other.V_ );
 }
 
-void SimpleRaster::dump( FILE * file ) const
+void BaseRaster::dump( FILE * file ) const
 {
   for ( unsigned int row = 0; row < display_height(); row++ ) {
     fwrite( &Y().at( 0, row ), display_width(), 1, file );

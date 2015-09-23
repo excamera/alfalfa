@@ -38,7 +38,8 @@ Raster::Macroblock::Macroblock( const TwoD< Macroblock >::Context & c, Raster & 
 }
 
 Raster::Raster( const unsigned int display_width, const unsigned int display_height )
-  : SimpleRaster( display_width, display_height )
+  : BaseRaster( display_width, display_height,
+      16 * macroblock_dimension( display_width ), 16 * macroblock_dimension( display_height ) )
 {}
 
 template <unsigned int size>

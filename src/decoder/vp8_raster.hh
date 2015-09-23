@@ -17,7 +17,7 @@ static inline uint8_t clamp255( const integer value )
   return value;
 }
 
-class Raster : public SimpleRaster
+class Raster : public BaseRaster
 {
 public:
   template <unsigned int size>
@@ -164,6 +164,8 @@ public:
   {
     return macroblocks_.at( column, row );
   }
+
+  static unsigned int macroblock_dimension( const unsigned int num ) { return ( num + 15 ) / 16; }
 };
 
 #endif //

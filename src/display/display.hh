@@ -107,12 +107,12 @@ private:
   GLShader shader_;
 
 public:
-  VideoDisplay( const SimpleRaster & raster );
+  VideoDisplay( const BaseRaster & raster );
 
   VideoDisplay( const VideoDisplay & other ) = delete;
   VideoDisplay & operator=( const VideoDisplay & other ) = delete;
 
-  void draw( const SimpleRaster & raster );
+  void draw( const BaseRaster & raster );
   void repaint( void );
 };
 
