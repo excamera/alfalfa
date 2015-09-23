@@ -22,14 +22,11 @@ TwoDStorage<uint8_t>::TwoDStorage( const unsigned int width, const unsigned int 
   assert( height > 0 );
 }
 
-class SimpleRaster
+class BaseRaster
 {
 protected:
   unsigned int display_width_, display_height_;
-
-  // FIXME This is not right, as width_ & height_ are internal to VP8.
-  unsigned int width_ { 16 * macroblock_dimension( display_width_ ) },
-    height_ { 16 * macroblock_dimension( display_height_ ) };
+  unsigned int width_, height_;
 
   TwoD< uint8_t > Y_ { width_, height_ },
     U_ { width_ / 2, height_ / 2 },
@@ -38,7 +35,8 @@ protected:
   size_t raw_hash( void ) const;
 
 public:
-  SimpleRaster( const unsigned int display_width, const unsigned int display_height );
+  BaseRaster( const unsigned int display_width, const unsigned int display_height,
+    const unsigned int width, const unsigned int height );
 
   TwoD< uint8_t > & Y( void ) { return Y_; }
   TwoD< uint8_t > & U( void ) { return U_; }
@@ -54,15 +52,13 @@ public:
   unsigned int display_height( void ) const { return display_height_; }
 
   // SSIM as determined by libx264
-  double quality( const SimpleRaster & other ) const;
+  double quality( const BaseRaster & other ) const;
 
-  bool operator==( const SimpleRaster & other ) const;
-  bool operator!=( const SimpleRaster & other ) const;
+  bool operator==( const BaseRaster & other ) const;
+  bool operator!=( const BaseRaster & other ) const;
 
-  void copy_from( const SimpleRaster & other );
+  void copy_from( const BaseRaster & other );
   void dump( FILE * file ) const;
-
-  static unsigned int macroblock_dimension( const unsigned int num ) { return ( num + 15 ) / 16; }
 };
 
 #endif /* RASTER_HH */
