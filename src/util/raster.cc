@@ -4,7 +4,10 @@ BaseRaster::BaseRaster( const unsigned int display_width, const unsigned int dis
   const unsigned int width, const unsigned int height)
   : display_width_( display_width ), display_height_( display_height ),
     width_( width ), height_( height )
-{}
+{
+  assert( display_width_ <= width_ );
+  assert( display_height_ <= height_);
+}
 
 size_t BaseRaster::raw_hash( void ) const
 {
