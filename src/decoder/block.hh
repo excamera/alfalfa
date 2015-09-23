@@ -35,7 +35,7 @@ public:
   }
 
   void walsh_transform( SafeArray< SafeArray< DCTCoefficients, 4 >, 4 > & output ) const;
-  void idct_add( Raster::Block4 & output ) const;
+  void idct_add( VP8Raster::Block4 & output ) const;
 
   void set_dc_coefficient( const int16_t & val );
 } ;
@@ -128,7 +128,7 @@ public:
   DCTCoefficients & mutable_coefficients( void ) { return coefficients_; }
   const DCTCoefficients & coefficients( void ) const { return coefficients_; }
 
-  void add_residue( Raster::Block4 & raster ) const;
+  void add_residue( VP8Raster::Block4 & raster ) const;
 
   void recalculate_has_nonzero();
 };

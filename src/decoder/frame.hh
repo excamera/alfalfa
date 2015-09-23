@@ -23,8 +23,8 @@ class Frame
   bool show_;
 
   unsigned int display_width_, display_height_;
-  unsigned int macroblock_width_ { Raster::macroblock_dimension( display_width_ ) },
-    macroblock_height_ { Raster::macroblock_dimension( display_height_ ) };
+  unsigned int macroblock_width_ { VP8Raster::macroblock_dimension( display_width_ ) },
+    macroblock_height_ { VP8Raster::macroblock_dimension( display_height_ ) };
 
   TwoD< Y2Block > Y2_ { macroblock_width_, macroblock_height_ };
   TwoD< YBlock > Y_ { 4 * macroblock_width_, 4 * macroblock_height_ };
@@ -48,7 +48,7 @@ class Frame
  public:
   void loopfilter( const Optional< Segmentation > & segmentation,
 		   const Optional< FilterAdjustments > & quantizer_filter_adjustments,
-		   Raster & target ) const;
+		   VP8Raster & target ) const;
 
   Frame( const bool show,
 	 const bool continuation,
@@ -76,10 +76,10 @@ class Frame
   void parse_tokens( std::vector< Chunk > dct_partitions, const ProbabilityTables & probability_tables );
 
   void decode( const Optional< Segmentation > & segmentation,
-	       Raster & raster ) const;
+	       VP8Raster & raster ) const;
 
   void decode( const Optional< Segmentation > & segmentation, const References & references,
-               const RasterHandle & continuation_raster, Raster & raster ) const;
+               const RasterHandle & continuation_raster, VP8Raster & raster ) const;
 
   UpdateTracker copy_to( const RasterHandle & raster, References & references ) const;
 

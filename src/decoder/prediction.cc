@@ -7,7 +7,7 @@
 using namespace std;
 
 template <unsigned int size>
-Raster::Block<size>::Block( const typename TwoD< Block >::Context & c,
+VP8Raster::Block<size>::Block( const typename TwoD< Block >::Context & c,
 			    TwoD< uint8_t > & raster_component )
   : contents_( raster_component, size * c.column, size * c.row ),
     context_( c ),
@@ -16,14 +16,14 @@ Raster::Block<size>::Block( const typename TwoD< Block >::Context & c,
 
 /* the rightmost Y-subblocks in a macroblock (other than the upper-right subblock) are special-cased */
 template <>
-void Raster::Block4::set_above_right_bottom_row_predictor( const typename Predictors::AboveRightBottomRowPredictor & replacement )
+void VP8Raster::Block4::set_above_right_bottom_row_predictor( const typename Predictors::AboveRightBottomRowPredictor & replacement )
 {
   predictors_.above_right_bottom_row_predictor.above_right_bottom_row.set( replacement.above_right_bottom_row );
   predictors_.above_right_bottom_row_predictor.above_bottom_right_pixel = replacement.above_bottom_right_pixel;
   predictors_.above_right_bottom_row_predictor.use_row = replacement.use_row;
 }
 
-Raster::Macroblock::Macroblock( const TwoD< Macroblock >::Context & c, Raster & raster )
+VP8Raster::Macroblock::Macroblock( const TwoD< Macroblock >::Context & c, VP8Raster & raster )
   : Y( raster.Y_bigblocks_.at( c.column, c.row ) ),
     U( raster.U_bigblocks_.at( c.column, c.row ) ),
     V( raster.V_bigblocks_.at( c.column, c.row ) ),
@@ -37,13 +37,13 @@ Raster::Macroblock::Macroblock( const TwoD< Macroblock >::Context & c, Raster & 
   }
 }
 
-Raster::Raster( const unsigned int display_width, const unsigned int display_height )
+VP8Raster::VP8Raster( const unsigned int display_width, const unsigned int display_height )
   : BaseRaster( display_width, display_height,
       16 * macroblock_dimension( display_width ), 16 * macroblock_dimension( display_height ) )
 {}
 
 template <unsigned int size>
-const typename Raster::Block<size>::Row & Raster::Block<size>::Predictors::row127( void )
+const typename VP8Raster::Block<size>::Row & VP8Raster::Block<size>::Predictors::row127( void )
 {
   static TwoD< uint8_t > storage( size, 1, 127 );
   static const Row row( storage, 0, 0 );
@@ -51,7 +51,7 @@ const typename Raster::Block<size>::Row & Raster::Block<size>::Predictors::row12
 }
 
 template <unsigned int size>
-const typename Raster::Block<size>::Column & Raster::Block<size>::Predictors::col129( void )
+const typename VP8Raster::Block<size>::Column & VP8Raster::Block<size>::Predictors::col129( void )
 {
   static TwoD< uint8_t > storage( 1, size, 129 );
   static const Column col( storage, 0, 0 );
@@ -59,7 +59,7 @@ const typename Raster::Block<size>::Column & Raster::Block<size>::Predictors::co
 }
 
 template <unsigned int size>
-Raster::Block<size>::Predictors::Predictors( const typename TwoD< Block >::Context & context )
+VP8Raster::Block<size>::Predictors::Predictors( const typename TwoD< Block >::Context & context )
   : above_row( context.above.initialized()
 	       ? context.above.get()->contents().row( size - 1 )
 	       : row127() ),
@@ -81,13 +81,13 @@ Raster::Block<size>::Predictors::Predictors( const typename TwoD< Block >::Conte
 {}
 
 template <unsigned int size>
-uint8_t Raster::Block<size>::Predictors::AboveRightBottomRowPredictor::above_right( const unsigned int column ) const
+uint8_t VP8Raster::Block<size>::Predictors::AboveRightBottomRowPredictor::above_right( const unsigned int column ) const
 {
   return use_row ? above_right_bottom_row.at( column, 0 ) : *above_bottom_right_pixel;
 }
 
 template <unsigned int size>
-uint8_t Raster::Block<size>::Predictors::above( const int8_t column ) const
+uint8_t VP8Raster::Block<size>::Predictors::above( const int8_t column ) const
 {
   assert( column >= -1 and column < int8_t( size * 2 ) );
   if ( column == -1 ) return above_left;
@@ -96,7 +96,7 @@ uint8_t Raster::Block<size>::Predictors::above( const int8_t column ) const
 }
 
 template <unsigned int size>
-uint8_t Raster::Block<size>::Predictors::left( const int8_t row ) const
+uint8_t VP8Raster::Block<size>::Predictors::left( const int8_t row ) const
 {
   assert( row >= -1 and row < int8_t( size ) );
   if ( row == -1 ) return above_left;
@@ -104,7 +104,7 @@ uint8_t Raster::Block<size>::Predictors::left( const int8_t row ) const
 }
 
 template <unsigned int size>
-uint8_t Raster::Block<size>::Predictors::east( const int8_t num ) const
+uint8_t VP8Raster::Block<size>::Predictors::east( const int8_t num ) const
 {
   assert( 0 <= num and num <= int8_t( size * 2 ) );
   if ( num <= 4 ) { return left( 3 - num ); }
@@ -112,7 +112,7 @@ uint8_t Raster::Block<size>::Predictors::east( const int8_t num ) const
 }
 
 template <unsigned int size>
-void Raster::Block<size>::true_motion_predict( void )
+void VP8Raster::Block<size>::true_motion_predict( void )
 {
   contents_.forall_ij( [&] ( uint8_t & b, unsigned int column, unsigned int row )
 		       { b = clamp255( predictors().left_column.at( 0, row )
@@ -121,7 +121,7 @@ void Raster::Block<size>::true_motion_predict( void )
 }
 
 template <unsigned int size>
-void Raster::Block<size>::horizontal_predict( void )
+void VP8Raster::Block<size>::horizontal_predict( void )
 {
   for ( unsigned int row = 0; row < size; row++ ) {
     contents_.row( row ).fill( predictors().left_column.at( 0, row ) );
@@ -129,7 +129,7 @@ void Raster::Block<size>::horizontal_predict( void )
 }
 
 template <unsigned int size>
-void Raster::Block<size>::vertical_predict( void )
+void VP8Raster::Block<size>::vertical_predict( void )
 {
   for ( unsigned int column = 0; column < size; column++ ) {
     contents_.column( column ).fill( predictors().above_row.at( column, 0 ) );
@@ -137,7 +137,7 @@ void Raster::Block<size>::vertical_predict( void )
 }
 
 template <unsigned int size>
-void Raster::Block<size>::dc_predict_simple( void )
+void VP8Raster::Block<size>::dc_predict_simple( void )
 {
   static_assert( size == 4 or size == 8 or size == 16, "invalid Block size" );
   static constexpr uint8_t log2size = size == 4 ? 2 : size == 8 ? 3 : size == 16 ? 4 : 0;
@@ -148,7 +148,7 @@ void Raster::Block<size>::dc_predict_simple( void )
 }
 
 template <unsigned int size>
-void Raster::Block<size>::dc_predict( void )
+void VP8Raster::Block<size>::dc_predict( void )
 {
   if ( context_.above.initialized() and context_.left.initialized() ) {
     return dc_predict_simple();
@@ -169,7 +169,7 @@ void Raster::Block<size>::dc_predict( void )
 
 template <>
 template <>
-void Raster::Block8::intra_predict( const mbmode uv_mode )
+void VP8Raster::Block8::intra_predict( const mbmode uv_mode )
 {
   /* Chroma prediction */
 
@@ -184,7 +184,7 @@ void Raster::Block8::intra_predict( const mbmode uv_mode )
 
 template <>
 template <>
-void Raster::Block16::intra_predict( const mbmode uv_mode )
+void VP8Raster::Block16::intra_predict( const mbmode uv_mode )
 {
   /* Y prediction for whole macroblock */
 
@@ -208,7 +208,7 @@ uint8_t avg2( const uint8_t x, const uint8_t y )
 }
 
 template <>
-void Raster::Block4::vertical_smoothed_predict( void )
+void VP8Raster::Block4::vertical_smoothed_predict( void )
 {
   contents_.column( 0 ).fill( avg3( above( -1 ), above( 0 ), above( 1 ) ) );
   contents_.column( 1 ).fill( avg3( above( 0 ),  above( 1 ), above( 2 ) ) );
@@ -217,7 +217,7 @@ void Raster::Block4::vertical_smoothed_predict( void )
 }
 
 template <>
-void Raster::Block4::horizontal_smoothed_predict( void )
+void VP8Raster::Block4::horizontal_smoothed_predict( void )
 {
   contents_.row( 0 ).fill( avg3( left( -1 ), left( 0 ), left( 1 ) ) );
   contents_.row( 1 ).fill( avg3( left( 0 ),  left( 1 ), left( 2 ) ) );
@@ -227,7 +227,7 @@ void Raster::Block4::horizontal_smoothed_predict( void )
 }
 
 template <>
-void Raster::Block4::left_down_predict( void )
+void VP8Raster::Block4::left_down_predict( void )
 {
   at( 0, 0 ) =                                        avg3( above( 0 ), above( 1 ), above( 2 ) );
   at( 1, 0 ) = at( 0, 1 ) =                           avg3( above( 1 ), above( 2 ), above( 3 ) );
@@ -240,7 +240,7 @@ void Raster::Block4::left_down_predict( void )
 }
 
 template <>
-void Raster::Block4::right_down_predict( void )
+void VP8Raster::Block4::right_down_predict( void )
 {
   at( 0, 3 ) =                                        avg3( east( 0 ), east( 1 ), east( 2 ) );
   at( 1, 3 ) = at( 0, 2 ) =                           avg3( east( 1 ), east( 2 ), east( 3 ) );
@@ -252,7 +252,7 @@ void Raster::Block4::right_down_predict( void )
 }
 
 template <>
-void Raster::Block4::vertical_right_predict( void )
+void VP8Raster::Block4::vertical_right_predict( void )
 {
   at( 0, 3 ) =                                        avg3( east( 1 ), east( 2 ), east( 3 ) );
   at( 0, 2 ) =                                        avg3( east( 2 ), east( 3 ), east( 4 ) );
@@ -267,7 +267,7 @@ void Raster::Block4::vertical_right_predict( void )
 }
 
 template <>
-void Raster::Block4::vertical_left_predict( void )
+void VP8Raster::Block4::vertical_left_predict( void )
 {
   at( 0, 0 ) =                                        avg2( above( 0 ), above( 1 ) );
   at( 0, 1 ) =                                        avg3( above( 0 ), above( 1 ), above( 2 ) );
@@ -282,7 +282,7 @@ void Raster::Block4::vertical_left_predict( void )
 }
 
 template <>
-void Raster::Block4::horizontal_down_predict( void )
+void VP8Raster::Block4::horizontal_down_predict( void )
 {
   at( 0, 3 ) =                                        avg2( east( 0 ), east( 1 ) );
   at( 1, 3 ) =                                        avg3( east( 0 ), east( 1 ), east( 2 ) );
@@ -297,7 +297,7 @@ void Raster::Block4::horizontal_down_predict( void )
 }
 
 template <>
-void Raster::Block4::horizontal_up_predict( void )
+void VP8Raster::Block4::horizontal_up_predict( void )
 {
   at( 0, 0 ) =                                        avg2( left( 0 ), left( 1 ) );
   at( 1, 0 ) =                                        avg3( left( 0 ), left( 1 ), left( 2 ) );
@@ -311,7 +311,7 @@ void Raster::Block4::horizontal_up_predict( void )
 
 template <>
 template <>
-void Raster::Block4::intra_predict( const bmode b_mode )
+void VP8Raster::Block4::intra_predict( const bmode b_mode )
 {
   /* Luma prediction */
 
@@ -364,7 +364,7 @@ static constexpr SafeArray< SafeArray< int16_t, 6 >, 8 > sixtap_filters =
      { { 0, -1,   12,  123,  -6,  0 } } }};
 
 template <unsigned int size>
-void Raster::Block<size>::inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference )
+void VP8Raster::Block<size>::inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference )
 {
   const int source_column = context().column * size + (mv.x() >> 3);
   const int source_row = context().row * size + (mv.y() >> 3);
@@ -384,7 +384,7 @@ void Raster::Block<size>::inter_predict( const MotionVector & mv, const TwoD< ui
 
 #ifdef HAVE_SSE2
 template <>
-void Raster::Block<4>::sse_horiz_inter_predict( const uint8_t * src,
+void VP8Raster::Block<4>::sse_horiz_inter_predict( const uint8_t * src,
 						const unsigned int pixels_per_line,
 						const uint8_t * dst,
 						const unsigned int dst_pitch,
@@ -396,7 +396,7 @@ void Raster::Block<4>::sse_horiz_inter_predict( const uint8_t * src,
 }
 
 template <>
-void Raster::Block<8>::sse_horiz_inter_predict( const uint8_t * src,
+void VP8Raster::Block<8>::sse_horiz_inter_predict( const uint8_t * src,
 						const unsigned int pixels_per_line,
 						const uint8_t * dst,
 						const unsigned int dst_pitch,
@@ -408,7 +408,7 @@ void Raster::Block<8>::sse_horiz_inter_predict( const uint8_t * src,
 }
 
 template <>
-void Raster::Block<16>::sse_horiz_inter_predict( const uint8_t * src,
+void VP8Raster::Block<16>::sse_horiz_inter_predict( const uint8_t * src,
 						const unsigned int pixels_per_line,
 						const uint8_t * dst,
 						const unsigned int dst_pitch,
@@ -420,7 +420,7 @@ void Raster::Block<16>::sse_horiz_inter_predict( const uint8_t * src,
 }
 
 template <>
-void Raster::Block<4>::sse_vert_inter_predict( const uint8_t * src,
+void VP8Raster::Block<4>::sse_vert_inter_predict( const uint8_t * src,
 						const unsigned int pixels_per_line,
 						const uint8_t * dst,
 						const unsigned int dst_pitch,
@@ -432,7 +432,7 @@ void Raster::Block<4>::sse_vert_inter_predict( const uint8_t * src,
 }
 
 template <>
-void Raster::Block<8>::sse_vert_inter_predict( const uint8_t * src,
+void VP8Raster::Block<8>::sse_vert_inter_predict( const uint8_t * src,
 						const unsigned int pixels_per_line,
 						const uint8_t * dst,
 						const unsigned int dst_pitch,
@@ -444,7 +444,7 @@ void Raster::Block<8>::sse_vert_inter_predict( const uint8_t * src,
 }
 
 template <>
-void Raster::Block<16>::sse_vert_inter_predict( const uint8_t * src,
+void VP8Raster::Block<16>::sse_vert_inter_predict( const uint8_t * src,
 						const unsigned int pixels_per_line,
 						const uint8_t * dst,
 						const unsigned int dst_pitch,
@@ -458,7 +458,7 @@ void Raster::Block<16>::sse_vert_inter_predict( const uint8_t * src,
 #endif
 
 template <unsigned int size>
-void Raster::Block<size>::unsafe_inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference,
+void VP8Raster::Block<size>::unsafe_inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference,
 						const int source_column, const int source_row )
 {
   assert( contents_.stride() == reference.width() );
@@ -564,7 +564,7 @@ void Raster::Block<size>::unsafe_inter_predict( const MotionVector & mv, const T
 
 template <unsigned int size>
 template <class ReferenceType>
-void Raster::Block<size>::safe_inter_predict( const MotionVector & mv, const ReferenceType & reference,
+void VP8Raster::Block<size>::safe_inter_predict( const MotionVector & mv, const ReferenceType & reference,
 					      const int source_column, const int source_row )
 {
   if ( (mv.x() & 7) == 0 and (mv.y() & 7) == 0 ) {

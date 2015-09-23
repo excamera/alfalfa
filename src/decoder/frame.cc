@@ -127,7 +127,7 @@ void Frame<FrameHeaderType, MacroblockType>::parse_tokens( vector< Chunk > dct_p
 template <class FrameHeaderType, class MacroblockType>
 void Frame<FrameHeaderType, MacroblockType>::loopfilter( const Optional< Segmentation > & segmentation,
 							 const Optional< FilterAdjustments > & filter_adjustments,
-							 Raster & raster ) const
+							 VP8Raster & raster ) const
 {
   if ( header_.loop_filter_level ) {
     /* calculate per-segment filter adjustments if
@@ -192,7 +192,7 @@ SafeArray<Quantizer, num_segments> Frame<FrameHeaderType, MacroblockType>::calcu
 
 template <>
 void KeyFrame::decode( const Optional< Segmentation > & segmentation,
-		       Raster & raster ) const
+		       VP8Raster & raster ) const
 {
   const Quantizer frame_quantizer( header_.quant_indices );
   const auto segment_quantizers = calculate_segment_quantizers( segmentation );
@@ -211,7 +211,7 @@ void KeyFrame::decode( const Optional< Segmentation > & segmentation,
 
 template <>
 void InterFrame::decode( const Optional< Segmentation > & segmentation, const References & references,
-                         const RasterHandle & continuation_raster, Raster & raster ) const
+                         const RasterHandle & continuation_raster, VP8Raster & raster ) const
 {
   const Quantizer frame_quantizer( header_.quant_indices );
   const auto segment_quantizers = calculate_segment_quantizers( segmentation );

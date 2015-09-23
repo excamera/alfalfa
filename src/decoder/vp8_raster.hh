@@ -17,7 +17,7 @@ static inline uint8_t clamp255( const integer value )
   return value;
 }
 
-class Raster : public BaseRaster
+class VP8Raster : public BaseRaster
 {
 public:
   template <unsigned int size>
@@ -131,7 +131,7 @@ public:
     TwoDSubRange< Block4, 4, 4 > Y_sub;
     TwoDSubRange< Block4, 2, 2 > U_sub, V_sub;
 
-    Macroblock( const TwoD< Macroblock >::Context & c, Raster & raster );
+    Macroblock( const TwoD< Macroblock >::Context & c, VP8Raster & raster );
 
     bool operator==( const Macroblock & other ) const
     {
@@ -153,7 +153,7 @@ private:
   TwoD< Macroblock > macroblocks_ { width_ / 16, height_ / 16, *this };
 
 public:
-  Raster( const unsigned int display_width, const unsigned int display_height );
+  VP8Raster( const unsigned int display_width, const unsigned int display_height );
 
   Macroblock & macroblock( const unsigned int column, const unsigned int row )
   {

@@ -115,7 +115,7 @@ size_t HashCachedRaster::hash() const
 {
   /* XXX need thread safety here in the future */
   if ( not frozen_hash_.initialized() ) {
-    frozen_hash_.initialize( Raster::raw_hash() );
+    frozen_hash_.initialize( VP8Raster::raw_hash() );
   }
 
   return frozen_hash_.get();

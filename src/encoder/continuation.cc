@@ -4,7 +4,7 @@
 using namespace std;
 
 template <unsigned int size>
-SafeArray< SafeArray< int16_t, size >, size > Raster::Block<size>::operator-( const Raster::Block<size> & other ) const
+SafeArray< SafeArray< int16_t, size >, size > VP8Raster::Block<size>::operator-( const VP8Raster::Block<size> & other ) const
 {
   SafeArray< SafeArray< int16_t, size >, size > ret;
   contents_.forall_ij( [&] ( const uint8_t & val, const unsigned int column, const unsigned int row ) {
@@ -159,9 +159,9 @@ InterFrame::Frame( const InterFrame & original, const RasterDiff & continuation_
 // FIXME, probably not the right place for this...
 RasterDiff::RasterDiff( const RasterHandle & lhs, const RasterHandle & rhs )
   : lhs_( lhs ), rhs_( rhs ),
-    cache_( Raster::macroblock_dimension( lhs_.get().display_height() ), 
+    cache_( VP8Raster::macroblock_dimension( lhs_.get().display_height() ), 
             vector<Optional<RasterDiff::MacroblockDiff>>( 
-              Raster::macroblock_dimension( lhs_.get().display_width() ) ) )
+              VP8Raster::macroblock_dimension( lhs_.get().display_width() ) ) )
             
 {}
 
@@ -177,8 +177,8 @@ RasterDiff::MacroblockDiff RasterDiff::macroblock( const unsigned int column,
   return macroblock.get();
 }
 
-RasterDiff::MacroblockDiff::MacroblockDiff( const Raster::Macroblock & lhs,
-                                            const Raster::Macroblock & rhs )
+RasterDiff::MacroblockDiff::MacroblockDiff( const VP8Raster::Macroblock & lhs,
+                                            const VP8Raster::Macroblock & rhs )
   :Y_(), U_(), V_(), lhs_( lhs ), rhs_( rhs )
 {}
 

@@ -96,13 +96,13 @@ NormalLoopFilter::NormalLoopFilter( const bool key_frame,
 
 }
 
-void SimpleLoopFilter::filter( Raster::Macroblock & , const bool )
+void SimpleLoopFilter::filter( VP8Raster::Macroblock & , const bool )
 {
   throw Unsupported( "VP8 'simple' in-loop deblocking filter" );
 }
 
 // Corresponds roughly to vp8_loop_filter_mbh_c combined with vp8_loop_filter_row_normal
-void NormalLoopFilter::filter( Raster::Macroblock & raster, const bool skip_subblock_edges )
+void NormalLoopFilter::filter( VP8Raster::Macroblock & raster, const bool skip_subblock_edges )
 {
   /* 1: filter the left inter-macroblock edge */
   if ( raster.Y.context().left.initialized() ) {
@@ -157,7 +157,7 @@ void NormalLoopFilter::filter_mb_vertical_c( BlockType & block )
   }
 }
 
-void NormalLoopFilter::filter_mb_vertical( Raster::Macroblock & raster )
+void NormalLoopFilter::filter_mb_vertical( VP8Raster::Macroblock & raster )
 {
 #ifdef HAVE_SSE2
   uint8_t *y_ptr = &raster.Y.at(0, 0);
@@ -217,7 +217,7 @@ void NormalLoopFilter::filter_mb_horizontal_c( BlockType & block )
   }
 }
 
-void NormalLoopFilter::filter_mb_horizontal( Raster::Macroblock & raster )
+void NormalLoopFilter::filter_mb_horizontal( VP8Raster::Macroblock & raster )
 {
 #ifdef HAVE_SSE2
   uint8_t *y_ptr = &raster.Y.at(0, 0);
@@ -273,7 +273,7 @@ void NormalLoopFilter::filter_sb_vertical_c( BlockType & block )
   }
 }
 
-void NormalLoopFilter::filter_sb_vertical( Raster::Macroblock & raster )
+void NormalLoopFilter::filter_sb_vertical( VP8Raster::Macroblock & raster )
 {
 #ifdef HAVE_SSE2
   uint8_t *y_ptr = &raster.Y.at(0, 0);
@@ -339,7 +339,7 @@ void NormalLoopFilter::filter_sb_horizontal_c( BlockType & block )
   }
 }
 
-void NormalLoopFilter::filter_sb_horizontal( Raster::Macroblock & raster )
+void NormalLoopFilter::filter_sb_horizontal( VP8Raster::Macroblock & raster )
 {
 #ifdef HAVE_SSE2
   uint8_t *y_ptr = &raster.Y.at(0, 0);

@@ -52,7 +52,7 @@ void DCTCoefficients::walsh_transform( SafeArray< SafeArray< DCTCoefficients, 4 
 
 #ifdef HAVE_SSE2
 
-void DCTCoefficients::idct_add( Raster::Block4 & output ) const
+void DCTCoefficients::idct_add( VP8Raster::Block4 & output ) const
 {
 
   vp8_short_idct4x4llm_mmx( &coefficients_.at( 0 ), &output.at( 0, 0 ), output.stride(), &output.at( 0, 0 ), output.stride() );
@@ -63,7 +63,7 @@ void DCTCoefficients::idct_add( Raster::Block4 & output ) const
 static inline int MUL_20091( const int a ) { return ((((a)*20091) >> 16) + (a)); }
 static inline int MUL_35468( const int a ) { return (((a)*35468) >> 16); }
 
-void DCTCoefficients::idct_add( Raster::Block4 & output ) const
+void DCTCoefficients::idct_add( VP8Raster::Block4 & output ) const
 {
   SafeArray< int16_t, 16 > intermediate;
 
@@ -101,7 +101,7 @@ void DCTCoefficients::idct_add( Raster::Block4 & output ) const
 #endif
 
 template <BlockType initial_block_type, class PredictionMode>
-void Block< initial_block_type, PredictionMode >::add_residue( Raster::Block4 & output ) const
+void Block< initial_block_type, PredictionMode >::add_residue( VP8Raster::Block4 & output ) const
 {
   assert( type_ == UV or type_ == Y_without_Y2 );
 
