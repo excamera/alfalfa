@@ -13,6 +13,10 @@ addons:
     - libglu1-mesa-dev
     - libboost1.55-dev
     - libx264-dev
+    - librandr-dev
+    - libxi-dev
+    - libglfw3-dev
+    - libglew-dev
 
 script: "./autogen.sh && ./configure --enable-debug CXX='g++-4.9' && make && make check"
 
