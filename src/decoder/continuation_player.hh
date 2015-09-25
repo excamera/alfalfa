@@ -2,25 +2,43 @@
 #define CONTINUATION_PLAYER_HH
 
 #include "player.hh"
-#include "continuation_state.hh"
+#include "frame.hh"
 
 class SourcePlayer;
 
-class ContinuationPlayer : public FilePlayer
+struct PreContinuation
+{
+  bool shown;
+  MissingTracker missing;
+  SourceHash source_hash;
+  TargetHash target_hash;
+
+  std::string continuation_name( void ) const;
+};
+
+class ContinuationPlayer : public FramePlayer
 {
 private:
-  ContinuationState continuation_state_;
+  References prev_references_;
+  bool shown_;
+  RasterHandle cur_output_;
+  UpdateTracker cur_updates_;
+  bool on_key_frame_;
+  Optional<KeyFrame> key_frame_;
+  Optional<InterFrame> inter_frame_;
+
+  template<class FrameType>
+  Optional<RasterHandle> track_continuation_info( const FrameType & frame );
+
 public:
-  ContinuationPlayer( const std::string & file_name );
+  ContinuationPlayer( const uint16_t width, const uint16_t height );
 
-  SerializedFrame serialize_next( void );
+  ContinuationPlayer( ContinuationPlayer && ) = default;
+  ContinuationPlayer & operator=( ContinuationPlayer && ) = default;
 
-  RasterHandle next_output( void );
-  RasterHandle advance( void );
+  Optional<RasterHandle> decode( const SerializedFrame & frame );
 
   void apply_changes( Decoder & other ) const;
-
-  std::string get_frame_stats( void ) const;
 
   bool need_gen_continuation( void ) const;
 

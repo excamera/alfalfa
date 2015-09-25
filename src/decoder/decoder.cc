@@ -2,7 +2,6 @@
 #include "uncompressed_chunk.hh"
 #include "frame.hh"
 #include "decoder_state.hh"
-#include "continuation_state.hh"
 
 #include <sstream>
 
@@ -14,93 +13,62 @@ Decoder::Decoder( const uint16_t width, const uint16_t height )
     continuation_raster_( references_.last )
 {}
 
-Optional<RasterHandle> Decoder::decode_frame( const Chunk & frame )
+UncompressedChunk Decoder::decompress_frame( const Chunk & compressed_frame ) const
 {
   /* parse uncompressed data chunk */
-  UncompressedChunk uncompressed_chunk( frame, state_.width, state_.height );
-
-  /* get a RasterHandle */
-  MutableRasterHandle raster { state_.width, state_.height };
-
-  if ( uncompressed_chunk.key_frame() ) {
-    const KeyFrame myframe = state_.parse_and_apply<KeyFrame>( uncompressed_chunk );
-
-    const bool shown = myframe.show_frame();
-
-    myframe.decode( state_.segmentation, raster );
-
-    update_continuation( raster );
-
-    myframe.loopfilter( state_.segmentation, state_.filter_adjustments, raster );
-
-    RasterHandle immutable_raster( move( raster ) );
-
-    myframe.copy_to( immutable_raster, references_ );
-
-    return Optional<RasterHandle>( shown, immutable_raster );
-  } else {
-    const InterFrame myframe = state_.parse_and_apply<InterFrame>( uncompressed_chunk );
-
-    const bool shown = myframe.show_frame();
-
-    myframe.decode( state_.segmentation, references_, continuation_raster_, raster );
-
-    update_continuation( raster );
-
-    myframe.loopfilter( state_.segmentation, state_.filter_adjustments, raster );
-
-    RasterHandle immutable_raster( move( raster ) );
-
-    myframe.copy_to( immutable_raster, references_ );
-
-    return Optional<RasterHandle>( shown, immutable_raster );
-  }
+  return UncompressedChunk( compressed_frame, state_.width, state_.height );
 }
 
-ContinuationState Decoder::next_continuation_state( const Chunk & frame )
+template<class FrameType>
+FrameType Decoder::parse_frame( const UncompressedChunk & decompressed_frame )
 {
-  References prev_references = references_;
+  return state_.parse_and_apply<FrameType>( decompressed_frame );
+}
+template KeyFrame Decoder::parse_frame<KeyFrame>( const UncompressedChunk & decompressed_frame );
+template InterFrame Decoder::parse_frame<InterFrame>( const UncompressedChunk & decompressed_frame );
 
-  /* parse uncompressed data chunk */
-  UncompressedChunk uncompressed_chunk( frame, state_.width, state_.height );
-
+/* Some callers (such as the code that produces SerializedFrames) needs the output Raster
+ * regardless of whether or not it is shown, so return a pair with a bool indicating if the
+ * output should be shown followed by the actual output. parse_and_decode_frame takes care of
+ * turning the pair into an Optional for the normal case */
+template<class FrameType>
+pair<bool, RasterHandle> Decoder::decode_frame( const FrameType & frame )
+{
   /* get a RasterHandle */
   MutableRasterHandle raster { state_.width, state_.height };
 
-  if ( uncompressed_chunk.key_frame() ) {
-    KeyFrame myframe = state_.parse_and_apply<KeyFrame>( uncompressed_chunk );
+  const bool shown = frame.show_frame();
 
-    bool shown = myframe.show_frame();
+  frame.decode( state_.segmentation, references_, continuation_raster_, raster );
 
-    myframe.decode( state_.segmentation, raster );
+  update_continuation( raster );
 
-    update_continuation( raster );
+  frame.loopfilter( state_.segmentation, state_.filter_adjustments, raster );
 
-    myframe.loopfilter( state_.segmentation, state_.filter_adjustments, raster );
+  RasterHandle immutable_raster( move( raster ) );
 
-    RasterHandle immutable_raster( move( raster ) );
+  frame.copy_to( immutable_raster, references_ );
 
-    UpdateTracker updates = myframe.copy_to( immutable_raster, references_ );
+  return make_pair( shown, immutable_raster );
+}
+template pair<bool, RasterHandle> Decoder::decode_frame<KeyFrame>( const KeyFrame & frame );
+template pair<bool, RasterHandle> Decoder::decode_frame<InterFrame>( const InterFrame & frame );
 
-    return ContinuationState( move( myframe ), shown, immutable_raster, updates,
-                              prev_references );
-  } else {
-    InterFrame myframe = state_.parse_and_apply<InterFrame>( uncompressed_chunk );
+/* This function takes care of the full decoding process from decompressing the Chunk
+ * to returning an Optional<RasterHandle> as the output
+ */
+Optional<RasterHandle> Decoder::parse_and_decode_frame( const Chunk & compressed_frame )
+{
+  UncompressedChunk decompressed_frame = decompress_frame( compressed_frame );
+  if ( decompressed_frame.key_frame() ) {
+    pair<bool, RasterHandle> output = decode_frame( parse_frame<KeyFrame>( decompressed_frame ) );
 
-    bool shown = myframe.show_frame();
+    return make_optional( output.first, output.second );
+  }
+  else {
+    pair<bool, RasterHandle> output = decode_frame( parse_frame<InterFrame>( decompressed_frame ) );
 
-    myframe.decode( state_.segmentation, references_, continuation_raster_, raster );
-
-    update_continuation( raster );
-
-    myframe.loopfilter( state_.segmentation, state_.filter_adjustments, raster );
-
-    RasterHandle immutable_raster( move( raster ) );
-
-    UpdateTracker updates = myframe.copy_to( immutable_raster, references_ );
-
-    return ContinuationState( move( myframe ), shown, immutable_raster, updates,
-                              prev_references );
+    return make_optional( output.first, output.second );
   }
 }
 
@@ -131,6 +99,11 @@ MissingTracker Decoder::find_missing( const References & refs ) const
 {
   return MissingTracker { references_.last != refs.last, references_.golden != refs.golden,
                           references_.alternative_reference != refs.alternative_reference };
+}
+
+References Decoder::get_references( void ) const
+{
+  return references_;
 }
 
 bool Decoder::operator==( const Decoder & other ) const

@@ -34,7 +34,9 @@ public:
 
   std::string name( void ) const;
 
-  bool shown( void ) const { return output_raster_.initialized(); }
+  bool shown( void ) const;
+
+  TargetHash get_target_hash( void ) const { return target_hash_; }
 
   RasterHandle get_output( void ) const { return output_raster_.get(); }
 

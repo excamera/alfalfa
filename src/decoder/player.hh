@@ -8,7 +8,6 @@
 #include "ivf.hh"
 #include "decoder.hh"
 #include "serialized_frame.hh"
-#include "continuation_state.hh"
 
 class FramePlayer
 {

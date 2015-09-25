@@ -75,6 +75,11 @@ string SerializedFrame::name( void ) const
   return name_stream.str();
 }
 
+bool SerializedFrame::shown( void ) const
+{
+  return target_hash_.shown;
+}
+
 double SerializedFrame::quality( const RasterHandle & original ) const
 {
   assert( output_raster_.initialized() );

@@ -1,66 +1,65 @@
 #include "continuation_player.hh"
+#include "uncompressed_chunk.hh"
 
 using namespace std;
 
-ContinuationPlayer::ContinuationPlayer( const string & file_name )
-  : FilePlayer( file_name ),
-    continuation_state_( width(), height() )
+string PreContinuation::continuation_name( void ) const
+{
+  return source_hash.str() + "#" + target_hash.str();
+}
+
+ContinuationPlayer::ContinuationPlayer( const uint16_t width, const uint16_t height )
+  : FramePlayer( width, height ),
+    prev_references_( width, height ),
+    shown_( false ),
+    cur_output_( prev_references_.last ),
+    cur_updates_( false, false, false, false, false, false, false ),
+    on_key_frame_( true ),
+    key_frame_(),
+    inter_frame_()
 {}
 
-SerializedFrame ContinuationPlayer::serialize_next( void )
+template<class FrameType>
+Optional<RasterHandle> ContinuationPlayer::track_continuation_info( const FrameType & frame )
 {
-  Chunk frame = get_next_frame();
+  prev_references_ = decoder_.get_references();
 
-  // Save the source so we can hash the parts of it that are used by
-  // the next frame;
-  Decoder source = decoder_;
+  tie( shown_, cur_output_ ) = decoder_.decode_frame( frame );
 
-  continuation_state_ = decoder_.next_continuation_state( frame );
-
-  SourceHash source_hash = source.source_hash( continuation_state_.get_frame_used() );
-  TargetHash target_hash = decoder_.target_hash( continuation_state_.get_frame_updated(),
-                                                 continuation_state_.get_output(),
-                                                 continuation_state_.is_shown() );
-
-  // Check this is a sane frame
-  assert( source.get_hash().can_decode( source_hash ) );
-  assert( decoder_.get_hash().continuation_hash() == target_hash.continuation_hash );
-
-  return SerializedFrame( frame, source_hash, target_hash, continuation_state_.get_shown() );
+  return make_optional( shown_, cur_output_ );
 }
 
-RasterHandle ContinuationPlayer::next_output( void )
+Optional<RasterHandle> ContinuationPlayer::decode( const SerializedFrame & serialized_frame )
 {
-  continuation_state_ = decoder_.next_continuation_state( get_next_frame() );
-  return continuation_state_.get_output();
-}
+  UncompressedChunk decompressed_frame = decoder_.decompress_frame( serialized_frame.chunk() );
+  cur_updates_ = serialized_frame.get_target_hash();
 
-// Override FilePlayer's version so we track continuation_state_
-RasterHandle ContinuationPlayer::advance( void )
-{
-  while ( not eof() ) {
-    continuation_state_ = decoder_.next_continuation_state( get_next_frame() );
-    if ( continuation_state_.is_shown() ) {
-      return continuation_state_.get_output();
-    }
+  if ( decompressed_frame.key_frame() ) {
+    on_key_frame_ = true;
+    key_frame_ = decoder_.parse_frame<KeyFrame>( decompressed_frame );
+
+    return track_continuation_info( key_frame_.get() );
+  } else {
+    on_key_frame_ = false;
+    inter_frame_ = decoder_.parse_frame<InterFrame>( decompressed_frame );
+
+    return track_continuation_info( inter_frame_.get() );
   }
-
-  throw Unsupported( "hidden frames at end of file" );
 }
 
 void ContinuationPlayer::apply_changes( Decoder & other ) const
 {
-  continuation_state_.apply_last_frame( other, decoder_ );
-}
-
-string ContinuationPlayer::get_frame_stats( void ) const
-{
-  return continuation_state_.get_frame_stats();
+  if ( on_key_frame_ ) {
+    other.apply_decoded_frame( key_frame_.get(), cur_output_, decoder_ );
+  }
+  else {
+    other.apply_decoded_frame( inter_frame_.get(), cur_output_, decoder_ );
+  }
 }
 
 bool ContinuationPlayer::need_gen_continuation( void ) const
 {
-  return not continuation_state_.on_key_frame();
+  return not on_key_frame_;
 }
 
 PreContinuation ContinuationPlayer::make_pre_continuation( const SourcePlayer & source ) const
@@ -68,14 +67,49 @@ PreContinuation ContinuationPlayer::make_pre_continuation( const SourcePlayer & 
   // The first continuation needs to be unshown, because it is outputting an upgraded
   // image of the same frame. If it is shown, graph generation will skip over it,
   // because it is looking for shown frames for the next frame, not the current one
-  return continuation_state_.make_pre_continuation( decoder_, source.decoder_, not source.first_continuation() );
+  bool show_continuation = not source.first_continuation();
+
+  assert( not on_key_frame_ );
+  DependencyTracker used = inter_frame_.get().get_used();
+  MissingTracker missing = source.decoder_.find_missing( prev_references_ );
+
+  if ( missing.last and used.need_last ) {
+    used.need_last = false;
+    used.need_continuation = true;
+  }
+
+  if ( missing.golden and used.need_golden ) {
+    used.need_golden = false;
+    used.need_continuation = true;
+  }
+
+  if ( missing.alternate and used.need_alternate ) {
+    used.need_alternate = false;
+    used.need_continuation = true;
+  }
+
+  return PreContinuation { show_continuation, missing, source.decoder_.source_hash( used ),
+                           decoder_.target_hash( cur_updates_, cur_output_, show_continuation ) };
 }
 
 SerializedFrame ContinuationPlayer::make_continuation( const PreContinuation & pre,
                                                        const SourcePlayer & source ) const
 {
-  DecoderDiff diff = decoder_ - source.decoder_;
-  return continuation_state_.make_continuation( diff, pre );
+  DecoderDiff difference = decoder_ - source.decoder_;
+
+  // Should only be making continuations off a shown frame
+  assert( shown_ );
+  // A key frame will have been written out anyway and can be used by anyone
+  assert( not on_key_frame_ );
+  InterFrame continuation_frame( inter_frame_.get(), difference.continuation_diff, pre.shown,
+                                 pre.missing.last, pre.missing.golden, pre.missing.alternate,
+                                 difference.entropy_header, difference.filter_update, difference.segment_update );
+
+  continuation_frame.optimize_continuation_coefficients();
+
+  return SerializedFrame( continuation_frame.serialize( difference.target_probabilities ),
+                          pre.source_hash, pre.target_hash,
+                          make_optional( pre.shown, cur_output_ ) );
 }
 
 SerializedFrame ContinuationPlayer::operator-( const SourcePlayer & source ) const

@@ -87,14 +87,15 @@ InterFrame::Frame( const InterFrame & original, const RasterDiff & continuation_
                    const ReplacementEntropyHeader & replacement_entropy_header,
                    const Optional<ModeRefLFDeltaUpdate> & filter_update,
                    const Optional<SegmentFeatureData> & segment_update )
-  : show_ { shown },
-    display_width_ { original.display_width_ },
-    display_height_ { original.display_height_ },
-    header_ { original.header_ },
-    continuation_header_ { true, last_missing, golden_missing, alt_missing },
-    macroblock_headers_ { true, macroblock_width_, macroblock_height_,
+  : show_( shown ),
+    display_width_( original.display_width_ ),
+    display_height_( original.display_height_ ),
+    header_( original.header_ ),
+    continuation_header_( true, last_missing, golden_missing, alt_missing ),
+    macroblock_headers_( true, macroblock_width_, macroblock_height_,
 			  original.macroblock_headers_.get(),
-			  Y2_, Y_, U_, V_ }
+			  Y2_, Y_, U_, V_ ),
+    ref_updates_( original.ref_updates_ )
 {
   Y2_.copy_from( original.Y2_ );
   Y_.copy_from( original.Y_ );

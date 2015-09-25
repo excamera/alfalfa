@@ -4,7 +4,7 @@
 #include "2d.hh"
 #include "block.hh"
 #include "macroblock.hh"
-#include "decoder_tracking.hh"
+#include "dependency_tracking.hh"
 
 struct References;
 struct Segmentation;
@@ -37,6 +37,8 @@ class Frame
 
   Optional< TwoD< MacroblockType > > macroblock_headers_ {};
 
+  UpdateTracker ref_updates_;
+
   void relink_y2_blocks( void );
 
   ProbabilityArray< num_segments > calculate_mb_segment_tree_probs( void ) const;
@@ -67,6 +69,7 @@ class Frame
   const Optional< ContinuationHeader > & continuation_header( void ) const { return continuation_header_; }
 
   DependencyTracker get_used( void ) const;
+  UpdateTracker get_updated( void ) const { return ref_updates_; }
 
   void parse_macroblock_headers( BoolDecoder & rest_of_first_partition,
 				 const ProbabilityTables & probability_tables );
@@ -75,13 +78,10 @@ class Frame
 
   void parse_tokens( std::vector< Chunk > dct_partitions, const ProbabilityTables & probability_tables );
 
-  void decode( const Optional< Segmentation > & segmentation,
-	       VP8Raster & raster ) const;
-
   void decode( const Optional< Segmentation > & segmentation, const References & references,
                const RasterHandle & continuation_raster, VP8Raster & raster ) const;
 
-  UpdateTracker copy_to( const RasterHandle & raster, References & references ) const;
+  void copy_to( const RasterHandle & raster, References & references ) const;
 
   std::string reference_update_stats( void ) const;
 

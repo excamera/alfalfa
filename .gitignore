@@ -24,6 +24,7 @@ Makefile.in
 /test-driver
 
 /src/frontend/diff-sizes
+/src/frontend/denseify
 /src/frontend/frameify
 /src/frontend/frameplayer
 /src/frontend/graphgen
@@ -34,7 +35,7 @@ Makefile.in
 /src/tests/encode-loopback
 /src/tests/extract-key-frames
 /src/tests/roundtrip
-/src/tests/frames-to-stdout
+/src/tests/videodir-to-stdout
 /src/tests/switch-to-stdout
 /src/tests/single-frameify
 /src/tests/state-collisions

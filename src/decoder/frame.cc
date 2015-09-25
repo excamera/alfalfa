@@ -2,6 +2,46 @@
 
 using namespace std;
 
+static UpdateTracker calculate_updates( const KeyFrameHeader & )
+{
+  // KeyFrames always update all references
+  return UpdateTracker( true, true, true, false, false, false, false );
+}
+
+static UpdateTracker calculate_updates( const InterFrameHeader & header )
+{
+  UpdateTracker tracker( false, false, false, false, false, false, false );
+  if ( header.copy_buffer_to_alternate.initialized() ) {
+    if ( header.copy_buffer_to_alternate.get() == 1 ) {
+      tracker.last_to_alternate = true;
+    } else if ( header.copy_buffer_to_alternate.get() == 2 ) {
+      tracker.golden_to_alternate = true;
+    }
+  }
+
+  if ( header.copy_buffer_to_golden.initialized() ) {
+    if ( header.copy_buffer_to_golden.get() == 1 ) {
+      tracker.last_to_golden = true;
+    } else if ( header.copy_buffer_to_golden.get() == 2 ) {
+      tracker.alternate_to_golden = true;
+    }
+  }
+
+  if ( header.refresh_golden_frame ) {
+    tracker.update_golden = true;
+  }
+
+  if ( header.refresh_alternate_frame ) {
+    tracker.update_alternate = true;
+  }
+
+  if ( header.refresh_last ) {
+    tracker.update_last = true;
+  }
+
+  return tracker;
+}
+
 template <class FrameHeaderType, class MacroblockType>
 Frame<FrameHeaderType, MacroblockType>::Frame( const bool show,
 					       const bool continuation,
@@ -12,7 +52,8 @@ Frame<FrameHeaderType, MacroblockType>::Frame( const bool show,
     display_width_( width ),
     display_height_( height ),
     header_( first_partition ),
-    continuation_header_( continuation, first_partition )
+    continuation_header_( continuation, first_partition ),
+    ref_updates_( calculate_updates( header_ ) )
 {}
 
 template <class FrameHeaderType, class MacroblockType>
@@ -191,8 +232,8 @@ SafeArray<Quantizer, num_segments> Frame<FrameHeaderType, MacroblockType>::calcu
 }
 
 template <>
-void KeyFrame::decode( const Optional< Segmentation > & segmentation,
-		       VP8Raster & raster ) const
+void KeyFrame::decode( const Optional< Segmentation > & segmentation, const References &,
+                       const RasterHandle &, VP8Raster & raster ) const
 {
   const Quantizer frame_quantizer( header_.quant_indices );
   const auto segment_quantizers = calculate_segment_quantizers( segmentation );
@@ -257,54 +298,42 @@ void Frame<FrameHeaderType, MacroblockType>::relink_y2_blocks( void )
     } );
 }
 
+/* KeyFrame and InterFrame could share the same code, but KeyFrame's fixed behavior means
+ * specialization is slightly faster
+ */
 template<>
-UpdateTracker KeyFrame::copy_to( const RasterHandle & raster, References & references ) const
+void KeyFrame::copy_to( const RasterHandle & raster, References & references ) const
 {
   references.last = references.golden = references.alternative_reference = raster;
-  // Update all references
-  return UpdateTracker( true, true, true, false, false, false, false );
 }
 
 template<>
-UpdateTracker InterFrame::copy_to( const RasterHandle & raster, References & references ) const
+void InterFrame::copy_to( const RasterHandle & raster, References & references ) const
 {
-  UpdateTracker tracker( false, false, false, false, false, false, false );
-  if ( header_.copy_buffer_to_alternate.initialized() ) {
-    if ( header_.copy_buffer_to_alternate.get() == 1 ) {
+  if ( ref_updates_.last_to_alternate ) {
       references.alternative_reference = references.last;
-      tracker.last_to_alternate = true;
-    } else if ( header_.copy_buffer_to_alternate.get() == 2 ) {
-      references.alternative_reference = references.golden;
-      tracker.golden_to_alternate = true;
-    }
+  } else if ( ref_updates_.golden_to_alternate ) {
+    references.alternative_reference = references.golden;
   }
 
-  if ( header_.copy_buffer_to_golden.initialized() ) {
-    if ( header_.copy_buffer_to_golden.get() == 1 ) {
-      references.golden = references.last;
-      tracker.last_to_golden = true;
-    } else if ( header_.copy_buffer_to_golden.get() == 2 ) {
-      references.golden = references.alternative_reference;
-      tracker.alternate_to_golden = true;
-    }
+  if ( ref_updates_.last_to_golden ) {
+    references.golden = references.last;
+  }
+  else if ( ref_updates_.alternate_to_golden ) {
+    references.golden = references.alternative_reference;
   }
 
-  if ( header_.refresh_golden_frame ) {
+  if ( ref_updates_.update_golden ) {
     references.golden = raster;
-    tracker.update_golden = true;
   }
 
-  if ( header_.refresh_alternate_frame ) {
+  if ( ref_updates_.update_alternate ) {
     references.alternative_reference = raster;
-    tracker.update_alternate = true;
   }
 
-  if ( header_.refresh_last ) {
+  if ( ref_updates_.update_last ) {
     references.last = raster;
-    tracker.update_last = true;
   }
-
-  return tracker;
 }
 
 template<>

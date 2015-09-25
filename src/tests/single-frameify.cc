@@ -5,8 +5,8 @@ using namespace std;
 
 #include "continuation_player.hh"
 
-static void single_switch( ofstream & manifest, unsigned int switch_frame, const string & source, 
-		    const string & target )
+static void single_switch( ofstream & manifest, unsigned int switch_frame,
+                           const string & source, const string & target )
 {
   ContinuationPlayer source_player( source );
   ContinuationPlayer target_player( target );

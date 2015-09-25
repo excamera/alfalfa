@@ -1,4 +1,4 @@
-#include "decoder_tracking.hh"
+#include "dependency_tracking.hh"
 #include "exception.hh"
 
 #include <fstream>
@@ -68,13 +68,7 @@ public:
         break;
       }
 
-      double quality;
-      if ( quality_string == "INF" ) {
-        quality = INFINITY;
-      }
-      else {
-        quality = stod( quality_string );
-      }
+      double quality = stod( quality_string );
       size_t output_hash = stoul( approx, nullptr, 16 );
       size_t original_hash = stoul( original, nullptr, 16 );
 
@@ -227,7 +221,9 @@ struct EdgeState
 
     // FIXME get rid of the special case for the fake last edge with no frames
     if ( frames.size() > 0 and frames.back()->target.shown ) {
-      error = frames.back()->quality.get();
+      // for SSIM 1 is the highest quality and 0 is the lowest, so error is 1 - SSIM
+      // so larger error is worse quality
+      error = 1 - frames.back()->quality.get();
     }
     if ( error == 0 ) {
       // FIXME error has to be strictly increasing so we give it a small error

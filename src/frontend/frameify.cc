@@ -1,58 +1,26 @@
 #include <iostream>
 #include <fstream>
-#include <unordered_set>
 #include <unordered_map>
-#include <algorithm>
-#include <cstdlib>
-#include <climits>
-#include "continuation_player.hh"
+#include <unordered_set>
+#include "tracking_player.hh"
 
 using namespace std;
 
-// Streams keep track of all the players converging onto them,
-// because they need to be able to update the states of those
-// frames with their continuation frames
-class StreamState
+class FrameDumper
 {
 private:
-  ContinuationPlayer stream_player_;
+  // FrameDumper is constructed after we chdir into the video directory,
+  // so these files are created inside the directory
+  ofstream original_manifest_ { "original_manifest" };
+  ofstream quality_manifest_ { "quality_manifest" };
+  ofstream frame_manifest_ { "frame_manifest" };
+  ofstream stream_manifest_ { "stream_manifest" };
 
-  // Reference to the manifest stored in FrameGenerator
-  ofstream & frame_manifest_;
+  unordered_set<string> frame_names_ {};
+  unordered_map<size_t, unordered_set<size_t>> recorded_qualities_ {};
+  vector<TrackingPlayer> streams_ {};
 
-  // List of players we are generating continuations from
-  vector<SourcePlayer> source_players_ {};
-
-  // Shared set of all the frames generated so far
-  static unordered_set<string> frame_names_;
-
-  // Remove any players that have converged onto stream_player
-  // and any duplicates
-  void cleanup_source_players( void ) {
-    vector<SourcePlayer> new_players {};
-    new_players.reserve( source_players_.size() );
-
-    for ( SourcePlayer & player : source_players_ ) {
-      if ( player != stream_player_ && find( new_players.begin(), new_players.end(), player ) == new_players.end() ) {
-        new_players.emplace_back( move( player ) );
-      }
-    }
-
-    source_players_ = move( new_players );
-  }
-
-  void update_source_players( const SerializedFrame & frame )
-  {
-    for ( SourcePlayer & player : source_players_ ) {
-      if ( player.can_decode( frame ) ) {
-        player.sync_changes( stream_player_ );
-        player.set_need_continuation( false );
-      }
-      else {
-        player.set_need_continuation( true );
-      }
-    }
-  }
+  TrackingPlayer original_player_;
 
   void write_frame( const SerializedFrame & frame )
   {
@@ -67,20 +35,32 @@ private:
     }
   }
 
-public:
-  StreamState( const string & stream_file, ofstream & frame_manifest )
-    : stream_player_( stream_file ),
-      frame_manifest_( frame_manifest )
-  {}
+  void record_quality( const SerializedFrame & frame, const RasterHandle & original )
+  {
+    if ( not recorded_qualities_[ original.hash() ].count( frame.get_output().hash() ) ) {
+      recorded_qualities_[ original.hash() ].insert( frame.get_output().hash() );
+      quality_manifest_ << original.hash() << " " << frame.get_output().hash() << " " <<
+        frame.quality( original ) << endl;
+    }
+  }
 
-  SerializedFrame advance_until_shown( void )
+  void record_original( const RasterHandle & original )
+  {
+    original_manifest_ << original.hash() << endl;
+  }
+
+  void record_frame_stream( const SerializedFrame & frame, unsigned stream_idx )
+  {
+    stream_manifest_ << stream_idx << " " << frame.name() << endl;
+  }
+
+  SerializedFrame serialize_until_shown( TrackingPlayer & stream, unsigned stream_idx )
   {
     /* Serialize and write until next displayed frame */
-    while ( not stream_player_.eof() ) {
-      SerializedFrame frame = stream_player_.serialize_next(); 
+    while ( not stream.eof() ) {
+      SerializedFrame frame = stream.serialize_next(); 
       write_frame( frame );
-
-      update_source_players( frame );
+      record_frame_stream( frame, stream_idx );
 
       if ( frame.shown() ) {
         return frame;
@@ -89,112 +69,42 @@ public:
     throw Unsupported( "Undisplayed frames at end of video unsupported" );
   }
 
-  void new_source( StreamState & other )
-  {
-    source_players_.emplace_back( other.stream_player_ );
-  }
-
-  void make_continuations( void )
-  {
-    cleanup_source_players();
-
-    for ( SourcePlayer & source_player : source_players_ ) {
-      // Check if the source needs a continuation at this point
-      if ( source_player.need_continuation() ) {
-        // Only make a continuation if the player is on an interframe
-        // (keyframes are free switches, so by checking explicitly here the
-        // continuation code can ignore the possibility of a keyframe
-        if ( stream_player_.need_gen_continuation() ) {
-          PreContinuation pre = stream_player_.make_pre_continuation( source_player );
-          // Serializing these continuations is *very* expensive, so check if we already have the necessary continuation frame
-          if ( not frame_names_.count( pre.continuation_name() ) ) {
-            // FIXME this isn't taking advantage of RasterDiff...
-            
-            SerializedFrame continuation =
-              stream_player_.make_continuation( pre, source_player ); 
-
-            write_frame( continuation );
-
-            assert( source_player.can_decode( continuation ) );
-          }
-        }
-
-        // Even if we didn't need to make a new continuation frame, we still need to sync the most recent
-        // changes from stream player (the same effect as decoding stream_player's last frame))
-        source_player.sync_changes( stream_player_ );
-      }
-    }
-  }
-};
-unordered_set<string> StreamState::frame_names_ = unordered_set<string>();
-
-class FrameGenerator
-{
-private: 
-  ofstream original_manifest_ { "original_manifest" };
-  ofstream quality_manifest_ { "quality_manifest" };
-  ofstream frame_manifest_ { "frame_manifest" };
-
-  unordered_map<size_t, unordered_set<size_t>> recorded_qualities_ {};
-
-  vector<StreamState> streams_ {};
-
-  Player original_player_;
-
-  void record_quality( const SerializedFrame & frame, const RasterHandle & original )
-  {
-    if ( not recorded_qualities_[ original.hash() ].count( frame.get_output().hash() ) ) {
-      recorded_qualities_[ original.hash() ].insert( frame.get_output().hash() );
-      quality_manifest_ << hex << uppercase << original.hash() << " " << frame.get_output().hash()
-      << " " << frame.quality( original ) << endl;
-    }
-  }
-
-  void record_original( const RasterHandle & original )
-  {
-    original_manifest_ << uppercase << hex << original.hash() << endl;
-  }
-
 public:
-  FrameGenerator( const string & original, const vector<string> & streams )
+  FrameDumper( string original, const vector<string> & streams )
     : original_player_( original )
   {
-    original_manifest_ << original_player_.width() << " " << original_player_.height() << "\n";
+    // FIXME when upscaling is implemented we shouldn't need to write out the width and height
+    original_manifest_ << original_player_.width() << " " << original_player_.height() << endl;
+
+    // Format the manifest hashes in hex
+    original_manifest_ << uppercase << hex;
+    quality_manifest_ << uppercase << hex << fixed;
+
+    // Maximum precision when writing out SSIM
+    quality_manifest_.precision( numeric_limits<double>::max_digits10 );
 
     for ( const string & stream : streams ) {
-      streams_.emplace_back( stream, frame_manifest_ );
+      streams_.emplace_back( stream );
     }
   }
 
-  void generate( void )
+  void output_frames( void )
   {
+    // Serialize out the original stream
     while ( not original_player_.eof() ) {
-      RasterHandle original_raster = original_player_.advance();
+      SerializedFrame original_frame = serialize_until_shown( original_player_, 0 );
+      RasterHandle original_raster = original_frame.get_output();
       record_original( original_raster );
+      record_quality( original_frame, original_raster );
 
-      for ( StreamState & stream : streams_ ) {
-        SerializedFrame shown_frame =  stream.advance_until_shown();
+      // Serialize out the approximation streams
+      for ( unsigned stream_idx = 0; stream_idx < streams_.size(); stream_idx++ ) {
+        TrackingPlayer & stream = streams_[ stream_idx ];
+
+        SerializedFrame shown_frame = serialize_until_shown( stream, stream_idx + 1 );
         assert( shown_frame.shown() );
 
         record_quality( shown_frame, original_raster );
-      }
-
-      // Add new starting points for continuations
-      for ( unsigned stream_idx = 0; stream_idx < streams_.size() - 1; stream_idx++ ) {
-        StreamState & source_stream = streams_[ stream_idx ];
-        StreamState & target_stream = streams_[ stream_idx + 1 ];
-
-        // Insert new copies of source_player and target_players for continuations starting
-        // at this frame
-
-        target_stream.new_source( source_stream );
-
-        source_stream.new_source( target_stream );
-      }
-
-      // Make the continuations for each stream
-      for ( StreamState & stream : streams_ ) {
-        stream.make_continuations();
       }
     }
   }
@@ -228,6 +138,6 @@ int main( int argc, const char * const argv[] )
   if ( chdir( argv[ 1 ] ) ) {
     throw unix_error( "chdir failed" );
   }
-  FrameGenerator generator( absolute, absolute_streams );
-  generator.generate();
+  FrameDumper dumper( original, absolute_streams );
+  dumper.output_frames();
 }

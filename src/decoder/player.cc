@@ -15,14 +15,14 @@ FramePlayer::FramePlayer( const uint16_t width, const uint16_t height )
 
 Optional<RasterHandle> FramePlayer::decode( const Chunk & chunk )
 {
-  return decoder_.decode_frame( chunk );
+  return decoder_.parse_and_decode_frame( chunk );
 }
 
 Optional<RasterHandle> FramePlayer::decode( const SerializedFrame & frame )
 {
   assert( frame.validate_source( decoder_.get_hash() ) );
 
-  Optional<RasterHandle> raster = decode( frame.chunk() );
+  Optional<RasterHandle> raster = decoder_.parse_and_decode_frame( frame.chunk() );
 
   assert( frame.validate_target( decoder_.get_hash() ) );
 
@@ -69,8 +69,7 @@ FilePlayer::FilePlayer( IVF && file )
 
   // Start at first KeyFrame
   while ( frame_no_ < file_.frame_count() ) {
-    UncompressedChunk uncompressed_chunk( file_.frame( frame_no_ ), 
-					  file_.width(), file_.height() );
+    UncompressedChunk uncompressed_chunk = decoder_.decompress_frame( file_.frame( frame_no_ ) ); 
     if ( uncompressed_chunk.key_frame() ) {
       break;
     }

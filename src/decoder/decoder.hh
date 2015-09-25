@@ -9,12 +9,12 @@
 #include "quantization.hh"
 #include "exception.hh"
 #include "raster_handle.hh"
-#include "decoder_tracking.hh"
+#include "dependency_tracking.hh"
+#include "uncompressed_chunk.hh"
 #include "frame_header.hh"
 
 class Chunk;
 class VP8Raster;
-class UncompressedChunk;
 struct KeyFrameHeader;
 struct InterFrameHeader;
 struct ContinuationState;
@@ -169,10 +169,16 @@ public:
   TargetHash target_hash( const UpdateTracker & updates, const RasterHandle & output, bool shown ) const;
   DecoderHash get_hash( void ) const;
 
-  Optional<RasterHandle> decode_frame( const Chunk & frame );
+  UncompressedChunk decompress_frame( const Chunk & compressed_frame ) const;
 
-  ContinuationState next_continuation_state( const Chunk & frame );
-  
+  template<class FrameType>
+  FrameType parse_frame( const UncompressedChunk & decompressed_frame );
+
+  template<class FrameType>
+  std::pair<bool, RasterHandle> decode_frame( const FrameType & frame );
+
+  Optional<RasterHandle> parse_and_decode_frame( const Chunk & compressed_frame );
+
   template <class FrameType>
   void apply_decoded_frame( const FrameType & frame, const RasterHandle & output, const Decoder & target )
   {
@@ -182,6 +188,8 @@ public:
   }
 
   MissingTracker find_missing( const References & refs ) const;
+
+  References get_references( void ) const;
 
   bool operator==( const Decoder & other ) const;
 

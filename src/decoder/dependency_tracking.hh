@@ -1,5 +1,5 @@
-#ifndef DECODER_HASH_INCLUDED
-#define DECODER_HASH_INCLUDED
+#ifndef DEPENDENCY_TRACKING_HH
+#define DEPENDENCY_TRACKING_HH
 
 #include "optional.hh"
 #include "safe_array.hh"

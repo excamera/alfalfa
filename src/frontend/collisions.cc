@@ -1,4 +1,4 @@
-#include "continuation_player.hh"
+#include "tracking_player.hh"
 
 #include <iostream>
 #include <unordered_set> 
@@ -16,7 +16,7 @@ int main(int argc, char * argv[] ) {
   // First decode the file and find potential collisions
   unordered_map<size_t, vector<RasterHandle>> raster_hashes;
   unordered_set<size_t> potential_collisions;
-  ContinuationPlayer player( argv[ 1 ] );
+  TrackingPlayer player( argv[ 1 ] );
   while ( not player.eof() ) {
     RasterHandle raster = player.next_output();
     size_t hash = raster.hash();
@@ -31,7 +31,7 @@ int main(int argc, char * argv[] ) {
     }
   }
 
-  ContinuationPlayer check_player( argv[ 1 ] );
+  TrackingPlayer check_player( argv[ 1 ] );
   while ( not check_player.eof() ) {
     RasterHandle raster = check_player.next_output();
     size_t hash = raster.hash();
