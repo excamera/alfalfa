@@ -77,6 +77,7 @@ AC_CONFIG_FILES([Makefile
                  src/Makefile
 		 src/util/Makefile
                  src/decoder/Makefile
+		 src/format/Makefile
                  src/display/Makefile
                  src/frontend/Makefile
 		 src/tests/Makefile

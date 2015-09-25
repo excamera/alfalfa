@@ -1,1 +1,1 @@
-SUBDIRS = util decoder display encoder frontend tests
+SUBDIRS = util decoder format display encoder frontend tests
