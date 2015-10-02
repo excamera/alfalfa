@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 
 #include "exception.hh"
+#include "chunk.hh"
 
 class FileDescriptor
 {
@@ -41,6 +42,19 @@ public:
     // Need to make sure the old file descriptor doesn't try to
     // close fd_ when it is destructed
     other.fd_ = -1;
+  }
+
+  void write( const Chunk & buffer )
+  {
+    Chunk amount_left_to_write = buffer;
+    while ( amount_left_to_write.size() > 0 ) {
+      ssize_t bytes_written = SystemCall( "write",
+					  ::write( fd_, amount_left_to_write.buffer(), amount_left_to_write.size() ) );
+      if ( bytes_written == 0 ) {
+	throw internal_error( "write", "returned 0" );
+      }
+      amount_left_to_write = amount_left_to_write( bytes_written );
+    }
   }
 };
 
