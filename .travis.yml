@@ -12,7 +12,7 @@ addons:
     - libglu1-mesa-dev
     - libboost1.55-dev
     - libx264-dev
-    - librandr-dev
+    - libxrandr-dev
     - libxi-dev
     - libglfw3-dev
     - libglew-dev
