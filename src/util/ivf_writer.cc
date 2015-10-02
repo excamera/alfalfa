@@ -29,7 +29,7 @@ IVFWriter::IVFWriter( const string & filename,
 		      const uint16_t height,
 		      const uint32_t frame_rate,
 		      const uint32_t time_scale )
-  : fd_( SystemCall( filename, open( filename.c_str(), O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH ) ) ),
+  : fd_( SystemCall( filename, open( filename.c_str(), O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH ) ) ),
     file_size_( 0 ),
     frame_count_( 0 )
 {
@@ -52,6 +52,10 @@ IVFWriter::IVFWriter( const string & filename,
 
   /* write the header */
   fd_.write( Chunk( &new_header.at( 0 ), new_header.size() ) );
+  file_size_ += new_header.size();
+
+  /* verify the new file size */
+  assert( fd_.size() == file_size_ );
 }
 
 void IVFWriter::append_frame( const Chunk & chunk )
@@ -71,15 +75,28 @@ void IVFWriter::append_frame( const Chunk & chunk )
   Chunk header( mutable_header_ptr, IVF::supported_header_len );  
 
   /* verify the existing frame count */
-  cout << "current frame count = " << frame_count_ << endl;
-  cout << "what's in the header: " << header( 24, 4 ).le32() << endl;
   assert( frame_count_ == header( 24, 4 ).le32() );
 
   /* verify the existing file size */
   assert( file_size_ == fd_.size() );
 
+  /* build the frame header */
+  SafeArray<uint8_t, IVF::frame_header_len> new_header;
+  zero( new_header );
+  memcpy_le32( &new_header.at( 0 ), chunk.size() );
+
+  /* XXX does not include presentation timestamp */
+
+  /* append the frame header to the file */
+  fd_.write( Chunk( &new_header.at( 0 ), new_header.size() ) );
+  file_size_ += new_header .size();
+
   /* append the frame to the file */
   fd_.write( chunk );
+  file_size_ += chunk.size();
+
+  /* verify the new file size */
+  assert( fd_.size() == file_size_ );
 
   /* increment the frame count in the file's header */
   frame_count_++;

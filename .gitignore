@@ -39,3 +39,4 @@ Makefile.in
 /src/tests/switch-to-stdout
 /src/tests/single-frameify
 /src/tests/state-collisions
+/src/tests/ivfcopy
