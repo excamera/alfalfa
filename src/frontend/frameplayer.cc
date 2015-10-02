@@ -252,7 +252,7 @@ int main( int argc, char * argv[] )
   clock_t start = clock();
   vector<unsigned> path = graph.get_path( max_buffer_size, byte_rate, delay );
   clock_t done = clock();
-  
+
   cout << "Finding path took " << ( done - start ) * 1000 / CLOCKS_PER_SEC << " milliseconds\n";
   cout << "Path is " << path.size() << " frames long\n";
 

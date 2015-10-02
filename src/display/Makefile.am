@@ -1,6 +1,6 @@
-AM_CPPFLAGS = -I$(srcdir)/../util $(X11_XCB_CFLAGS) $(GLU_CFLAGS) $(CXX11_FLAGS) $(GLEW_CFLAGS) $(GLFW3_CFLAGS)
+AM_CPPFLAGS = -I$(srcdir)/../util $(GLU_CFLAGS) $(GLFW3_CFLAGS) $(GLEW_CFLAGS) $(CXX11_FLAGS)
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(NODEBUG_CXXFLAGS)
 
 noinst_LIBRARIES = libalfalfadisplay.a
 
-libalfalfadisplay_a_SOURCES = display.hh display.cc ahab_shader.hh
+libalfalfadisplay_a_SOURCES = gl_objects.hh gl_objects.cc display.hh display.cc ahab_shader.hh
