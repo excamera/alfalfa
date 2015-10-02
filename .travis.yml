@@ -9,7 +9,6 @@ addons:
     packages:
     - g++-4.9
     - yasm
-    - libx11-xcb-dev
     - libglu1-mesa-dev
     - libboost1.55-dev
     - libx264-dev

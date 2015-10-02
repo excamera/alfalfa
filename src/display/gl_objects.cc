@@ -1,0 +1,296 @@
+#include <iostream>
+#include <stdexcept>
+#include <memory>
+
+#include "gl_objects.hh"
+#include "exception.hh"
+#include "ahab_shader.hh"
+
+using namespace std;
+
+GLFWContext::GLFWContext()
+{
+  glfwSetErrorCallback( error_callback );
+
+  glfwInit();
+}
+
+void GLFWContext::error_callback( const int, const char * const description )
+{
+  throw runtime_error( description );
+}
+
+GLFWContext::~GLFWContext()
+{
+  glfwTerminate();
+}
+
+Window::Window( const unsigned int width, const unsigned int height, const string & title )
+  : window_()
+{
+  glfwDefaultWindowHints();
+
+  /*
+  glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
+  glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 1 );
+  glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE );
+  */ // not supported using software renderer on VMware Fusion (hardware even worse)
+  glfwWindowHint( GLFW_SAMPLES, 4 );
+  glfwWindowHint( GLFW_RESIZABLE, GL_TRUE );
+  //glfwWindowHint( GLFW_ALPHA_BITS, 0 );
+
+  window_.reset( glfwCreateWindow( width, height, title.c_str(), nullptr, nullptr ) );
+  if ( not window_.get() ) {
+    throw runtime_error( "could not create window" );
+  }
+}
+
+void Window::make_context_current( const bool initialize_extensions )
+{
+  glfwMakeContextCurrent( window_.get() );
+
+  glCheck( "after MakeContextCurrent" );
+
+  if ( initialize_extensions ) {
+    glewExperimental = GL_TRUE;
+    glewInit();
+    glCheck( "after initializing GLEW", true );
+  }
+}
+
+bool Window::should_close( void ) const
+{
+  return glfwWindowShouldClose( window_.get() );
+}
+
+void Window::swap_buffers( void )
+{
+  return glfwSwapBuffers( window_.get() );
+}
+
+void Window::hide_cursor( const bool hidden )
+{
+  glfwSetInputMode( window_.get(), GLFW_CURSOR, hidden ? GLFW_CURSOR_HIDDEN : GLFW_CURSOR_NORMAL );
+}
+
+bool Window::key_pressed( const int key ) const
+{
+  return GLFW_PRESS == glfwGetKey( window_.get(), key );
+}
+
+pair<unsigned int, unsigned int> Window::size( void ) const
+{
+  int width, height;
+  glfwGetFramebufferSize( window_.get(), &width, &height );
+
+  if ( width < 0 or height < 0 ) {
+    throw runtime_error( "negative framebuffer width or height" );
+  }
+
+  return pair<unsigned int, unsigned int>( width, height );
+}
+
+void Window::Deleter::operator() ( GLFWwindow * x ) const
+{
+  glfwHideWindow( x );
+  glfwDestroyWindow( x );
+}
+
+VertexBufferObject::VertexBufferObject()
+  : num_()
+{
+  glGenBuffers( 1, &num_ );
+}
+
+VertexBufferObject::~VertexBufferObject()
+{
+  glDeleteBuffers( 1, &num_ );
+}
+
+VertexArrayObject::VertexArrayObject()
+  : num_()
+{
+  glGenVertexArrays( 1, &num_ );
+}
+
+VertexArrayObject::~VertexArrayObject()
+{
+  glDeleteVertexArrays( 1, &num_ );
+}
+
+void VertexArrayObject::bind( void )
+{
+  glBindVertexArray( num_ );
+}
+
+Texture::Texture( const GLenum texture_unit, const unsigned int width, const unsigned int height )
+  : num_(),
+    texture_unit_ ( texture_unit ),
+    width_( width ),
+    height_( height )
+{
+  glActiveTexture( texture_unit );
+  glEnable( GL_TEXTURE_RECTANGLE_ARB );
+  glGenTextures( 1, &num_ );
+  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, num_ );
+  glTexImage2D( GL_TEXTURE_RECTANGLE_ARB, 0,
+                GL_LUMINANCE8, width, height,
+                0, GL_LUMINANCE, GL_UNSIGNED_BYTE, nullptr );
+  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+  glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
+
+  glCheck( "GLTexture" );
+}
+
+Texture::~Texture()
+{
+  glDeleteTextures( 1, &num_ );
+}
+
+void Texture::bind( void )
+{
+  glBindTexture( GL_TEXTURE_RECTANGLE, num_ );
+
+  resize( width_, height_ );
+}
+
+void Texture::resize( const unsigned int width, const unsigned int height )
+{
+  width_ = width;
+  height_ = height;
+  glTexImage2D( GL_TEXTURE_RECTANGLE, 0, GL_RGBA8, width_, height_, 0,
+		GL_BGRA, GL_UNSIGNED_BYTE, nullptr );
+}
+
+void Texture::load( const TwoD< uint8_t > & raster )
+{
+  /*if ( image.size() != size() ) {
+    throw runtime_error( "image size does not match texture dimensions" );
+  }*/
+
+  glActiveTexture( texture_unit_ );
+  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, num_ );
+  glTexSubImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, width_, height_,
+                   GL_LUMINANCE, GL_UNSIGNED_BYTE, &( raster.at( 0, 0 ) ) );
+}
+
+void compile_shader( const GLuint num, const string & source )
+{
+  const char * source_c_str = source.c_str();
+  glShaderSource( num, 1, &source_c_str, nullptr );
+  glCompileShader( num );
+
+  /* check if there were log messages */
+  GLint log_length;
+  glGetShaderiv( num, GL_INFO_LOG_LENGTH, &log_length );
+
+  if ( log_length > 1 ) {
+    unique_ptr<GLchar> buffer( new GLchar[ log_length ] );
+    GLsizei written_length;
+    glGetShaderInfoLog( num, log_length, &written_length, buffer.get() );
+
+    if ( written_length + 1 != log_length ) {
+      throw runtime_error( "GL shader log size mismatch" );
+    }
+
+    cerr << "GL shader compilation log: " << string( buffer.get(), log_length ) << endl;
+  }
+
+  /* check if it compiled */
+  GLint success;
+  glGetShaderiv( num, GL_COMPILE_STATUS, &success );
+
+  if ( not success ) {
+    throw runtime_error( "GL shader failed to compile" );
+  }
+}
+
+AhabShader::AhabShader()
+  : id_(-1)
+{
+  glEnable( GL_FRAGMENT_PROGRAM_ARB );
+  glGenProgramsARB( 1, &id_ );
+  glBindProgramARB( GL_FRAGMENT_PROGRAM_ARB, id_ );
+  glProgramStringARB( GL_FRAGMENT_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB,
+                      strlen( ahab_shader ),
+                      ahab_shader );
+
+  /* check for errors */
+  GLint error_location;
+  glGetIntegerv( GL_PROGRAM_ERROR_POSITION_ARB, &error_location );
+  if ( error_location != -1 ) {
+    throw internal_error( "loading colorspace transformation shader",
+			  reinterpret_cast<const char *>( glGetString( GL_PROGRAM_ERROR_STRING_ARB ) ) );
+  }
+
+  glCheck( "glProgramString" );
+
+  /* load Rec. 709 colors */
+  glProgramLocalParameter4dARB( GL_FRAGMENT_PROGRAM_ARB, 0,
+                                itu709_green.at( 0 ), itu709_green.at( 1 ), itu709_green.at( 2 ), 0 );
+  glProgramLocalParameter4dARB( GL_FRAGMENT_PROGRAM_ARB, 1,
+                                itu709_blue.at( 0 ), itu709_blue.at( 1 ), itu709_blue.at( 2 ), 0 );
+  glProgramLocalParameter4dARB( GL_FRAGMENT_PROGRAM_ARB, 2,
+                                itu709_red.at( 0 ), itu709_red.at( 1 ), itu709_red.at( 2 ), 0 );
+
+  glCheck( "glProgramEnvParamater4d" );
+}
+
+AhabShader::~AhabShader()
+{
+  glDeleteProgramsARB( 1, &id_ );
+}
+
+void Program::link( void )
+{
+  glLinkProgram( num_ );
+}
+
+void Program::use( void )
+{
+  glUseProgram( num_ );
+}
+
+GLint Program::attribute_location( const string & name ) const
+{
+  const GLint ret = glGetAttribLocation( num_, name.c_str() );
+  if ( ret < 0 ) {
+    throw runtime_error( "attribute not found: " + name );
+  }
+  return ret;
+}
+
+GLint Program::uniform_location( const string & name ) const
+{
+  const GLint ret = glGetUniformLocation( num_, name.c_str() );
+  if ( ret < 0 ) {
+    throw runtime_error( "uniform not found: " + name );
+  }
+  return ret;
+}
+
+Program::~Program()
+{
+  glDeleteProgram( num_ );
+}
+
+void glCheck( const string & where, const bool expected )
+{
+  GLenum error = glGetError();
+
+  if ( error != GL_NO_ERROR ) {
+    while ( error != GL_NO_ERROR ) {
+      if ( not expected ) {
+	cerr << "GL error " << where << ": " << gluErrorString( error ) << endl;
+      }
+      error = glGetError();
+    }
+
+    if ( not expected ) {
+      throw runtime_error( "GL error " + where );
+    }
+  }
+}
