@@ -32,7 +32,7 @@ Window::Window( const unsigned int width, const unsigned int height, const strin
 
   glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
   glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 1 );
-  glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GL_FALSE );
+  glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE );
 
   glfwWindowHint( GLFW_RESIZABLE, GL_TRUE );
 
