@@ -18,7 +18,7 @@ const std::string VideoDisplay::shader_source_scale_from_pixel_coordinates
         gl_Position = vec4( 2 * position.x / window_size.x - 1.0,
                             1.0 - 2 * position.y / window_size.y, 0.0, 1.0 );
         raw_position = vec2( position.x, position.y );
-        uv_texcoord = vec2( chroma_texcoord );
+        uv_texcoord = vec2( chroma_texcoord.x, chroma_texcoord.y );
       }
     )";
 
@@ -43,9 +43,9 @@ const std::string VideoDisplay::shader_source_passthrough_texture
         float fV = texture(vTex, uv_texcoord).x;
 
         outColor = vec4(
-          fY + 1.59602734375 * fV - 0.87078515625,
-          fY - 0.39176171875 * fU - 0.81296875 * fV + 0.52959375,
-          fY + 2.017234375   * fU - 1.081390625,
+          min(1.0, max(0.0, fY + 1.59602734375 * fV - 0.87078515625)),
+          min(1.0, max(0.0, fY - 0.39176171875 * fU - 0.81296875 * fV + 0.52959375)),
+          min(1.0, max(0.0, fY + 2.017234375   * fU - 1.081390625)),
           1.0
         );
       }
@@ -115,7 +115,7 @@ void VideoDisplay::resize( const std::pair<unsigned int, unsigned int> & target_
 
   vector<VertexObject> corners = {
     { 0, 0, xoffset, 0},
-    { 0, target_size_y, 0, target_size_y / 2 },
+    { 0, target_size_y, xoffset, target_size_y / 2 },
     { target_size_x, target_size_y, target_size_x / 2 + xoffset, target_size_y / 2 },
     { target_size_x, 0 , target_size_x / 2 + xoffset, 0 }
   };
@@ -123,10 +123,6 @@ void VideoDisplay::resize( const std::pair<unsigned int, unsigned int> & target_
   texture_shader_array_object_.bind();
   ArrayBuffer::bind( screen_corners_ );
   ArrayBuffer::load( corners, GL_STATIC_DRAW );
-
-  /*Y_.resize( target_size.first, target_size.second );
-  U_.resize( target_size.first, target_size.second );
-  V_.resize( target_size.first, target_size.second );*/
 
   glCheck( "after resizing ");
 }
