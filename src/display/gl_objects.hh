@@ -41,6 +41,12 @@ public:
   std::pair<unsigned int, unsigned int> size( void ) const;
 };
 
+struct VertexObject
+{
+  float x[4];
+  //float chroma_texture_x, chroma_texture_y;
+};
+
 template <GLenum id_>
 class Buffer
 {
@@ -53,9 +59,9 @@ public:
     glBindBuffer( id_, obj.num_ );
   }
 
-  static void load( const std::vector<std::pair<float, float>> & vertices, const GLenum usage )
+  static void load( const std::vector<VertexObject> & vertices, const GLenum usage )
   {
-    glBufferData( id, vertices.size() * sizeof( std::pair<float, float> ), &vertices.front(), usage );
+    glBufferData( id, vertices.size() * sizeof( VertexObject ), &vertices.front(), usage );
   }
 
   constexpr static GLenum id = id_;
@@ -97,14 +103,13 @@ class Texture
 {
 private:
   GLuint num_;
-  GLenum texture_unit_;
   unsigned int width_, height_;
 
 public:
-  Texture( const GLenum texture_unit, const unsigned int width, const unsigned int height );
+  Texture( const unsigned int width, const unsigned int height );
   ~Texture();
 
-  void bind( void );
+  void bind( const GLenum texture_unit );
   void load( const TwoD< uint8_t> & raster );
   void resize( const unsigned int width, const unsigned int height );
   std::pair<unsigned int, unsigned int> size( void ) const { return std::make_pair( width_, height_ ); }
@@ -145,7 +150,7 @@ class AhabShader
 {
 private:
   GLuint id_;
-  
+
 public:
   AhabShader();
   ~AhabShader();

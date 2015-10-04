@@ -30,14 +30,11 @@ Window::Window( const unsigned int width, const unsigned int height, const strin
 {
   glfwDefaultWindowHints();
 
-  /*
   glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
   glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 1 );
-  glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE );
-  */ // not supported using software renderer on VMware Fusion (hardware even worse)
-  glfwWindowHint( GLFW_SAMPLES, 4 );
+  glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GL_FALSE );
+
   glfwWindowHint( GLFW_RESIZABLE, GL_TRUE );
-  //glfwWindowHint( GLFW_ALPHA_BITS, 0 );
 
   window_.reset( glfwCreateWindow( width, height, title.c_str(), nullptr, nullptr ) );
   if ( not window_.get() ) {
@@ -123,26 +120,12 @@ void VertexArrayObject::bind( void )
   glBindVertexArray( num_ );
 }
 
-Texture::Texture( const GLenum texture_unit, const unsigned int width, const unsigned int height )
+Texture::Texture( const unsigned int width, const unsigned int height )
   : num_(),
-    texture_unit_ ( texture_unit ),
     width_( width ),
     height_( height )
 {
-  glActiveTexture( texture_unit );
-  glEnable( GL_TEXTURE_RECTANGLE_ARB );
   glGenTextures( 1, &num_ );
-  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, num_ );
-  glTexImage2D( GL_TEXTURE_RECTANGLE_ARB, 0,
-                GL_LUMINANCE8, width, height,
-                0, GL_LUMINANCE, GL_UNSIGNED_BYTE, nullptr );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-  glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
-
-  glCheck( "GLTexture" );
 }
 
 Texture::~Texture()
@@ -150,17 +133,22 @@ Texture::~Texture()
   glDeleteTextures( 1, &num_ );
 }
 
-void Texture::bind( void )
+void Texture::bind( const GLenum texture_unit )
 {
-  glBindTexture( GL_TEXTURE_RECTANGLE, num_ );
-
+  glActiveTexture( texture_unit );
   resize( width_, height_ );
+
+  glTexParameteri( GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+  glTexParameteri( GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+  glTexParameteri( GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
+  glTexParameteri( GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
 }
 
 void Texture::resize( const unsigned int width, const unsigned int height )
 {
   width_ = width;
   height_ = height;
+  glBindTexture( GL_TEXTURE_RECTANGLE, num_ );
   glTexImage2D( GL_TEXTURE_RECTANGLE, 0, GL_RGBA8, width_, height_, 0,
 		GL_BGRA, GL_UNSIGNED_BYTE, nullptr );
 }
@@ -171,8 +159,8 @@ void Texture::load( const TwoD< uint8_t > & raster )
     throw runtime_error( "image size does not match texture dimensions" );
   }*/
 
-  glActiveTexture( texture_unit_ );
-  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, num_ );
+  glBindTexture( GL_TEXTURE_RECTANGLE, num_ );
+  glPixelStorei( GL_UNPACK_ROW_LENGTH, width_ );
   glTexSubImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, width_, height_,
                    GL_LUMINANCE, GL_UNSIGNED_BYTE, &( raster.at( 0, 0 ) ) );
 }
