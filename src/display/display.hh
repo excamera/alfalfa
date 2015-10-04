@@ -12,6 +12,9 @@ using namespace std;
 class VideoDisplay
 {
 private:
+  static const std::string shader_source_scale_from_pixel_coordinates;
+  static const std::string shader_source_passthrough_texture;
+
   unsigned int display_width_, display_height_;
   unsigned int width_, height_;
 
@@ -24,8 +27,16 @@ private:
       const std::string & title );
   } current_context_window_;
 
+  VertexShader scale_from_pixel_coordinates_ = { shader_source_scale_from_pixel_coordinates };
+  FragmentShader passthrough_texture_ = { shader_source_passthrough_texture };
+
+  Program texture_shader_program_ = {};
+
   Texture Y_, U_, V_;
-  AhabShader shader_;
+
+  VertexArrayObject texture_shader_array_object_ = {};
+  VertexBufferObject screen_corners_ = {};
+  VertexBufferObject other_vertices_ = {};
 
 public:
   VideoDisplay( const BaseRaster & raster );
@@ -34,6 +45,7 @@ public:
 
   void draw( const BaseRaster & raster );
   void repaint( void );
+  void resize( const std::pair<unsigned int, unsigned int> & target_size );
 
   const Window & window( void ) const { return current_context_window_.window_; }
 };
