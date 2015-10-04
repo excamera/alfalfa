@@ -4,7 +4,6 @@
 
 #include "gl_objects.hh"
 #include "exception.hh"
-#include "ahab_shader.hh"
 
 using namespace std;
 
@@ -194,42 +193,6 @@ void compile_shader( const GLuint num, const string & source )
   if ( not success ) {
     throw runtime_error( "GL shader failed to compile" );
   }
-}
-
-AhabShader::AhabShader()
-  : id_(-1)
-{
-  glEnable( GL_FRAGMENT_PROGRAM_ARB );
-  glGenProgramsARB( 1, &id_ );
-  glBindProgramARB( GL_FRAGMENT_PROGRAM_ARB, id_ );
-  glProgramStringARB( GL_FRAGMENT_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB,
-                      strlen( ahab_shader ),
-                      ahab_shader );
-
-  /* check for errors */
-  GLint error_location;
-  glGetIntegerv( GL_PROGRAM_ERROR_POSITION_ARB, &error_location );
-  if ( error_location != -1 ) {
-    throw internal_error( "loading colorspace transformation shader",
-			  reinterpret_cast<const char *>( glGetString( GL_PROGRAM_ERROR_STRING_ARB ) ) );
-  }
-
-  glCheck( "glProgramString" );
-
-  /* load Rec. 709 colors */
-  glProgramLocalParameter4dARB( GL_FRAGMENT_PROGRAM_ARB, 0,
-                                itu709_green.at( 0 ), itu709_green.at( 1 ), itu709_green.at( 2 ), 0 );
-  glProgramLocalParameter4dARB( GL_FRAGMENT_PROGRAM_ARB, 1,
-                                itu709_blue.at( 0 ), itu709_blue.at( 1 ), itu709_blue.at( 2 ), 0 );
-  glProgramLocalParameter4dARB( GL_FRAGMENT_PROGRAM_ARB, 2,
-                                itu709_red.at( 0 ), itu709_red.at( 1 ), itu709_red.at( 2 ), 0 );
-
-  glCheck( "glProgramEnvParamater4d" );
-}
-
-AhabShader::~AhabShader()
-{
-  glDeleteProgramsARB( 1, &id_ );
 }
 
 void Program::link( void )
