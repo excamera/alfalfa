@@ -3,4 +3,4 @@ AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(NODEBUG_CXXFLAGS)
 
 noinst_LIBRARIES = libalfalfadisplay.a
 
-libalfalfadisplay_a_SOURCES = gl_objects.hh gl_objects.cc display.hh display.cc ahab_shader.hh
+libalfalfadisplay_a_SOURCES = gl_objects.hh gl_objects.cc display.hh display.cc

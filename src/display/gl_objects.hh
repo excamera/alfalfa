@@ -145,17 +145,6 @@ public:
   Shader & operator=( const Shader & other ) = delete;
 };
 
-
-class AhabShader
-{
-private:
-  GLuint id_;
-
-public:
-  AhabShader();
-  ~AhabShader();
-};
-
 class Program
 {
   GLuint num_ = glCreateProgram();
