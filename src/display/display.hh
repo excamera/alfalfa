@@ -13,7 +13,7 @@ class VideoDisplay
 {
 private:
   static const std::string shader_source_scale_from_pixel_coordinates;
-  static const std::string shader_source_passthrough_texture;
+  static const std::string shader_source_ycbcr;
 
   unsigned int display_width_, display_height_;
   unsigned int width_, height_;
@@ -28,7 +28,7 @@ private:
   } current_context_window_;
 
   VertexShader scale_from_pixel_coordinates_ = { shader_source_scale_from_pixel_coordinates };
-  FragmentShader passthrough_texture_ = { shader_source_passthrough_texture };
+  FragmentShader ycbcr_shader_ = { shader_source_ycbcr };
 
   Program texture_shader_program_ = {};
 
