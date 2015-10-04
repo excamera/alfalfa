@@ -22,7 +22,7 @@ const std::string VideoDisplay::shader_source_scale_from_pixel_coordinates
       }
     )";
 
-const std::string VideoDisplay::shader_source_passthrough_texture
+const std::string VideoDisplay::shader_source_ycbcr
 = R"( #version 130
       #extension GL_ARB_texture_rectangle : enable
 
@@ -70,7 +70,7 @@ VideoDisplay::VideoDisplay( const BaseRaster & raster )
     V_ ( width_ / 2, height_ / 2 )
 {
   texture_shader_program_.attach( scale_from_pixel_coordinates_ );
-  texture_shader_program_.attach( passthrough_texture_ );
+  texture_shader_program_.attach( ycbcr_shader_ );
   texture_shader_program_.link();
   glCheck( "after linking texture shader program" );
 
