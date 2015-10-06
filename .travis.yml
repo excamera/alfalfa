@@ -9,6 +9,7 @@ addons:
     packages:
     - g++-4.9
     - yasm
+    - libsparsehash-dev
     - libx11-xcb-dev
     - libglu1-mesa-dev
     - libboost1.55-dev
