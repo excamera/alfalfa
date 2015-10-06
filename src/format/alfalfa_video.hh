@@ -15,7 +15,7 @@
       frame name / filename / offset / length
    5. a "trajectory database" of the relation
       ID => { list of frame names }
-   
+
 */
 
 #include <unordered_map>
@@ -34,7 +34,7 @@ private:
     std::string raster_list_filename() const;
     std::string quality_db_filename() const;
     std::string frame_db_filename() const;
-    std::string trajectory_db_filename() const;
+    std::string track_db_filename() const;
   };
 
   VideoDirectory directory_;
@@ -42,7 +42,7 @@ private:
   RasterList raster_list_;
   QualityDB quality_db_;
   FrameDB frame_db_;
-  TrajectoryDB trajectory_db_;
+  TrackDB track_db_;
 
 public:
   AlfalfaVideo( const std::string & directory_name );
@@ -58,8 +58,8 @@ public:
   FrameDB & frame_db() { return frame_db_; }
   const FrameDB & frame_db() const { return frame_db_; }
 
-  TrajectoryDB & trajectory_db() { return trajectory_db_; }
-  const TrajectoryDB & trajectory_db() const { return trajectory_db_; }
+  TrackDB & track_db() { return track_db_; }
+  const TrackDB & track_db() const { return track_db_; }
 };
 
 #endif /* ALFALFA_VIDEO_HH */

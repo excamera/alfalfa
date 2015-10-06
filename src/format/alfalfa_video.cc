@@ -16,7 +16,5 @@ AlfalfaVideo::AlfalfaVideo( const string & directory_name )
     raster_list_( directory_.raster_list_filename() ),
     quality_db_( directory_.quality_db_filename() ),
     frame_db_( directory_.frame_db_filename() ),
-    trajectory_db_( directory_.trajectory_db_filename() )
+    track_db_( directory_.track_db_filename() )
 {}
-
-

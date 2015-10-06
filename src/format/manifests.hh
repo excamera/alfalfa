@@ -26,16 +26,16 @@ public:
 class FrameDB
 {
 public:
-  FrameDB( const std::string & filename ); 
+  FrameDB( const std::string & filename );
 };
 
 /* relation:
    ID => { sequence of frame names } */
 
-class TrajectoryDB
+class TrackDB
 {
 public:
-  TrajectoryDB( const std::string & filename );
+  TrackDB( const std::string & filename );
 };
 
-#endif /* TRAJECTORY_DB_HH */
+#endif /* MANIFESTS_HH */
