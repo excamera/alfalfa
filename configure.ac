@@ -56,8 +56,6 @@ AC_CHECK_HEADERS([boost/functional/hash.hpp], [], [AC_MSG_ERROR[Missing boost ha
 
 AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp boost/graph/graph_traits.hpp], [], [AC_MSG_ERROR[Missing boost graph]])
 
-AC_CHECK_HEADERS([sparsehash/dense_hash_map sparsehash/sparse_hash_map], [], [AC_MSG_ERROR[Missing libsparsehash]])
-
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_INLINE
 AC_TYPE_INT16_T
