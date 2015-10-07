@@ -3,6 +3,8 @@
 
 #include <string>
 
+#include "database.hh"
+
 /* sequence of hashes of the original rasters that the video approximates */
 
 class RasterList
@@ -11,31 +13,35 @@ public:
   RasterList( const std::string & filename );
 };
 
+struct QualityData
+{
+  size_t approximate_raster;
+  double quality;
+};
+
+struct FrameData
+{
+  std::string ivf_filename;
+  uint64_t offset;
+  uint64_t length;
+};
+
+class TrackData : public vector<std::string>
+{};
+
 /* relation:
    original raster / approximate raster / quality */
 
-class QualityDB
-{
-public:
-  QualityDB( const std::string & filename );
-};
+using QualityDB = Database< size_t, QualityData >;
 
 /* relation:
    frame name / IVF filename / offset / length */
 
-class FrameDB
-{
-public:
-  FrameDB( const std::string & filename );
-};
+using FrameDB = Database< size_t, FrameData >;
 
 /* relation:
    ID => { sequence of frame names } */
 
-class TrackDB
-{
-public:
-  TrackDB( const std::string & filename );
-};
+using TrackDB = Database< size_t, TrackData >;
 
 #endif /* MANIFESTS_HH */
