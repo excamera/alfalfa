@@ -94,7 +94,7 @@ using QualityDB = Database< size_t, QualityData >;
 /* relation:
    frame name / IVF filename / offset / length */
 
-using FrameDB = Database< size_t, FrameData >;
+using FrameDB = Database< std::string, FrameData >;
 
 /* relation:
    ID => { sequence of frame names } */
