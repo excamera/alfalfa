@@ -2,8 +2,9 @@
 #define DATABASE_HH
 
 #include <string>
-#include <sparsehash/sparse_hash_map>
-#include <sparsehash/dense_hash_map>
+#include <unordered_map>
+
+#include "optional.hh"
 
 using namespace std;
 
@@ -12,15 +13,16 @@ class Database
 {
 private:
   std::string filename_;
-  google::dense_hash_map<KeyType, ValueType, std::hash<KeyType>> hash_map_;
+  std::unordered_map<KeyType, ValueType> hash_map_;
 
 public:
   Database( const std::string & filename );
 
-  ValueType get( const KeyType & key );
-  void insert( KeyType & key, ValueType & value );
-  void update( KeyType & key, ValueType & value );
-  void insert_or_update( KeyType & key, ValueType & value );
+  Optional<ValueType> get( const KeyType & key );
+  bool insert( KeyType && key, ValueType && value );
+  bool update( KeyType && key, ValueType && value );
+  void update_or_insert( KeyType && key, ValueType && value );
+  bool erase( KeyType & key );
   bool has_key( const KeyType & key ) const;
 
   void save();
