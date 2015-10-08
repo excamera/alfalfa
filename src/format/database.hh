@@ -21,6 +21,9 @@ private:
   void load( ifstream & fin );
 
 public:
+  typedef typename std::unordered_map<KeyType, ValueType>::iterator iterator;
+  typedef typename std::unordered_map<KeyType, ValueType>::iterator const_iterator;
+
   Database( const std::string & filename );
 
   Optional<ValueType> get( const KeyType & key );
@@ -31,6 +34,14 @@ public:
   bool has_key( const KeyType & key ) const;
 
   void save();
+
+  iterator begin() { return hash_map_.begin(); }
+  const_iterator begin() const { return hash_map_.begin(); }
+  const_iterator cbegin() const { return hash_map_.cbegin(); }
+
+  iterator end() { return hash_map_.end(); }
+  const_iterator end() const { return hash_map_.end(); }
+  const_iterator cend() const { return hash_map_.end(); }
 };
 
 template<class KeyType, class ValueType>
