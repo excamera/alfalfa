@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "database.hh"
+#include "kvstore.hh"
 
 /* sequence of hashes of the original rasters that the video approximates */
 
@@ -26,29 +26,6 @@ struct QualityData
 
   friend std::istream & operator>>(std::istream & stream, QualityData & qd) {
     stream >> qd.approximate_raster >> qd.quality;
-    return stream;
-  }
-};
-
-struct FrameData
-{
-  std::string ivf_filename;
-  uint64_t offset;
-  uint64_t length;
-
-  FrameData()
-    : ivf_filename(),
-      offset(0),
-      length(0)
-  {}
-
-  friend std::ostream & operator<<(std::ostream & stream, FrameData const & fd) {
-    stream << fd.ivf_filename << " " << fd.offset << " " << fd.length;
-    return stream;
-  }
-
-  friend std::istream & operator>>(std::istream & stream, FrameData & fd) {
-    stream >> fd.ivf_filename >> fd.offset >> fd.length;
     return stream;
   }
 };
@@ -89,18 +66,16 @@ class TrackDataVector : public vector<std::string>
 /* relation:
    original raster / approximate raster / quality */
 
-using QualityDB = Database< size_t, QualityData >;
+using QualityDB = KVStore< size_t, QualityData >;
 
 /* relation:
    frame name / IVF filename / offset / length */
 
-using FrameDB = Database< std::string, FrameData >;
+// using FrameDB = Database< std::string, FrameData >;
 
 /* relation:
    ID => { sequence of frame names } */
 
-using TrackDB = Database< size_t, TrackDataVector >;
-
-//template class Database< size_t, QualityData >;
+using TrackDB = KVStore< size_t, TrackDataVector >;
 
 #endif /* MANIFESTS_HH */

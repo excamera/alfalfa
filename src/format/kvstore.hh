@@ -1,5 +1,5 @@
-#ifndef DATABASE_HH
-#define DATABASE_HH
+#ifndef KVSTORE_HH
+#define KVSTORE_HH
 
 #include <string>
 #include <fstream>
@@ -13,7 +13,7 @@
 using namespace std;
 
 template<class KeyType, class ValueType>
-class Database
+class KVStore
 {
 private:
   std::string filename_;
@@ -24,7 +24,7 @@ public:
   typedef typename std::unordered_map<KeyType, ValueType>::iterator iterator;
   typedef typename std::unordered_map<KeyType, ValueType>::iterator const_iterator;
 
-  Database( const std::string & filename );
+  KVStore( const std::string & filename );
 
   Optional<ValueType> get( const KeyType & key );
   bool insert( KeyType key, ValueType value );
@@ -45,7 +45,7 @@ public:
 };
 
 template<class KeyType, class ValueType>
-Database<KeyType, ValueType>::Database( const std::string & filename )
+KVStore<KeyType, ValueType>::KVStore( const std::string & filename )
   : filename_( filename ),
     hash_map_()
 {
@@ -57,7 +57,7 @@ Database<KeyType, ValueType>::Database( const std::string & filename )
 }
 
 template<class KeyType, class ValueType>
-Optional<ValueType> Database<KeyType, ValueType>::get( const KeyType & key )
+Optional<ValueType> KVStore<KeyType, ValueType>::get( const KeyType & key )
 {
   auto entry_it = hash_map_.find( key );
 
@@ -70,13 +70,13 @@ Optional<ValueType> Database<KeyType, ValueType>::get( const KeyType & key )
 }
 
 template<class KeyType, class ValueType>
-bool Database<KeyType, ValueType>::insert( KeyType key, ValueType value )
+bool KVStore<KeyType, ValueType>::insert( KeyType key, ValueType value )
 {
   return hash_map_.emplace( make_pair( key, value ) ).second;
 }
 
 template<class KeyType, class ValueType>
-bool Database<KeyType, ValueType>::update( KeyType key, ValueType value )
+bool KVStore<KeyType, ValueType>::update( KeyType key, ValueType value )
 {
   auto entry_it = hash_map_.find( key );
 
@@ -89,13 +89,13 @@ bool Database<KeyType, ValueType>::update( KeyType key, ValueType value )
 }
 
 template<class KeyType, class ValueType>
-void Database<KeyType, ValueType>::update_or_insert( KeyType key, ValueType value )
+void KVStore<KeyType, ValueType>::update_or_insert( KeyType key, ValueType value )
 {
   hash_map_[key] = value;
 }
 
 template<class KeyType, class ValueType>
-bool Database<KeyType, ValueType>::erase( KeyType & key )
+bool KVStore<KeyType, ValueType>::erase( KeyType & key )
 {
   auto entry_it = hash_map_.find( key );
 
@@ -108,13 +108,13 @@ bool Database<KeyType, ValueType>::erase( KeyType & key )
 }
 
 template<class KeyType, class ValueType>
-bool Database<KeyType, ValueType>::has_key( const KeyType & key ) const
+bool KVStore<KeyType, ValueType>::has_key( const KeyType & key ) const
 {
   return hash_map_.find( key ) != hash_map_.end();
 }
 
 template<class KeyType, class ValueType>
-void Database<KeyType, ValueType>::load( ifstream & fin )
+void KVStore<KeyType, ValueType>::load( ifstream & fin )
 {
   hash_map_.clear();
 
@@ -135,7 +135,7 @@ void Database<KeyType, ValueType>::load( ifstream & fin )
 }
 
 template<class KeyType, class ValueType>
-void Database<KeyType, ValueType>::save()
+void KVStore<KeyType, ValueType>::save()
 {
   ofstream fout( filename_ );
 
@@ -146,4 +146,4 @@ void Database<KeyType, ValueType>::save()
   fout.close();
 }
 
-#endif /* DATABASE_HH */
+#endif /* KVSTORE_HH */

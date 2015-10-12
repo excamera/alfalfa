@@ -22,6 +22,7 @@
 
 #include "ivf.hh"
 #include "manifests.hh"
+#include "frame_db.hh"
 
 class AlfalfaVideo
 {
