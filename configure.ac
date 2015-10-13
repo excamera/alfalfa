@@ -56,6 +56,8 @@ AC_CHECK_HEADERS([boost/functional/hash.hpp], [], [AC_MSG_ERROR[Missing boost ha
 
 AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp boost/graph/graph_traits.hpp], [], [AC_MSG_ERROR[Missing boost graph]])
 
+AC_CHECK_HEADERS([boost/multi_index_container.hpp boost/multi_index/member.hpp boost/multi_index/hashed_index.hpp boost/multi_index/sequenced_index.hpp], [], [AC_MSG_ERROR[Missing boost multi-index]])
+
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_INLINE
 AC_TYPE_INT16_T
