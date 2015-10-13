@@ -40,3 +40,4 @@ Makefile.in
 /src/tests/single-frameify
 /src/tests/state-collisions
 /src/tests/ivfcopy
+/src/tests/framedb-test

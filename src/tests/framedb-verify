@@ -1,0 +1,48 @@
+#!/usr/bin/env python
+
+import os
+import random
+import subprocess as sub
+
+MAX_SIZE = 2 ** 32 - 1
+
+# create a random manifest
+num_of_entries = 100000
+framedb_filename = "test_frame_db.manifest"
+P_dont_care = 0.33
+
+random.seed(5)
+
+with open(framedb_filename, "w") as fout:
+    for i in range(0, num_of_entries):
+        entry = "{}_{}_{}_{}_{}#{:X}_{:X}_{:X}_{}_{}_{}_{}_{}_{}_{}_{} {} {} {}".format(
+            "{:X}".format(random.randint(0, MAX_SIZE)) if random.random() > P_dont_care else "x",
+            "{:X}".format(random.randint(0, MAX_SIZE)) if random.random() > P_dont_care else "x",
+            "{:X}".format(random.randint(0, MAX_SIZE)) if random.random() > P_dont_care else "x",
+            "{:X}".format(random.randint(0, MAX_SIZE)) if random.random() > P_dont_care else "x",
+            "{:X}".format(random.randint(0, MAX_SIZE)) if random.random() > P_dont_care else "x",
+            random.randint(0, MAX_SIZE),
+            random.randint(0, MAX_SIZE),
+            random.randint(0, MAX_SIZE),
+            random.randint(0, 1),
+            random.randint(0, 1),
+            random.randint(0, 1),
+            random.randint(0, 1),
+            random.randint(0, 1),
+            random.randint(0, 1),
+            random.randint(0, 1),
+            random.randint(0, 1),
+            "file-{}.ivf".format(random.randint(1, 100000)),
+            str(random.randint(0, MAX_SIZE)), str(random.randint(0, MAX_SIZE))
+        )
+
+        print >>fout, entry
+
+os.system("cp {0}/{1} {0}/{1}.out".format(os.environ.get('srcdir'), framedb_filename))
+os.system("sort {0}/{1} >{0}/{1}.sorted".format(os.environ.get('srcdir'), framedb_filename))
+os.system("{0}/framedb-test {0}/{1}.out".format(os.environ.get('srcdir'), framedb_filename))
+os.system("sort {0}/{1}.out >{0}/{1}.out.sorted".format(os.environ.get('srcdir'), framedb_filename))
+result = os.system("diff {0}/{1}.out.sorted {0}/{1}.sorted >/dev/null".format(os.environ.get('srcdir'), framedb_filename))
+os.system("rm {0}/{1}*".format(os.environ.get('srcdir'), framedb_filename))
+
+exit(result)
