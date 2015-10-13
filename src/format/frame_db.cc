@@ -1,9 +1,49 @@
 #include "frame_db.hh"
 
 FrameDB::FrameDB( const std::string & filename )
-  : data_()
+  : filename_( filename ),
+    data_()
 {
-  std::cout << filename << endl;
+  std::ifstream fin( filename.c_str() );
+
+  if ( fin.good() ) {
+    load( fin );
+  }
+}
+
+void FrameDB::load( ifstream & fin )
+{
+  data_.clear();
+
+  std::string line;
+
+  while ( std::getline( fin, line ) ) {
+    std::istringstream iss( line );
+
+    std::string frame_name;
+    std::string ivf_filename;
+    size_t offset;
+    size_t length;
+
+    if( not ( iss >> frame_name >> ivf_filename >> offset >> length ) ) {
+      break;
+    }
+
+    FrameData fd( frame_name, ivf_filename, offset, length );
+    insert( fd );
+  }
+}
+
+void FrameDB::save()
+{
+  ofstream fout( filename_.c_str() );
+
+  for( auto it = begin(); it != end(); it++) {
+    fout << (*it).frame_name << " " << (*it).ivf_filename << " "
+         << (*it).offset << " " << (*it).length << endl;
+  }
+
+  fout.close();
 }
 
 void FrameDB::insert( FrameData fd )

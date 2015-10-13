@@ -1,16 +1,13 @@
 #ifndef FRAME_DB_HH
 #define FRAME_DB_HH
 
+#include <fstream>
 #include <iostream>
 #include <iterator>
-#include <type_traits>
 #include <boost/multi_index_container.hpp>
-#include <boost/multi_index/identity.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
-#include <boost/multi_index/ordered_index.hpp>
-#include <boost/multi_index/random_access_index.hpp>
 
 #include "dependency_tracking.hh"
 
@@ -24,16 +21,28 @@ struct FrameData
   std::string frame_name;
 
   std::string ivf_filename;
-  uint64_t offset;
-  uint64_t length;
+  size_t offset;
+  size_t length;
 
   SourceHash source_hash;
   TargetHash target_hash;
 
   FrameData( std::string frame_name,
     std::string ivf_filename,
-    uint64_t offset,
-    uint64_t length,
+    size_t offset,
+    size_t length )
+    : frame_name( frame_name ),
+      ivf_filename( ivf_filename ),
+      offset( offset ),
+      length( length ),
+      source_hash( frame_name ),
+      target_hash( frame_name )
+  {}
+
+  FrameData( std::string frame_name,
+    std::string ivf_filename,
+    size_t offset,
+    size_t length,
     SourceHash source_hash,
     TargetHash target_hash )
     : frame_name( frame_name ),
@@ -42,7 +51,7 @@ struct FrameData
       length( length ),
       source_hash( source_hash ),
       target_hash( target_hash )
-    {}
+  {}
 };
 
 struct FrameData_SourceHashHash
@@ -154,7 +163,9 @@ public:
 class FrameDB
 {
 private:
+  std::string filename_;
   FrameDataSet data_;
+  void load( ifstream & fin );
 
 public:
   FrameDB( const std::string & filename );
@@ -173,6 +184,8 @@ public:
 
   FrameDataSetRandomAccess::iterator begin() { return data_.get<3>().begin(); }
   FrameDataSetRandomAccess::iterator end() { return data_.get<3>().end(); }
+
+  void save();
 };
 
 #endif /* FRAME_DB */
