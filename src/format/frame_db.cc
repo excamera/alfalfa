@@ -113,8 +113,6 @@ FrameDataSetSourceHashSearch::FrameDataSetSourceHashSearchIterator::FrameDataSet
 FrameDataSetSourceHashSearch::FrameDataSetSourceHashSearchIterator &
 FrameDataSetSourceHashSearch::FrameDataSetSourceHashSearchIterator::operator++()
 {
-  assert( itr_ != data_set_.end() );
-
   if ( itr_ == current_end_ ) {
     if ( stage_ == 0 ) {
       itr_ = current_end_ = begin_ = data_set_.end();
