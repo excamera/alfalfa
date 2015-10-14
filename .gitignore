@@ -41,3 +41,4 @@ Makefile.in
 /src/tests/state-collisions
 /src/tests/ivfcopy
 /src/tests/framedb-test
+/src/tests/framedb-benchmark
