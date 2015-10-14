@@ -66,15 +66,14 @@ FrameDB::search_by_output_hash( const size_t & output_hash )
 }
 
 std::pair<FrameDataSetSourceHashSearch::iterator, FrameDataSetSourceHashSearch::iterator>
-FrameDB::search_by_source_hash( const size_t & state_hash, const size_t & continuation_hash,
-  const size_t & last_hash, const size_t & golden_hash, const size_t & alt_hash )
+FrameDB::search_by_decoder_hash( const DecoderHash & decoder_hash )
 {
   SourceHash query_hash(
-    make_optional( true, state_hash ),
-    make_optional( true, continuation_hash ),
-    make_optional( true, last_hash ),
-    make_optional( true, golden_hash ),
-    make_optional( true, alt_hash )
+    make_optional( true, decoder_hash.state_hash() ),
+    make_optional( true, decoder_hash.continuation_hash() ),
+    make_optional( true, decoder_hash.last_hash() ),
+    make_optional( true, decoder_hash.golden_hash() ),
+    make_optional( true, decoder_hash.alt_hash() )
   );
 
   FrameDataSetBySourceHash & data_by_source_hash = data_.get<2>();
@@ -98,6 +97,10 @@ FrameDataSetSourceHashSearch::FrameDataSetSourceHashSearchIterator::FrameDataSet
     auto result = data_set.equal_range( source_hash );
     itr_ = begin_ = result.first;
     current_end_ = result.second;
+
+    if ( itr_ == current_end_ ) {
+      ++( *this );
+    }
   }
 }
 
@@ -178,11 +181,11 @@ const FrameData & FrameDataSetSourceHashSearch::FrameDataSetSourceHashSearchIter
   return *itr_;
 }
 
-const FrameData & FrameDataSetSourceHashSearch::FrameDataSetSourceHashSearchIterator
+const FrameData * FrameDataSetSourceHashSearch::FrameDataSetSourceHashSearchIterator
 ::operator->() const
 {
   assert( itr_ != data_set_.end() );
-  return *itr_;
+  return &*itr_;
 }
 
 FrameDataSetSourceHashSearch::FrameDataSetSourceHashSearch(

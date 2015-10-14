@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <boost/functional/hash.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/hashed_index.hpp>
@@ -58,14 +59,15 @@ struct FrameData_SourceHashHash
 {
   size_t operator()( const SourceHash & hash ) const
   {
-    auto hashfn = std::hash<size_t>();
-    return hashfn(
-      hashfn( hash.state_hash.initialized() ? hash.state_hash.get() : 0 ) +
-      hashfn( hash.continuation_hash.initialized() ? hash.continuation_hash.get() : 0 ) +
-      hashfn( hash.last_hash.initialized() ? hash.last_hash.get() : 0 ) +
-      hashfn( hash.golden_hash.initialized() ? hash.golden_hash.get() : 0 ) +
-      hashfn( hash.alt_hash.initialized() ? hash.alt_hash.get() : 0 )
-    );
+    size_t hash_val = 0;
+
+    boost::hash_combine( hash_val, hash.state_hash.initialized() ? hash.state_hash.get() : 0 );
+    boost::hash_combine( hash_val, hash.continuation_hash.initialized() ? hash.continuation_hash.get() : 0 );
+    boost::hash_combine( hash_val, hash.last_hash.initialized() ? hash.last_hash.get() : 0 );
+    boost::hash_combine( hash_val, hash.golden_hash.initialized() ? hash.golden_hash.get() : 0 );
+    boost::hash_combine( hash_val, hash.alt_hash.initialized() ? hash.alt_hash.get() : 0 );
+
+    return hash_val;
   }
 };
 
@@ -144,7 +146,7 @@ private:
     bool operator!=( const FrameDataSetSourceHashSearchIterator & rhs ) const;
 
     const FrameData & operator*() const;
-    const FrameData & operator->() const;
+    const FrameData * operator->() const;
   };
 
   SourceHash source_hash_;
@@ -179,8 +181,7 @@ public:
   search_by_output_hash( const size_t & output_hash );
 
   std::pair<FrameDataSetSourceHashSearch::iterator, FrameDataSetSourceHashSearch::iterator>
-  search_by_source_hash( const size_t & state_hash, const size_t & continuation_hash,
-    const size_t & last_hash, const size_t & golden_hash, const size_t & alt_hash );
+  search_by_decoder_hash( const DecoderHash & decoder_hash );
 
   FrameDataSetRandomAccess::iterator begin() { return data_.get<3>().begin(); }
   FrameDataSetRandomAccess::iterator end() { return data_.get<3>().end(); }
