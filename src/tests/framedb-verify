@@ -9,7 +9,7 @@ MAX_SIZE = 2 ** 32 - 1
 
 # create a random manifest
 num_of_entries = 2000
-framedb_filename = "test-frame-db.manifest"
+framedb_filename = "{}/test-frame-db.manifest".format(os.environ.get('srcdir'))
 P_dont_care = 0.33
 
 random.seed(5)
@@ -39,14 +39,14 @@ with open(framedb_filename, "w") as fout:
 
         print >>fout, entry
 
-subprocess.call("sort {0}/{1} >{0}/{1}.sorted".format(os.environ.get('srcdir'), framedb_filename), shell=True)
-result = subprocess.call("{0}/framedb-test {0}/{1} {0}/{1}.out".format(os.environ.get('srcdir'), framedb_filename), shell=True)
+subprocess.call("sort {0} >{0}.sorted".format(framedb_filename), shell=True)
+result = subprocess.call("{0}/framedb-test {1} {1}.out".format(os.environ.get('srcdir'), framedb_filename), shell=True)
 
 if result:
     sys.exit(1)
 
-subprocess.call("sort {0}/{1}.out >{0}/{1}.out.sorted".format(os.environ.get('srcdir'), framedb_filename), shell=True)
-result = subprocess.call("diff {0}/{1}.out.sorted {0}/{1}.sorted >/dev/null".format(os.environ.get('srcdir'), framedb_filename), shell=True)
-subprocess.call("rm {0}/{1}*".format(os.environ.get('srcdir'), framedb_filename), shell=True)
+subprocess.call("sort {0}.out >{0}.out.sorted".format(framedb_filename), shell=True)
+result = subprocess.call("diff {0}.out.sorted {0}.sorted >/dev/null".format(framedb_filename), shell=True)
+subprocess.call("rm {0}*".format(framedb_filename), shell=True)
 
 sys.exit(result)
