@@ -9,26 +9,13 @@ using namespace std;
 File::File( const std::string & filename )
   : fd_( SystemCall( filename, open( filename.c_str(), O_RDONLY ) ) ),
     size_( fd_.size() ),
-    buffer_( static_cast<uint8_t *>( mmap( nullptr, size_, PROT_READ, MAP_SHARED, fd_.num(), 0 ) ) ),
-    chunk_( buffer_, size_ )
-{
-  if ( buffer_ == MAP_FAILED ) {
-    throw unix_error( "mmap" );
-  }
-}
-
-File::~File()
-{
-  if ( buffer_ ) { 
-    SystemCall( "munmap", munmap( buffer_, size_ ) );
-  }
-}
+    mmap_region_( MMap_Region( size_, PROT_READ, MAP_SHARED, fd_.num() ) ),
+    chunk_( mmap_region_.addr(), size_ )
+{ }
 
 File::File( File && other )
   : fd_( move( other.fd_ ) ),
     size_( move( other.size_ ) ),
-    buffer_( move( other.buffer_ ) ),
+    mmap_region_( move( other.mmap_region_ ) ),
     chunk_( move( other.chunk_ ) )
-{
-  other.buffer_ = NULL;
-}
+{ }

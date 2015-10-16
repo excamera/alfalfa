@@ -7,18 +7,18 @@
 
 #include "file_descriptor.hh"
 #include "chunk.hh"
+#include "mmap_region.hh"
 
 class File
 {
 private:
   FileDescriptor fd_;
   size_t size_;
-  uint8_t * buffer_;
+  MMap_Region mmap_region_;
   Chunk chunk_;
 
 public:
   File( const std::string & filename );
-  ~File();
 
   const Chunk & chunk( void ) const { return chunk_; }
   const Chunk operator() ( const uint64_t & offset, const uint64_t & length ) const

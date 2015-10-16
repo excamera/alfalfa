@@ -6,6 +6,7 @@
 
 #include "ivf_writer.hh"
 #include "safe_array.hh"
+#include "mmap_region.hh"
 
 using namespace std;
 
@@ -61,17 +62,9 @@ IVFWriter::IVFWriter( const string & filename,
 void IVFWriter::append_frame( const Chunk & chunk )
 {
   /* map the header into memory */
-  uint8_t * mutable_header_ptr = static_cast<uint8_t *>( mmap( nullptr,
-							       IVF::supported_header_len,
-							       PROT_READ | PROT_WRITE,
-							       MAP_SHARED,
-							       fd_.num(),
-							       0 ) );
-  if ( mutable_header_ptr == MAP_FAILED ) {
-    throw unix_error( "mmap" );
-  }
+  MMap_Region header_in_mem( IVF::supported_header_len, PROT_READ | PROT_WRITE, MAP_SHARED, fd_.num() );
+  uint8_t * mutable_header_ptr = header_in_mem.addr();
 
-  /* XXX should use RAII for exception-safety */
   Chunk header( mutable_header_ptr, IVF::supported_header_len );  
 
   /* verify the existing frame count */
@@ -104,7 +97,4 @@ void IVFWriter::append_frame( const Chunk & chunk )
 
   /* verify the new frame count */
   assert( frame_count_ == header( 24, 4 ).le32() );
-
-  /* XXX unmap the file */
-  SystemCall( "munmap", munmap( mutable_header_ptr, IVF::supported_header_len ) );
 }
