@@ -1,7 +1,7 @@
 #include "serialized_frame.hh"
+#include "file.hh"
 
 #include <fstream>
-#include <sstream>
 
 using namespace std;
 
@@ -24,13 +24,9 @@ SerializedFrame::SerializedFrame( const string & path )
     target_hash_( get_name( path ) ),
     output_raster_()
 {
-  ifstream file( path, ifstream::binary );
-  file.seekg( 0, file.end );
-  int size = file.tellg();
-  file.seekg( 0, file.beg );
-
-  frame_.resize( size );
-  file.read( reinterpret_cast<char *>(frame_.data()), size );
+  File file( path );
+  frame_.resize( file.chunk().size() );
+  memcpy( &frame_.at( 0 ), file.chunk().buffer(), file.chunk().size() );
 }
 
 SerializedFrame::SerializedFrame( const vector<uint8_t> & frame,
