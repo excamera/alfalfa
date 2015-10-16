@@ -18,4 +18,4 @@ ivfcompare_SOURCES = ivfcompare.cc
 
 dist_check_SCRIPTS = decoding-test roundtrip-verify switch-test framedb-verify ivfcopy-test
 
-TESTS = decoding-test encode-loopback roundtrip-verify switch-test framedb-verify ivfcopy-test
+TESTS = decoding-test encode-loopback roundtrip-verify framedb-verify ivfcopy-test # switch-test
