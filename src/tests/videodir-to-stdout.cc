@@ -40,8 +40,8 @@ int main( int argc, char * argv[] )
 
   vector<string> continuation_frames;
   while ( not frame_manifest.eof() ) {
-    string frame_name;
-    frame_manifest >> frame_name;
+    string frame_name, frame_size;
+    frame_manifest >> frame_name >> frame_size;
 
     if ( frame_name == "" ) {
       break;
