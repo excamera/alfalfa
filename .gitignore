@@ -42,3 +42,4 @@ Makefile.in
 /src/tests/ivfcopy
 /src/tests/framedb-test
 /src/tests/framedb-benchmark
+/src/tests/ivfcompare
