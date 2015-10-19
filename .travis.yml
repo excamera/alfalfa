@@ -5,10 +5,13 @@ services: docker
 addons:
   apt:
     sources:
+    - debian-sid
     - ubuntu-toolchain-r-test
     packages:
     - g++-4.9
     - yasm
+    - libxinerama-dev
+    - libxcursor-dev
     - libglu1-mesa-dev
     - libboost1.55-dev
     - libx264-dev
