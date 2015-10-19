@@ -20,7 +20,7 @@ addons:
     - libglfw3-dev
     - libglew-dev
 
-script: "./autogen.sh && ./configure --enable-debug CXX='g++-4.9' && make && make check"
+script: "./autogen.sh && ./configure --enable-debug CXX='g++-4.9' && make && make check || (cat src/tests/test-suite.log && exit 1)"
 
 notifications:
   slack: keithw:2nINWkhRQ60BzeTDNYXgpLkU
