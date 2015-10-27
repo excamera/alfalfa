@@ -44,9 +44,11 @@ AC_SUBST([AS])
 AC_SUBST([ASFLAGS])
 
 # Checks for libraries.
-PKG_CHECK_MODULES([X11_XCB], [x11-xcb])
+PKG_CHECK_MODULES([GL], [gl])
 PKG_CHECK_MODULES([GLU], [glu])
 PKG_CHECK_MODULES([X264], [x264])
+PKG_CHECK_MODULES([GLFW3], [glfw3])
+PKG_CHECK_MODULES([GLEW], [glew])
 
 # Checks for header files.
 AC_PATH_X

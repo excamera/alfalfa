@@ -5,14 +5,20 @@ services: docker
 addons:
   apt:
     sources:
+    - debian-sid
     - ubuntu-toolchain-r-test
     packages:
     - g++-4.9
     - yasm
-    - libx11-xcb-dev
+    - libxinerama-dev
+    - libxcursor-dev
     - libglu1-mesa-dev
     - libboost1.55-dev
     - libx264-dev
+    - libxrandr-dev
+    - libxi-dev
+    - libglfw3-dev
+    - libglew-dev
 
 script: "./autogen.sh && ./configure --enable-debug CXX='g++-4.9' && make && make check"
 
