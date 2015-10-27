@@ -22,6 +22,10 @@ const std::string VideoDisplay::shader_source_scale_from_pixel_coordinates
       }
     )";
 
+/* octave> 255 * inv([219*[.7152 .0722 .2126]'
+                      224*[-0.38542789394266 .5 -0.11457210605734]'
+                      224*[-0.454152908305817 -0.0458470916941834 .5]']') */
+
 const std::string VideoDisplay::shader_source_ycbcr
 = R"( #version 130
       #extension GL_ARB_texture_rectangle : enable
@@ -38,14 +42,15 @@ const std::string VideoDisplay::shader_source_ycbcr
 
       void main()
       {
-        float fY = texture(yTex, raw_position).x * 1.1643828125;
-        float fU = texture(uTex, uv_texcoord).x;
-        float fV = texture(vTex, uv_texcoord).x;
+        float fY = texture(yTex, raw_position).x;
+        float fCb = texture(uTex, uv_texcoord).x;
+        float fCr = texture(vTex, uv_texcoord).x;
 
         outColor = vec4(
-          min(1.0, max(0.0, fY + 1.59602734375 * fV - 0.87078515625)),
-          min(1.0, max(0.0, fY - 0.39176171875 * fU - 0.81296875 * fV + 0.52959375)),
-          min(1.0, max(0.0, fY + 2.017234375   * fU - 1.081390625)),
+          max(0, min(1.0, 1.16438439417611 * (fY - 0.06274509803921568627) + 1.79274107142857 * (fCr - 0.50196078431372549019))),
+          max(0, min(1.0, 1.16438356164384 * (fY - 0.06274509803921568627) - 0.21324861427373 * (fCb - 0.50196078431372549019)
+          - 0.532909328559444 * (fCr - 0.50196078431372549019))),
+          max(0, min(1.0, 1.16438439417611 * (fY - 0.06274509803921568627) + 2.11240178571429 * (fCb - 0.50196078431372549019))),
           1.0
         );
       }
