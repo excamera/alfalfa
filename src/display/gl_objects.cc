@@ -86,6 +86,18 @@ pair<unsigned int, unsigned int> Window::size( void ) const
   return pair<unsigned int, unsigned int>( width, height );
 }
 
+pair<unsigned int, unsigned int> Window::window_size() const
+{
+  int width, height;
+  glfwGetWindowSize( window_.get(), &width, &height );
+
+  if ( width < 0 or height < 0 ) {
+    throw runtime_error( "negative window width or height" );
+  }
+
+  return pair<unsigned int, unsigned int>( width, height );
+}
+
 void Window::Deleter::operator() ( GLFWwindow * x ) const
 {
   glfwHideWindow( x );

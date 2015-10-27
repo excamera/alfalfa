@@ -142,6 +142,14 @@ void VideoDisplay::draw( const BaseRaster & raster )
 
 void VideoDisplay::repaint( void )
 {
+  pair<unsigned int, unsigned int> window_size = current_context_window_.window_.window_size();
+
+  if ( window_size.first != display_width_ or window_size.second != display_height_ ) {
+    display_width_ = window_size.first;
+    display_height_ = window_size.second;
+    resize( make_pair( display_width_, display_height_ ) );
+  }
+
   ArrayBuffer::bind( screen_corners_ );
   texture_shader_array_object_.bind();
   texture_shader_program_.use();

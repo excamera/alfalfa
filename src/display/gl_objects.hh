@@ -28,7 +28,6 @@ public:
 class Window
 {
   struct Deleter { void operator() ( GLFWwindow * x ) const; };
-
   std::unique_ptr<GLFWwindow, Deleter> window_;
 
 public:
@@ -39,6 +38,7 @@ public:
   void hide_cursor( const bool hidden );
   bool key_pressed( const int key ) const;
   std::pair<unsigned int, unsigned int> size( void ) const;
+  std::pair<unsigned int, unsigned int> window_size() const;
 };
 
 struct VertexObject
