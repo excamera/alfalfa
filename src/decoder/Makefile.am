@@ -9,6 +9,7 @@ noinst_LIBRARIES = libalfalfadecoder.a
 
 libalfalfadecoder_a_SOURCES = vp8_raster.hh block.hh bool_decoder.hh decoder.cc decoder.hh \
 	frame.cc frame_header.hh frame.hh \
+	frame_info.cc frame_info.hh \
 	loopfilter.cc loopfilter_filters.hh loopfilter.hh \
 	macroblock.cc macroblock.hh modemv_data.cc modemv_data.hh \
 	prediction.cc quantization.cc quantization.hh tokens.cc tokens.hh \

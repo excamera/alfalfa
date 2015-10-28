@@ -23,6 +23,8 @@ Makefile.in
 /stamp-h1
 /test-driver
 
+/src/format/protobufs/alfalfa.pb.cc
+/src/format/protobufs/alfalfa.pb.h
 /src/frontend/diff-sizes
 /src/frontend/denseify
 /src/frontend/frameify
@@ -31,6 +33,7 @@ Makefile.in
 /src/frontend/vp8play
 /src/frontend/vp8decode
 /src/frontend/collisions
+/src/frontend/alfalfa-import
 /src/tests/decode-to-stdout
 /src/tests/encode-loopback
 /src/tests/extract-key-frames

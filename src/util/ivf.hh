@@ -33,6 +33,7 @@ public:
   uint32_t frame_count( void ) const { return frame_count_; }
 
   Chunk frame( const uint32_t & index ) const;
+  std::pair<uint64_t, uint32_t> frame_location( const uint32_t & index ) const;
 };
 
 #endif /* IVF_HH */

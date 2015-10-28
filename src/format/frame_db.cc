@@ -1,67 +1,32 @@
 #include "frame_db.hh"
 
-FrameDB::FrameDB( const std::string & filename )
-  : filename_( filename ),
-    data_()
-{
-  std::ifstream fin( filename.c_str() );
+#include <algorithm>
 
-  if ( fin.good() ) {
-    load( fin );
+#include "serialization.hh"
+#include "protobufs/alfalfa.pb.h"
+
+void FrameDB::insert( FrameInfo fd )
+{
+  BasicDatabase::insert( fd );
+
+  if ( fd.ivf_filename().initialized() and
+    std::find( ivf_filenames_.begin(), ivf_filenames_.end(),
+      fd.ivf_filename().get() ) == ivf_filenames_.end() ) {
+    ivf_filenames_.push_back( fd.ivf_filename().get() );
   }
 }
 
-void FrameDB::load( ifstream & fin )
-{
-  data_.clear();
-
-  std::string line;
-
-  while ( std::getline( fin, line ) ) {
-    std::istringstream iss( line );
-
-    std::string frame_name;
-    std::string ivf_filename;
-    size_t offset;
-    size_t length;
-
-    if( not ( iss >> frame_name >> ivf_filename >> offset >> length ) ) {
-      break;
-    }
-
-    FrameData fd( frame_name, ivf_filename, offset, length );
-    insert( fd );
-  }
-}
-
-void FrameDB::save()
-{
-  ofstream fout( filename_.c_str() );
-
-  for( auto it = begin(); it != end(); it++) {
-    fout << (*it).frame_name << " " << (*it).ivf_filename << " "
-         << (*it).offset << " " << (*it).length << endl;
-  }
-
-  fout.close();
-}
-
-void FrameDB::insert( FrameData fd )
-{
-  data_.insert( fd );
-}
-
-std::pair<FrameDataSetByFrameName::iterator, FrameDataSetByFrameName::iterator>
-FrameDB::search_by_frame_name( std::string & frame_name )
-{
-  FrameDataSetByFrameName & data_by_frame_name = data_.get<0>();
-  return data_by_frame_name.equal_range( frame_name );
-}
+// std::pair<FrameDataSetByFrameName::iterator, FrameDataSetByFrameName::iterator>
+// FrameDB::search_by_frame_name( std::string & frame_name )
+// {
+//   FrameDataSetByFrameName & data_by_frame_name = data_.get<0>();
+//   return data_by_frame_name.equal_range( frame_name );
+// }
 
 std::pair<FrameDataSetByOutputHash::iterator, FrameDataSetByOutputHash::iterator>
 FrameDB::search_by_output_hash( const size_t & output_hash )
 {
-  FrameDataSetByOutputHash & data_by_output_hash = data_.get<1>();
+  FrameDataSetByOutputHash & data_by_output_hash = collection_.get<0>();
   return data_by_output_hash.equal_range( output_hash );
 }
 
@@ -76,7 +41,7 @@ FrameDB::search_by_decoder_hash( const DecoderHash & decoder_hash )
     make_optional( true, decoder_hash.alt_hash() )
   );
 
-  FrameDataSetBySourceHash & data_by_source_hash = data_.get<2>();
+  FrameDataSetBySourceHash & data_by_source_hash = collection_.get<1>();
   FrameDataSetSourceHashSearch results( data_by_source_hash, query_hash );
 
   return make_pair( results.begin(), results.end() );
@@ -172,14 +137,14 @@ bool FrameDataSetSourceHashSearch::FrameDataSetSourceHashSearchIterator
   return itr_ != rhs.itr_;
 }
 
-const FrameData & FrameDataSetSourceHashSearch::FrameDataSetSourceHashSearchIterator
+const FrameInfo & FrameDataSetSourceHashSearch::FrameDataSetSourceHashSearchIterator
 ::operator*() const
 {
   assert( itr_ != data_set_.end() );
   return *itr_;
 }
 
-const FrameData * FrameDataSetSourceHashSearch::FrameDataSetSourceHashSearchIterator
+const FrameInfo * FrameDataSetSourceHashSearch::FrameDataSetSourceHashSearchIterator
 ::operator->() const
 {
   assert( itr_ != data_set_.end() );

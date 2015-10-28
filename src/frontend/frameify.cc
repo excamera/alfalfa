@@ -58,7 +58,7 @@ private:
   {
     /* Serialize and write until next displayed frame */
     while ( not stream.eof() ) {
-      SerializedFrame frame = stream.serialize_next(); 
+      SerializedFrame frame = stream.serialize_next().first; 
       write_frame( frame );
       record_frame_stream( frame, stream_idx );
 

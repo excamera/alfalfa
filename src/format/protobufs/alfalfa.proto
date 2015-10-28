@@ -1,0 +1,47 @@
+package AlfalfaProtobufs;
+
+message SourceHash {
+  optional uint64 state_hash = 1;
+  optional uint64 continuation_hash = 2;
+  optional uint64 last_hash = 3;
+  optional uint64 golden_hash = 4;
+  optional uint64 alt_hash = 5;
+}
+
+message TargetHash {
+  required uint64 state_hash = 1;
+  required uint64 continuation_hash = 2;
+  required uint64 output_hash = 3;
+  required bool update_last = 4;
+  required bool update_golden = 5;
+  required bool update_alternate = 6;
+  required bool last_to_golden = 7;
+  required bool last_to_alternate = 8;
+  required bool golden_to_alternate = 9;
+  required bool alternate_to_golden = 10;
+  required bool shown = 11;
+}
+
+message RasterData {
+  required uint64 hash = 1;
+}
+
+message FrameInfo {
+  optional string ivf_filename = 1;
+  required uint64 offset = 2;
+  required uint64 length = 3;
+  required SourceHash source_hash = 4;
+  required TargetHash target_hash = 5;
+}
+
+message QualityData {
+  required uint64 original_raster = 1;
+  required uint64 approximate_raster = 2;
+  required double quality = 3;
+}
+
+message TrackData {
+  required uint64 id = 1;
+  required SourceHash source_hash = 2;
+  required TargetHash target_hash = 3;
+}

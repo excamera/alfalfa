@@ -1,6 +1,6 @@
 AM_CPPFLAGS = -I$(srcdir)/../util -I$(srcdir)/../decoder -I$(srcdir)/../format -I$(srcdir)/../encoder $(X264_CFLAGS) $(CXX11_FLAGS)
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(NODEBUG_CXXFLAGS)
-LDADD = ../format/libalfalfavideo.a ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../util/libalfalfautil.a $(X264_LIBS)
+LDADD = ../format/libalfalfavideo.a ../format/protobufs/libalfalfaprotobufs.a ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../util/libalfalfautil.a $(X264_LIBS) $(PROTOBUF_LIBS)
 check_PROGRAMS = extract-key-frames decode-to-stdout encode-loopback roundtrip switch-to-stdout \
 		 videodir-to-stdout state-collisions ivfcopy framedb-test framedb-benchmark ivfcompare
 
@@ -16,6 +16,6 @@ framedb_test_SOURCES = framedb-test.cc
 framedb_benchmark_SOURCES = framedb-benchmark.cc
 ivfcompare_SOURCES = ivfcompare.cc
 
-dist_check_SCRIPTS = decoding-test roundtrip-verify switch-test framedb-verify ivfcopy-test
+dist_check_SCRIPTS = decoding-test roundtrip-verify switch-test ivfcopy-test
 
-TESTS = decoding-test encode-loopback roundtrip-verify framedb-verify ivfcopy-test # switch-test
+TESTS = decoding-test encode-loopback roundtrip-verify framedb-test ivfcopy-test # switch-test

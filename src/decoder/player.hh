@@ -6,8 +6,16 @@
 #include <memory>
 
 #include "ivf.hh"
+#include "frame_info.hh"
 #include "decoder.hh"
 #include "serialized_frame.hh"
+
+struct FrameRawData
+{
+  Chunk chunk;
+  uint64_t offset;
+  uint32_t length;
+};
 
 class FramePlayer
 {
@@ -39,27 +47,19 @@ class FilePlayer : public FramePlayer
 {
 private:
   IVF file_;
-
   unsigned int frame_no_ { 0 };
-
   FilePlayer( IVF && file );
 
 protected:
-  Chunk get_next_frame( void );
+  FrameRawData get_next_frame();
 
 public:
   FilePlayer( const std::string & file_name );
+  RasterHandle advance();
+  bool eof() const;
+  unsigned int cur_frame_no() const { return frame_no_ - 1; }
 
-  RasterHandle advance( void );
-
-  bool eof( void ) const;
-
-  unsigned int cur_frame_no( void ) const
-  { 
-    return frame_no_ - 1;
-  }
-
-  long unsigned int original_size( void ) const;
+  long unsigned int original_size() const;
 };
 
 using Player = FilePlayer;

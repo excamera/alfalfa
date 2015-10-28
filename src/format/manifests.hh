@@ -1,81 +1,123 @@
 #ifndef MANIFESTS_HH
 #define MANIFESTS_HH
 
+#include <set>
 #include <string>
 #include <vector>
 
-#include "kvstore.hh"
+#include "db.hh"
+#include "dependency_tracking.hh"
+#include "serialization.hh"
+#include "protobufs/alfalfa.pb.h"
 
-/* sequence of hashes of the original rasters that the video approximates */
+/*
+ * Raster List
+ *  sequence of hashes of the original rasters that the video approximates
+ */
 
-class RasterList
+struct RasterListCollectionSequencedTag;
+
+typedef multi_index_container
+<
+  RasterData,
+  indexed_by
+  <
+    hashed_unique<member<RasterData, size_t, &RasterData::hash>>,
+    sequenced<tag<RasterListCollectionSequencedTag>>
+  >
+> RasterListCollection;
+
+typedef RasterListCollection::nth_index<0>::type RasterListCollectionByHash;
+
+class RasterList : public BasicDatabase<RasterData, AlfalfaProtobufs::RasterData,
+  RasterListCollection, RasterListCollectionSequencedTag>
 {
 public:
-  RasterList( const std::string & filename );
+  RasterList( const std::string & filename, const std::string & magic_number, OpenMode mode = OpenMode::READ )
+  : BasicDatabase<RasterData, AlfalfaProtobufs::RasterData,
+    RasterListCollection, RasterListCollectionSequencedTag>( filename, magic_number, mode )
+  {}
+
+  bool has( const size_t & raster_hash )
+  {
+    RasterListCollectionByHash & data_by_hash = collection_.get<0>();
+    return data_by_hash.count( raster_hash ) > 0;
+  }
 };
 
-struct QualityData
+/*
+ * Quality DB
+ *   sequence of original raster / approximate raster / quality
+ */
+
+struct QualityDBCollectionSequencedTag;
+
+typedef multi_index_container
+<
+  QualityData,
+  indexed_by
+  <
+    hashed_non_unique<member<QualityData, size_t, &QualityData::original_raster> >,
+    hashed_non_unique<member<QualityData, size_t, &QualityData::approximate_raster> >,
+    sequenced<tag<QualityDBCollectionSequencedTag> >
+  >
+> QualityDBCollection;
+
+typedef QualityDBCollection::nth_index<0>::type QualityDBCollectionByOriginalRaster;
+typedef QualityDBCollection::nth_index<1>::type QualityDBCollectionByApproximateRaster;
+
+class QualityDB : public BasicDatabase<QualityData, AlfalfaProtobufs::QualityData,
+  QualityDBCollection, QualityDBCollectionSequencedTag>
 {
-  size_t approximate_raster;
-  double quality;
+public:
+  QualityDB( const std::string & filename, const std::string & magic_number, OpenMode mode = OpenMode::READ )
+  : BasicDatabase<QualityData, AlfalfaProtobufs::QualityData,
+    QualityDBCollection, QualityDBCollectionSequencedTag>( filename, magic_number, mode )
+  {}
 
-  friend std::ostream & operator<<(std::ostream & stream, QualityData const & qd) {
-    stream << qd.approximate_raster << " " << qd.quality;
-    return stream;
-  }
-
-  friend std::istream & operator>>(std::istream & stream, QualityData & qd) {
-    stream >> qd.approximate_raster >> qd.quality;
-    return stream;
-  }
+  // TODO(Deepak): Add methods here as needed
 };
 
-class TrackDataVector : public vector<std::string>
+/*
+ * Track DB
+ *   mapping from ID to { sequence of frames }
+ */
+
+struct TrackDBCollectionSequencedTag;
+
+// TODO(Deepak): Fix composite key here
+typedef multi_index_container
+<
+  TrackData,
+  indexed_by
+  <
+    hashed_non_unique<member<TrackData, size_t, &TrackData::id>>,
+    /*hashed_non_unique
+    <
+      composite_key
+      <
+        TrackData,
+        member<TrackData, SourceHash, &TrackData::source_hash>,
+        member<TrackData, TargetHash, &TrackData::target_hash>
+      >
+    >,*/
+    sequenced<tag<TrackDBCollectionSequencedTag>>
+  >
+> TrackDBCollection;
+
+typedef TrackDBCollection::nth_index<0>::type TrackDBCollectionById;
+// typedef TrackDBCollection::nth_index<1>::type TrackDBCollectionByFrame;
+
+class TrackDB : public BasicDatabase<TrackData, AlfalfaProtobufs::TrackData,
+  TrackDBCollection, TrackDBCollectionSequencedTag>
 {
-  friend std::ostream & operator<<(std::ostream & stream, TrackDataVector const & tdv) {
-    stream << tdv.size() << " ";
+public:
+  TrackDB( const std::string & filename, const std::string & magic_number, OpenMode mode = OpenMode::READ )
+  : BasicDatabase<TrackData, AlfalfaProtobufs::TrackData,
+    TrackDBCollection, TrackDBCollectionSequencedTag>( filename, magic_number, mode )
+  {}
 
-    for ( auto it = tdv.begin(); it != tdv.end(); it++ ) {
-      stream << *it;
-
-      if ( it + 1 != tdv.end() ) {
-        stream << " ";
-      }
-    }
-
-    return stream;
-  }
-
-  friend std::istream & operator>>(std::istream & stream, TrackDataVector & tdv) {
-    int count;
-    stream >> count;
-
-    tdv.clear();
-    tdv.reserve(count);
-
-    for ( int i = 0; i < count; i++ ) {
-      std::string temp;
-      stream >> temp;
-      tdv.emplace_back( temp );
-    }
-
-    return stream;
-  }
+  // TODO(Deepak): Add methods here as needed
 };
-
-/* relation:
-   original raster / approximate raster / quality */
-
-using QualityDB = KVStore< size_t, QualityData >;
-
-/* relation:
-   frame name / IVF filename / offset / length */
-
-// using FrameDB = Database< std::string, FrameData >;
-
-/* relation:
-   ID => { sequence of frame names } */
-
-using TrackDB = KVStore< size_t, TrackDataVector >;
 
 #endif /* MANIFESTS_HH */

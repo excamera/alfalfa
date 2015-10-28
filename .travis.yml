@@ -5,7 +5,6 @@ services: docker
 addons:
   apt:
     sources:
-    - debian-sid
     - ubuntu-toolchain-r-test
     packages:
     - g++-4.9
@@ -14,11 +13,18 @@ addons:
     - libxcursor-dev
     - libglu1-mesa-dev
     - libboost1.55-dev
+    - libprotobuf-dev
+    - protobuf-compiler
     - libx264-dev
     - libxrandr-dev
     - libxi-dev
-    - libglfw3-dev
     - libglew-dev
+
+before_script:
+  - curl -sSL https://ftp-master.debian.org/keys/archive-key-7.0.asc | sudo -E apt-key add -
+  - sudo -E add-apt-repository -y 'deb http://ftp.us.debian.org/debian unstable main contrib non-free'
+  - sudo apt-get update -qq
+  - sudo apt-get install -y -qq libglfw3-dev
 
 script: "./autogen.sh && ./configure --enable-debug CXX='g++-4.9' && make && make check || (cat src/tests/test-suite.log && exit 1)"
 

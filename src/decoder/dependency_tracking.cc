@@ -11,9 +11,9 @@ using namespace std;
 bool & DependencyTracker::reference( const reference_frame reference_id )
 {
   switch( reference_id ) {
-    case LAST_FRAME: 
+    case LAST_FRAME:
       return need_last;
-    case GOLDEN_FRAME: 
+    case GOLDEN_FRAME:
       return need_golden;
     case ALTREF_FRAME:
       return need_alternate;
@@ -27,7 +27,7 @@ static SourceHash decode_source( const string & frame_name )
   SafeArray<Optional<size_t>, 5> components;
 
   size_t end_pos = frame_name.find( '#' );
-  
+
   size_t split_pos = 0;
   for ( int i = 0; i < 5; i++ ) {
     size_t old_pos = split_pos;
@@ -38,7 +38,7 @@ static SourceHash decode_source( const string & frame_name )
       // Find the next '#', otherwise we would include the whole remainder of the string
       split_pos = end_pos;
     }
-    
+
     string component = string( frame_name, old_pos, split_pos - old_pos );
     if ( component == "x" ) {
       components.at( i ) = Optional<size_t>();
@@ -54,6 +54,11 @@ static SourceHash decode_source( const string & frame_name )
                      components.at( 3 ), components.at( 4 ) );
 }
 
+SourceHash::SourceHash()
+  : SourceHash( Optional<size_t>(), Optional<size_t>(), Optional<size_t>(),
+    Optional<size_t>(), Optional<size_t>() )
+{}
+
 SourceHash::SourceHash( const string & frame_name )
   : SourceHash( decode_source( frame_name ) )
 {}
@@ -62,9 +67,9 @@ template<bool state_init, bool continuation_init, bool last_init, bool golden_in
 bool generic_can_decode( const SourceHash & source, const DecoderHash & decoder )
 {
   return ( !state_init or source.state_hash.get() == decoder.state_hash() ) and
-    ( !continuation_init or source.continuation_hash.get() == decoder.continuation_hash() ) and 
+    ( !continuation_init or source.continuation_hash.get() == decoder.continuation_hash() ) and
     ( !last_init or source.last_hash.get() == decoder.last_hash() ) and
-    ( !golden_init or source.golden_hash.get() == decoder.golden_hash() ) and 
+    ( !golden_init or source.golden_hash.get() == decoder.golden_hash() ) and
     ( !alternate_init or source.alt_hash.get() == decoder.alt_hash() );
 }
 
@@ -138,6 +143,20 @@ string SourceHash::str( void ) const
   return hash_str.str();
 }
 
+bool SourceHash::operator==( const SourceHash & other ) const
+{
+  return ( state_hash == other.state_hash and
+    continuation_hash == other.continuation_hash and
+    last_hash         == other.last_hash and
+    golden_hash       == other.golden_hash and
+    alt_hash          == other.alt_hash );
+}
+
+bool SourceHash::operator!=( const SourceHash & other ) const
+{
+  return !( ( *this ) == other );
+}
+
 UpdateTracker::UpdateTracker( bool set_update_last, bool set_update_golden,
                               bool set_update_alternate, bool set_last_to_golden,
                               bool set_last_to_alternate, bool set_golden_to_alternate,
@@ -151,10 +170,14 @@ UpdateTracker::UpdateTracker( bool set_update_last, bool set_update_golden,
     alternate_to_golden( set_alternate_to_golden )
 {}
 
+UpdateTracker::UpdateTracker()
+  : UpdateTracker( false, false, false, false, false, false, false )
+{}
+
 static TargetHash decode_target( const string & frame_name )
 {
   SafeArray<size_t, 11> components;
-  
+
   size_t split_pos = frame_name.find( '#' );
 
   for ( int i = 0; i < 11; i++ ) {
@@ -169,7 +192,7 @@ static TargetHash decode_target( const string & frame_name )
   return TargetHash( UpdateTracker( components.at( 4 ), components.at ( 5 ), components.at( 6 ),
                                     components.at( 7 ), components.at( 8 ), components.at( 9 ),
                                     components.at( 10 ) ),
-                     components.at( 0 ), components.at( 1 ), components.at( 2 ), components.at( 3 ) ); 
+                     components.at( 0 ), components.at( 1 ), components.at( 2 ), components.at( 3 ) );
 }
 
 TargetHash::TargetHash( const string & frame_name )
@@ -185,6 +208,11 @@ TargetHash::TargetHash( const UpdateTracker & updates, size_t state,
     shown( show )
 {}
 
+TargetHash::TargetHash()
+: UpdateTracker(), state_hash( 0 ), continuation_hash( 0 ), output_hash( 0 ),
+  shown( false )
+{}
+
 string TargetHash::str() const
 {
   stringstream hash_str;
@@ -197,6 +225,25 @@ string TargetHash::str() const
     golden_to_alternate << "_" << alternate_to_golden;
 
   return hash_str.str();
+}
+
+bool TargetHash::operator==( const TargetHash & other ) const
+{
+  return ( state_hash == other.state_hash and
+    continuation_hash == other.continuation_hash and
+    output_hash == other.output_hash and
+    update_last == other.update_last and
+    update_golden == other.update_golden and
+    update_alternate == other.update_alternate and
+    last_to_golden == other.last_to_golden and
+    last_to_alternate == other.last_to_alternate and
+    golden_to_alternate == other.golden_to_alternate and
+    alternate_to_golden == other.alternate_to_golden );
+}
+
+bool TargetHash::operator!=( const TargetHash & other ) const
+{
+  return !( ( *this ) == other );
 }
 
 DecoderHash::DecoderHash( size_t state_hash, size_t continuation_hash, size_t last_hash, size_t golden_hash, size_t alt_hash )

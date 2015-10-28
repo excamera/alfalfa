@@ -45,6 +45,7 @@ AC_SUBST([ASFLAGS])
 
 # Checks for libraries.
 PKG_CHECK_MODULES([GL], [gl])
+PKG_CHECK_MODULES([PROTOBUF], [protobuf])
 PKG_CHECK_MODULES([GLU], [glu])
 PKG_CHECK_MODULES([X264], [x264])
 PKG_CHECK_MODULES([GLFW3], [glfw3])
@@ -59,6 +60,10 @@ AC_CHECK_HEADERS([boost/functional/hash.hpp], [], [AC_MSG_ERROR[Missing boost ha
 AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp boost/graph/graph_traits.hpp], [], [AC_MSG_ERROR[Missing boost graph]])
 
 AC_CHECK_HEADERS([boost/multi_index_container.hpp boost/multi_index/member.hpp boost/multi_index/hashed_index.hpp boost/multi_index/sequenced_index.hpp], [], [AC_MSG_ERROR[Missing boost multi-index]])
+
+AC_PATH_PROG([PROTOC], [protoc], [])
+AS_IF([test x"$PROTOC" = x],
+  [AC_MSG_ERROR([cannot find protoc, the Protocol Buffers compiler])])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_INLINE
@@ -79,12 +84,14 @@ AC_LANG_POP(C++)
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
-		 src/util/Makefile
+                 src/util/Makefile
                  src/decoder/Makefile
-		 src/format/Makefile
+                 src/format/Makefile
+                 src/format/protobufs/Makefile
                  src/display/Makefile
                  src/frontend/Makefile
-		 src/tests/Makefile
-		 src/encoder/Makefile])
+                 src/tests/Makefile
+                 src/encoder/Makefile
+                 man/Makefile])
 
 AC_OUTPUT

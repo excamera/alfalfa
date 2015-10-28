@@ -31,7 +31,7 @@ SerializedFrame::SerializedFrame( const string & path )
 
 SerializedFrame::SerializedFrame( const vector<uint8_t> & frame,
 				  const SourceHash & source_hash,
-				  const TargetHash & target_hash, 
+				  const TargetHash & target_hash,
                                   const Optional<RasterHandle> & output )
   : frame_( frame ),
     source_hash_( source_hash ),

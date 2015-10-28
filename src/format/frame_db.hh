@@ -1,130 +1,80 @@
 #ifndef FRAME_DB_HH
 #define FRAME_DB_HH
 
+#include <map>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <iterator>
-#include <boost/functional/hash.hpp>
-#include <boost/multi_index_container.hpp>
 #include <boost/multi_index/member.hpp>
+#include <boost/multi_index_container.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
+#include <boost/multi_index/composite_key.hpp>
+#include <boost/multi_index/tag.hpp>
 
+#include <google/protobuf/io/coded_stream.h>
+#include <google/protobuf/io/zero_copy_stream_impl.h>
+
+#include "db.hh"
+#include "optional.hh"
+#include "frame_info.hh"
 #include "dependency_tracking.hh"
+#include "protobufs/alfalfa.pb.h"
 
 using namespace std;
-using namespace boost;
 using namespace boost::multi_index;
 using boost::multi_index_container;
 
-struct FrameData
-{
-  std::string frame_name;
-
-  std::string ivf_filename;
-  size_t offset;
-  size_t length;
-
-  SourceHash source_hash;
-  TargetHash target_hash;
-
-  FrameData( std::string frame_name,
-    std::string ivf_filename,
-    size_t offset,
-    size_t length )
-    : frame_name( frame_name ),
-      ivf_filename( ivf_filename ),
-      offset( offset ),
-      length( length ),
-      source_hash( frame_name ),
-      target_hash( frame_name )
-  {}
-
-  FrameData( std::string frame_name,
-    std::string ivf_filename,
-    size_t offset,
-    size_t length,
-    SourceHash source_hash,
-    TargetHash target_hash )
-    : frame_name( frame_name ),
-      ivf_filename( ivf_filename ),
-      offset( offset ),
-      length( length ),
-      source_hash( source_hash ),
-      target_hash( target_hash )
-  {}
-};
-
-struct FrameData_SourceHashHash
-{
-  size_t operator()( const SourceHash & hash ) const
-  {
-    size_t hash_val = 0;
-
-    boost::hash_combine( hash_val, hash.state_hash.initialized() ? hash.state_hash.get() : 0 );
-    boost::hash_combine( hash_val, hash.continuation_hash.initialized() ? hash.continuation_hash.get() : 0 );
-    boost::hash_combine( hash_val, hash.last_hash.initialized() ? hash.last_hash.get() : 0 );
-    boost::hash_combine( hash_val, hash.golden_hash.initialized() ? hash.golden_hash.get() : 0 );
-    boost::hash_combine( hash_val, hash.alt_hash.initialized() ? hash.alt_hash.get() : 0 );
-
-    return hash_val;
-  }
-};
-
-struct FrameData_SourceHashEqualTo
-{
-  bool operator()( const SourceHash & lhs, const SourceHash & rhs ) const
-  {
-    return ( lhs.state_hash == rhs.state_hash and
-      lhs.continuation_hash == rhs.continuation_hash and
-      lhs.last_hash         == rhs.last_hash and
-      lhs.golden_hash       == rhs.golden_hash and
-      lhs.alt_hash          == rhs.alt_hash );
-  }
-};
+using namespace google::protobuf::io;
 
 struct FrameData_OutputHashExtractor
 {
-  typedef size_t result_type;
+  typedef const size_t result_type;
 
-  const result_type & operator()( const FrameData & fd ) const { return fd.target_hash.output_hash; }
-  result_type & operator()( FrameData * fd ) { return fd->target_hash.output_hash; }
+  const result_type & operator()( const FrameInfo & fd ) const { return fd.target_hash().output_hash; }
+  result_type & operator()( FrameInfo * fd ) { return fd->target_hash().output_hash; }
 };
 
 struct FrameData_SourceHashExtractor
 {
-  typedef SourceHash result_type;
+  typedef const SourceHash result_type;
 
-  const result_type & operator()( const FrameData & fd ) const { return fd.source_hash; }
-  result_type & operator()( FrameData * fd ) { return fd->source_hash; }
+  const result_type & operator()( const FrameInfo & fd ) const { return fd.source_hash(); }
+  result_type & operator()( FrameInfo * fd ) { return fd->source_hash(); }
 };
 
-typedef multi_index_container<
-  FrameData,
-  indexed_by<
-    hashed_unique<member<FrameData, std::string, &FrameData::frame_name> >,
+struct FrameData_TargetHashExtractor
+{
+  typedef const TargetHash result_type;
+
+  const result_type & operator()( const FrameInfo & fd ) const { return fd.target_hash(); }
+  result_type & operator()( FrameInfo * fd ) { return fd->target_hash(); }
+};
+
+struct FrameDataSetSequencedTag;
+
+typedef multi_index_container
+<
+  FrameInfo,
+  indexed_by
+  <
     hashed_non_unique<FrameData_OutputHashExtractor>,
-    hashed_non_unique<FrameData_SourceHashExtractor,
-      FrameData_SourceHashHash,
-      FrameData_SourceHashEqualTo>,
-    sequenced<>
+    hashed_non_unique<FrameData_SourceHashExtractor, std::hash<SourceHash>, std::equal_to<SourceHash> >,
+    sequenced<tag<FrameDataSetSequencedTag> >
   >
 > FrameDataSet;
 
-typedef FrameDataSet::nth_index<0>::type FrameDataSetByFrameName;
-typedef FrameDataSet::nth_index<1>::type FrameDataSetByOutputHash;
-typedef FrameDataSet::nth_index<2>::type FrameDataSetBySourceHash;
-typedef FrameDataSet::nth_index<3>::type FrameDataSetRandomAccess;
+// typedef FrameDataSet::nth_index<0>::type FrameDataSetByFrameName;
+typedef FrameDataSet::nth_index<0>::type FrameDataSetByOutputHash;
+typedef FrameDataSet::nth_index<1>::type FrameDataSetBySourceHash;
+typedef FrameDataSet::index<FrameDataSetSequencedTag>::type FrameDataSetSequencedAccess;
 
 class FrameDataSetSourceHashSearch
 {
 private:
   class FrameDataSetSourceHashSearchIterator
-    : public std::iterator<std::forward_iterator_tag,
-                          FrameData,
-                          std::ptrdiff_t,
-                          FrameData*,
-                          FrameData&>
+    : public std::iterator<std::forward_iterator_tag, FrameInfo>
   {
   private:
     size_t stage_;
@@ -145,8 +95,8 @@ private:
     bool operator==( const FrameDataSetSourceHashSearchIterator & rhs ) const;
     bool operator!=( const FrameDataSetSourceHashSearchIterator & rhs ) const;
 
-    const FrameData & operator*() const;
-    const FrameData * operator->() const;
+    const FrameInfo & operator*() const;
+    const FrameInfo * operator->() const;
   };
 
   SourceHash source_hash_;
@@ -162,31 +112,28 @@ public:
   iterator end() { return end_iterator_; }
 };
 
-class FrameDB
+class FrameDB : public BasicDatabase<FrameInfo, AlfalfaProtobufs::FrameInfo,
+  FrameDataSet, FrameDataSetSequencedTag>
 {
 private:
-  std::string filename_;
-  FrameDataSet data_;
-  void load( ifstream & fin );
+  vector<std::string> ivf_filenames_;
 
 public:
-  FrameDB( const std::string & filename );
+  FrameDB( const std::string & filename, const std::string & magic_number, OpenMode mode = OpenMode::READ )
+    : BasicDatabase<FrameInfo, AlfalfaProtobufs::FrameInfo,
+      FrameDataSet, FrameDataSetSequencedTag>( filename, magic_number, mode ),
+      ivf_filenames_()
+  {}
 
-  void insert( FrameData fd );
+  void insert( FrameInfo fi );
 
-  std::pair<FrameDataSetByFrameName::iterator, FrameDataSetByFrameName::iterator>
-  search_by_frame_name( std::string & frame_name );
+  vector<std::string> ivf_files() { return ivf_filenames_; }
 
   std::pair<FrameDataSetByOutputHash::iterator, FrameDataSetByOutputHash::iterator>
   search_by_output_hash( const size_t & output_hash );
 
   std::pair<FrameDataSetSourceHashSearch::iterator, FrameDataSetSourceHashSearch::iterator>
   search_by_decoder_hash( const DecoderHash & decoder_hash );
-
-  FrameDataSetRandomAccess::iterator begin() { return data_.get<3>().begin(); }
-  FrameDataSetRandomAccess::iterator end() { return data_.get<3>().end(); }
-
-  void save();
 };
 
 #endif /* FRAME_DB */

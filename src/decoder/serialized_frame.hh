@@ -23,7 +23,7 @@ public:
                    const Optional<RasterHandle> & output );
 
   SerializedFrame( const Chunk & frame,
-		   const SourceHash & source_hash, const TargetHash & target_hash,
+                   const SourceHash & source_hash, const TargetHash & target_hash,
                    const Optional<RasterHandle> & output );
 
   Chunk chunk( void ) const;
@@ -36,6 +36,7 @@ public:
 
   bool shown( void ) const;
 
+  SourceHash get_source_hash( void ) const { return source_hash_; }
   TargetHash get_target_hash( void ) const { return target_hash_; }
 
   RasterHandle get_output( void ) const { return output_raster_.get(); }

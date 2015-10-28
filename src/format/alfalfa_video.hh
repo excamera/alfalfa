@@ -18,17 +18,26 @@
 
 */
 
+#define FRAME_DB_FILENAME "frame.db"
+#define RASTER_LIST_FILENAME "raster.db"
+#define QUALITY_DB_FILENAME "quality.db"
+#define TRACK_DB_FILENAME "track.db"
+
 #include <unordered_map>
 
+#include "db.hh"
 #include "ivf.hh"
 #include "manifests.hh"
 #include "frame_db.hh"
 
 class AlfalfaVideo
 {
-private:
+public:
   class VideoDirectory
   {
+  private:
+    std::string directory_path_;
+
   public:
     VideoDirectory( const std::string & name );
 
@@ -38,17 +47,20 @@ private:
     std::string track_db_filename() const;
   };
 
+private:
   VideoDirectory directory_;
-  std::unordered_map<std::string, IVF> video_files_;
+  OpenMode mode_;
   RasterList raster_list_;
   QualityDB quality_db_;
   FrameDB frame_db_;
   TrackDB track_db_;
 
 public:
-  AlfalfaVideo( const std::string & directory_name );
+  AlfalfaVideo( const std::string & directory_name, OpenMode mode );
 
   void add_ivf_file( std::string & name, const IVF & file );
+
+  void import_ivf_file( const std::string & filename );
 
   RasterList & raster_list() { return raster_list_; }
   const RasterList & raster_list() const { return raster_list_; }
@@ -61,6 +73,9 @@ public:
 
   TrackDB & track_db() { return track_db_; }
   const TrackDB & track_db() const { return track_db_; }
+
+  bool good() const;
+  bool save();
 };
 
 #endif /* ALFALFA_VIDEO_HH */

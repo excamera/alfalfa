@@ -28,7 +28,7 @@ Optional<RasterHandle> FramePlayer::decode( const SerializedFrame & frame )
 
   return raster;
 }
-  
+
 bool FramePlayer::can_decode( const SerializedFrame & frame ) const
 {
   // FIXME shouldn't have to fully hash this?
@@ -69,7 +69,7 @@ FilePlayer::FilePlayer( IVF && file )
 
   // Start at first KeyFrame
   while ( frame_no_ < file_.frame_count() ) {
-    UncompressedChunk uncompressed_chunk = decoder_.decompress_frame( file_.frame( frame_no_ ) ); 
+    UncompressedChunk uncompressed_chunk = decoder_.decompress_frame( file_.frame( frame_no_ ) );
     if ( uncompressed_chunk.key_frame() ) {
       break;
     }
@@ -77,15 +77,16 @@ FilePlayer::FilePlayer( IVF && file )
   }
 }
 
-Chunk FilePlayer::get_next_frame( void )
+FrameRawData FilePlayer::get_next_frame( void )
 {
-  return file_.frame( frame_no_++ );
+  pair<uint64_t, uint32_t> frame_location = file_.frame_location( frame_no_ );
+  return { file_.frame( frame_no_++ ), frame_location.first, frame_location.second };
 }
 
 RasterHandle FilePlayer::advance( void )
 {
   while ( not eof() ) {
-    Optional<RasterHandle> raster = decode( get_next_frame() );
+    Optional<RasterHandle> raster = decode( get_next_frame().chunk );
     if ( raster.initialized() ) {
       return raster.get();
     }

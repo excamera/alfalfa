@@ -1,0 +1,15 @@
+.TH ALFALFA-IMPORT 1 "October 24, 2015"
+.SH NAME
+\fBalfalfa-import\fP \- create a new Alfalfa video
+.SH SYNOPSIS
+.B alfalfa-import
+.IR ivf-file
+.IR destination-dir
+.SH DESCRIPTION
+\fBalfalfa-import\fP takes an IVF file and creates an Alfalfa video from it.
+
+In addition to path to IVF file, it also needs a \fIdestination-dir\fP and
+creates Alfalfa manifests and a symlink to the IVF file in there.
+If \fIdestination-dir\fP does not exist, this utility will try to create it.
+However, if \fIdestination-dir\fP already exists in filesystem, it must be
+empty.

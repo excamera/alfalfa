@@ -13,23 +13,13 @@
 
 using namespace std;
 
-bool is_equal( const SourceHash & lhs, const DecoderHash & rhs )
-{
-  return ( not lhs.state_hash.initialized() or ( lhs.state_hash.get() == rhs.state_hash() ) ) and
-    ( not lhs.continuation_hash.initialized() or ( lhs.continuation_hash.get() == rhs.continuation_hash() ) ) and
-    ( not lhs.last_hash.initialized() or ( lhs.last_hash.get() == rhs.last_hash() ) ) and
-    ( not lhs.golden_hash.initialized() or ( lhs.golden_hash.get() == rhs.golden_hash() ) ) and
-    ( not lhs.alt_hash.initialized() or ( lhs.alt_hash.get() == rhs.alt_hash() ) );
-}
-
 int main()//( int argc, char const *argv[] )
 {
   // loading frame_manifest
-
   vector<double> fdb_linear_search_times;
   vector<double> fdb_hashed_search_times;
 
-  FrameDB fdb( "fake.db" );
+  FrameDB fdb( "fake.db", "ALFAFRDB" );
 
   std::string line;
   std::string frame_name;
@@ -41,7 +31,8 @@ int main()//( int argc, char const *argv[] )
   while ( getline( fin, line ) ) {
     istringstream ss( line );
     ss >> frame_name >> offset;
-    FrameData fd( frame_name, "test.ivf", offset, 100 );
+    FrameInfo fd( frame_name, offset, 100 );
+    fd.set_ivf_filename( "test.ivf" );
     fdb.insert(fd);
   }
 
@@ -49,14 +40,14 @@ int main()//( int argc, char const *argv[] )
 
   cout << "frame_manifest read completed." << endl;
 
-  vector<vector<FrameData> > streams;
+  vector<vector<FrameInfo> > streams;
 
   fin.open( "manifests/stream_manifest" );
 
   while ( getline( fin, line ) ) {
     istringstream ss( line );
     ss >> q >> frame_name;
-    FrameData fd( frame_name, "", 0, 0 );
+    FrameInfo fd( frame_name, 0, 0 );
 
     if( q >= streams.size() ) {
       streams.resize( q + 1 );
@@ -79,7 +70,7 @@ int main()//( int argc, char const *argv[] )
     cout << "Stream " << stream_idx++ << "..." << endl;
 
     for ( auto const & frame : stream ) {
-      decoder_hash.update( frame.target_hash );
+      decoder_hash.update( frame.target_hash() );
 
       // looking for the decoder hash using search_by_source_hash method.
       start = std::chrono::system_clock::now();
@@ -95,7 +86,7 @@ int main()//( int argc, char const *argv[] )
       start = std::chrono::system_clock::now();
 
       for ( auto it = fdb.begin(); it != fdb.end(); it++ ) {
-        if ( is_equal( it->source_hash, decoder_hash ) ) {
+        if ( decoder_hash.can_decode( it->source_hash() ) ) {
 
         }
       }
