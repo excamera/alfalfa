@@ -24,17 +24,21 @@ struct QualityData
 
 struct TrackData
 {
-  size_t id;
+  size_t track_id;
+  size_t frame_id;
   SourceHash source_hash;
   TargetHash target_hash;
 
-  TrackData( const size_t & id, const SourceHash & source_hash,
-    const TargetHash & target_hash )
-    : id( id ), source_hash( source_hash ), target_hash( target_hash )
+  TrackData( const size_t & track_id, const size_t & frame_id,
+    const SourceHash & source_hash, const TargetHash & target_hash )
+    : track_id( track_id ),
+      frame_id( frame_id ),
+      source_hash( source_hash ),
+      target_hash( target_hash )
   {}
 
   TrackData()
-    : id(0), source_hash(), target_hash()
+    : track_id(0), frame_id(0), source_hash(), target_hash()
   {}
 };
 

@@ -54,6 +54,7 @@ void AlfalfaVideo::import_ivf_file( const string & filename )
 
   TrackingPlayer player( filename );
 
+  size_t frame_id = 1;
   while ( not player.eof() ) {
     FrameInfo next_frame( player.serialize_next().second );
     next_frame.set_ivf_filename( filename );
@@ -71,16 +72,17 @@ void AlfalfaVideo::import_ivf_file( const string & filename )
         1.0
       }
     );
-    // TODO: Need to fix this
     frame_db_.insert( next_frame );
     // TODO: Fix ID here
     track_db_.insert(
       TrackData{
         0,
+        frame_id,
         next_frame.source_hash(),
         next_frame.target_hash()
       }
     );
+    frame_id++;
   }
 
   save();

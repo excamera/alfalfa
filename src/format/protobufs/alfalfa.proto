@@ -41,7 +41,8 @@ message QualityData {
 }
 
 message TrackData {
-  required uint64 id = 1;
-  required SourceHash source_hash = 2;
-  required TargetHash target_hash = 3;
+  required uint64 track_id = 1;
+  required uint64 frame_id = 2;
+  required SourceHash source_hash = 3;
+  required TargetHash target_hash = 4;
 }

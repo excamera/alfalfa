@@ -85,28 +85,48 @@ public:
 
 struct TrackDBCollectionSequencedTag;
 
-// TODO(Deepak): Fix composite key here
 typedef multi_index_container
 <
   TrackData,
   indexed_by
   <
-    hashed_non_unique<member<TrackData, size_t, &TrackData::id>>,
-    /*hashed_non_unique
+    ordered_unique
     <
       composite_key
       <
         TrackData,
+        member<TrackData, size_t, &TrackData::track_id>,
+        member<TrackData, size_t, &TrackData::frame_id>
+      >
+    >,
+    hashed_unique
+    <
+      composite_key
+      <
+        TrackData,
+        member<TrackData, size_t, &TrackData::track_id>,
         member<TrackData, SourceHash, &TrackData::source_hash>,
         member<TrackData, TargetHash, &TrackData::target_hash>
+      >,
+      composite_key_hash
+      <
+        std::hash<size_t>,
+        std::hash<SourceHash>,
+        std::hash<TargetHash>
+      >,
+      composite_key_equal_to
+      <
+        std::equal_to<size_t>,
+        std::equal_to<SourceHash>,
+        std::equal_to<TargetHash>
       >
-    >,*/
+    >,
     sequenced<tag<TrackDBCollectionSequencedTag>>
   >
 > TrackDBCollection;
 
-typedef TrackDBCollection::nth_index<0>::type TrackDBCollectionById;
-// typedef TrackDBCollection::nth_index<1>::type TrackDBCollectionByFrame;
+typedef TrackDBCollection::nth_index<0>::type TrackDBOrderedByIds;
+typedef TrackDBCollection::nth_index<1>::type TrackDBHashedByFrameAndTrackId;
 
 class TrackDB : public BasicDatabase<TrackData, AlfalfaProtobufs::TrackData,
   TrackDBCollection, TrackDBCollectionSequencedTag>
@@ -117,7 +137,37 @@ public:
     TrackDBCollection, TrackDBCollectionSequencedTag>( filename, magic_number, mode )
   {}
 
-  // TODO(Deepak): Add methods here as needed
+  std::pair<TrackDBOrderedByIds::iterator, TrackDBOrderedByIds::iterator>
+  search_by_track_id( const size_t track_id )
+  {
+    TrackDBOrderedByIds & index = collection_.get<0>();
+    // Only specify the first field, since our ordered_index is sorted
+    // first by track ID and then by frame ID
+    return index.equal_range( track_id );
+  }
+
+  Optional<TrackData>
+  search_next_frame( const size_t track_id, const SourceHash source_hash, const TargetHash target_hash )
+  {
+    TrackDBHashedByFrameAndTrackId & hashed_index = collection_.get<1>();
+    boost::tuple<size_t, SourceHash, TargetHash> hashed_key =
+      boost::make_tuple( track_id, source_hash, target_hash );
+    if ( hashed_index.count( hashed_key ) == 0 )
+      return Optional<TrackData>();
+    TrackDBHashedByFrameAndTrackId::iterator frame_data = hashed_index.find(
+      hashed_key );
+    // Find the frame_id of associated frame
+    size_t frame_id = frame_data->frame_id;
+
+    TrackDBOrderedByIds & ordered_index = collection_.get<0>();
+    boost::tuple<size_t, size_t> ordered_key =
+      boost::make_tuple( track_id, frame_id+1 );
+    if ( ordered_index.count( ordered_key ) == 0)
+      return Optional<TrackData>();
+    TrackDBOrderedByIds::iterator ids_iterator = ordered_index.find(
+      ordered_key);
+    return make_optional( true, *ids_iterator );
+  }
 };
 
 #endif /* MANIFESTS_HH */

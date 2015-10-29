@@ -115,7 +115,8 @@ void from_protobuf( const AlfalfaProtobufs::QualityData & message,
 
 void to_protobuf( const TrackData & td,
   AlfalfaProtobufs::TrackData & message ) {
-  message.set_id( td.id );
+  message.set_track_id( td.track_id );
+  message.set_frame_id( td.frame_id );
   to_protobuf( td.source_hash, *message.mutable_source_hash() );
   to_protobuf( td.target_hash, *message.mutable_target_hash() );
 }
@@ -123,7 +124,8 @@ void to_protobuf( const TrackData & td,
 void from_protobuf( const AlfalfaProtobufs::TrackData & message,
   TrackData & td )
 {
-  td.id = message.id();
+  td.track_id = message.track_id();
+  td.frame_id = message.frame_id();
   from_protobuf( message.source_hash(), td.source_hash );
   from_protobuf( message.target_hash(), td.target_hash );
 }
