@@ -2,6 +2,7 @@
 #define MANIFESTS_HH
 
 #include <set>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -22,7 +23,7 @@ typedef multi_index_container
   RasterData,
   indexed_by
   <
-    hashed_unique<member<RasterData, size_t, &RasterData::hash>>,
+    ordered_unique<member<RasterData, size_t, &RasterData::hash> >,
     sequenced<tag<RasterListCollectionSequencedTag>>
   >
 > RasterListCollection;
@@ -38,10 +39,30 @@ public:
     RasterListCollection, RasterListCollectionSequencedTag>( filename, magic_number, mode )
   {}
 
-  bool has( const size_t & raster_hash )
+  bool has( const size_t & raster_hash ) const
   {
-    RasterListCollectionByHash & data_by_hash = collection_.get<0>();
+    const RasterListCollectionByHash & data_by_hash = collection_.get<0>();
     return data_by_hash.count( raster_hash ) > 0;
+  }
+
+  bool operator==( const RasterList & other ) const
+  {
+    if ( collection_.get<0>().size() != other.collection_.get<0>().size() ) {
+      return false;
+    }
+
+    for ( auto const & item : collection_.get<0>() ) {
+      if ( not other.has( item.hash ) ) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  bool operator!=( const RasterList & other ) const
+  {
+    return not ( ( *this ) == other );
   }
 };
 
@@ -121,12 +142,14 @@ typedef multi_index_container
         std::equal_to<TargetHash>
       >
     >,
+    ordered_unique<member<TrackData, size_t, &TrackData::track_id> >,
     sequenced<tag<TrackDBCollectionSequencedTag>>
   >
 > TrackDBCollection;
 
 typedef TrackDBCollection::nth_index<0>::type TrackDBOrderedByIds;
 typedef TrackDBCollection::nth_index<1>::type TrackDBHashedByFrameAndTrackId;
+typedef TrackDBCollection::nth_index<2>::type TrackDBTrackIds;
 
 class TrackDB : public BasicDatabase<TrackData, AlfalfaProtobufs::TrackData,
   TrackDBCollection, TrackDBCollectionSequencedTag>
@@ -167,6 +190,26 @@ public:
     TrackDBOrderedByIds::iterator ids_iterator = ordered_index.find(
       ordered_key);
     return make_optional( true, *ids_iterator );
+  }
+
+  void merge( const TrackDB & db )
+  {
+    TrackDBTrackIds & track_ids = collection_.get<2>();
+    map<size_t, size_t> new_track_ids;
+
+    for ( auto item : db.collection_.get<TrackDBCollectionSequencedTag>() ) {
+      if ( new_track_ids.count( item.track_id ) > 0 ) {
+        item.track_id = new_track_ids[ item.track_id ];
+      }
+      else if ( track_ids.count( item.track_id ) > 0 ) {
+        size_t new_track_id = item.track_id;
+        while ( track_ids.count ( ++new_track_id ) > 0 );
+        new_track_ids[ item.track_id ] = new_track_id;
+        item.track_id = new_track_id;
+      }
+
+      insert( item );
+    }
   }
 };
 

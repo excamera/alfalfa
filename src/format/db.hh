@@ -9,6 +9,7 @@
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/multi_index/composite_key.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -42,9 +43,12 @@ public:
   const std::string magic_number;
   typedef typename Collection::template index<SequencedTag>::type SequencedAccess;
 
+  size_t size() const;
+
   BasicDatabase( const std::string & filename, const std::string & magic_number,
     OpenMode mode = OpenMode::READ );
   void insert( RecordType record );
+  void merge( const BasicDatabase & db );
 
   typename SequencedAccess::iterator begin() { return this->collection_.get<SequencedTag>().begin(); }
   typename SequencedAccess::iterator end() { return this->collection_.get<SequencedTag>().end(); }
@@ -68,8 +72,7 @@ BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
   case OpenMode::READ:
     if ( fin.good() ) {
       fin.close();
-      deserialize();
-      good_ = true;
+      good_ = deserialize();
     }
     else {
       fin.close();
@@ -81,13 +84,12 @@ BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
   case OpenMode::APPEND:
     if( fin.good() ) {
       fin.close();
-      deserialize();
+      good_ = deserialize();
     }
     else {
       fin.close();
+      good_ = true;
     }
-
-    good_ = true;
 
     break;
 
@@ -101,10 +103,26 @@ BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
 }
 
 template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag>
+size_t BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
+  ::size() const
+{
+  return collection_.get<SequencedTag>().size();
+}
+
+template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag>
 void BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
   ::insert( RecordType record )
 {
   this->collection_.insert( record );
+}
+
+template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag>
+void BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
+  ::merge( const BasicDatabase & db )
+{
+  for ( auto const & item : db.collection_.get<SequencedTag>() ) {
+    insert( item );
+  }
 }
 
 template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag>
@@ -116,7 +134,8 @@ bool BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
   }
 
   std::string target_filename = ( filename.length() == 0 ) ? filename_ : filename;
-  ProtobufSerializer serializer( target_filename );
+  filename_ = target_filename;
+  ProtobufSerializer serializer( filename_ );
 
   // Writing the header
   if ( not serializer.write_raw( magic_number.c_str(), magic_number.length() ) ) {

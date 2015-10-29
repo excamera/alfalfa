@@ -34,7 +34,7 @@ std::string AlfalfaVideo::VideoDirectory::track_db_filename() const
 }
 
 AlfalfaVideo::AlfalfaVideo( const string & directory_name, OpenMode mode )
-  : directory_( directory_name ), mode_( mode ),
+  : directory_( FileSystem::get_realpath( directory_name ) ), mode_( mode ),
     raster_list_( directory_.raster_list_filename(), "ALFARSLS", mode ),
     quality_db_( directory_.quality_db_filename(), "ALFAQLDB", mode ),
     frame_db_( directory_.frame_db_filename(), "ALFAFRDB", mode ),
@@ -44,6 +44,24 @@ AlfalfaVideo::AlfalfaVideo( const string & directory_name, OpenMode mode )
 bool AlfalfaVideo::good() const
 {
   return raster_list_.good() and quality_db_.good() and frame_db_.good() and track_db_.good();
+}
+
+bool AlfalfaVideo::can_combine( const AlfalfaVideo & video )
+{
+  return ( raster_list_.size() == 0 or raster_list_ == video.raster_list_ );
+}
+
+void AlfalfaVideo::combine( const AlfalfaVideo & video )
+{
+if ( not can_combine( video ) ) {
+    throw Invalid( "cannot combine: raster lists are not the same." );
+  }
+  else if ( raster_list_.size() == 0 ) {
+    raster_list_.merge( video.raster_list_ );
+  }
+  quality_db_.merge( video.quality_db_ );
+  frame_db_.merge( video.frame_db_ );
+  track_db_.merge( video.track_db_ );
 }
 
 void AlfalfaVideo::import_ivf_file( const string & filename )
@@ -64,6 +82,7 @@ void AlfalfaVideo::import_ivf_file( const string & filename )
         next_frame.target_hash().output_hash
       }
     );
+
     // When importing an alfalfa video, all approximate rasters have a quality of 1.0
     quality_db_.insert(
       QualityData{
@@ -72,8 +91,9 @@ void AlfalfaVideo::import_ivf_file( const string & filename )
         1.0
       }
     );
+
     frame_db_.insert( next_frame );
-    // TODO: Fix ID here
+
     track_db_.insert(
       TrackData{
         0,

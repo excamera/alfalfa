@@ -58,8 +58,10 @@ private:
 public:
   AlfalfaVideo( const std::string & directory_name, OpenMode mode );
 
-  void add_ivf_file( std::string & name, const IVF & file );
+  bool can_combine( const AlfalfaVideo & video );
+  void combine( const AlfalfaVideo & video );
 
+  void add_ivf_file( std::string & name, const IVF & file );
   void import_ivf_file( const std::string & filename );
 
   RasterList & raster_list() { return raster_list_; }

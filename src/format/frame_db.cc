@@ -5,15 +5,17 @@
 #include "serialization.hh"
 #include "protobufs/alfalfa.pb.h"
 
-void FrameDB::insert( FrameInfo fd )
+vector<std::string> FrameDB::ivf_files()
 {
-  BasicDatabase::insert( fd );
+  set<std::string> ivf_filenames;
 
-  if ( fd.ivf_filename().initialized() and
-    std::find( ivf_filenames_.begin(), ivf_filenames_.end(),
-      fd.ivf_filename().get() ) == ivf_filenames_.end() ) {
-    ivf_filenames_.push_back( fd.ivf_filename().get() );
+  for ( auto const & it : collection_.get<FrameDataSetSequencedTag>() ) {
+    if ( it.ivf_filename().initialized() and ivf_filenames.count( it.ivf_filename().get() ) == 0 ) {
+      ivf_filenames.insert( it.ivf_filename().get() );
+    }
   }
+
+  return std::vector<std::string>( ivf_filenames.begin(), ivf_filenames.end() );
 }
 
 // std::pair<FrameDataSetByFrameName::iterator, FrameDataSetByFrameName::iterator>

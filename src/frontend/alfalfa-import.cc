@@ -23,7 +23,7 @@ int main( int argc, char const *argv[] )
   }
 
   string ivf_file_path( argv[ 1 ] );
-  string destination_dir( argv[2] );
+  string destination_dir( argv[ 2 ] );
 
   if ( not FileSystem::exists( ivf_file_path ) ) {
     cerr << "ivf file not found." << endl;

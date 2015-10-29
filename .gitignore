@@ -34,6 +34,7 @@ Makefile.in
 /src/frontend/vp8decode
 /src/frontend/collisions
 /src/frontend/alfalfa-import
+/src/frontend/alfalfa-combine
 /src/tests/decode-to-stdout
 /src/tests/encode-loopback
 /src/tests/extract-key-frames

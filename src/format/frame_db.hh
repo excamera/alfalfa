@@ -115,19 +115,13 @@ public:
 class FrameDB : public BasicDatabase<FrameInfo, AlfalfaProtobufs::FrameInfo,
   FrameDataSet, FrameDataSetSequencedTag>
 {
-private:
-  vector<std::string> ivf_filenames_;
-
 public:
   FrameDB( const std::string & filename, const std::string & magic_number, OpenMode mode = OpenMode::READ )
     : BasicDatabase<FrameInfo, AlfalfaProtobufs::FrameInfo,
-      FrameDataSet, FrameDataSetSequencedTag>( filename, magic_number, mode ),
-      ivf_filenames_()
+      FrameDataSet, FrameDataSetSequencedTag>( filename, magic_number, mode )
   {}
-
-  void insert( FrameInfo fi );
-
-  vector<std::string> ivf_files() { return ivf_filenames_; }
+  
+  vector<std::string> ivf_files();
 
   std::pair<FrameDataSetByOutputHash::iterator, FrameDataSetByOutputHash::iterator>
   search_by_output_hash( const size_t & output_hash );
