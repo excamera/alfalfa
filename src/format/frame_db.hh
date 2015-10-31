@@ -52,6 +52,13 @@ struct FrameData_TargetHashExtractor
   result_type & operator()( FrameInfo * fd ) { return fd->target_hash(); }
 };
 
+/*
+ * FrameDataSet
+ *  sequence of frames contained in various tracks in given alf video
+ */
+
+struct FrameDataSetByOutputHashTag;
+struct FrameDataSetBySourceHashTag;
 struct FrameDataSetSequencedTag;
 
 typedef multi_index_container
@@ -59,16 +66,31 @@ typedef multi_index_container
   FrameInfo,
   indexed_by
   <
-    hashed_non_unique<FrameData_OutputHashExtractor>,
-    hashed_non_unique<FrameData_SourceHashExtractor, std::hash<SourceHash>, std::equal_to<SourceHash> >,
-    sequenced<tag<FrameDataSetSequencedTag> >
+    hashed_non_unique
+    <
+      tag<FrameDataSetByOutputHashTag>,
+      FrameData_OutputHashExtractor
+    >,
+    hashed_non_unique
+    <
+      tag<FrameDataSetBySourceHashTag>,
+      FrameData_SourceHashExtractor,
+      std::hash<SourceHash>,
+      std::equal_to<SourceHash>
+    >,
+    sequenced
+    <
+      tag<FrameDataSetSequencedTag>
+    >
   >
-> FrameDataSet;
+> FrameDataSetCollection;
 
-// typedef FrameDataSet::nth_index<0>::type FrameDataSetByFrameName;
-typedef FrameDataSet::nth_index<0>::type FrameDataSetByOutputHash;
-typedef FrameDataSet::nth_index<1>::type FrameDataSetBySourceHash;
-typedef FrameDataSet::index<FrameDataSetSequencedTag>::type FrameDataSetSequencedAccess;
+typedef FrameDataSetCollection::index<FrameDataSetByOutputHashTag>::type
+FrameDataSetCollectionByOutputHash;
+typedef FrameDataSetCollection::index<FrameDataSetBySourceHashTag>::type
+FrameDataSetCollectionBySourceHash;
+typedef FrameDataSetCollection::index<FrameDataSetSequencedTag>::type
+FrameDataSetCollectionSequencedAccess;
 
 class FrameDataSetSourceHashSearch
 {
@@ -79,12 +101,12 @@ private:
   private:
     size_t stage_;
     SourceHash source_hash_;
-    FrameDataSetBySourceHash & data_set_;
-    FrameDataSetBySourceHash::iterator itr_;
-    FrameDataSetBySourceHash::iterator begin_, current_end_;
+    FrameDataSetCollectionBySourceHash & data_set_;
+    FrameDataSetCollectionBySourceHash::iterator itr_;
+    FrameDataSetCollectionBySourceHash::iterator begin_, current_end_;
 
   public:
-    FrameDataSetSourceHashSearchIterator( FrameDataSetBySourceHash & data_set,
+    FrameDataSetSourceHashSearchIterator( FrameDataSetCollectionBySourceHash & data_set,
       SourceHash source_hash, bool end );
 
     FrameDataSetSourceHashSearchIterator( const FrameDataSetSourceHashSearchIterator & it );
@@ -100,30 +122,30 @@ private:
   };
 
   SourceHash source_hash_;
-  FrameDataSetBySourceHash & data_set_;
+  FrameDataSetCollectionBySourceHash & data_set_;
   FrameDataSetSourceHashSearchIterator begin_iterator_, end_iterator_;
 
 public:
   typedef FrameDataSetSourceHashSearchIterator iterator;
 
-  FrameDataSetSourceHashSearch( FrameDataSetBySourceHash & data_set, SourceHash source_hash );
+  FrameDataSetSourceHashSearch( FrameDataSetCollectionBySourceHash & data_set, SourceHash source_hash );
 
   iterator begin() { return begin_iterator_; }
   iterator end() { return end_iterator_; }
 };
 
 class FrameDB : public BasicDatabase<FrameInfo, AlfalfaProtobufs::FrameInfo,
-  FrameDataSet, FrameDataSetSequencedTag>
+  FrameDataSetCollection, FrameDataSetSequencedTag>
 {
 public:
   FrameDB( const std::string & filename, const std::string & magic_number, OpenMode mode = OpenMode::READ )
     : BasicDatabase<FrameInfo, AlfalfaProtobufs::FrameInfo,
-      FrameDataSet, FrameDataSetSequencedTag>( filename, magic_number, mode )
+      FrameDataSetCollection, FrameDataSetSequencedTag>( filename, magic_number, mode )
   {}
   
   vector<std::string> ivf_files();
 
-  std::pair<FrameDataSetByOutputHash::iterator, FrameDataSetByOutputHash::iterator>
+  std::pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator>
   search_by_output_hash( const size_t & output_hash );
 
   std::pair<FrameDataSetSourceHashSearch::iterator, FrameDataSetSourceHashSearch::iterator>

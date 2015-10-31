@@ -18,17 +18,11 @@ vector<std::string> FrameDB::ivf_files()
   return std::vector<std::string>( ivf_filenames.begin(), ivf_filenames.end() );
 }
 
-// std::pair<FrameDataSetByFrameName::iterator, FrameDataSetByFrameName::iterator>
-// FrameDB::search_by_frame_name( std::string & frame_name )
-// {
-//   FrameDataSetByFrameName & data_by_frame_name = data_.get<0>();
-//   return data_by_frame_name.equal_range( frame_name );
-// }
-
-std::pair<FrameDataSetByOutputHash::iterator, FrameDataSetByOutputHash::iterator>
+std::pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator>
 FrameDB::search_by_output_hash( const size_t & output_hash )
 {
-  FrameDataSetByOutputHash & data_by_output_hash = collection_.get<0>();
+  FrameDataSetCollectionByOutputHash & data_by_output_hash =
+    collection_.get<FrameDataSetByOutputHashTag>();
   return data_by_output_hash.equal_range( output_hash );
 }
 
@@ -43,14 +37,15 @@ FrameDB::search_by_decoder_hash( const DecoderHash & decoder_hash )
     make_optional( true, decoder_hash.alt_hash() )
   );
 
-  FrameDataSetBySourceHash & data_by_source_hash = collection_.get<1>();
+  FrameDataSetCollectionBySourceHash & data_by_source_hash =
+    collection_.get<FrameDataSetBySourceHashTag>();
   FrameDataSetSourceHashSearch results( data_by_source_hash, query_hash );
 
   return make_pair( results.begin(), results.end() );
 }
 
 FrameDataSetSourceHashSearch::FrameDataSetSourceHashSearchIterator::FrameDataSetSourceHashSearchIterator(
-  FrameDataSetBySourceHash & data_set,
+  FrameDataSetCollectionBySourceHash & data_set,
   SourceHash source_hash, bool end )
   : stage_( 31 ),
     source_hash_( source_hash ),
@@ -154,7 +149,7 @@ const FrameInfo * FrameDataSetSourceHashSearch::FrameDataSetSourceHashSearchIter
 }
 
 FrameDataSetSourceHashSearch::FrameDataSetSourceHashSearch(
-  FrameDataSetBySourceHash & data_set, SourceHash source_hash )
+  FrameDataSetCollectionBySourceHash & data_set, SourceHash source_hash )
   : source_hash_( source_hash ), data_set_( data_set ),
     begin_iterator_( data_set, source_hash, false ),
     end_iterator_( data_set, source_hash, true )

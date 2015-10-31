@@ -16,42 +16,52 @@
  *  sequence of hashes of the original rasters that the video approximates
  */
 
-struct RasterListCollectionSequencedTag;
+struct RasterListByHashTag;
+struct RasterListSequencedTag;
 
 typedef multi_index_container
 <
   RasterData,
   indexed_by
   <
-    ordered_unique<member<RasterData, size_t, &RasterData::hash> >,
-    sequenced<tag<RasterListCollectionSequencedTag>>
+    ordered_unique
+    <
+      tag<RasterListByHashTag>,
+      member<RasterData, size_t, &RasterData::hash>
+    >,
+    sequenced
+    <
+      tag<RasterListSequencedTag>
+    >
   >
 > RasterListCollection;
 
-typedef RasterListCollection::nth_index<0>::type RasterListCollectionByHash;
+typedef RasterListCollection::index<RasterListByHashTag>::type
+RasterListCollectionByHash;
 
 class RasterList : public BasicDatabase<RasterData, AlfalfaProtobufs::RasterData,
-  RasterListCollection, RasterListCollectionSequencedTag>
+  RasterListCollection, RasterListSequencedTag>
 {
 public:
   RasterList( const std::string & filename, const std::string & magic_number, OpenMode mode = OpenMode::READ )
   : BasicDatabase<RasterData, AlfalfaProtobufs::RasterData,
-    RasterListCollection, RasterListCollectionSequencedTag>( filename, magic_number, mode )
+    RasterListCollection, RasterListSequencedTag>( filename, magic_number, mode )
   {}
 
   bool has( const size_t & raster_hash ) const
   {
-    const RasterListCollectionByHash & data_by_hash = collection_.get<0>();
+    const RasterListCollectionByHash & data_by_hash = collection_.get<RasterListByHashTag>();
     return data_by_hash.count( raster_hash ) > 0;
   }
 
   bool operator==( const RasterList & other ) const
   {
-    if ( collection_.get<0>().size() != other.collection_.get<0>().size() ) {
+    if ( collection_.get<RasterListByHashTag>().size() !=
+         other.collection_.get<RasterListByHashTag>().size() ) {
       return false;
     }
 
-    for ( auto const & item : collection_.get<0>() ) {
+    for ( auto const & item : collection_.get<RasterListByHashTag>() ) {
       if ( not other.has( item.hash ) ) {
         return false;
       }
@@ -71,29 +81,44 @@ public:
  *   sequence of original raster / approximate raster / quality
  */
 
-struct QualityDBCollectionSequencedTag;
+struct QualityDBByOriginalRasterTag;
+struct QualityDBByApproximateRasterTag;
+struct QualityDBSequencedTag;
 
 typedef multi_index_container
 <
   QualityData,
   indexed_by
   <
-    hashed_non_unique<member<QualityData, size_t, &QualityData::original_raster> >,
-    hashed_non_unique<member<QualityData, size_t, &QualityData::approximate_raster> >,
-    sequenced<tag<QualityDBCollectionSequencedTag> >
+    hashed_non_unique
+    <
+      tag<QualityDBByOriginalRasterTag>,
+      member<QualityData, size_t, &QualityData::original_raster>
+    >,
+    hashed_non_unique
+    <
+      tag<QualityDBByApproximateRasterTag>,
+      member<QualityData, size_t, &QualityData::approximate_raster>
+    >,
+    sequenced
+    <
+      tag<QualityDBSequencedTag>
+    >
   >
 > QualityDBCollection;
 
-typedef QualityDBCollection::nth_index<0>::type QualityDBCollectionByOriginalRaster;
-typedef QualityDBCollection::nth_index<1>::type QualityDBCollectionByApproximateRaster;
+typedef QualityDBCollection::index<QualityDBByOriginalRasterTag>::type
+QualityDBCollectionByOriginalRaster;
+typedef QualityDBCollection::index<QualityDBByApproximateRasterTag>::type
+QualityDBCollectionByApproximateRaster;
 
 class QualityDB : public BasicDatabase<QualityData, AlfalfaProtobufs::QualityData,
-  QualityDBCollection, QualityDBCollectionSequencedTag>
+  QualityDBCollection, QualityDBSequencedTag>
 {
 public:
   QualityDB( const std::string & filename, const std::string & magic_number, OpenMode mode = OpenMode::READ )
   : BasicDatabase<QualityData, AlfalfaProtobufs::QualityData,
-    QualityDBCollection, QualityDBCollectionSequencedTag>( filename, magic_number, mode )
+    QualityDBCollection, QualityDBSequencedTag>( filename, magic_number, mode )
   {}
 
   // TODO(Deepak): Add methods here as needed
@@ -104,7 +129,9 @@ public:
  *   mapping from ID to { sequence of frames }
  */
 
-struct TrackDBCollectionSequencedTag;
+struct TrackDBByIdsTag;
+struct TrackDBByFrameAndTrackIdTag;
+struct TrackDBSequencedTag;
 
 typedef multi_index_container
 <
@@ -113,6 +140,7 @@ typedef multi_index_container
   <
     ordered_unique
     <
+      tag<TrackDBByIdsTag>,
       composite_key
       <
         TrackData,
@@ -122,6 +150,7 @@ typedef multi_index_container
     >,
     hashed_unique
     <
+      tag<TrackDBByFrameAndTrackIdTag>,
       composite_key
       <
         TrackData,
@@ -142,28 +171,31 @@ typedef multi_index_container
         std::equal_to<TargetHash>
       >
     >,
-    ordered_unique<member<TrackData, size_t, &TrackData::track_id> >,
-    sequenced<tag<TrackDBCollectionSequencedTag>>
+    sequenced
+    <
+      tag<TrackDBSequencedTag>
+    >
   >
 > TrackDBCollection;
 
-typedef TrackDBCollection::nth_index<0>::type TrackDBOrderedByIds;
-typedef TrackDBCollection::nth_index<1>::type TrackDBHashedByFrameAndTrackId;
-typedef TrackDBCollection::nth_index<2>::type TrackDBTrackIds;
+typedef TrackDBCollection::index<TrackDBByIdsTag>::type
+TrackDBCollectionByIds;
+typedef TrackDBCollection::index<TrackDBByFrameAndTrackIdTag>::type
+TrackDBCollectionByFrameAndTrackId;
 
 class TrackDB : public BasicDatabase<TrackData, AlfalfaProtobufs::TrackData,
-  TrackDBCollection, TrackDBCollectionSequencedTag>
+  TrackDBCollection, TrackDBSequencedTag>
 {
 public:
   TrackDB( const std::string & filename, const std::string & magic_number, OpenMode mode = OpenMode::READ )
   : BasicDatabase<TrackData, AlfalfaProtobufs::TrackData,
-    TrackDBCollection, TrackDBCollectionSequencedTag>( filename, magic_number, mode )
+    TrackDBCollection, TrackDBSequencedTag>( filename, magic_number, mode )
   {}
 
-  std::pair<TrackDBOrderedByIds::iterator, TrackDBOrderedByIds::iterator>
+  std::pair<TrackDBCollectionByIds::iterator, TrackDBCollectionByIds::iterator>
   search_by_track_id( const size_t track_id )
   {
-    TrackDBOrderedByIds & index = collection_.get<0>();
+    TrackDBCollectionByIds & index = collection_.get<TrackDBByIdsTag>();
     // Only specify the first field, since our ordered_index is sorted
     // first by track ID and then by frame ID
     return index.equal_range( track_id );
@@ -172,32 +204,32 @@ public:
   Optional<TrackData>
   search_next_frame( const size_t track_id, const SourceHash source_hash, const TargetHash target_hash )
   {
-    TrackDBHashedByFrameAndTrackId & hashed_index = collection_.get<1>();
+    TrackDBCollectionByFrameAndTrackId & hashed_index = collection_.get<TrackDBByFrameAndTrackIdTag>();
     boost::tuple<size_t, SourceHash, TargetHash> hashed_key =
       boost::make_tuple( track_id, source_hash, target_hash );
     if ( hashed_index.count( hashed_key ) == 0 )
       return Optional<TrackData>();
-    TrackDBHashedByFrameAndTrackId::iterator frame_data = hashed_index.find(
+    TrackDBCollectionByFrameAndTrackId::iterator frame_data = hashed_index.find(
       hashed_key );
     // Find the frame_id of associated frame
     size_t frame_id = frame_data->frame_id;
 
-    TrackDBOrderedByIds & ordered_index = collection_.get<0>();
+    TrackDBCollectionByIds & ordered_index = collection_.get<TrackDBByIdsTag>();
     boost::tuple<size_t, size_t> ordered_key =
       boost::make_tuple( track_id, frame_id+1 );
     if ( ordered_index.count( ordered_key ) == 0)
       return Optional<TrackData>();
-    TrackDBOrderedByIds::iterator ids_iterator = ordered_index.find(
+    TrackDBCollectionByIds::iterator ids_iterator = ordered_index.find(
       ordered_key);
     return make_optional( true, *ids_iterator );
   }
 
   void merge( const TrackDB & db )
   {
-    TrackDBTrackIds & track_ids = collection_.get<2>();
+    TrackDBCollectionByIds & track_ids = collection_.get<TrackDBByIdsTag>();
     map<size_t, size_t> new_track_ids;
 
-    for ( auto item : db.collection_.get<TrackDBCollectionSequencedTag>() ) {
+    for ( auto item : db.collection_.get<TrackDBSequencedTag>() ) {
       if ( new_track_ids.count( item.track_id ) > 0 ) {
         item.track_id = new_track_ids[ item.track_id ];
       }
