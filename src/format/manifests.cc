@@ -27,6 +27,20 @@ bool RasterList::operator!=( const RasterList & other ) const
   return not ( ( *this ) == other );
 }
 
+std::pair<QualityDBCollectionByOriginalRaster::iterator, QualityDBCollectionByOriginalRaster::iterator>
+QualityDB::search_by_original_raster( const size_t original_raster )
+{
+  QualityDBCollectionByOriginalRaster & index = collection_.get<QualityDBByOriginalRasterTag>();
+  return index.equal_range( original_raster );
+}
+
+std::pair<QualityDBCollectionByApproximateRaster::iterator, QualityDBCollectionByApproximateRaster::iterator>
+QualityDB::search_by_approximate_raster( const size_t approximate_raster )
+{
+  QualityDBCollectionByApproximateRaster & index = collection_.get<QualityDBByApproximateRasterTag>();
+  return index.equal_range( approximate_raster );
+}
+
 std::pair<TrackDBCollectionByIds::iterator, TrackDBCollectionByIds::iterator>
 TrackDB::search_by_track_id( const size_t track_id )
 {

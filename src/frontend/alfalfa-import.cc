@@ -48,7 +48,7 @@ int main( int argc, char const *argv[] )
 
   if ( not FileSystem::create_symbolic_link( FileSystem::get_realpath( ivf_file_path ),
       ivf_symlink_path ) ) {
-    cout << "cannot create symlink for ivf file." << endl;
+    cerr << "cannot create symlink for ivf file." << endl;
     return EX_CANTCREAT;
   }
 

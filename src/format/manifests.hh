@@ -98,7 +98,10 @@ public:
     QualityDBCollection, QualityDBSequencedTag>( filename, magic_number, mode )
   {}
 
-  // TODO(Deepak): Add methods here as needed
+  std::pair<QualityDBCollectionByOriginalRaster::iterator, QualityDBCollectionByOriginalRaster::iterator>
+  search_by_original_raster( const size_t original_raster );
+  std::pair<QualityDBCollectionByApproximateRaster::iterator, QualityDBCollectionByApproximateRaster::iterator>
+  search_by_approximate_raster( const size_t approximate_raster );
 };
 
 /*
