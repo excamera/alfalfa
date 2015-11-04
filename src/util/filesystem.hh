@@ -6,11 +6,7 @@
 class FileSystem
 {
 public:
-  static bool exists( const std::string & path );
-  static bool is_directory( const std::string & path );
-  static bool is_regular_file( const std::string & path );
   static void create_directory( const std::string & path );
-  static bool is_directory_empty( const std::string & directory );
   static void create_symbolic_link( const std::string & path1, const std::string & path2 );
   static void change_directory( const std::string & path );
 

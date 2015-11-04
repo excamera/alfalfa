@@ -41,6 +41,7 @@ public:
   public:
     VideoDirectory( const std::string & name );
 
+    const std::string & path() const { return directory_path_; }
     std::string raster_list_filename() const;
     std::string quality_db_filename() const;
     std::string frame_db_filename() const;

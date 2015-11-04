@@ -6,11 +6,8 @@
 #include "filesystem.hh"
 
 AlfalfaVideo::VideoDirectory::VideoDirectory( const std::string & path )
-: directory_path_( path )
+  : directory_path_( path )
 {
-  if ( not FileSystem::is_directory( directory_path_ ) ) {
-    throw unix_error( "directory does not exist." );
-  }
 }
 
 std::string AlfalfaVideo::VideoDirectory::raster_list_filename() const
@@ -66,11 +63,7 @@ if ( not can_combine( video ) ) {
 
 void AlfalfaVideo::import_ivf_file( const string & filename )
 {
-  if ( not FileSystem::exists( filename ) or not FileSystem::is_regular_file( filename ) ) {
-    throw unix_error( "ivf file doesn't exist." );
-  }
-
-  TrackingPlayer player( filename );
+  TrackingPlayer player( FileSystem::append( directory_.path(), filename ) );
 
   size_t frame_id = 1;
   while ( not player.eof() ) {
