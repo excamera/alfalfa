@@ -1,0 +1,22 @@
+#!/usr/bin/env python
+
+import os
+import sys
+
+ALFALFA_TEST_VECTORS_DIR = "../../alfalfa_test_vectors/"
+ALFALFA_VIDEO_DIR = "alfalfa_video_dir/"
+
+for alfalfa_test_vector in os.listdir(ALFALFA_TEST_VECTORS_DIR):
+  if alfalfa_test_vector in [".git", "README"]:
+    continue
+  alfalfa_test_vector = os.path.join(ALFALFA_TEST_VECTORS_DIR, alfalfa_test_vector)
+  alfalfa_test_vector = os.path.abspath(alfalfa_test_vector)
+  exit_code = os.system("../frontend/alfalfa-import %s %s" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR))
+  if exit_code != 0:
+    os.system("rm -rf %s" % ALFALFA_VIDEO_DIR)
+    sys.exit(1)
+  exit_code = os.system("./import-test %s %s" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR))
+  os.system("rm -rf %s" % ALFALFA_VIDEO_DIR)
+  if exit_code != 0:
+    sys.exit(1)
+  

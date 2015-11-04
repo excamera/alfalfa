@@ -99,9 +99,9 @@ public:
   {}
 
   std::pair<QualityDBCollectionByOriginalRaster::iterator, QualityDBCollectionByOriginalRaster::iterator>
-  search_by_original_raster( const size_t original_raster );
+  search_by_original_raster( const size_t & original_raster );
   std::pair<QualityDBCollectionByApproximateRaster::iterator, QualityDBCollectionByApproximateRaster::iterator>
-  search_by_approximate_raster( const size_t approximate_raster );
+  search_by_approximate_raster( const size_t & approximate_raster );
 };
 
 /*
@@ -128,7 +128,7 @@ typedef multi_index_container
         member<TrackData, size_t, &TrackData::frame_id>
       >
     >,
-    hashed_unique
+    hashed_non_unique
     <
       tag<TrackDBByFrameAndTrackIdTag>,
       composite_key

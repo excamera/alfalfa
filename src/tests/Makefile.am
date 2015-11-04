@@ -19,6 +19,6 @@ import_test_SOURCES = import-test.cc
 framedb_benchmark_SOURCES = framedb-benchmark.cc
 ivfcompare_SOURCES = ivfcompare.cc
 
-dist_check_SCRIPTS = decoding-test roundtrip-verify switch-test ivfcopy-test end-to-end-test
+dist_check_SCRIPTS = decoding-test roundtrip-verify switch-test ivfcopy-test end-to-end-import-test
 
-TESTS = decoding-test encode-loopback roundtrip-verify framedb-test ivfcopy-test trackdb-test end-to-end-test # switch-test
+TESTS = decoding-test encode-loopback roundtrip-verify framedb-test ivfcopy-test trackdb-test end-to-end-import-test # switch-test

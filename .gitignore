@@ -47,3 +47,5 @@ Makefile.in
 /src/tests/framedb-test
 /src/tests/framedb-benchmark
 /src/tests/ivfcompare
+/src/tests/import-test
+/src/tests/trackdb-test
