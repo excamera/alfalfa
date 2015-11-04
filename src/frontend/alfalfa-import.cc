@@ -30,32 +30,15 @@ int main( int argc, char const *argv[] )
     return EX_NOINPUT;
   }
 
-  if ( FileSystem::is_directory( destination_dir ) ) {
-    if ( not FileSystem::is_directory_empty( destination_dir ) ) {
-      cerr << "destination directory is not empty." << endl;
-      return EX_CANTCREAT;
-    }
-  }
-  else {
-    if ( not FileSystem::create_directory( destination_dir ) ) {
-      cerr << "cannot create destination directory." << endl;
-      return EX_CANTCREAT;
-    }
-  }
+  FileSystem::create_directory( destination_dir );
 
   std::string ivf_symlink_path = FileSystem::append( destination_dir,
     FileSystem::get_basename( ivf_file_path ) );
 
-  if ( not FileSystem::create_symbolic_link( FileSystem::get_realpath( ivf_file_path ),
-      ivf_symlink_path ) ) {
-    cerr << "cannot create symlink for ivf file." << endl;
-    return EX_CANTCREAT;
-  }
+  FileSystem::create_symbolic_link( FileSystem::get_realpath( ivf_file_path ),
+				    ivf_symlink_path );
 
-  if( not FileSystem::change_directory( destination_dir ) ) {
-    cerr << "cannot change directory." << endl;
-    return EX_CANTCREAT;
-  }
+  FileSystem::change_directory( destination_dir );
 
   AlfalfaVideo alfalfa_video( ".", OpenMode::TRUNCATE );
   alfalfa_video.import_ivf_file( FileSystem::get_basename( ivf_file_path ) );

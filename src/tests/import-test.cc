@@ -9,10 +9,7 @@ using namespace std;
 int alfalfa_import_test( string ivf_file_path, string destination_dir ) {
   bool found;
 
-  if( not FileSystem::change_directory( destination_dir ) ) {
-    cerr << "cannot change directory." << endl;
-    return EX_CANTCREAT;
-  }
+  FileSystem::change_directory( destination_dir );
 
   AlfalfaVideo alfalfa_video( ".", OpenMode::READ );
 

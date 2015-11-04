@@ -26,25 +26,11 @@ int main( int argc, char const *argv[] )
   string alf2_path{ FileSystem::get_realpath( argv[ 2 ] ) };
   string destination_dir{ argv[ 3 ] };
 
-  if ( FileSystem::is_directory( destination_dir ) ) {
-    if ( not FileSystem::is_directory_empty( destination_dir ) ) {
-      cerr << "destination directory is not empty." << endl;
-      return EX_CANTCREAT;
-    }
-  }
-  else {
-    if ( not FileSystem::create_directory( destination_dir ) ) {
-      cerr << "cannot create destination directory." << endl;
-      return EX_CANTCREAT;
-    }
-  }
+  FileSystem::create_directory( destination_dir );
 
   destination_dir = FileSystem::get_realpath( destination_dir );
 
-  if( not FileSystem::change_directory( destination_dir ) ) {
-    cerr << "cannot change directory." << endl;
-    return EX_CANTCREAT;
-  }
+  FileSystem::change_directory( destination_dir );
 
   AlfalfaVideo alf1( alf1_path, OpenMode::READ );
   AlfalfaVideo alf2( alf2_path, OpenMode::READ );

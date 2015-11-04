@@ -1,10 +1,13 @@
 #include "filesystem.hh"
+#include "exception.hh"
 
 #include <unistd.h>
 #include <sys/stat.h>
 #include <dirent.h>
-#include <limits.h>
+#include <climits>
 #include <cstdlib>
+#include <cstring>
+#include <memory>
 
 using namespace std;
 
@@ -17,28 +20,23 @@ bool FileSystem::exists( const std::string & path )
 bool FileSystem::is_directory( const std::string & path )
 {
   struct stat buffer;
-  if ( stat( path.c_str(), &buffer ) != 0) {
-    return false;
-  }
+  SystemCall( "stat", stat( path.c_str(), &buffer ) );
+
   return S_ISDIR( buffer.st_mode );
 }
 
 bool FileSystem::is_regular_file( const std::string & path )
 {
   struct stat buffer;
-  if ( stat( path.c_str(), &buffer ) != 0 ) {
-    return false;
-  }
+  SystemCall( "stat", stat( path.c_str(), &buffer ) );
+
   return S_ISREG( buffer.st_mode );
 }
 
-bool FileSystem::create_directory( const std::string & path )
+void FileSystem::create_directory( const std::string & path )
 {
-  if ( is_directory( path ) ) {
-    return false;
-  }
-
-  return mkdir( path.c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH ) == 0;
+  SystemCall( "mkdir",
+	      mkdir( path.c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH ) );
 }
 
 std::string FileSystem::append( const std::string & path1, const std::string & path2 )
@@ -63,49 +61,48 @@ std::string FileSystem::append( const std::string & path1, const std::string & p
 
 bool FileSystem::is_directory_empty( const std::string & directory )
 {
-  dirent * ent;
-  int count = 0;
+  struct Closedir {
+    void operator()( DIR *x ) const { SystemCall( "closedir", closedir( x ) ); }
+  };
 
-  DIR * dirfd = opendir( directory.c_str() );
+  unique_ptr<DIR, Closedir> dp { opendir( directory.c_str() ) };
 
-  if ( not dirfd ) {
-    return false;
+  if ( not dp ) {
+    throw unix_error( "opendir (" + directory + ")" );
   }
 
-  while ( count <= 2 and ( ent = readdir( dirfd ) ) ) {
-    count++;
+  while ( const dirent *ent = readdir( dp.get() ) ) {
+    const string entry_name { ent->d_name };
+    if ( entry_name != "." and entry_name != ".." ) {
+      return false;
+    }
   }
 
-  closedir( dirfd );
-  return ( count <= 2 );
+  return true;
 }
 
-bool FileSystem::create_symbolic_link( const std::string & path1, const std::string & path2 )
+void FileSystem::create_symbolic_link( const std::string & path1, const std::string & path2 )
 {
-  return symlink( path1.c_str(), path2.c_str() ) == 0;
+  SystemCall( "symlink", symlink( path1.c_str(), path2.c_str() ) );
 }
 
-bool FileSystem::change_directory( const std::string & path )
+void FileSystem::change_directory( const std::string & path )
 {
-  return chdir( path.c_str() ) == 0;
+  SystemCall( "chdir", chdir( path.c_str() ) );
 }
 
 std::string FileSystem::get_basename( const std::string & path )
 {
-  size_t last_slash = path.rfind( '/' );
-
-  if ( last_slash == string::npos ) {
-    return path;
-  }
-
-  return path.substr( last_slash + 1 );
+  return basename( path.c_str() );
 }
 
 std::string FileSystem::get_realpath( const std::string & path )
 {
   char resolved_path[ PATH_MAX ];
-  if ( realpath( path.c_str(), resolved_path ) == NULL ) {
-    return path;
+
+  if ( realpath( path.c_str(), resolved_path ) == nullptr ) {
+    throw unix_error( "realpath + (" + path + ")" );
   }
+  
   return resolved_path;
 }
