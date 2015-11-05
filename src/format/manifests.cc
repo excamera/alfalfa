@@ -143,9 +143,13 @@ void TrackDB::merge( const TrackDB & db )
     }
     else if ( track_ids.count( item.track_id ) > 0 ) {
       size_t new_track_id = item.track_id;
-      while ( track_ids.count ( ++new_track_id ) > 0 );
+      while ( track_ids.count ( new_track_id ) > 0 ) {
+        new_track_id++;
+      }
       new_track_ids[ item.track_id ] = new_track_id;
       item.track_id = new_track_id;
+    } else {
+      new_track_ids[item.track_id] = item.track_id;
     }
     insert( item );
   }
