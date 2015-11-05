@@ -29,7 +29,7 @@ static SourceHash decode_source( const string & frame_name )
   size_t end_pos = frame_name.find( '#' );
 
   size_t split_pos = 0;
-  for ( int i = 0; i < 5; i++ ) {
+  for ( int i = 0; i < 4; i++ ) {
     size_t old_pos = split_pos;
 
     split_pos = frame_name.find( '_', old_pos );
@@ -50,72 +50,21 @@ static SourceHash decode_source( const string & frame_name )
     split_pos++;
   }
 
-  return SourceHash( components.at( 0 ), components.at( 1 ), components.at( 2 ),
-                     components.at( 3 ), components.at( 4 ) );
+  return SourceHash( components.at( 0 ), components.at( 1 ),
+                     components.at( 2 ), components.at( 3 ) );
 }
 
 SourceHash::SourceHash( const string & frame_name )
   : SourceHash( decode_source( frame_name ) )
 {}
 
-template<bool state_init, bool continuation_init, bool last_init, bool golden_init, bool alternate_init>
-bool generic_can_decode( const SourceHash & source, const DecoderHash & decoder )
-{
-  return ( !state_init or source.state_hash.get() == decoder.state_hash() ) and
-    ( !continuation_init or source.continuation_hash.get() == decoder.continuation_hash() ) and
-    ( !last_init or source.last_hash.get() == decoder.last_hash() ) and
-    ( !golden_init or source.golden_hash.get() == decoder.golden_hash() ) and
-    ( !alternate_init or source.alt_hash.get() == decoder.alt_hash() );
-}
-
-SourceHash::SourceHash( const Optional<size_t> & state, const Optional<size_t> & continuation,
-                        const Optional<size_t> & last, const Optional<size_t> & golden,
-                        const Optional<size_t> & alt )
+SourceHash::SourceHash( const Optional<size_t> & state, const Optional<size_t> & last,
+                        const Optional<size_t> & golden, const Optional<size_t> & alt )
   : state_hash( state ),
-    continuation_hash( continuation ),
     last_hash( last ),
     golden_hash( golden ),
-    alt_hash( alt ),
-    check( nullptr )
-{
-  unsigned idx = 0;
-  if ( state_hash.initialized() ) {
-    idx |= 1;
-  }
-  if ( continuation_hash.initialized() ) {
-    idx |= 2;
-  }
-  if ( last_hash.initialized() ) {
-    idx |= 4;
-  }
-  if ( golden_hash.initialized() ) {
-    idx |= 8;
-  }
-  if ( alt_hash.initialized() ) {
-    idx |= 16;
-  }
-
-  CheckFunc func_lookup[ 32 ] = {
-    &generic_can_decode<false, false, false, false, false>, &generic_can_decode<true, false, false, false, false>,
-    &generic_can_decode<false, true, false, false, false>, &generic_can_decode<true, true, false, false, false>,
-    &generic_can_decode<false, false, true, false, false>, &generic_can_decode<true, false, true, false, false>,
-    &generic_can_decode<false, true, true, false, false>, &generic_can_decode<true, true, true, false, false>,
-    &generic_can_decode<false, false, false, true, false>, &generic_can_decode<true, false, false, true, false>,
-    &generic_can_decode<false, true, false, true, false>, &generic_can_decode<true, true, false, true, false>,
-    &generic_can_decode<false, false, true, true, false>, &generic_can_decode<true, false, true, true, false>,
-    &generic_can_decode<false, true, true, true, false>, &generic_can_decode<true, true, true, true, false>,
-    &generic_can_decode<false, false, false, false, true>, &generic_can_decode<true, false, false, false, true>,
-    &generic_can_decode<false, true, false, false, true>, &generic_can_decode<true, true, false, false, true>,
-    &generic_can_decode<false, false, true, false, true>, &generic_can_decode<true, false, true, false, true>,
-    &generic_can_decode<false, true, true, false, true>, &generic_can_decode<true, true, true, false, true>,
-    &generic_can_decode<false, false, false, true, true>, &generic_can_decode<true, false, false, true, true>,
-    &generic_can_decode<false, true, false, true, true>, &generic_can_decode<true, true, false, true, true>,
-    &generic_can_decode<false, false, true, true, true>, &generic_can_decode<true, false, true, true, true>,
-    &generic_can_decode<false, true, true, true, true>, &generic_can_decode<true, true, true, true, true>
-  };
-
-  check = func_lookup[ idx ];
-}
+    alt_hash( alt )
+{}
 
 static ostream& operator<<( ostream & out, const Optional<size_t> & hash )
 {
@@ -132,7 +81,7 @@ string SourceHash::str( void ) const
   stringstream hash_str;
   hash_str << hex << uppercase;
 
-  hash_str << state_hash << "_" << continuation_hash << "_" <<
+  hash_str << state_hash << "_" <<
     last_hash << "_" << golden_hash << "_" << alt_hash;
 
   return hash_str.str();
@@ -141,7 +90,6 @@ string SourceHash::str( void ) const
 bool SourceHash::operator==( const SourceHash & other ) const
 {
   return ( state_hash == other.state_hash and
-    continuation_hash == other.continuation_hash and
     last_hash         == other.last_hash and
     golden_hash       == other.golden_hash and
     alt_hash          == other.alt_hash );
@@ -171,7 +119,7 @@ static TargetHash decode_target( const string & frame_name )
 
   size_t split_pos = frame_name.find( '#' );
 
-  for ( int i = 0; i < 11; i++ ) {
+  for ( int i = 0; i < 10; i++ ) {
     size_t old_pos = split_pos + 1;
 
     split_pos = frame_name.find( '_', old_pos );
@@ -180,10 +128,10 @@ static TargetHash decode_target( const string & frame_name )
     components.at( i ) = stoul( component, nullptr, 16 );
   }
 
-  return TargetHash( UpdateTracker( components.at( 4 ), components.at ( 5 ), components.at( 6 ),
-                                    components.at( 7 ), components.at( 8 ), components.at( 9 ),
-                                    components.at( 10 ) ),
-                     components.at( 0 ), components.at( 1 ), components.at( 2 ), components.at( 3 ) );
+  return TargetHash( UpdateTracker( components.at( 3 ), components.at ( 4 ), components.at( 5 ),
+                                    components.at( 6 ), components.at( 7 ), components.at( 8 ),
+                                    components.at( 9 ) ),
+                     components.at( 0 ), components.at( 1 ), components.at( 2 ) ); 
 }
 
 TargetHash::TargetHash( const string & frame_name )
@@ -191,10 +139,9 @@ TargetHash::TargetHash( const string & frame_name )
 {}
 
 TargetHash::TargetHash( const UpdateTracker & updates, size_t state,
-                        size_t continuation, size_t output, bool show )
+                        size_t output, bool show )
   : UpdateTracker( updates ),
     state_hash( state ),
-    continuation_hash( continuation ),
     output_hash( output ),
     shown( show )
 {}
@@ -204,7 +151,7 @@ string TargetHash::str() const
   stringstream hash_str;
   hash_str << hex << uppercase;
 
-  hash_str << state_hash << "_" << continuation_hash << "_" <<
+  hash_str << state_hash << "_" <<
     output_hash << "_" << shown << "_" << update_last << "_" <<
     update_golden << "_" << update_alternate <<
     "_" << last_to_golden << "_" << last_to_alternate << "_" <<
@@ -216,7 +163,6 @@ string TargetHash::str() const
 bool TargetHash::operator==( const TargetHash & other ) const
 {
   return ( state_hash == other.state_hash and
-    continuation_hash == other.continuation_hash and
     output_hash == other.output_hash and
     update_last == other.update_last and
     update_golden == other.update_golden and
@@ -232,9 +178,8 @@ bool TargetHash::operator!=( const TargetHash & other ) const
   return !( ( *this ) == other );
 }
 
-DecoderHash::DecoderHash( size_t state_hash, size_t continuation_hash, size_t last_hash, size_t golden_hash, size_t alt_hash )
+DecoderHash::DecoderHash( size_t state_hash, size_t last_hash, size_t golden_hash, size_t alt_hash )
   : state_hash_( state_hash ),
-    continuation_hash_( continuation_hash ),
     last_hash_( last_hash ),
     golden_hash_( golden_hash ),
     alt_hash_( alt_hash )
@@ -242,14 +187,15 @@ DecoderHash::DecoderHash( size_t state_hash, size_t continuation_hash, size_t la
 
 bool DecoderHash::can_decode( const SourceHash & source_hash ) const
 {
-  return source_hash.check( source_hash, *this );
+  return ( not source_hash.state_hash.initialized() or state_hash_ == source_hash.state_hash.get() ) and
+         ( not source_hash.last_hash.initialized() or last_hash_ == source_hash.last_hash.get() ) and
+         ( not source_hash.golden_hash.initialized() or golden_hash_ == source_hash.golden_hash.get() ) and
+         ( not source_hash.alt_hash.initialized() or alt_hash_ == source_hash.alt_hash.get() );
 }
 
 void DecoderHash::update( const TargetHash & target_hash )
 {
   state_hash_ = target_hash.state_hash;
-
-  continuation_hash_ = target_hash.continuation_hash;
 
   if ( target_hash.last_to_alternate ) {
     alt_hash_ = last_hash_;
@@ -283,11 +229,6 @@ size_t DecoderHash::state_hash( void ) const
   return state_hash_;
 }
 
-size_t DecoderHash::continuation_hash( void ) const
-{
-  return continuation_hash_;
-}
-
 size_t DecoderHash::last_hash( void ) const
 {
   return last_hash_;
@@ -307,7 +248,6 @@ size_t DecoderHash::hash( void ) const
 {
   size_t hash_val = 0;
   boost::hash_combine( hash_val, state_hash_ );
-  boost::hash_combine( hash_val, continuation_hash_ );
   boost::hash_combine( hash_val, last_hash_ );
   boost::hash_combine( hash_val, golden_hash_ );
   boost::hash_combine( hash_val, alt_hash_ );
@@ -319,7 +259,7 @@ string DecoderHash::str( void ) const
   stringstream hash_str;
   hash_str << hex << uppercase;
 
-  hash_str << state_hash_ << "_" << continuation_hash_ << "_" <<
+  hash_str << state_hash_ << "_" <<
     last_hash_ << "_" << golden_hash_ << "_" << alt_hash_;
 
   return hash_str.str();
@@ -328,8 +268,12 @@ string DecoderHash::str( void ) const
 bool DecoderHash::operator==( const DecoderHash & other ) const
 {
   return state_hash_ == other.state_hash_ and
-         continuation_hash_ == other.continuation_hash_ and
          last_hash_ == other.last_hash_ and
          golden_hash_ == other.golden_hash_ and
          alt_hash_ == other.alt_hash_;
+}
+
+bool DecoderHash::operator!=( const DecoderHash & other ) const
+{
+  return not operator==( other );
 }

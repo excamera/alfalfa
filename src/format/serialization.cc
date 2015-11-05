@@ -37,13 +37,6 @@ AlfalfaProtobufs::SourceHash to_protobuf( const SourceHash & source_hash )
     message.clear_state_hash();
   }
 
-  if ( source_hash.continuation_hash.initialized() ) {
-    message.set_continuation_hash( source_hash.continuation_hash.get() );
-  }
-  else {
-    message.clear_continuation_hash();
-  }
-
   if ( source_hash.last_hash.initialized() ) {
     message.set_last_hash( source_hash.last_hash.get() );
   }
@@ -72,7 +65,6 @@ SourceHash from_protobuf( const AlfalfaProtobufs::SourceHash & message )
 {
   return SourceHash(
     make_optional( message.has_state_hash(), message.state_hash() ),
-    make_optional( message.has_continuation_hash(), message.continuation_hash() ),
     make_optional( message.has_last_hash(), message.last_hash() ),
     make_optional( message.has_golden_hash(), message.golden_hash() ),
     make_optional( message.has_alt_hash(), message.alt_hash() )
@@ -84,7 +76,6 @@ AlfalfaProtobufs::TargetHash to_protobuf( const TargetHash & target_hash )
   AlfalfaProtobufs::TargetHash message;
 
   message.set_state_hash( target_hash.state_hash );
-  message.set_continuation_hash( target_hash.continuation_hash );
   message.set_output_hash( target_hash.output_hash );
   message.set_update_last( target_hash.update_last );
   message.set_update_golden( target_hash.update_golden );
@@ -107,7 +98,7 @@ TargetHash from_protobuf( const AlfalfaProtobufs::TargetHash & message )
   );
 
   return TargetHash(
-    update_tracker, message.state_hash(), message.continuation_hash(),
+    update_tracker, message.state_hash(),
     message.output_hash(), message.shown()
   );
 }
@@ -186,9 +177,8 @@ FrameInfo from_protobuf( const AlfalfaProtobufs::FrameInfo & pfi )
   SourceHash source_hash = from_protobuf( pfi.source_hash() );
   TargetHash target_hash = from_protobuf( pfi.target_hash() );
 
-  FrameInfo fi(
-    size_t( pfi.offset() ), size_t( pfi.length() ), source_hash, target_hash
-  );
+  FrameInfo fi( FrameName( source_hash, target_hash ),
+                size_t( pfi.offset() ), size_t( pfi.length() ) );
 
   fi.set_frame_id( size_t( pfi.frame_id() ) );
   return fi;

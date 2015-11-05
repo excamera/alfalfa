@@ -1,7 +1,7 @@
 AM_CPPFLAGS = -I$(srcdir)/../util -I$(srcdir)/../decoder -I$(srcdir)/../format -I$(srcdir)/../display -I$(srcdir)/../encoder -I../format $(GLU_CFLAGS) $(GLEW_CFLAGS) $(GLFW3_CFLAGS) $(X264_CFLAGS) $(CXX11_FLAGS)
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(NODEBUG_CXXFLAGS)
 
-bin_PROGRAMS = vp8decode vp8play collisions alfalfa-import alfalfa-combine alfalfa-describe alfalfa-encode alfalfa-play-super-manually
+bin_PROGRAMS = vp8decode vp8play collisions alfalfa-import alfalfa-combine alfalfa-describe alfalfa-encode alfalfa-play-super-manually alfalfa-weave
 
 vp8decode_SOURCES = vp8decode.cc
 vp8decode_LDADD = ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../display/libalfalfadisplay.a ../util/libalfalfautil.a $(X264_LIBS)
@@ -9,8 +9,17 @@ vp8decode_LDADD = ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a 
 vp8play_SOURCES = vp8play.cc
 vp8play_LDADD = ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../display/libalfalfadisplay.a ../util/libalfalfautil.a $(GLU_LIBS) $(X264_LIBS) $(GLEW_LIBS) $(GLFW3_LIBS)
 
+alfalfa_weave_SOURCES = alfalfa-weave.cc
+alfalfa_weave_LDADD = ../format/libalfalfavideo.a ../format/protobufs/libalfalfaprotobufs.a ../encoder/libalfalfaencoder.a ../decoder/libalfalfadecoder.a ../util/libalfalfautil.a $(X264_LIBS) $(PROTOBUF_LIBS)
+
+frameinfo_SOURCES = frameinfo.cc
+frameinfo_LDADD = ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../util/libalfalfautil.a $(X264_LIBS)
+
 collisions_SOURCES = collisions.cc
 collisions_LDADD = ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../display/libalfalfadisplay.a ../util/libalfalfautil.a $(X264_LIBS)
+
+switch_describe_SOURCES = switch-describe.cc
+switch_describe_LDADD = ../decoder/libalfalfadecoder.a ../util/libalfalfautil.a
 
 alfalfa_import_SOURCES = alfalfa-import.cc
 alfalfa_import_LDADD = ../format/libalfalfavideo.a ../format/protobufs/libalfalfaprotobufs.a ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../util/libalfalfautil.a $(X264_LIBS) $(PROTOBUF_LIBS)

@@ -11,6 +11,7 @@
 struct ProbabilityTables;
 struct References;
 class BoolEncoder;
+class ReferenceUpdater;
 
 typedef SafeArray< SafeArray< SafeArray< SafeArray< std::pair< uint32_t, uint32_t >,
 						    ENTROPY_NODES >,
@@ -30,9 +31,6 @@ private:
   Optional< Boolean > mb_skip_coeff_;
 
   MacroblockHeaderType header_;
-
-  bool continuation_;
-  Optional< Boolean > loopfilter_skip_subblock_edges_;
 
   Y2Block & Y2_;
   TwoDSubRange< YBlock, 4, 4 > Y_;
@@ -56,19 +54,26 @@ public:
 	      const FrameHeaderType & key_frame_header,
 	      const ProbabilityArray< num_segments > & mb_segment_tree_probs,
 	      const ProbabilityTables & probability_tables,
-	      const Optional< ContinuationHeader > & continuation_header,
 	      TwoD< Y2Block > & frame_Y2,
 	      TwoD< YBlock > & frame_Y,
 	      TwoD< UVBlock > & frame_U,
 	      TwoD< UVBlock > & frame_V );
 
-  // Used when constructing diff frames
+  /* Partial Reference Update */
   Macroblock( const typename TwoD< Macroblock >::Context & c,
-	      const TwoD< Macroblock > & old_macroblocks,
+              const ReferenceUpdater & ref_update,
 	      TwoD< Y2Block > & frame_Y2,
 	      TwoD< YBlock > & frame_Y,
 	      TwoD< UVBlock > & frame_U,
 	      TwoD< UVBlock > & frame_V );
+
+  /* Copy */
+  Macroblock( const typename TwoD< Macroblock >::Context & c,
+            const TwoD< Macroblock > & old_macroblocks,
+            TwoD< Y2Block > & frame_Y2,
+            TwoD< YBlock > & frame_Y,
+            TwoD< UVBlock > & frame_U,
+            TwoD< UVBlock > & frame_V );
 
   void update_segmentation( SegmentationMap & mutable_segmentation_map );
 
@@ -79,9 +84,10 @@ public:
   void reconstruct_inter( const Quantizer & quantizer,
 			  const References & references,
 			  VP8Raster::Macroblock & raster ) const;
-  void reconstruct_continuation( const RasterHandle & continuation, VP8Raster::Macroblock & raster ) const;
+  void reconstruct_continuation( const VP8Raster & continuation, VP8Raster::Macroblock & raster ) const;
 
-  void rewrite_as_diff( const RasterDiff::MacroblockDiff & difference );
+  /* list of coordinates for macroblocks that inter prediction needs */
+  std::vector<std::pair<unsigned, unsigned>> required_macroblocks() const;
 
   void loopfilter( const Optional< FilterAdjustments > & filter_adjustments,
 		   const FilterParameters & loopfilter,
@@ -93,12 +99,10 @@ public:
   const mbmode & uv_prediction_mode( void ) const { return U_.at( 0, 0 ).prediction_mode(); }
   const mbmode & y_prediction_mode( void ) const { return Y2_.prediction_mode(); }
 
-  bool inter_coded( void ) const;
+  bool inter_coded() const;
 
   Optional< Tree< uint8_t, num_segments, segment_id_tree > > & mutable_segment_id_update( void ) { return segment_id_update_; }
-  uint8_t segment_id( void ) const { return segment_id_; }
-
-  bool continuation( void ) const { return continuation_; }
+  uint8_t segment_id() const { return segment_id_; }
 
   void serialize( BoolEncoder & encoder,
 		  const FrameHeaderType & frame_header,
@@ -109,6 +113,8 @@ public:
 			 const ProbabilityTables & probability_tables ) const;
 
   void accumulate_token_branches( TokenBranchCounts & counts ) const;
+
+  void zero_out();
 };
 
 struct KeyFrameMacroblockHeader
@@ -135,7 +141,22 @@ struct InterFrameMacroblockHeader
   reference_frame reference( void ) const;
 };
 
-using KeyFrameMacroblock = Macroblock< KeyFrameHeader, KeyFrameMacroblockHeader >;
-using InterFrameMacroblock = Macroblock< InterFrameHeader, InterFrameMacroblockHeader >;
+/* State update frames don't actually have macroblocks, so this does nothing */
+struct StateUpdateFrameMacroblockHeader
+{
+  StateUpdateFrameMacroblockHeader( BoolDecoder &, const StateUpdateFrameHeader & ) {}
+  StateUpdateFrameMacroblockHeader() {}
+};
+
+struct RefUpdateFrameMacroblockHeader
+{
+  RefUpdateFrameMacroblockHeader( BoolDecoder &, const RefUpdateFrameHeader &) {}
+  RefUpdateFrameMacroblockHeader() {}
+};
+
+using KeyFrameMacroblock = Macroblock<KeyFrameHeader, KeyFrameMacroblockHeader>;
+using InterFrameMacroblock = Macroblock<InterFrameHeader, InterFrameMacroblockHeader>;
+using StateUpdateFrameMacroblock = Macroblock<StateUpdateFrameHeader, StateUpdateFrameMacroblockHeader>;
+using RefUpdateFrameMacroblock = Macroblock<RefUpdateFrameHeader, RefUpdateFrameMacroblockHeader>;
 
 #endif /* MB_RECORDS_HH */

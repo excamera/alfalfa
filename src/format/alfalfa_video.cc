@@ -213,7 +213,7 @@ void WritableAlfalfaVideo::combine( const PlayableAlfalfaVideo & video )
 
   for ( auto item = video.get_frames().first; item != video.get_frames().second; item++ ) {
     FrameInfo frame_info = *item;
-    if ( not frame_db_.has_frame_name( frame_info.source_hash(), frame_info.target_hash() ) ) {
+    if ( not frame_db_.has_frame_name( frame_info.name() ) ) {
       size_t offset = ivf_writer_.append_frame( video.get_chunk( frame_info ) );
       frame_info.set_offset( offset );
     }
@@ -255,18 +255,17 @@ void WritableAlfalfaVideo::insert_frame( FrameInfo next_frame,
   );
 }
 
-size_t WritableAlfalfaVideo::import_frame( FrameInfo fi, const Chunk & chunk )
+FrameInfo WritableAlfalfaVideo::import_serialized_frame( const SerializedFrame & frame )
 {
-  size_t offset = ivf_writer_.append_frame( chunk );
-  fi.set_offset( offset );
+  if ( not frame_db_.has_frame_name( frame.name() ) ) {
+    size_t offset = ivf_writer_.append_frame( frame.chunk() );
+    FrameInfo fi( frame.name(), offset, frame.chunk().size() );
 
-  SourceHash source_hash = fi.source_hash();
-  TargetHash target_hash = fi.target_hash();
+    frame_db_.insert( fi );
 
-  if ( not frame_db_.has_frame_name( source_hash, target_hash ) ) {
-    return frame_db_.insert( fi );
+    return fi;
   }
-  return frame_db_.search_by_frame_name( source_hash, target_hash ).frame_id();
+  return frame_db_.search_by_frame_name( frame.name() );
 }
 
 void WritableAlfalfaVideo::import( const string & filename )
@@ -281,10 +280,7 @@ void WritableAlfalfaVideo::import( const string & filename )
     auto next_frame_data = player.serialize_next();
     FrameInfo next_frame( next_frame_data.first );
 
-    SourceHash source_hash = next_frame.source_hash();
-    TargetHash target_hash = next_frame.target_hash();
-
-    if ( not frame_db_.has_frame_name( source_hash, target_hash ) ) {
+    if ( not frame_db_.has_frame_name( next_frame.name() ) ) {
       size_t offset = ivf_writer_.append_frame( ivf_file.frame( i ) );
       next_frame.set_offset( offset );
     }
@@ -316,10 +312,7 @@ void WritableAlfalfaVideo::import( const string & filename,
     auto next_frame_data = player.serialize_next();
     FrameInfo next_frame( next_frame_data.first );
 
-    SourceHash source_hash = next_frame.source_hash();
-    TargetHash target_hash = next_frame.target_hash();
-
-    if ( not frame_db_.has_frame_name( source_hash, target_hash ) ) {
+    if ( not frame_db_.has_frame_name( next_frame.name() ) ) {
       size_t offset = ivf_writer_.append_frame( ivf_file.frame( i ) );
       next_frame.set_offset( offset );
     }

@@ -21,7 +21,7 @@ int main( int argc, char const *argv[] )
   try
   {
     if ( argc != 4 ) {
-      cerr << "usage: alfalfa-combine <alf-1> <alf-2> <destination-dir>" << endl;
+      cerr << "Usage: " << argv[ 0 ] << " <alf-1> <alf-2> <destination-dir>" << endl;
       return EX_USAGE;
     }
 

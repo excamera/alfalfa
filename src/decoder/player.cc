@@ -1,7 +1,6 @@
 #include "player.hh"
 #include "uncompressed_chunk.hh"
 #include "decoder_state.hh"
-#include "serialized_frame.hh"
 
 #include <fstream>
 

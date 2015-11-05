@@ -3,41 +3,47 @@
 
 using namespace std;
 
-FrameInfo::FrameInfo( const string & frame_name,
-                      const size_t & offset, const size_t & length )
-  : offset_( offset ),
-    length_( length ),
-    source_hash_( frame_name ),
-    target_hash_( frame_name ),
-    frame_id_( 0 )
+FrameName::FrameName( const SourceHash & s, const TargetHash & t )
+  : source( s ),
+    target( t )
 {}
 
-FrameInfo::FrameInfo( const size_t & offset, const size_t & length,
-                      const SourceHash & source_hash, const TargetHash & target_hash )
+SerializedFrame::SerializedFrame( const FrameName & name,
+                                  const std::vector<uint8_t> & data )
+  : name_( name ),
+    serialized_frame_( data )
+{}
+
+const Chunk SerializedFrame::chunk() const
+{
+  return Chunk( serialized_frame_.data(), serialized_frame_.size() );
+}
+
+string FrameName::str() const
+{
+  return source.str() + "#" + target.str();
+}
+
+FrameInfo::FrameInfo( const FrameName & name, const size_t & offset,
+                      const size_t & length )
   : offset_( offset ),
     length_( length ),
-    source_hash_( source_hash ),
-    target_hash_( target_hash ),
+    name_( name ),
     frame_id_( 0 )
 {}
 
 bool FrameInfo::validate_source( const DecoderHash & decoder_hash ) const
 {
-  return decoder_hash.can_decode( source_hash_ );
+  return decoder_hash.can_decode( name_.source );
 }
 
 bool FrameInfo::validate_target( const DecoderHash & decoder_hash ) const
 {
-  return target_hash_.continuation_hash == decoder_hash.continuation_hash();
+  /* FIXME this is pointless */
+  return name_.target.state_hash == decoder_hash.state_hash();
 }
 
 bool FrameInfo::shown() const
 {
-  return target_hash_.shown;
-}
-
-string build_frame_name( const SourceHash & source_hash,
-  const TargetHash & target_hash )
-{
-  return source_hash.str() + "#" + target_hash.str();
+  return name_.target.shown;
 }

@@ -71,38 +71,4 @@ public:
   bool operator!=( const RasterHandle & other ) const;
 };
 
-// Represents subtraction of two rasters for continuation
-class RasterDiff
-{
-public:
-  using Residue = SafeArray<SafeArray<int16_t, 4>, 4>;
-  class MacroblockDiff {
-  private:
-    mutable SafeArray<SafeArray<Optional<Residue>, 4>, 4> Y_;
-    mutable SafeArray<SafeArray<Optional<Residue>, 2>, 2> U_;
-    mutable SafeArray<SafeArray<Optional<Residue>, 2>, 2> V_;
-
-    const VP8Raster::Macroblock & lhs_;
-    const VP8Raster::Macroblock & rhs_;
-  public:
-    MacroblockDiff( const VP8Raster::Macroblock & lhs, const VP8Raster::Macroblock & rhs );
-
-    Residue y_residue( const unsigned int column, const unsigned int row ) const;
-    Residue u_residue( const unsigned int column, const unsigned int row ) const;
-    Residue v_residue( const unsigned int column, const unsigned int row ) const;
-  };
-
-private:
-  RasterHandle lhs_;
-  RasterHandle rhs_;
-
-  mutable std::vector<std::vector<Optional<RasterDiff::MacroblockDiff>>> cache_;
-public:
-  RasterDiff( const RasterHandle & lhs, const RasterHandle & rhs );
-
-  RasterDiff::MacroblockDiff macroblock( const unsigned int column, const unsigned int row ) const;
-
-};
-
-
 #endif /* RASTER_POOL_HH */

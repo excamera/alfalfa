@@ -20,7 +20,6 @@ FrameDB::search_by_decoder_hash( const DecoderHash & decoder_hash )
 {
   SourceHash query_hash(
     make_optional( true, decoder_hash.state_hash() ),
-    make_optional( true, decoder_hash.continuation_hash() ),
     make_optional( true, decoder_hash.last_hash() ),
     make_optional( true, decoder_hash.golden_hash() ),
     make_optional( true, decoder_hash.alt_hash() )
@@ -37,15 +36,13 @@ size_t
 FrameDB::insert( FrameInfo frame )
 {
   size_t returned_frame_id;
-  SourceHash source_hash = frame.source_hash();
-  TargetHash target_hash = frame.target_hash();
-  if ( not has_frame_name( source_hash, target_hash ) ) {
+  if ( not has_frame_name( frame.name() ) ) {
     returned_frame_id = frame_id_;
     frame_id_++;
     frame.set_frame_id( returned_frame_id );
     collection_.insert( frame );
   } else {
-    returned_frame_id = search_by_frame_name( source_hash, target_hash ).frame_id();
+    returned_frame_id = search_by_frame_name( frame.name() ).frame_id();
   }
   return returned_frame_id;
 }
@@ -58,10 +55,10 @@ FrameDB::has_frame_id( const size_t frame_id )
 }
 
 bool
-FrameDB::has_frame_name( const SourceHash & source_hash, const TargetHash & target_hash )
+FrameDB::has_frame_name( const FrameName & name )
 {
   FrameDataSetCollectionByFrameName & index = collection_.get<FrameDataSetByFrameNameTag>();
-  return index.count( boost::make_tuple( source_hash, target_hash ) ) > 0;
+  return index.count( boost::make_tuple( name.source, name.target ) ) > 0;
 }
 
 const FrameInfo &
@@ -76,10 +73,10 @@ FrameDB::search_by_frame_id( const size_t frame_id )
 }
 
 const FrameInfo &
-FrameDB::search_by_frame_name( const SourceHash & source_hash, const TargetHash & target_hash )
+FrameDB::search_by_frame_name( const FrameName & name )
 {
   FrameDataSetCollectionByFrameName & index = collection_.get<FrameDataSetByFrameNameTag>();
-  auto key = boost::make_tuple( source_hash, target_hash );
+  auto key = boost::make_tuple( name.source, name.target );
   if ( index.count( key ) == 0 )
     throw out_of_range( "Invalid (source_hash, target_hash) pair" );
   FrameDataSetCollectionByFrameName::iterator name_iterator = index.find( key );
@@ -127,7 +124,6 @@ FrameDataSetSourceHashSearch::FrameDataSetSourceHashSearchIterator::operator++()
 
     SourceHash query_hash(
       make_optional( (stage_ >> 0) & 1, source_hash_.state_hash.get() ),
-      make_optional( (stage_ >> 1) & 1, source_hash_.continuation_hash.get() ),
       make_optional( (stage_ >> 2) & 1, source_hash_.last_hash.get() ),
       make_optional( (stage_ >> 3) & 1, source_hash_.golden_hash.get() ),
       make_optional( (stage_ >> 4) & 1, source_hash_.alt_hash.get() )

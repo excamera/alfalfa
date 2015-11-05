@@ -20,7 +20,6 @@ int main()
   for( size_t i = 0; i < 3048; i++ ) {
     SourceHash source_hash(
       make_optional( ( i >> 0 ) & 1, i * 1234 + 0 ),
-      make_optional( ( i >> 1 ) & 1, i * 1234 + 1 ),
       make_optional( ( i >> 2 ) & 1, i * 1234 + 2 ),
       make_optional( ( i >> 3 ) & 1, i * 1234 + 3 ),
       make_optional( ( i >> 4 ) & 1, i * 1234 + 4 )
@@ -29,10 +28,10 @@ int main()
     UpdateTracker update_tracker( ( i % 2 ) & 1, ( i % 3 ) & 1, ( i % 4 ) & 1 , ( i % 5 ) & 1,
       ( i % 6 ) & 1, ( i % 7 ) & 1, ( i % 8 ) & 1 );
 
-    TargetHash target_hash( update_tracker, i * 1234 + 5, i * 1234 + 6,
-      i * 1234 + 7, ( i % 5 ) &  1 );
+    TargetHash target_hash( update_tracker, i * 1234 + 5,
+      i * 1234 + 6, ( i % 5 ) &  1 );
 
-    FrameInfo fi( i * 4312, i * 2134, source_hash, target_hash );
+    FrameInfo fi( FrameName( source_hash, target_hash ), i * 4312, i * 2134 );
 
     size_t frame_id = fdb1.insert( fi );
     /* Shouldn't have any duplicates in frame_ids generated. */
@@ -45,18 +44,16 @@ int main()
 
   FrameDB fdb2( db1, "ALFAFRDB", OpenMode::READ );
 
-  size_t state_hash, continuation_hash, last_hash, golden_hash, alt_hash;
+  size_t state_hash, last_hash, golden_hash, alt_hash;
   set<string> hashed_search_results, linear_search_results;
 
   for ( auto it = fdb1.begin(); it != fdb1.end(); it++ ) {
     state_hash = it->source_hash().state_hash.initialized() ? it->source_hash().state_hash.get() : rand();
-    continuation_hash = it->source_hash().continuation_hash.initialized() ? it->source_hash().continuation_hash.get() : rand();
     last_hash = it->source_hash().last_hash.initialized() ? it->source_hash().last_hash.get() : rand();
     golden_hash = it->source_hash().golden_hash.initialized() ? it->source_hash().golden_hash.get() : rand();
     alt_hash = it->source_hash().alt_hash.initialized() ? it->source_hash().alt_hash.get() : rand();
 
-    DecoderHash query_hash( state_hash, continuation_hash, last_hash,
-      golden_hash, alt_hash );
+    DecoderHash query_hash( state_hash, last_hash, golden_hash, alt_hash );
 
     auto result = fdb2.search_by_decoder_hash( query_hash );
 

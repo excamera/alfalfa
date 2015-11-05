@@ -17,8 +17,8 @@ pair<FrameInfo, Optional<RasterHandle>> TrackingPlayer::decode_and_info( const F
   // Check this is a sane frame
   assert( source.get_hash().can_decode( source_hash ) );
 
-  return make_pair( FrameInfo( raw_data.offset, raw_data.length,
-                    source_hash, target_hash ), make_optional( output.first, output.second ) );
+  return make_pair( FrameInfo( FrameName( source_hash, target_hash ), raw_data.offset, raw_data.length ),
+                    make_optional( output.first, output.second ) );
 }
 
 pair<FrameInfo, Optional<RasterHandle>> TrackingPlayer::serialize_next()

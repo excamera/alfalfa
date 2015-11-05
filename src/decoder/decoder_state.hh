@@ -21,7 +21,7 @@ void ProbabilityTables::coeff_prob_update( const HeaderType & header )
     }
   }
 }
-
+  
 template <unsigned int size>
 static void assign( SafeArray< Probability, size > & dest, const Array< Unsigned<8>, size > & src )
 {
@@ -100,7 +100,6 @@ inline KeyFrame DecoderState::parse_and_apply<KeyFrame>( const UncompressedChunk
 
   /* parse keyframe header */
   KeyFrame myframe( uncompressed_chunk.show_frame(),
-		    uncompressed_chunk.experimental(),
 		    width, height, first_partition );
 
   /* reset persistent decoder state to default values */
@@ -136,15 +135,7 @@ inline InterFrame DecoderState::parse_and_apply<InterFrame>( const UncompressedC
 
   /* parse interframe header */
   InterFrame myframe( uncompressed_chunk.show_frame(),
-		      uncompressed_chunk.experimental(),
 		      width, height, first_partition );
-
-  /* update probability tables if prescribed by continuation header */
-  if ( myframe.continuation_header().initialized()
-       // FIXME ask keith replacement_entropy_header should not be optional?
-       and myframe.continuation_header().get().replacement_entropy_header.initialized() ) {
-    probability_tables.update( myframe.continuation_header().get().replacement_entropy_header.get() );
-  }
 
   /* update probability tables. replace persistent copy if prescribed in header */
   ProbabilityTables frame_probability_tables( probability_tables );
@@ -181,6 +172,44 @@ inline InterFrame DecoderState::parse_and_apply<InterFrame>( const UncompressedC
   if ( segmentation.initialized() ) {
     myframe.update_segmentation( segmentation.get().map );
   }
+
+  myframe.parse_tokens( uncompressed_chunk.dct_partitions( myframe.dct_partition_count() ),
+			frame_probability_tables );
+
+  return myframe;
+}
+
+template <>
+inline StateUpdateFrame DecoderState::parse_and_apply<StateUpdateFrame>( const UncompressedChunk & uncompressed_chunk )
+{
+  assert( not uncompressed_chunk.key_frame() );
+
+  /* initialize Boolean decoder for the frame and macroblock headers */
+  BoolDecoder first_partition( uncompressed_chunk.first_partition() );
+
+  /* parse interframe header */
+  StateUpdateFrame myframe( false, width, height, first_partition );
+
+  /* State update frames currently only update the motion vectors */
+  probability_tables.mv_prob_replace( myframe.header().mv_prob_replacement );
+
+  return myframe;
+}
+
+template <>
+inline RefUpdateFrame DecoderState::parse_and_apply<RefUpdateFrame>( const UncompressedChunk & uncompressed_chunk )
+{
+  assert( not uncompressed_chunk.key_frame() );
+
+  BoolDecoder first_partition( uncompressed_chunk.first_partition() );
+
+  RefUpdateFrame myframe( false, width, height, first_partition );
+
+  ProbabilityTables frame_probability_tables( probability_tables );
+  frame_probability_tables.coeff_prob_update( myframe.header() );
+
+  /* parse the frame */
+  myframe.parse_macroblock_headers( first_partition, frame_probability_tables );
 
   myframe.parse_tokens( uncompressed_chunk.dct_partitions( myframe.dct_partition_count() ),
 			frame_probability_tables );

@@ -3,18 +3,11 @@
 
 #include "player.hh"
 #include "frame.hh"
+#include "frame_info.hh"
+
+#include <vector>
 
 class SourcePlayer;
-
-struct PreContinuation
-{
-  bool shown;
-  MissingTracker missing;
-  SourceHash source_hash;
-  TargetHash target_hash;
-
-  std::string continuation_name( void ) const;
-};
 
 class ContinuationPlayer : public FramePlayer
 {
@@ -22,7 +15,7 @@ private:
   References prev_references_;
   bool shown_;
   RasterHandle cur_output_;
-  UpdateTracker cur_updates_;
+
   bool on_key_frame_;
   Optional<KeyFrame> key_frame_;
   Optional<InterFrame> inter_frame_;
@@ -36,17 +29,19 @@ public:
   ContinuationPlayer( ContinuationPlayer && ) = default;
   ContinuationPlayer & operator=( ContinuationPlayer && ) = default;
 
-  Optional<RasterHandle> decode( const SerializedFrame & frame );
+  Optional<RasterHandle> decode( const Chunk & chunk );
 
-  void apply_changes( Decoder & other ) const;
+  bool on_key_frame() const;
 
-  bool need_gen_continuation( void ) const;
+  SerializedFrame make_state_update( const SourcePlayer & source ) const;
 
-  PreContinuation make_pre_continuation( const SourcePlayer & source ) const;
+  std::vector<SerializedFrame> make_reference_updates( const SourcePlayer & source ) const;
 
-  SerializedFrame make_continuation( const PreContinuation & pre,
-                                     const SourcePlayer & source ) const;
-  SerializedFrame operator-( const SourcePlayer & source ) const;
+  SerializedFrame rewrite_inter_frame( const SourcePlayer & source ) const; 
+
+  void apply_changes( SourcePlayer & source ) const;
+
+  bool need_state_update( const SourcePlayer & source ) const;
 };
 
 class SourcePlayer : public FramePlayer
@@ -67,26 +62,20 @@ public:
     need_continuation_ = b;
   }
 
-  bool need_continuation( void ) const
+  bool need_continuation() const
   {
     return need_continuation_;
   }
 
-  bool first_continuation( void ) const
+  bool operator==( const SourcePlayer & other) const
   {
-    return first_continuation_;
+    return FramePlayer::operator==( other ) and need_continuation_ == other.need_continuation_ and
+      first_continuation_ == other.first_continuation_;
   }
 
-  Optional<RasterHandle> decode( const SerializedFrame & )
+  void unset_first_continuation()
   {
     first_continuation_ = false;
-    return Optional<RasterHandle>(); // FIXME NOP
-  }
-
-  void sync_changes( const ContinuationPlayer & target_player )
-  {
-    first_continuation_ = false;
-    target_player.apply_changes( decoder_ );
   }
 };
 

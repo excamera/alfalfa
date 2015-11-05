@@ -8,7 +8,6 @@
 #include "ivf.hh"
 #include "frame_info.hh"
 #include "decoder.hh"
-#include "serialized_frame.hh"
 
 struct FrameRawData
 {

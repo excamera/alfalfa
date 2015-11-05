@@ -199,9 +199,10 @@ public:
   size_t insert( FrameInfo frame );
 
   bool has_frame_id( const size_t frame_id );
-  bool has_frame_name( const SourceHash & source_hash, const TargetHash & target_hash );
+  bool has_frame_name( const FrameName & name );
   const FrameInfo & search_by_frame_id( const size_t frame_id );
-  const FrameInfo & search_by_frame_name( const SourceHash & source_hash, const TargetHash & target_hash );
+
+  const FrameInfo & search_by_frame_name( const FrameName & name );
 
 };
 

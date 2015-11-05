@@ -26,13 +26,15 @@ Makefile.in
 /src/format/protobufs/alfalfa.pb.cc
 /src/format/protobufs/alfalfa.pb.h
 /src/frontend/diff-sizes
-/src/frontend/denseify
+/src/frontend/alfalfa-weave
 /src/frontend/frameify
 /src/frontend/frameplayer
 /src/frontend/graphgen
 /src/frontend/vp8play
 /src/frontend/vp8decode
 /src/frontend/collisions
+/src/frontend/switch-describe
+/src/frontend/frameinfo
 /src/frontend/alfalfa-import
 /src/frontend/alfalfa-combine
 /src/frontend/alfalfa-describe

@@ -12,7 +12,7 @@ sub switch_check {
   my $dirname = "switch-dump$randsuffix";
 
   system("../frontend/frameify $dirname $source_file $target_file") and die "Failed framify";
-  system("../frontend/denseify $dirname $switch_num") and die "Failed denseify";
+  system("../frontend/alfalfa-weave $dirname $switch_num") and die "Failed denseify";
   my $frameify_sha1 = (split ' ', `./videodir-to-stdout $dirname $switch_num | sha1sum`)[ 0 ];
 
   rmtree [ $dirname ];

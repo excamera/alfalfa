@@ -21,21 +21,24 @@ struct ContinuationState;
 
 struct ProbabilityTables
 {
-  SafeArray< SafeArray< SafeArray< SafeArray< Probability,
-					      ENTROPY_NODES >,
-				   PREV_COEF_CONTEXTS >,
-			COEF_BANDS >,
-	     BLOCK_TYPES > coeff_probs = k_default_coeff_probs;
+  SafeArray<SafeArray<SafeArray<SafeArray<Probability,
+					  ENTROPY_NODES>,
+			        PREV_COEF_CONTEXTS>,
+		      COEF_BANDS>,
+	    BLOCK_TYPES> coeff_probs = k_default_coeff_probs;
 
-  ProbabilityArray< num_y_modes > y_mode_probs = k_default_y_mode_probs;
-  ProbabilityArray< num_uv_modes > uv_mode_probs = k_default_uv_mode_probs;
+  ProbabilityArray<num_y_modes> y_mode_probs = k_default_y_mode_probs;
+  ProbabilityArray<num_uv_modes> uv_mode_probs = k_default_uv_mode_probs;
 
-  SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > motion_vector_probs = k_default_mv_probs;
+  SafeArray<SafeArray<Probability, MV_PROB_CNT>, 2> motion_vector_probs = k_default_mv_probs;
 
   ProbabilityTables() {}
 
   template <class HeaderType>
   void coeff_prob_update( const HeaderType & header );
+
+  void mv_prob_replace( const Enumerate<Enumerate<MVProbReplacement, MV_PROB_CNT>, 2> & mv_replacements );
+
 
   template <class HeaderType>
   void update( const HeaderType & header );
@@ -121,8 +124,8 @@ struct DecoderState
   uint16_t width, height;
 
   ProbabilityTables probability_tables = {};
-  Optional< Segmentation > segmentation = {};
-  Optional< FilterAdjustments > filter_adjustments = {};
+  Optional<Segmentation> segmentation = {};
+  Optional<FilterAdjustments> filter_adjustments = {};
 
   DecoderState( const unsigned int s_width, const unsigned int s_height );
 
@@ -135,7 +138,6 @@ struct DecoderState
 
   bool operator==( const DecoderState & other ) const;
 
-  ReplacementEntropyHeader get_replacement_probs( const DecoderState & other ) const;
   Optional<ModeRefLFDeltaUpdate> get_filter_update( void ) const;
   Optional<SegmentFeatureData> get_segment_update( void ) const;
 
@@ -144,11 +146,10 @@ struct DecoderState
 
 struct DecoderDiff
 {
-  RasterDiff continuation_diff;
-  ReplacementEntropyHeader entropy_header;
+  ProbabilityTables source_probabilities;
   ProbabilityTables target_probabilities;
-  Optional<ModeRefLFDeltaUpdate> filter_update;
-  Optional<SegmentFeatureData> segment_update;
+  Optional<Segmentation> target_segmentation;
+  Optional<FilterAdjustments> target_filter;
 };
 
 class Decoder
@@ -156,9 +157,6 @@ class Decoder
 private:
   DecoderState state_;  
   References references_;
-  RasterHandle continuation_raster_;
-
-  void update_continuation( const MutableRasterHandle & raster );
 
 public:
   Decoder( const uint16_t width, const uint16_t height );
@@ -183,11 +181,12 @@ public:
   void apply_decoded_frame( const FrameType & frame, const RasterHandle & output, const Decoder & target )
   {
     state_ = target.state_;
-    continuation_raster_ = target.continuation_raster_;
     frame.copy_to( output, references_ );
   }
 
   MissingTracker find_missing( const References & refs ) const;
+
+  DecoderState get_state() const { return state_; }
 
   References get_references( void ) const;
 

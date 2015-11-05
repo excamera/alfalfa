@@ -31,7 +31,10 @@ int main()//( int argc, char const *argv[] )
   while ( getline( fin, line ) ) {
     istringstream ss( line );
     ss >> frame_name >> offset;
-    FrameInfo fd( frame_name, offset, 100 );
+
+    SourceHash source( frame_name );
+    TargetHash target( frame_name );
+    FrameInfo fd( FrameName( source, target ), offset, 100 );
     fdb.insert(fd);
   }
 
@@ -46,7 +49,9 @@ int main()//( int argc, char const *argv[] )
   while ( getline( fin, line ) ) {
     istringstream ss( line );
     ss >> q >> frame_name;
-    FrameInfo fd( frame_name, 0, 0 );
+    SourceHash source( frame_name );
+    TargetHash target( frame_name );
+    FrameInfo fd( FrameName( source, target ), 0, 0 );
 
     if( q >= streams.size() ) {
       streams.resize( q + 1 );
@@ -59,7 +64,7 @@ int main()//( int argc, char const *argv[] )
 
   cout << "stream_manifest read completed." << endl;
 
-  DecoderHash decoder_hash(0, 0, 0, 0, 0);
+  DecoderHash decoder_hash(0, 0, 0, 0);
   chrono::time_point<chrono::system_clock> start;
   chrono::duration<double> elapsed_seconds;
 

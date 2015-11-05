@@ -175,7 +175,7 @@ public:
                              const std::vector<FrameInfo> & frames,
                              const TrackDBIterator & dest_iterator );
 
-  size_t import_frame( FrameInfo frame_info, const Chunk & chunk );
+  FrameInfo import_serialized_frame( const SerializedFrame & frame );
 
   bool save();
 };

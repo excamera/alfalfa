@@ -8,7 +8,6 @@ message VideoInfo {
 
 message SourceHash {
   optional uint64 state_hash = 1;
-  optional uint64 continuation_hash = 2;
   optional uint64 last_hash = 3;
   optional uint64 golden_hash = 4;
   optional uint64 alt_hash = 5;
@@ -16,7 +15,6 @@ message SourceHash {
 
 message TargetHash {
   required uint64 state_hash = 1;
-  required uint64 continuation_hash = 2;
   required uint64 output_hash = 3;
   required bool update_last = 4;
   required bool update_golden = 5;

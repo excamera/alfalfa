@@ -104,7 +104,7 @@ public:
   void set_dc_coefficient( const int16_t & val );
   DCTCoefficients dequantize( const Quantizer & quantizer ) const;
 
-  const MotionVector & motion_vector( void ) const
+  const MotionVector & motion_vector() const
   {
     static_assert( initial_block_type != Y2, "Y2 blocks do not have motion vectors" );
     return motion_vector_;
@@ -130,7 +130,9 @@ public:
 
   void add_residue( VP8Raster::Block4 & raster ) const;
 
-  void recalculate_has_nonzero();
+  void calculate_has_nonzero();
+
+  void zero_out();
 };
 
 using Y2Block = Block< Y2, mbmode >;
