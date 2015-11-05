@@ -6,8 +6,8 @@
 
 using namespace std;
 
-int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
-  bool found;
+int alfalfa_combine_test( string ivf_file_path, string alfalfa_video_dir ) {
+  int num_found;
 
   if( not FileSystem::change_directory( alfalfa_video_dir ) ) {
     cerr << "cannot change directory." << endl;
@@ -35,7 +35,7 @@ int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
       return 1;
 
     // Check quality db
-    found = false;
+    num_found = 0;
     auto it_orig = 
       quality_db.search_by_original_raster( raster );
     QualityDBCollectionByOriginalRaster::iterator it_begin_orig = it_orig.first;
@@ -45,14 +45,14 @@ int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
         return 1;
       if (it_begin_orig->approximate_raster == approximate_raster) {
         if (it_begin_orig->quality == 1.0)
-          found = true;
+          num_found += 1;
       }
       it_begin_orig++;
     }
-    if (!found)
+    if (num_found < 2)
       return 1;
 
-    found = false;
+    num_found = 0;
     auto it_approx =
       quality_db.search_by_approximate_raster( approximate_raster );
     QualityDBCollectionByApproximateRaster::iterator it_begin_approx = it_approx.first;
@@ -62,15 +62,15 @@ int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
         return 1;
       if (it_begin_approx->original_raster == raster ) {
         if (it_begin_approx->quality == 1.0)
-          found = true;
+          num_found += 1;
       }
       it_begin_approx++;
     }
-    if (!found)
+    if (num_found < 2)
       return 1;
 
     // Check frame db
-    found = false;
+    num_found = 0;
     auto it_output_hash =
       frame_db.search_by_output_hash( raster );
     FrameDataSetCollectionByOutputHash::iterator it_begin_output_hash = it_output_hash.first;
@@ -80,13 +80,15 @@ int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
           it_begin_output_hash->length() == next_frame.length() and
           it_begin_output_hash->source_hash() == next_frame.source_hash() and
           it_begin_output_hash->target_hash() == next_frame.target_hash())
-        found = true;
+        num_found += 1;
       it_begin_output_hash++;
     }
-    if (!found)
+    if (num_found < 2)
       return 1;
 
     // Check track db
+    bool found;
+
     found = false;
     auto it_ids =
       track_db.search_by_track_id( 0 );
@@ -102,6 +104,23 @@ int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
     if (!found) {
       return 1;
     }
+
+    found = false;
+    it_ids =
+      track_db.search_by_track_id( 1 );
+    it_begin_ids = it_ids.first;
+    it_end_ids = it_ids.second;
+    while ( it_begin_ids != it_end_ids ) {
+      if (it_begin_ids->source_hash == next_frame.source_hash() and
+          it_begin_ids->target_hash == next_frame.target_hash() and
+          it_begin_ids->frame_id == frame_id)
+          found = true;
+      it_begin_ids++;
+    }
+    if (!found) {
+      return 1;
+    }
+    
     frame_id++;
   }
 
@@ -110,12 +129,12 @@ int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
 
 int main(int argc, char const *argv[]) {
   if ( argc != 3 ) {
-    cerr << "usage: import-test <ivf-file> <alfalfa-video-dir>" << endl;
+    cerr << "usage: combine-test <ivf-file> <alfalfa-video-dir>" << endl;
     return 1;
   }
 
   string ivf_file_path( argv[ 1 ] );
   string alfalfa_video_dir( argv[ 2 ] );
 
-  return alfalfa_import_test( ivf_file_path, alfalfa_video_dir );
+  return alfalfa_combine_test( ivf_file_path, alfalfa_video_dir );
 }
