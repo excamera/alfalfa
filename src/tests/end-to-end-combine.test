@@ -1,0 +1,30 @@
+#!/usr/bin/env python
+
+import os
+import sys
+
+ALFALFA_TEST_VECTORS_DIR = "../../alfalfa_test_vectors/"
+ALFALFA_VIDEO_DIR1 = "alfalfa_video_dir1/"
+ALFALFA_VIDEO_DIR2 = "alfalfa_video_dir2/"
+ALFALFA_VIDEO_DIR_COMBINED = "alfalfa_video_dir/"
+
+for alfalfa_test_vector in os.listdir(ALFALFA_TEST_VECTORS_DIR):
+  if alfalfa_test_vector in [".git", "README"]:
+    continue
+  alfalfa_test_vector = os.path.join(ALFALFA_TEST_VECTORS_DIR, alfalfa_test_vector)
+  alfalfa_test_vector = os.path.abspath(alfalfa_test_vector)
+  exit_code1 = os.system("../frontend/alfalfa-import %s %s" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR1))
+  exit_code2 = os.system("../frontend/alfalfa-import %s %s" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR2))
+  exit_code3 = os.system("../frontend/alfalfa-combine %s %s %s" % (ALFALFA_VIDEO_DIR1, ALFALFA_VIDEO_DIR2, ALFALFA_VIDEO_DIR_COMBINED))
+  if exit_code1 != 0 or exit_code2 != 0 or exit_code3 != 0:
+    os.system("rm -rf %s" % ALFALFA_VIDEO_DIR1)
+    os.system("rm -rf %s" % ALFALFA_VIDEO_DIR2)
+    os.system("rm -rf %s" % ALFALFA_VIDEO_DIR_COMBINED)
+    sys.exit(1)
+  exit_code = os.system("./combine-test %s %s" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR_COMBINED))
+  os.system("rm -rf %s" % ALFALFA_VIDEO_DIR1)
+  os.system("rm -rf %s" % ALFALFA_VIDEO_DIR2)
+  os.system("rm -rf %s" % ALFALFA_VIDEO_DIR_COMBINED)
+  if exit_code != 0:
+    sys.exit(1)
+  
