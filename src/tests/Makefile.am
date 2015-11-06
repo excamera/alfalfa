@@ -1,8 +1,8 @@
 AM_CPPFLAGS = -I$(srcdir)/../util -I$(srcdir)/../decoder -I$(srcdir)/../format -I$(srcdir)/../encoder $(X264_CFLAGS) $(CXX11_FLAGS)
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(NODEBUG_CXXFLAGS)
 LDADD = ../format/libalfalfavideo.a ../format/protobufs/libalfalfaprotobufs.a ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../util/libalfalfautil.a $(X264_LIBS) $(PROTOBUF_LIBS)
-check_PROGRAMS = extract-key-frames decode-to-stdout encode-loopback roundtrip switch-to-stdout \
-		 videodir-to-stdout state-collisions ivfcopy framedb-test trackdb-test \
+check_PROGRAMS = extract-key-frames decode-to-stdout encode-loopback roundtrip \
+		 state-collisions ivfcopy framedb-test trackdb-test \
                  framedb-benchmark ivfcompare import-test
 
 extract_key_frames_SOURCES = extract-key-frames.cc

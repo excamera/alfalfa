@@ -18,7 +18,7 @@ Optional<RasterHandle> FramePlayer::decode( const Chunk & chunk )
   return decoder_.parse_and_decode_frame( chunk );
 }
 
-Optional<RasterHandle> FramePlayer::decode( const SerializedFrame & frame )
+Optional<RasterHandle> FramePlayer::decode( const FrameInfo & frame )
 {
   assert( frame.validate_source( decoder_.get_hash() ) );
 
@@ -29,7 +29,7 @@ Optional<RasterHandle> FramePlayer::decode( const SerializedFrame & frame )
   return raster;
 }
 
-bool FramePlayer::can_decode( const SerializedFrame & frame ) const
+bool FramePlayer::can_decode( const FrameInfo & frame ) const
 {
   // FIXME shouldn't have to fully hash this?
   return frame.validate_source( decoder_.get_hash() );
@@ -55,13 +55,14 @@ ostream& operator<<( ostream & out, const FramePlayer & player)
   return out << player.decoder_.get_hash().str();
 }
 
-FilePlayer::FilePlayer( const string & file_name )
-  : FilePlayer( IVF( file_name ) )
+FilePlayer::FilePlayer( const string & filename )
+  : FilePlayer( filename, IVF( filename ) )
 {}
 
-FilePlayer::FilePlayer( IVF && file )
+FilePlayer::FilePlayer( const std::string & filename, IVF && file )
   : FramePlayer( file.width(), file.height() ),
-    file_ ( move( file ) )
+    file_ ( move( file ) ),
+    filename_( filename )
 {
   if ( file_.fourcc() != "VP80" ) {
     throw Unsupported( "not a VP8 file" );
@@ -80,7 +81,7 @@ FilePlayer::FilePlayer( IVF && file )
 FrameRawData FilePlayer::get_next_frame( void )
 {
   pair<uint64_t, uint32_t> frame_location = file_.frame_location( frame_no_ );
-  return { file_.frame( frame_no_++ ), frame_location.first, frame_location.second };
+  return { file_.frame( frame_no_++ ), frame_location.first, frame_location.second, filename_ };
 }
 
 RasterHandle FilePlayer::advance( void )

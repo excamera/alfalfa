@@ -22,7 +22,7 @@ int alfalfa_import_test( string ivf_file_path, string destination_dir ) {
   size_t frame_id = 1;
 
   while ( not player.eof() ) {
-    FrameInfo next_frame( player.serialize_next().second );
+    FrameInfo next_frame( player.serialize_next().first );
 
     const size_t raster = next_frame.target_hash().output_hash;
     const size_t approximate_raster = raster;

@@ -67,8 +67,7 @@ void AlfalfaVideo::import_ivf_file( const string & filename )
 
   size_t frame_id = 1;
   while ( not player.eof() ) {
-    FrameInfo next_frame( player.serialize_next().second );
-    next_frame.set_ivf_filename( filename );
+    FrameInfo next_frame( player.serialize_next().first );
 
     raster_list_.insert(
       RasterData{

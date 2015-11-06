@@ -15,6 +15,7 @@ struct FrameRawData
   Chunk chunk;
   uint64_t offset;
   uint32_t length;
+  std::string ivf_filename;
 };
 
 class FramePlayer
@@ -30,11 +31,11 @@ protected:
 public:
   FramePlayer( const uint16_t width, const uint16_t height );
 
-  Optional<RasterHandle> decode( const SerializedFrame & frame );
+  Optional<RasterHandle> decode( const FrameInfo & frame );
 
   const VP8Raster & example_raster( void ) const;
 
-  bool can_decode( const SerializedFrame & frame ) const;
+  bool can_decode( const FrameInfo & frame ) const;
 
   uint16_t width( void ) const { return width_; }
   uint16_t height( void ) const { return height_; }
@@ -48,13 +49,14 @@ class FilePlayer : public FramePlayer
 private:
   IVF file_;
   unsigned int frame_no_ { 0 };
-  FilePlayer( IVF && file );
+  std::string filename_;
+  FilePlayer( const std::string & filename, IVF && file );
 
 protected:
   FrameRawData get_next_frame();
 
 public:
-  FilePlayer( const std::string & file_name );
+  FilePlayer( const std::string & filename );
   RasterHandle advance();
   bool eof() const;
   unsigned int cur_frame_no() const { return frame_no_ - 1; }

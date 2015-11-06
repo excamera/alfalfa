@@ -27,7 +27,7 @@ message RasterData {
 }
 
 message FrameInfo {
-  optional string ivf_filename = 1;
+  required string ivf_filename = 1;
   required uint64 offset = 2;
   required uint64 length = 3;
   required SourceHash source_hash = 4;

@@ -3,12 +3,23 @@
 
 #include <string>
 #include <stdexcept>
+#include <cstring>
 
 class Chunk
 {
 private:
   const uint8_t *buffer_;
   uint64_t size_;
+
+  template <typename Type>
+  Type extract_value() const
+  {
+    bounds_check( sizeof( Type ) );
+
+    Type val;
+    std::memcpy( &val, buffer_, sizeof( Type ) );
+    return val;
+  }
 
   void bounds_check( const uint64_t & length ) const
   {
@@ -59,20 +70,17 @@ public:
 
   uint16_t le16( void ) const
   {
-    bounds_check( sizeof( uint16_t ) );
-    return le16toh( *reinterpret_cast<const uint16_t *>( buffer_ ) );
+    return le16toh( extract_value<uint16_t>() );
   }
 
   uint64_t le32( void ) const
   {
-    bounds_check( sizeof( uint32_t ) );
-    return le32toh( *reinterpret_cast<const uint32_t *>( buffer_ ) );
+    return le32toh( extract_value<uint32_t>() );
   }
 
   uint64_t le64( void ) const
   {
-    bounds_check( sizeof( uint64_t ) );
-    return le64toh( *reinterpret_cast<const uint64_t *>( buffer_ ) );
+    return le64toh( extract_value<uint64_t>() );
   }
 
   uint64_t bits( const uint64_t & bit_offset, const uint64_t bit_length ) const

@@ -10,8 +10,8 @@ vector<std::string> FrameDB::ivf_files()
   set<std::string> ivf_filenames;
 
   for ( auto const & it : collection_.get<FrameDataSetSequencedTag>() ) {
-    if ( it.ivf_filename().initialized() and ivf_filenames.count( it.ivf_filename().get() ) == 0 ) {
-      ivf_filenames.insert( it.ivf_filename().get() );
+    if ( ivf_filenames.count( it.ivf_filename() ) == 0 ) {
+      ivf_filenames.insert( it.ivf_filename() );
     }
   }
 

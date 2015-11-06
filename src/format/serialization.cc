@@ -135,9 +135,7 @@ void to_protobuf( const FrameInfo & fi, AlfalfaProtobufs::FrameInfo & message )
   message.set_offset( fi.offset() );
   message.set_length( fi.length() );
 
-  if ( fi.ivf_filename().initialized() ) {
-    message.set_ivf_filename( fi.ivf_filename().get() );
-  }
+  message.set_ivf_filename( fi.ivf_filename() );
 
   to_protobuf( fi.source_hash(), *message.mutable_source_hash() );
   to_protobuf( fi.target_hash(), *message.mutable_target_hash() );

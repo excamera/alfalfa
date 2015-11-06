@@ -7,12 +7,12 @@ class TrackingPlayer : public FilePlayer
 {
 private:
   template<class FrameType>
-  SerializedFrame decode_and_serialize( const FrameType & frame, const Decoder & source,
-    const Chunk & compressed_frame );
+  pair<FrameInfo, Optional<RasterHandle>> decode_and_info( const FrameType & frame, const Decoder & source,
+                                                           const FrameRawData & raw_data );
 
 public:
   using FilePlayer::FilePlayer;
-  pair<SerializedFrame, FrameInfo> serialize_next();
+  pair<FrameInfo, Optional<RasterHandle>> serialize_next();
   RasterHandle next_output();
 };
 

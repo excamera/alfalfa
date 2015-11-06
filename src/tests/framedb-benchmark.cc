@@ -31,8 +31,7 @@ int main()//( int argc, char const *argv[] )
   while ( getline( fin, line ) ) {
     istringstream ss( line );
     ss >> frame_name >> offset;
-    FrameInfo fd( frame_name, offset, 100 );
-    fd.set_ivf_filename( "test.ivf" );
+    FrameInfo fd( "test.ivf", frame_name, offset, 100 );
     fdb.insert(fd);
   }
 
@@ -47,7 +46,7 @@ int main()//( int argc, char const *argv[] )
   while ( getline( fin, line ) ) {
     istringstream ss( line );
     ss >> q >> frame_name;
-    FrameInfo fd( frame_name, 0, 0 );
+    FrameInfo fd( "test.ivf", frame_name, 0, 0 );
 
     if( q >= streams.size() ) {
       streams.resize( q + 1 );

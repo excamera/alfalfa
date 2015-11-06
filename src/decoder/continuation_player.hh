@@ -77,10 +77,10 @@ public:
     return first_continuation_;
   }
 
-  Optional<RasterHandle> decode( const SerializedFrame & frame )
+  Optional<RasterHandle> decode( const SerializedFrame & )
   {
     first_continuation_ = false;
-    return FramePlayer::decode( frame );
+    return Optional<RasterHandle>(); // FIXME NOP
   }
 
   void sync_changes( const ContinuationPlayer & target_player )

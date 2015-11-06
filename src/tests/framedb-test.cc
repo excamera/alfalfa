@@ -29,8 +29,7 @@ int main()
     TargetHash target_hash( update_tracker, i * 1234 + 5, i * 1234 + 6,
       i * 1234 + 7, ( i % 5 ) &  1 );
 
-    FrameInfo fi( i * 4312, i * 2134, source_hash, target_hash );
-    fi.set_ivf_filename( "test-1.ivf" );
+    FrameInfo fi( "test-1.ivf", i * 4312, i * 2134, source_hash, target_hash );
 
     fdb1.insert( fi );
   }
