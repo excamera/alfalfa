@@ -22,6 +22,7 @@
 #define RASTER_LIST_FILENAME "raster.db"
 #define QUALITY_DB_FILENAME "quality.db"
 #define TRACK_DB_FILENAME "track.db"
+#define VIDEO_MANIFEST_FILENAME "video.manifest"
 
 #include <unordered_map>
 
@@ -42,6 +43,7 @@ public:
     VideoDirectory( const std::string & name );
 
     const std::string & path() const { return directory_path_; }
+    std::string video_manifest_filename() const;
     std::string raster_list_filename() const;
     std::string quality_db_filename() const;
     std::string frame_db_filename() const;
@@ -51,6 +53,7 @@ public:
 private:
   VideoDirectory directory_;
   OpenMode mode_;
+  VideoManifest video_manifest_;
   RasterList raster_list_;
   QualityDB quality_db_;
   FrameDB frame_db_;
@@ -64,6 +67,9 @@ public:
 
   void add_ivf_file( std::string & name, const IVF & file );
   void import_ivf_file( const std::string & filename );
+
+  VideoManifest & video_manifest() { return video_manifest_; }
+  const VideoManifest video_manifest() const { return video_manifest_; }
 
   RasterList & raster_list() { return raster_list_; }
   const RasterList & raster_list() const { return raster_list_; }

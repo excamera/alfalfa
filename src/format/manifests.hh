@@ -12,6 +12,35 @@
 #include "protobufs/alfalfa.pb.h"
 
 /*
+ * VideoManifest
+ */
+
+class VideoManifest : public SerializableData
+{
+private:
+  VideoInfo info_;
+
+public:
+  VideoManifest( const std::string & filename, const std::string & magic_number,
+    OpenMode mode = OpenMode::READ );
+
+  const std::string & fourcc( void ) const { return info_.fourcc; }
+  uint16_t width( void ) const { return info_.width; }
+  uint16_t height( void ) const { return info_.height; }
+  uint32_t frame_rate( void ) const { return info_.frame_rate; }
+  uint32_t time_scale( void ) const { return info_.time_scale; }
+  uint32_t frame_count( void ) const { return info_.frame_count; }
+
+  const VideoInfo & info() const { return info_; }
+  void set_info( const VideoInfo & info );
+
+  bool serialize( const std::string & filename = "" );
+  bool deserialize( const std::string & filename = "" );
+
+  bool good() const { return good_; }
+};
+
+/*
  * Raster List
  *  sequence of hashes of the original rasters that the video approximates
  */

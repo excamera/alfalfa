@@ -10,6 +10,27 @@
 #include "dependency_tracking.hh"
 #include "protobufs/alfalfa.pb.h"
 
+struct VideoInfo
+{
+  std::string fourcc;
+  uint16_t width;
+  uint16_t height;
+  uint32_t frame_rate;
+  uint32_t time_scale;
+  uint32_t frame_count;
+
+  VideoInfo()
+    : fourcc( "VP80" ), width( 0 ), height( 0 ), frame_rate( 0 ), time_scale( 0 ),
+      frame_count( 0 )
+  {}
+
+  VideoInfo( std::string fourcc, uint16_t width, uint16_t height, uint32_t frame_rate,
+    uint32_t time_scale, uint32_t frame_count )
+    : fourcc( fourcc ), width( width ), height( height ), frame_rate( frame_rate ),
+      time_scale( time_scale ), frame_count( frame_count )
+  {}
+};
+
 struct RasterData
 {
   size_t hash;
@@ -42,6 +63,8 @@ struct TrackData
   {}
 };
 
+void to_protobuf( const VideoInfo & info, AlfalfaProtobufs::VideoInfo & message );
+void from_protobuf( const AlfalfaProtobufs::VideoInfo & message, VideoInfo & info );
 void to_protobuf( const SourceHash & source_hash, AlfalfaProtobufs::SourceHash & message );
 void from_protobuf( const AlfalfaProtobufs::SourceHash & message, SourceHash & source_hash );
 void to_protobuf( const TargetHash & target_hash, AlfalfaProtobufs::TargetHash & message );

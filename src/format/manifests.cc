@@ -1,5 +1,64 @@
 #include "manifests.hh"
 
+VideoManifest::VideoManifest( const std::string & filename, const std::string & magic_number,
+  OpenMode mode )
+    : SerializableData( filename, magic_number, mode ), info_()
+{
+  if ( good_ == true and ( mode == OpenMode::READ or mode == OpenMode::APPEND ) ) {
+    good_ = deserialize();
+  }
+}
+
+void VideoManifest::set_info( const VideoInfo & info )
+{
+  info_.fourcc = info.fourcc;
+  info_.width = info.width;
+  info_.height = info.height;
+  info_.frame_rate = info.frame_rate;
+  info_.time_scale = info.time_scale;
+  info_.frame_count = info.frame_count;
+}
+
+bool VideoManifest::deserialize( const std::string & filename )
+{
+  std::string target_filename = ( filename.length() == 0 ) ? filename_ : filename;
+  ProtobufDeserializer deserializer( target_filename );
+  char target_magic_number[ MAX_MAGIC_NUMBER_LENGTH ] = {0};
+  deserializer.read_raw( target_magic_number, magic_number.length() );
+
+  if ( magic_number != target_magic_number ) {
+    return false;
+  }
+
+  AlfalfaProtobufs::VideoInfo message;
+  deserializer.read_protobuf( message );
+  from_protobuf( message, info_ );
+  deserializer.close();
+  return true;
+}
+
+bool VideoManifest::serialize( const std::string & filename )
+{
+  if ( mode_ == OpenMode::READ ) {
+    return false;
+  }
+
+  std::string target_filename = ( filename.length() == 0 ) ? filename_ : filename;
+  filename_ = target_filename;
+  ProtobufSerializer serializer( filename_ );
+
+  // Writing the header
+  if ( not serializer.write_raw( magic_number.c_str(), magic_number.length() ) ) {
+    return false;
+  }
+
+  AlfalfaProtobufs::VideoInfo message;
+  to_protobuf( info_, message );
+  bool result = serializer.write_protobuf( message );
+  serializer.close();
+  return result;
+}
+
 bool RasterList::has( const size_t & raster_hash ) const
 {
   const RasterListCollectionByHash & data_by_hash = collection_.get<RasterListByHashTag>();
@@ -91,4 +150,3 @@ void TrackDB::merge( const TrackDB & db )
     insert( item );
   }
 }
-

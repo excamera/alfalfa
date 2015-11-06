@@ -9,18 +9,6 @@ vp8decode_LDADD = ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a 
 vp8play_SOURCES = vp8play.cc
 vp8play_LDADD = ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../display/libalfalfadisplay.a ../util/libalfalfautil.a $(GLU_LIBS) $(X264_LIBS) $(GLEW_LIBS) $(GLFW3_LIBS)
 
-frameify_SOURCES = frameify.cc
-frameify_LDADD = ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../util/libalfalfautil.a $(X264_LIBS)
-
-denseify_SOURCES = denseify.cc
-denseify_LDADD = ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../util/libalfalfautil.a $(X264_LIBS)
-
-graphgen_SOURCES = graphgen.cc
-graphgen_LDADD = ../decoder/libalfalfadecoder.a ../util/libalfalfautil.a
-
-frameplayer_SOURCES = frameplayer.cc
-frameplayer_LDADD = ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../display/libalfalfadisplay.a ../util/libalfalfautil.a $(GLU_LIBS) $(X264_LIBS) $(GLEW_LIBS) $(GLFW3_LIBS)
-
 collisions_SOURCES = collisions.cc
 collisions_LDADD = ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../display/libalfalfadisplay.a ../util/libalfalfautil.a $(X264_LIBS)
 

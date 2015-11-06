@@ -30,17 +30,30 @@ enum class OpenMode
   TRUNCATE
 };
 
-template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag>
-class BasicDatabase
+class SerializableData
 {
 protected:
   std::string filename_;
-  Collection collection_;
   OpenMode mode_;
   bool good_;
 
 public:
   const std::string magic_number;
+
+  SerializableData( const std::string & filename, const std::string & magic_number,
+    OpenMode mode = OpenMode::READ );
+
+  bool good() const { return good_; }
+};
+
+template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag>
+class BasicDatabase : public SerializableData
+{
+protected:
+  Collection collection_;
+
+public:
+
   typedef typename Collection::template index<SequencedTag>::type SequencedAccess;
 
   size_t size() const;
@@ -55,50 +68,16 @@ public:
 
   bool serialize( const std::string & filename = "" );
   bool deserialize( const std::string & filename = "" );
-
-  bool good() const { return good_; }
 };
 
 template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag>
 BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
   ::BasicDatabase( const std::string & filename, const std::string & magic_number,
   OpenMode mode )
-  : filename_( filename ), collection_(), mode_( mode ), good_( false ),
-    magic_number( magic_number )
+  : SerializableData( filename, magic_number, mode ), collection_()
 {
-  std::ifstream fin( filename );
-
-  switch( mode_ ) {
-  case OpenMode::READ:
-    if ( fin.good() ) {
-      fin.close();
-      good_ = deserialize();
-    }
-    else {
-      fin.close();
-      good_ = false;
-    }
-
-    break;
-
-  case OpenMode::APPEND:
-    if( fin.good() ) {
-      fin.close();
-      good_ = deserialize();
-    }
-    else {
-      fin.close();
-      good_ = true;
-    }
-
-    break;
-
-  case OpenMode::TRUNCATE:
-    good_ = true;
-    break;
-
-  default:
-    break;
+  if ( good_ == true and ( mode == OpenMode::READ or mode == OpenMode::APPEND ) ) {
+    good_ = deserialize();
   }
 }
 

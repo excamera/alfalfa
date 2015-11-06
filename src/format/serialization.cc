@@ -1,5 +1,25 @@
 #include "serialization.hh"
 
+void to_protobuf( const VideoInfo & info, AlfalfaProtobufs::VideoInfo & message )
+{
+  message.set_fourcc( info.fourcc );
+  message.set_width( info.width );
+  message.set_height( info.height );
+  message.set_frame_rate( info.frame_rate );
+  message.set_time_scale( info.time_scale );
+  message.set_frame_count( info.frame_count );
+}
+
+void from_protobuf( const AlfalfaProtobufs::VideoInfo & message, VideoInfo & info )
+{
+  info.fourcc = message.fourcc();
+  info.width = message.width();
+  info.height = message.height();
+  info.frame_rate = message.frame_rate();
+  info.time_scale = message.time_scale();
+  info.frame_count = message.frame_count();
+}
+
 void to_protobuf( const SourceHash & source_hash,
   AlfalfaProtobufs::SourceHash & message )
 {

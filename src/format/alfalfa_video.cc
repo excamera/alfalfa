@@ -10,6 +10,11 @@ AlfalfaVideo::VideoDirectory::VideoDirectory( const std::string & path )
 {
 }
 
+std::string AlfalfaVideo::VideoDirectory::video_manifest_filename() const
+{
+  return FileSystem::append( directory_path_, VIDEO_MANIFEST_FILENAME );
+}
+
 std::string AlfalfaVideo::VideoDirectory::raster_list_filename() const
 {
   return FileSystem::append( directory_path_, RASTER_LIST_FILENAME );
@@ -32,6 +37,7 @@ std::string AlfalfaVideo::VideoDirectory::track_db_filename() const
 
 AlfalfaVideo::AlfalfaVideo( const string & directory_name, OpenMode mode )
   : directory_( FileSystem::get_realpath( directory_name ) ), mode_( mode ),
+    video_manifest_( directory_.video_manifest_filename(), "ALFAVDMF", mode ),
     raster_list_( directory_.raster_list_filename(), "ALFARSLS", mode ),
     quality_db_( directory_.quality_db_filename(), "ALFAQLDB", mode ),
     frame_db_( directory_.frame_db_filename(), "ALFAFRDB", mode ),
@@ -40,12 +46,20 @@ AlfalfaVideo::AlfalfaVideo( const string & directory_name, OpenMode mode )
 
 bool AlfalfaVideo::good() const
 {
-  return raster_list_.good() and quality_db_.good() and frame_db_.good() and track_db_.good();
+  return video_manifest_.good() and raster_list_.good() and quality_db_.good()
+    and frame_db_.good() and track_db_.good();
 }
 
 bool AlfalfaVideo::can_combine( const AlfalfaVideo & video )
 {
-  return ( raster_list_.size() == 0 or raster_list_ == video.raster_list_ );
+  return (
+    raster_list_.size() == 0 or
+    (
+      video_manifest_.width() == video.video_manifest_.width() and
+      video_manifest_.height() == video.video_manifest_.height() and
+      raster_list_ == video.raster_list_
+    )
+  );
 }
 
 void AlfalfaVideo::combine( const AlfalfaVideo & video )
@@ -56,6 +70,7 @@ if ( not can_combine( video ) ) {
   else if ( raster_list_.size() == 0 ) {
     raster_list_.merge( video.raster_list_ );
   }
+  video_manifest_.set_info( video.video_manifest_.info() );
   quality_db_.merge( video.quality_db_ );
   frame_db_.merge( video.frame_db_ );
   track_db_.merge( video.track_db_ );
@@ -64,6 +79,11 @@ if ( not can_combine( video ) ) {
 void AlfalfaVideo::import_ivf_file( const string & filename )
 {
   TrackingPlayer player( FileSystem::append( directory_.path(), filename ) );
+  IVF ivf( FileSystem::append( directory_.path(), filename ) );
+  VideoInfo info( ivf.fourcc(), ivf.width(), ivf.height(), ivf.frame_rate(),
+    ivf.time_scale(), ivf.frame_count() );
+
+  video_manifest_.set_info( info );
 
   size_t frame_id = 1;
   while ( not player.eof() ) {
@@ -102,7 +122,8 @@ void AlfalfaVideo::import_ivf_file( const string & filename )
 
 bool AlfalfaVideo::save()
 {
-  return raster_list_.serialize() and
+  return video_manifest_.serialize() and
+    raster_list_.serialize() and
     quality_db_.serialize() and
     track_db_.serialize() and
     frame_db_.serialize();
