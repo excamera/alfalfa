@@ -14,10 +14,11 @@ using namespace std;
 
 /*
   Alfalfa Describe lists all the tracks in an alfalfa video
-  providing the average and minimum quality scores and the total
-  coded size of the track. Also, Alfalfa Describe gives summary
-  information like the number of frames in the video and the width
-  and height of the video.
+  providing the average and minimum quality scores, the total
+  coded size of the track, and the bitrate of the track. Also,
+  Alfalfa Describe gives summary information like the number of
+  frames in the video, the width and height of the video, and
+  the duration of the video in seconds.
 */
 
 int main( int argc, char const *argv[] )
@@ -42,6 +43,9 @@ int main( int argc, char const *argv[] )
   QualityDB quality_db = alf.quality_db();
   TrackDB track_db = alf.track_db();
   FrameDB frame_db = alf.frame_db();
+
+  //Get the frame rate from the video manifest
+  uint32_t frame_rate = alf.video_manifest().frame_rate();
 
   //Get an iterator to the beginning and end of track 0 (currently cannot iterate through tracks)
   pair<TrackDBCollectionByIds::iterator, TrackDBCollectionByIds::iterator> track_iterator = track_db.search_by_track_id( 0 );
@@ -80,13 +84,23 @@ int main( int argc, char const *argv[] )
   }
   //Calculate average quality for track and print out relevant statistics
   double average_quality = quality_sum / frame_count;
+
+  //Frame rate is frames per second
+  double duration_in_seconds = frame_count / frame_rate;
+
+  //Bitrate is bits in the entire video (shown and unshown) over duration
+  double track_bitrate = (total_coded_size * 8) / duration_in_seconds;
+
   cout << "Track ID: " << track_id << endl;
   cout << "\t Total Coded Size: " << total_coded_size << " bytes" << endl;
-  cout << "\t Minimum Quality: " << minimum_quality << endl;
-  cout << "\t Average Quality: " << average_quality << endl;
-  cout << "Frame Count: " << frame_count << endl;
-  cout << "Video Width: " << alf.video_manifest().width() << endl;
-  cout << "Video Height: " << alf.video_manifest().height() << endl;
+  cout << "\t Bitrate: " << track_bitrate << " bits/sec" << endl;
+  cout << "\t Average SSIM Quality: " << average_quality << endl;
+  cout << "\t Minimum SSIM Quality: " << minimum_quality << endl;
+  cout << "Frame Count: " << frame_count << " total frames" << endl;
+  cout << "Frame Rate: " << frame_rate << " frames/sec" << endl;
+  cout << "Video Duration: " << duration_in_seconds << " sec" << endl;
+  cout << "Video Width: " << alf.video_manifest().width() << " pixels" << endl;
+  cout << "Video Height: " << alf.video_manifest().height() << " pixels" << endl;
 
   return 0;
 }
