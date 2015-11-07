@@ -15,20 +15,25 @@ struct VideoInfo
   std::string fourcc;
   uint16_t width;
   uint16_t height;
-  uint32_t frame_rate;
-  uint32_t time_scale;
+  uint32_t frame_rate_numerator;
+  uint32_t frame_rate_denominator;
   uint32_t frame_count;
 
   VideoInfo()
-    : fourcc( "VP80" ), width( 0 ), height( 0 ), frame_rate( 0 ), time_scale( 0 ),
+    : fourcc( "VP80" ), width( 0 ), height( 0 ), frame_rate_numerator( 0 ), frame_rate_denominator( 1 ),
       frame_count( 0 )
   {}
 
-  VideoInfo( std::string fourcc, uint16_t width, uint16_t height, uint32_t frame_rate,
-    uint32_t time_scale, uint32_t frame_count )
-    : fourcc( fourcc ), width( width ), height( height ), frame_rate( frame_rate ),
-      time_scale( time_scale ), frame_count( frame_count )
+  VideoInfo( std::string fourcc, uint16_t width, uint16_t height, uint32_t frame_rate_numerator,
+    uint32_t frame_rate_denominator, uint32_t frame_count )
+    : fourcc( fourcc ), width( width ), height( height ), frame_rate_numerator( frame_rate_numerator ),
+      frame_rate_denominator( frame_rate_denominator ), frame_count( frame_count )
   {}
+
+  double frame_rate() const
+  {
+      return (double)frame_rate_numerator / frame_rate_denominator;
+  }
 };
 
 struct RasterData

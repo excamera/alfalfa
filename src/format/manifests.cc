@@ -14,8 +14,8 @@ void VideoManifest::set_info( const VideoInfo & info )
   info_.fourcc = info.fourcc;
   info_.width = info.width;
   info_.height = info.height;
-  info_.frame_rate = info.frame_rate;
-  info_.time_scale = info.time_scale;
+  info_.frame_rate_numerator = info.frame_rate_numerator;
+  info_.frame_rate_denominator = info.frame_rate_denominator;
   info_.frame_count = info.frame_count;
 }
 

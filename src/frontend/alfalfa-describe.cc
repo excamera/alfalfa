@@ -44,8 +44,8 @@ int main( int argc, char const *argv[] )
   TrackDB track_db = alf.track_db();
   FrameDB frame_db = alf.frame_db();
 
-  //Get the frame rate from the video manifest
-  uint32_t frame_rate = alf.video_manifest().frame_rate();
+  //Calculate frame rate
+  double frame_rate = alf.video_manifest().frame_rate();
 
   //Get an iterator to the beginning and end of track 0 (currently cannot iterate through tracks)
   pair<TrackDBCollectionByIds::iterator, TrackDBCollectionByIds::iterator> track_iterator = track_db.search_by_track_id( 0 );

@@ -27,8 +27,7 @@ public:
   const std::string & fourcc( void ) const { return info_.fourcc; }
   uint16_t width( void ) const { return info_.width; }
   uint16_t height( void ) const { return info_.height; }
-  uint32_t frame_rate( void ) const { return info_.frame_rate; }
-  uint32_t time_scale( void ) const { return info_.time_scale; }
+  double frame_rate( void ) const { return info_.frame_rate(); }
   uint32_t frame_count( void ) const { return info_.frame_count; }
 
   const VideoInfo & info() const { return info_; }
