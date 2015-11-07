@@ -3,10 +3,10 @@
 import os
 import sys
 
-ALFALFA_TEST_VECTORS_DIR = "../../alfalfa_test_vectors/"
+ALFALFA_TEST_VECTORS_DIR = "test_vectors/"
 ALFALFA_VIDEO_DIR1 = "alfalfa_video_dir1/"
 ALFALFA_VIDEO_DIR2 = "alfalfa_video_dir2/"
-ALFALFA_VIDEO_DIR_COMBINED = "alfalfa_video_dir/"
+ALFALFA_VIDEO_DIR_COMBINED = "alfalfa_video_dir_combined/"
 
 for alfalfa_test_vector in os.listdir(ALFALFA_TEST_VECTORS_DIR):
   if alfalfa_test_vector in [".git", "README"]:

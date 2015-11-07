@@ -41,6 +41,8 @@ message FrameInfo {
   required uint64 length = 3;
   required SourceHash source_hash = 4;
   required TargetHash target_hash = 5;
+  required uint64 frame_id = 6;
+  required uint64 index = 7;
 }
 
 message QualityData {
@@ -51,7 +53,6 @@ message QualityData {
 
 message TrackData {
   required uint64 track_id = 1;
-  required uint64 frame_id = 2;
-  required SourceHash source_hash = 3;
-  required TargetHash target_hash = 4;
+  required uint64 frame_index = 2;
+  required uint64 frame_id = 3;
 }

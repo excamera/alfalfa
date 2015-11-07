@@ -41,7 +41,8 @@ AlfalfaVideo::AlfalfaVideo( const string & directory_name, OpenMode mode )
     raster_list_( directory_.raster_list_filename(), "ALFARSLS", mode ),
     quality_db_( directory_.quality_db_filename(), "ALFAQLDB", mode ),
     frame_db_( directory_.frame_db_filename(), "ALFAFRDB", mode ),
-    track_db_( directory_.track_db_filename(), "ALFATRDB", mode )
+    track_db_( directory_.track_db_filename(), "ALFATRDB", mode ),
+    track_ids_()
 {}
 
 bool AlfalfaVideo::good() const
@@ -62,7 +63,7 @@ bool AlfalfaVideo::can_combine( const AlfalfaVideo & video )
   );
 }
 
-void AlfalfaVideo::combine( const AlfalfaVideo & video )
+void AlfalfaVideo::combine( const AlfalfaVideo & video, IVFWriter & combined_ivf_writer )
 {
 if ( not can_combine( video ) ) {
     throw Invalid( "cannot combine: raster lists are not the same." );
@@ -72,8 +73,15 @@ if ( not can_combine( video ) ) {
   }
   video_manifest_.set_info( video.video_manifest_.info() );
   quality_db_.merge( video.quality_db_ );
-  frame_db_.merge( video.frame_db_ );
-  track_db_.merge( video.track_db_ );
+  map<size_t, size_t> frame_id_mapping;
+
+  const string ivf_file_path = FileSystem::append( video.directory_.path(), get_ivf_file_name() );
+  frame_db_.merge( video.frame_db_, frame_id_mapping, combined_ivf_writer, ivf_file_path );
+
+  track_db_.merge( video.track_db_, frame_id_mapping );
+  for (auto it = track_db_.begin(); it != track_db_.end(); it++) {
+    track_ids_.insert( it->track_id );
+  }
 }
 
 void AlfalfaVideo::import_ivf_file( const string & filename )
@@ -85,7 +93,8 @@ void AlfalfaVideo::import_ivf_file( const string & filename )
 
   video_manifest_.set_info( info );
 
-  size_t frame_id = 1;
+  size_t frame_index = 1;
+  size_t frame_id = 0;
   while ( not player.eof() ) {
     FrameInfo next_frame( player.serialize_next().first );
 
@@ -104,20 +113,70 @@ void AlfalfaVideo::import_ivf_file( const string & filename )
       }
     );
 
-    frame_db_.insert( next_frame );
+    size_t latest_frame_id;
+    SourceHash source_hash = next_frame.source_hash();
+    TargetHash target_hash = next_frame.target_hash();
+    next_frame.set_index( frame_index - 1 );
+    if ( not frame_db_.has_frame_name( source_hash, target_hash ) ) {
+      next_frame.set_frame_id( frame_id );
+      latest_frame_id = frame_id;
+      frame_id++;
+      frame_db_.insert( next_frame );
+    } else {
+      latest_frame_id = frame_db_.search_by_frame_name( source_hash, 
+        target_hash ).frame_id();
+    }
 
+    size_t track_id = 0;
     track_db_.insert(
       TrackData{
-        0,
-        frame_id,
-        next_frame.source_hash(),
-        next_frame.target_hash()
+        track_id,
+        frame_index,
+        latest_frame_id
       }
     );
-    frame_id++;
+
+    track_ids_.insert( track_id );
+
+    frame_index++;
   }
 
   save();
+}
+
+std::pair<std::unordered_set<size_t>::iterator, std::unordered_set<size_t>::iterator>
+AlfalfaVideo::get_track_ids () {
+  return make_pair( track_ids_.begin(), track_ids_.end() );
+}
+
+FrameInfo
+AlfalfaVideo::get_first_frame( const size_t & track_id ) {
+  if ( not track_db_.has_track_id( track_id ) )
+    throw std::out_of_range( "Track id doesn't exist!" );
+  auto it = track_db_.search_by_track_id( track_id );
+  return frame_db_.search_by_frame_id( it.first->frame_id );
+}
+
+Optional<FrameInfo>
+AlfalfaVideo::get_next_frame_info( const size_t & track_id, const size_t & frame_index ) {
+  if ( not track_db_.has_track_id( track_id ) )
+    throw std::out_of_range( "Track id doesn't exist!" );
+  Optional<TrackData> track_data = track_db_.search_next_frame(
+    track_id, frame_index );
+  if ( not track_data.initialized() )
+    return Optional<FrameInfo>();
+  return make_optional(
+    true,
+    frame_db_.search_by_frame_id( track_data.get().frame_id )
+  );
+}
+
+double
+AlfalfaVideo::get_quality( int raster_index, const FrameInfo & frame_info ) {
+  size_t original_raster = raster_list_.raster( raster_index );
+  size_t approximate_raster = frame_info.target_hash().output_hash;
+  return quality_db_.search_by_original_and_approximate_raster(
+    original_raster, approximate_raster ).quality;
 }
 
 bool AlfalfaVideo::save()

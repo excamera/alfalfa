@@ -2,14 +2,13 @@
 
 using namespace std;
 
-#define NUM_ELEMENTS 100
+#define NUM_ELEMENTS 1000
 
 int track_db_collection_test() {
   TrackDBCollection track_db_collection;
-  TrackDBCollectionByIds &
-    track_db_collection_ordered = track_db_collection.get<TrackDBByIdsTag>();
-  TrackDBCollectionByFrameAndTrackId &
-    track_db_collection_hashed = track_db_collection.get<TrackDBByFrameAndTrackIdTag>();
+  TrackDBCollectionByTrackIdAndFrameIndex &
+    track_db_collection_ordered = track_db_collection.get<TrackDBByTrackIdAndFrameIndexTag>();
+
   for (size_t i = 0; i < NUM_ELEMENTS; i++) {
     SourceHash source_hash(
       make_optional( ( i >> 0 ) & 1, i * 1234 + 0 ),
@@ -25,22 +24,23 @@ int track_db_collection_test() {
     TargetHash target_hash( update_tracker, i * 1234 + 5, i * 1234 + 6,
       i * 1234 + 7, ( i % 5 ) &  1 );
 
-    size_t frame_id = i % 10;
+    size_t frame_index = i % 10;
     size_t track_id = i / 10;
+    size_t frame_id = NUM_ELEMENTS - i;
 
     // Make sure track_data is not in track_db yet
-    if ( track_db_collection_hashed.count( boost::make_tuple(
-      track_id, source_hash, target_hash ) ) > 0 ) {
+    if ( track_db_collection_ordered.count( boost::make_tuple(
+      track_id, frame_index ) ) > 0 ) {
       return 1;
     }
 
     // Insert track data into track_db
-    TrackData track_data( track_id, frame_id, source_hash, target_hash );
+    TrackData track_data( track_id, frame_index, frame_id );
     track_db_collection.insert( track_data );
 
     // Make sure new track_data is reflected in the indices
-    if ( track_db_collection_hashed.count( boost::make_tuple(
-      track_id, source_hash, target_hash ) ) == 0 ) {
+    if ( track_db_collection_ordered.count( boost::make_tuple(
+      track_id, frame_index ) ) == 0 ) {
       return 1;
     }
   }
@@ -48,15 +48,15 @@ int track_db_collection_test() {
   // Check if ordering guarantees are maintained
   for (size_t track_id = 0; track_id < 10; track_id++) {
     auto id_iterators = track_db_collection_ordered.equal_range( track_id );
-    TrackDBCollectionByIds::iterator begin = id_iterators.first;
-    TrackDBCollectionByIds::iterator end = id_iterators.second;
-    size_t prev_frame_id = 0;
+    TrackDBCollectionByTrackIdAndFrameIndex::iterator begin = id_iterators.first;
+    TrackDBCollectionByTrackIdAndFrameIndex::iterator end = id_iterators.second;
+    size_t prev_frame_index = 0;
     while (begin != end) {
       if (begin->track_id != track_id)
         return 1;
-      if (begin->frame_id < prev_frame_id)
+      if (begin->frame_index < prev_frame_index)
         return 1;
-      prev_frame_id = begin->frame_id;
+      prev_frame_index = begin->frame_index;
       begin++;
     }
   }

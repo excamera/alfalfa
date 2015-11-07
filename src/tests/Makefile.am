@@ -28,6 +28,7 @@ decoding.log: fetch-vectors.log
 roundtrip-verify.log: fetch-vectors.log
 ivfcopy.log: fetch-vectors.log
 end-to-end-import.log: fetch-vectors.log
+end-to-end-combine.log: fetch-vectors.log
 
 clean-local:
 	-rm -rf test_vectors

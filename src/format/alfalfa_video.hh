@@ -25,11 +25,13 @@
 #define VIDEO_MANIFEST_FILENAME "video.manifest"
 
 #include <unordered_map>
+#include <unordered_set>
 
 #include "db.hh"
 #include "ivf.hh"
 #include "manifests.hh"
 #include "frame_db.hh"
+#include "ivf_writer.hh"
 
 class AlfalfaVideo
 {
@@ -58,14 +60,13 @@ private:
   QualityDB quality_db_;
   FrameDB frame_db_;
   TrackDB track_db_;
+  std::unordered_set<size_t> track_ids_;
 
 public:
   AlfalfaVideo( const std::string & directory_name, OpenMode mode );
 
   bool can_combine( const AlfalfaVideo & video );
-  void combine( const AlfalfaVideo & video );
-
-  void add_ivf_file( std::string & name, const IVF & file );
+  void combine( const AlfalfaVideo & video, IVFWriter & combined_ivf_writer );
   void import_ivf_file( const std::string & filename );
 
   VideoManifest & video_manifest() { return video_manifest_; }
@@ -82,6 +83,14 @@ public:
 
   TrackDB & track_db() { return track_db_; }
   const TrackDB & track_db() const { return track_db_; }
+
+  const string get_ivf_file_name() { return "v"; }
+
+  std::pair<std::unordered_set<size_t>::iterator, std::unordered_set<size_t>::iterator> get_track_ids();
+  FrameInfo get_first_frame( const size_t & track_id );
+  Optional<FrameInfo> get_next_frame_info( const size_t & track_id, const size_t & frame_index );
+  // TODO(Deepak): Insert stub for get_switches here
+  double get_quality( int raster_index, const FrameInfo & frame_info );
 
   bool good() const;
   bool save();

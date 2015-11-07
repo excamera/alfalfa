@@ -21,6 +21,8 @@
 #include "frame_info.hh"
 #include "dependency_tracking.hh"
 #include "protobufs/alfalfa.pb.h"
+#include "ivf_writer.hh"
+#include "filesystem.hh"
 
 using namespace std;
 using namespace boost::multi_index;
@@ -48,8 +50,16 @@ struct FrameData_TargetHashExtractor
 {
   typedef const TargetHash result_type;
 
-  const result_type & operator()( const FrameInfo & fd ) const { return fd.target_hash(); }
+  const result_type operator()( const FrameInfo & fd ) const { return fd.target_hash(); }
   result_type & operator()( FrameInfo * fd ) { return fd->target_hash(); }
+};
+
+struct FrameData_FrameIdExtractor
+{
+  typedef const size_t result_type;
+
+  const result_type & operator()( const FrameInfo & fd ) const { return fd.frame_id(); }
+  result_type & operator()( FrameInfo * fd ) { return fd->frame_id(); }
 };
 
 /*
@@ -57,8 +67,10 @@ struct FrameData_TargetHashExtractor
  *  sequence of frames contained in various tracks in given alf video
  */
 
+struct FrameDataSetByIdTag;
 struct FrameDataSetByOutputHashTag;
 struct FrameDataSetBySourceHashTag;
+struct FrameDataSetByFrameNameTag;
 struct FrameDataSetSequencedTag;
 
 typedef multi_index_container
@@ -66,6 +78,31 @@ typedef multi_index_container
   FrameInfo,
   indexed_by
   <
+    hashed_unique
+    <
+      tag<FrameDataSetByIdTag>,
+      FrameData_FrameIdExtractor
+    >,
+    hashed_non_unique
+    <
+      tag<FrameDataSetByFrameNameTag>,
+      composite_key
+      <
+        FrameInfo,
+        FrameData_SourceHashExtractor,
+        FrameData_TargetHashExtractor
+      >,
+      composite_key_hash
+      <
+        std::hash<SourceHash>,
+        std::hash<TargetHash>
+      >,
+      composite_key_equal_to
+      <
+        std::equal_to<SourceHash>,
+        std::equal_to<TargetHash>
+      >
+    >,
     hashed_non_unique
     <
       tag<FrameDataSetByOutputHashTag>,
@@ -85,10 +122,14 @@ typedef multi_index_container
   >
 > FrameDataSetCollection;
 
+typedef FrameDataSetCollection::index<FrameDataSetByIdTag>::type
+FrameDataSetCollectionById;
 typedef FrameDataSetCollection::index<FrameDataSetByOutputHashTag>::type
 FrameDataSetCollectionByOutputHash;
 typedef FrameDataSetCollection::index<FrameDataSetBySourceHashTag>::type
 FrameDataSetCollectionBySourceHash;
+typedef FrameDataSetCollection::index<FrameDataSetByFrameNameTag>::type
+FrameDataSetCollectionByFrameName;
 typedef FrameDataSetCollection::index<FrameDataSetSequencedTag>::type
 FrameDataSetCollectionSequencedAccess;
 
@@ -142,14 +183,22 @@ public:
     : BasicDatabase<FrameInfo, AlfalfaProtobufs::FrameInfo,
       FrameDataSetCollection, FrameDataSetSequencedTag>( filename, magic_number, mode )
   {}
-  
-  vector<std::string> ivf_files();
 
   std::pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator>
   search_by_output_hash( const size_t & output_hash );
 
   std::pair<FrameDataSetSourceHashSearch::iterator, FrameDataSetSourceHashSearch::iterator>
   search_by_decoder_hash( const DecoderHash & decoder_hash );
+
+  bool has_frame_id( const size_t & frame_id );
+  bool has_frame_name( const SourceHash & source_hash, const TargetHash & target_hash );
+  FrameInfo search_by_frame_id( const size_t & frame_id );
+
+  FrameInfo search_by_frame_name( const SourceHash & source_hash, const TargetHash & target_hash );
+
+  void
+  merge( const FrameDB & db, map<size_t, size_t> & frame_id_mapping, IVFWriter & combined_ivf_writer, const string & ivf_file_path );
+
 };
 
 #endif /* FRAME_DB */

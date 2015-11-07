@@ -136,18 +136,16 @@ void from_protobuf( const AlfalfaProtobufs::QualityData & message,
 void to_protobuf( const TrackData & td,
   AlfalfaProtobufs::TrackData & message ) {
   message.set_track_id( td.track_id );
+  message.set_frame_index( td.frame_index );
   message.set_frame_id( td.frame_id );
-  to_protobuf( td.source_hash, *message.mutable_source_hash() );
-  to_protobuf( td.target_hash, *message.mutable_target_hash() );
 }
 
 void from_protobuf( const AlfalfaProtobufs::TrackData & message,
   TrackData & td )
 {
   td.track_id = message.track_id();
+  td.frame_index = message.frame_index();
   td.frame_id = message.frame_id();
-  from_protobuf( message.source_hash(), td.source_hash );
-  from_protobuf( message.target_hash(), td.target_hash );
 }
 
 void to_protobuf( const FrameInfo & fi, AlfalfaProtobufs::FrameInfo & message )
@@ -159,6 +157,9 @@ void to_protobuf( const FrameInfo & fi, AlfalfaProtobufs::FrameInfo & message )
 
   to_protobuf( fi.source_hash(), *message.mutable_source_hash() );
   to_protobuf( fi.target_hash(), *message.mutable_target_hash() );
+
+  message.set_frame_id( fi.frame_id() );
+  message.set_index( fi.index() );
 }
 
 void from_protobuf( const AlfalfaProtobufs::FrameInfo & pfi, FrameInfo & fi )
@@ -174,6 +175,8 @@ void from_protobuf( const AlfalfaProtobufs::FrameInfo & pfi, FrameInfo & fi )
   fi.set_offset( size_t( pfi.offset() ) );
   fi.set_length( size_t( pfi.length() ) );
   fi.set_ivf_filename( pfi.ivf_filename() );
+  fi.set_frame_id( size_t( pfi.frame_id() ) );
+  fi.set_index( size_t( pfi.index() ) );
 }
 
 ProtobufSerializer::ProtobufSerializer( const std::string & filename )
