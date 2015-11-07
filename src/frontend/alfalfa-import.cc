@@ -26,7 +26,7 @@ int main( int argc, char const *argv[] )
     FileSystem::create_directory( destination_dir );
     AlfalfaVideo alfalfa_video( destination_dir, OpenMode::TRUNCATE );
 
-    const string new_ivf_filename = "v"; /* short name makes for short framedb entries */
+    const string new_ivf_filename = alfalfa_video.get_ivf_file_name();
 
     /* copy each frame into a new file, then close the file */
     {

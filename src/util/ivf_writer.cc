@@ -59,7 +59,7 @@ IVFWriter::IVFWriter( const string & filename,
   assert( fd_.size() == file_size_ );
 }
 
-void IVFWriter::append_frame( const Chunk & chunk )
+size_t IVFWriter::append_frame( const Chunk & chunk )
 {
   /* map the header into memory */
   MMap_Region header_in_mem( IVF::supported_header_len, PROT_READ | PROT_WRITE, MAP_SHARED, fd_.num() );
@@ -82,6 +82,7 @@ void IVFWriter::append_frame( const Chunk & chunk )
 
   /* append the frame header to the file */
   fd_.write( Chunk( &new_header.at( 0 ), new_header.size() ) );
+  size_t written_offset = file_size_;
   file_size_ += new_header .size();
 
   /* append the frame to the file */
@@ -97,4 +98,6 @@ void IVFWriter::append_frame( const Chunk & chunk )
 
   /* verify the new frame count */
   assert( frame_count_ == header( 24, 4 ).le32() );
+
+  return written_offset;
 }

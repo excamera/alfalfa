@@ -48,9 +48,9 @@ int main( int argc, char const *argv[] )
   double frame_rate = alf.video_manifest().frame_rate();
 
   //Get an iterator to the beginning and end of track 0 (currently cannot iterate through tracks)
-  pair<TrackDBCollectionByIds::iterator, TrackDBCollectionByIds::iterator> track_iterator = track_db.search_by_track_id( 0 );
-  TrackDBCollectionByIds::iterator beginning = track_iterator.first;
-  TrackDBCollectionByIds::iterator end = track_iterator.second;
+  pair<TrackDBCollectionByTrackIdAndFrameIndex::iterator, TrackDBCollectionByTrackIdAndFrameIndex::iterator> track_iterator = track_db.search_by_track_id( 0 );
+  TrackDBCollectionByTrackIdAndFrameIndex::iterator beginning = track_iterator.first;
+  TrackDBCollectionByTrackIdAndFrameIndex::iterator end = track_iterator.second;
 
   //Initialize variables
   uint32_t frame_count = 0;
@@ -66,9 +66,10 @@ int main( int argc, char const *argv[] )
   {
     TrackData td = *beginning;
     //We only count shown frames for quality and frame count
-    if(td.target_hash.shown) {
+    FrameInfo fi = frame_db.search_by_frame_id( td.frame_id );
+    if(fi.target_hash().shown) {
       //Get an iterator to the quality data for a frame and read quality member variable
-      pair<QualityDBCollectionByApproximateRaster::iterator, QualityDBCollectionByApproximateRaster::iterator> quality_iterator = quality_db.search_by_approximate_raster( td.target_hash.output_hash );
+      pair<QualityDBCollectionByApproximateRaster::iterator, QualityDBCollectionByApproximateRaster::iterator> quality_iterator = quality_db.search_by_approximate_raster( fi.target_hash().output_hash );
       double quality = (*quality_iterator.first).quality;
       quality_sum += quality;
       //Set the minimum quality if it is less than the current minimum
@@ -76,7 +77,7 @@ int main( int argc, char const *argv[] )
       frame_count++;
     }
     //Get an iterator to the frame even if it is not shown. Total coded size includes both shown and unshown frames.
-    pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator> frame_iterator = frame_db.search_by_output_hash( td.target_hash.output_hash );
+    pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator> frame_iterator = frame_db.search_by_output_hash( fi.target_hash().output_hash );
     uint64_t frame_length = (*frame_iterator.first).length();
     total_coded_size += frame_length;
     //Increment iterator to get next frame in track

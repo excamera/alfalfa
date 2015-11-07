@@ -29,6 +29,8 @@ public:
   uint16_t height( void ) const { return info_.height; }
   double frame_rate( void ) const { return info_.frame_rate(); }
   uint32_t frame_count( void ) const { return info_.frame_count; }
+  double frame_rate_numerator( void ) const { return info_.frame_rate_numerator; }
+  double frame_rate_denominator( void ) const { return info_.frame_rate_denominator; }
 
   const VideoInfo & info() const { return info_; }
   void set_info( const VideoInfo & info );
@@ -45,6 +47,7 @@ public:
  */
 
 struct RasterListByHashTag;
+struct RasterListRandomAccessTag;
 struct RasterListSequencedTag;
 
 typedef multi_index_container
@@ -57,6 +60,10 @@ typedef multi_index_container
       tag<RasterListByHashTag>,
       member<RasterData, size_t, &RasterData::hash>
     >,
+    random_access
+    <
+      tag<RasterListRandomAccessTag>
+    >,
     sequenced
     <
       tag<RasterListSequencedTag>
@@ -66,6 +73,8 @@ typedef multi_index_container
 
 typedef RasterListCollection::index<RasterListByHashTag>::type
 RasterListCollectionByHash;
+typedef RasterListCollection::index<RasterListRandomAccessTag>::type
+RasterListCollectionRandomAccess;
 
 class RasterList : public BasicDatabase<RasterData, AlfalfaProtobufs::RasterData,
   RasterListCollection, RasterListSequencedTag>
@@ -77,6 +86,7 @@ public:
   {}
 
   bool has( const size_t & raster_hash ) const;
+  size_t raster( size_t raster_index );
   bool operator==( const RasterList & other ) const;
   bool operator!=( const RasterList & other ) const;
 };
@@ -86,6 +96,7 @@ public:
  *   sequence of original raster / approximate raster / quality
  */
 
+struct QualityDBByOriginalAndApproximateRasterTag;
 struct QualityDBByOriginalRasterTag;
 struct QualityDBByApproximateRasterTag;
 struct QualityDBSequencedTag;
@@ -95,6 +106,16 @@ typedef multi_index_container
   QualityData,
   indexed_by
   <
+    hashed_unique
+    <
+      tag<QualityDBByOriginalAndApproximateRasterTag>,
+      composite_key
+      <
+        QualityData,
+        member<QualityData, size_t, &QualityData::original_raster>,
+        member<QualityData, size_t, &QualityData::approximate_raster>
+      >
+    >,
     hashed_non_unique
     <
       tag<QualityDBByOriginalRasterTag>,
@@ -112,6 +133,8 @@ typedef multi_index_container
   >
 > QualityDBCollection;
 
+typedef QualityDBCollection::index<QualityDBByOriginalAndApproximateRasterTag>::type
+QualityDBCollectionByOriginalAndApproximateRaster;
 typedef QualityDBCollection::index<QualityDBByOriginalRasterTag>::type
 QualityDBCollectionByOriginalRaster;
 typedef QualityDBCollection::index<QualityDBByApproximateRasterTag>::type
@@ -126,6 +149,8 @@ public:
     QualityDBCollection, QualityDBSequencedTag>( filename, magic_number, mode )
   {}
 
+  QualityData
+  search_by_original_and_approximate_raster( const size_t & original_raster, const size_t & approximate_raster );
   std::pair<QualityDBCollectionByOriginalRaster::iterator, QualityDBCollectionByOriginalRaster::iterator>
   search_by_original_raster( const size_t & original_raster );
   std::pair<QualityDBCollectionByApproximateRaster::iterator, QualityDBCollectionByApproximateRaster::iterator>
@@ -137,8 +162,8 @@ public:
  *   mapping from ID to { sequence of frames }
  */
 
-struct TrackDBByIdsTag;
-struct TrackDBByFrameAndTrackIdTag;
+struct TrackDBByTrackIdAndFrameIndexTag;
+struct TrackDBByTrackIdAndFrameIdTag;
 struct TrackDBSequencedTag;
 
 typedef multi_index_container
@@ -148,35 +173,12 @@ typedef multi_index_container
   <
     ordered_unique
     <
-      tag<TrackDBByIdsTag>,
+      tag<TrackDBByTrackIdAndFrameIndexTag>,
       composite_key
       <
         TrackData,
         member<TrackData, size_t, &TrackData::track_id>,
-        member<TrackData, size_t, &TrackData::frame_id>
-      >
-    >,
-    hashed_non_unique
-    <
-      tag<TrackDBByFrameAndTrackIdTag>,
-      composite_key
-      <
-        TrackData,
-        member<TrackData, size_t, &TrackData::track_id>,
-        member<TrackData, SourceHash, &TrackData::source_hash>,
-        member<TrackData, TargetHash, &TrackData::target_hash>
-      >,
-      composite_key_hash
-      <
-        std::hash<size_t>,
-        std::hash<SourceHash>,
-        std::hash<TargetHash>
-      >,
-      composite_key_equal_to
-      <
-        std::equal_to<size_t>,
-        std::equal_to<SourceHash>,
-        std::equal_to<TargetHash>
+        member<TrackData, size_t, &TrackData::frame_index>
       >
     >,
     sequenced
@@ -186,10 +188,8 @@ typedef multi_index_container
   >
 > TrackDBCollection;
 
-typedef TrackDBCollection::index<TrackDBByIdsTag>::type
-TrackDBCollectionByIds;
-typedef TrackDBCollection::index<TrackDBByFrameAndTrackIdTag>::type
-TrackDBCollectionByFrameAndTrackId;
+typedef TrackDBCollection::index<TrackDBByTrackIdAndFrameIndexTag>::type
+TrackDBCollectionByTrackIdAndFrameIndex;
 
 class TrackDB : public BasicDatabase<TrackData, AlfalfaProtobufs::TrackData,
   TrackDBCollection, TrackDBSequencedTag>
@@ -200,11 +200,12 @@ public:
     TrackDBCollection, TrackDBSequencedTag>( filename, magic_number, mode )
   {}
 
-  std::pair<TrackDBCollectionByIds::iterator, TrackDBCollectionByIds::iterator>
-  search_by_track_id( const size_t track_id );
+  std::pair<TrackDBCollectionByTrackIdAndFrameIndex::iterator, TrackDBCollectionByTrackIdAndFrameIndex::iterator>
+  search_by_track_id( const size_t & track_id );
+  bool has_track_id( const size_t & track_id );
   Optional<TrackData>
-  search_next_frame( const size_t track_id, const SourceHash source_hash, const TargetHash target_hash );
-  void merge( const TrackDB & db );
+  search_next_frame( const size_t & track_id, const size_t & frame_index );
+  void merge( const TrackDB & db, map<size_t, size_t> & frame_id_mapping );
 };
 
 #endif /* MANIFESTS_HH */

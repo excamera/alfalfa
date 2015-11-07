@@ -18,7 +18,7 @@ int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
   TrackDB & track_db = alfalfa_video.track_db();
 
   TrackingPlayer player( ivf_file_path );
-  size_t frame_id = 1;
+  size_t frame_index = 1;
 
   while ( not player.eof() ) {
     FrameInfo next_frame( player.serialize_next().first );
@@ -39,13 +39,13 @@ int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
     while ( it_begin_orig != it_end_orig ) {
       if ( it_begin_orig->original_raster != raster )
         return 1;
-      if (it_begin_orig->approximate_raster == approximate_raster) {
-        if (it_begin_orig->quality == 1.0)
+      if ( it_begin_orig->approximate_raster == approximate_raster ) {
+        if ( it_begin_orig->quality == 1.0 )
           found = true;
       }
       it_begin_orig++;
     }
-    if (!found)
+    if ( !found )
       return 1;
 
     found = false;
@@ -54,15 +54,15 @@ int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
     QualityDBCollectionByApproximateRaster::iterator it_begin_approx = it_approx.first;
     QualityDBCollectionByApproximateRaster::iterator it_end_approx = it_approx.second;
     while ( it_begin_approx != it_end_approx ) {
-      if (it_begin_approx->approximate_raster != approximate_raster )
+      if ( it_begin_approx->approximate_raster != approximate_raster )
         return 1;
-      if (it_begin_approx->original_raster == raster ) {
-        if (it_begin_approx->quality == 1.0)
+      if ( it_begin_approx->original_raster == raster ) {
+        if ( it_begin_approx->quality == 1.0 )
           found = true;
       }
       it_begin_approx++;
     }
-    if (!found)
+    if ( !found )
       return 1;
 
     // Check frame db
@@ -72,33 +72,32 @@ int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
     FrameDataSetCollectionByOutputHash::iterator it_begin_output_hash = it_output_hash.first;
     FrameDataSetCollectionByOutputHash::iterator it_end_output_hash = it_output_hash.second;
     while ( it_begin_output_hash != it_end_output_hash ) {
-      if (it_begin_output_hash->offset() == next_frame.offset() and
-          it_begin_output_hash->length() == next_frame.length() and
-          it_begin_output_hash->source_hash() == next_frame.source_hash() and
-          it_begin_output_hash->target_hash() == next_frame.target_hash())
+      if ( it_begin_output_hash->source_hash() == next_frame.source_hash() and
+           it_begin_output_hash->target_hash() == next_frame.target_hash() )
         found = true;
       it_begin_output_hash++;
     }
-    if (!found)
+    if ( !found )
       return 1;
 
     // Check track db
     found = false;
     auto it_ids =
       track_db.search_by_track_id( 0 );
-    TrackDBCollectionByIds::iterator it_begin_ids = it_ids.first;
-    TrackDBCollectionByIds::iterator it_end_ids = it_ids.second;
+    TrackDBCollectionByTrackIdAndFrameIndex::iterator it_begin_ids = it_ids.first;
+    TrackDBCollectionByTrackIdAndFrameIndex::iterator it_end_ids = it_ids.second;
     while ( it_begin_ids != it_end_ids ) {
-      if (it_begin_ids->source_hash == next_frame.source_hash() and
-          it_begin_ids->target_hash == next_frame.target_hash() and
-          it_begin_ids->frame_id == frame_id)
-          found = true;
+      FrameInfo frame_info = frame_db.search_by_frame_id( it_begin_ids->frame_id );
+      if ( it_begin_ids->frame_index == frame_index and
+           frame_info.source_hash() == next_frame.source_hash() and
+           frame_info.target_hash() == next_frame.target_hash() )
+        found = true;
       it_begin_ids++;
     }
-    if (!found) {
+    if ( !found ) {
       return 1;
     }
-    frame_id++;
+    frame_index++;
   }
 
   return 0;

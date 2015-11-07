@@ -18,7 +18,7 @@ public:
 	     const uint32_t frame_rate,
 	     const uint32_t time_scale );
 
-  void append_frame( const Chunk & chunk );
+  size_t append_frame( const Chunk & chunk );
 };
 
 #endif /* IVF_WRITER_HH */

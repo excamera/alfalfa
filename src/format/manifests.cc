@@ -65,6 +65,14 @@ bool RasterList::has( const size_t & raster_hash ) const
   return data_by_hash.count( raster_hash ) > 0;
 }
 
+size_t RasterList::raster( size_t raster_index )
+{
+  const RasterListCollectionRandomAccess & data_by_random_access = collection_.get<RasterListRandomAccessTag>();
+  if ( data_by_random_access.size() <= raster_index )
+    throw std::out_of_range( "Invalid raster index!" );
+  return data_by_random_access.at( raster_index ).hash;
+}
+
 bool RasterList::operator==( const RasterList & other ) const
 {
   if ( collection_.get<RasterListByHashTag>().size() !=
@@ -86,6 +94,19 @@ bool RasterList::operator!=( const RasterList & other ) const
   return not ( ( *this ) == other );
 }
 
+QualityData
+QualityDB::search_by_original_and_approximate_raster( const size_t & original_raster, const size_t & approximate_raster )
+{
+  QualityDBCollectionByOriginalAndApproximateRaster & index =
+    collection_.get<QualityDBByOriginalAndApproximateRasterTag>();
+  auto key = boost::make_tuple( original_raster, approximate_raster );
+  if ( index.count( key ) == 0 )
+    throw std::out_of_range( "Raster pair not found!" );
+  QualityDBCollectionByOriginalAndApproximateRaster::iterator it =
+    index.find( key );
+  return *it;
+}
+
 std::pair<QualityDBCollectionByOriginalRaster::iterator, QualityDBCollectionByOriginalRaster::iterator>
 QualityDB::search_by_original_raster( const size_t & original_raster )
 {
@@ -100,57 +121,56 @@ QualityDB::search_by_approximate_raster( const size_t & approximate_raster )
   return index.equal_range( approximate_raster );
 }
 
-std::pair<TrackDBCollectionByIds::iterator, TrackDBCollectionByIds::iterator>
-TrackDB::search_by_track_id( const size_t track_id )
+std::pair<TrackDBCollectionByTrackIdAndFrameIndex::iterator, TrackDBCollectionByTrackIdAndFrameIndex::iterator>
+TrackDB::search_by_track_id( const size_t & track_id )
 {
-  TrackDBCollectionByIds & index = collection_.get<TrackDBByIdsTag>();
+  TrackDBCollectionByTrackIdAndFrameIndex & index = collection_.get<TrackDBByTrackIdAndFrameIndexTag>();
   // Only specify the first field, since our ordered_index is sorted
   // first by track ID and then by frame ID
   return index.equal_range( track_id );
 }
 
-Optional<TrackData>
-TrackDB::search_next_frame( const size_t track_id, const SourceHash source_hash, const TargetHash target_hash )
+bool
+TrackDB::has_track_id( const size_t & track_id )
 {
-  TrackDBCollectionByFrameAndTrackId & hashed_index = collection_.get<TrackDBByFrameAndTrackIdTag>();
-  boost::tuple<size_t, SourceHash, TargetHash> hashed_key =
-    boost::make_tuple( track_id, source_hash, target_hash );
-  if ( hashed_index.count( hashed_key ) == 0 )
-    return Optional<TrackData>();
-  TrackDBCollectionByFrameAndTrackId::iterator frame_data = hashed_index.find(
-    hashed_key );
-  // Find the frame_id of associated frame
-  size_t frame_id = frame_data->frame_id;
+  TrackDBCollectionByTrackIdAndFrameIndex & index = collection_.get<TrackDBByTrackIdAndFrameIndexTag>();
+  return index.count( track_id ) > 0;
+}
 
-  TrackDBCollectionByIds & ordered_index = collection_.get<TrackDBByIdsTag>();
+Optional<TrackData>
+TrackDB::search_next_frame( const size_t & track_id, const size_t & frame_index )
+{
+  TrackDBCollectionByTrackIdAndFrameIndex & ordered_index = collection_.get<TrackDBByTrackIdAndFrameIndexTag>();
   boost::tuple<size_t, size_t> ordered_key =
-    boost::make_tuple( track_id, frame_id+1 );
-  if ( ordered_index.count( ordered_key ) == 0)
+    boost::make_tuple( track_id, frame_index+1 );
+  if ( ordered_index.count( ordered_key ) == 0 )
     return Optional<TrackData>();
-  TrackDBCollectionByIds::iterator ids_iterator = ordered_index.find(
+  TrackDBCollectionByTrackIdAndFrameIndex::iterator ids_iterator = ordered_index.find(
     ordered_key);
   return make_optional( true, *ids_iterator );
 }
 
-void TrackDB::merge( const TrackDB & db )
+void TrackDB::merge( const TrackDB & db, map<size_t, size_t> & frame_id_mapping )
 {
-  TrackDBCollectionByIds & track_ids = collection_.get<TrackDBByIdsTag>();
-  map<size_t, size_t> new_track_ids;
+  TrackDBCollectionByTrackIdAndFrameIndex & track_db_by_ids =
+    collection_.get<TrackDBByTrackIdAndFrameIndexTag>();
+  map<size_t, size_t> track_id_mapping;
 
   for ( auto item : db.collection_.get<TrackDBSequencedTag>() ) {
-    if ( new_track_ids.count( item.track_id ) > 0 ) {
-      item.track_id = new_track_ids[ item.track_id ];
+    if ( track_id_mapping.count( item.track_id ) > 0 ) {
+      item.track_id = track_id_mapping[ item.track_id ];
     }
-    else if ( track_ids.count( item.track_id ) > 0 ) {
+    else if ( track_db_by_ids.count( item.track_id ) > 0 ) {
       size_t new_track_id = item.track_id;
-      while ( track_ids.count ( new_track_id ) > 0 ) {
+      while ( track_db_by_ids.count ( new_track_id ) > 0 ) {
         new_track_id++;
       }
-      new_track_ids[ item.track_id ] = new_track_id;
+      track_id_mapping[ item.track_id ] = new_track_id;
       item.track_id = new_track_id;
     } else {
-      new_track_ids[item.track_id] = item.track_id;
+      track_id_mapping[item.track_id] = item.track_id;
     }
+    item.frame_id = frame_id_mapping[item.frame_id];
     insert( item );
   }
 }

@@ -5,19 +5,6 @@
 #include "serialization.hh"
 #include "protobufs/alfalfa.pb.h"
 
-vector<std::string> FrameDB::ivf_files()
-{
-  set<std::string> ivf_filenames;
-
-  for ( auto const & it : collection_.get<FrameDataSetSequencedTag>() ) {
-    if ( ivf_filenames.count( it.ivf_filename() ) == 0 ) {
-      ivf_filenames.insert( it.ivf_filename() );
-    }
-  }
-
-  return std::vector<std::string>( ivf_filenames.begin(), ivf_filenames.end() );
-}
-
 std::pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator>
 FrameDB::search_by_output_hash( const size_t & output_hash )
 {
@@ -42,6 +29,69 @@ FrameDB::search_by_decoder_hash( const DecoderHash & decoder_hash )
   FrameDataSetSourceHashSearch results( data_by_source_hash, query_hash );
 
   return make_pair( results.begin(), results.end() );
+}
+
+bool
+FrameDB::has_frame_id( const size_t & frame_id )
+{
+  FrameDataSetCollectionById & index = collection_.get<FrameDataSetByIdTag>();
+  return index.count( frame_id ) > 0;
+}
+
+bool
+FrameDB::has_frame_name( const SourceHash & source_hash, const TargetHash & target_hash )
+{
+  FrameDataSetCollectionByFrameName & index = collection_.get<FrameDataSetByFrameNameTag>();
+  return index.count( boost::make_tuple( source_hash, target_hash ) );
+}
+
+FrameInfo
+FrameDB::search_by_frame_id( const size_t & frame_id )
+{
+  FrameDataSetCollectionById & index = collection_.get<FrameDataSetByIdTag>();
+  if ( index.count( frame_id ) == 0 )
+    throw std::out_of_range( "Invalid frame_id!" );
+  FrameDataSetCollectionById::iterator id_iterator =
+    index.find( frame_id );
+  return *id_iterator;
+}
+
+FrameInfo
+FrameDB::search_by_frame_name( const SourceHash & source_hash, const TargetHash & target_hash )
+{
+  FrameDataSetCollectionByFrameName & index = collection_.get<FrameDataSetByFrameNameTag>();
+  auto key = boost::make_tuple( source_hash, target_hash );
+  if ( index.count( key ) == 0 )
+    throw std::out_of_range( "Invalid (source_hash, target_hash) pair" );
+  FrameDataSetCollectionByFrameName::iterator name_iterator = index.find( key );
+  return *name_iterator;
+}
+
+void
+FrameDB::merge( const FrameDB & db, map<size_t, size_t> & frame_id_mapping, IVFWriter & combined_ivf_writer, const string & ivf_file_path )
+{
+  IVF ivf_file( ivf_file_path );
+  for ( auto item : db.collection_.get<FrameDataSetSequencedTag>() ) {
+    if ( has_frame_name( item.source_hash(), item.target_hash() ) ) {
+      FrameInfo frame_info = search_by_frame_name( item.source_hash(), item.target_hash() );
+      frame_id_mapping[item.frame_id()] = frame_info.frame_id();
+    }
+    else if ( has_frame_id( item.frame_id() ) ) {
+      size_t new_frame_id = item.frame_id();
+      while ( not has_frame_id( new_frame_id ) ) {
+        new_frame_id++;
+      }
+      frame_id_mapping[ item.frame_id() ] = new_frame_id;
+    } else {
+      frame_id_mapping[item.frame_id()] = item.frame_id();
+    }
+
+    size_t offset = combined_ivf_writer.append_frame( ivf_file.frame( item.index() ) );
+    item.set_offset( offset );
+    item.set_frame_id( frame_id_mapping[item.frame_id()] );
+    insert( item );
+  }
+
 }
 
 FrameDataSetSourceHashSearch::FrameDataSetSourceHashSearchIterator::FrameDataSetSourceHashSearchIterator(

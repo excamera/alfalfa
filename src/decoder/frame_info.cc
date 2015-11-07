@@ -2,8 +2,8 @@
 #include "file.hh"
 
 FrameInfo::FrameInfo()
-  : ivf_filename_(), offset_( 0 ), length_( 0 ), source_hash_(),
-    target_hash_()
+  : ivf_filename_( ), offset_( 0 ), length_( 0 ), index_( 0 ), source_hash_(),
+    target_hash_(), frame_id_( 0 )
 {}
 
 FrameInfo::FrameInfo( const std::string & ivf_filename, const std::string & frame_name,
@@ -11,8 +11,10 @@ FrameInfo::FrameInfo( const std::string & ivf_filename, const std::string & fram
   : ivf_filename_( ivf_filename ),
     offset_( offset ),
     length_( length ),
+    index_( 0 ),
     source_hash_( frame_name ),
-    target_hash_( frame_name )
+    target_hash_( frame_name ),
+    frame_id_( 0 )
 {}
 
 FrameInfo::FrameInfo( const std::string & ivf_filename, const size_t & offset, const size_t & length,
@@ -20,8 +22,10 @@ FrameInfo::FrameInfo( const std::string & ivf_filename, const size_t & offset, c
   : ivf_filename_( ivf_filename ),
     offset_( offset ),
     length_( length ),
+    index_( 0 ),
     source_hash_( source_hash ),
-    target_hash_( target_hash )
+    target_hash_( target_hash ),
+    frame_id_( 0 )
 {}
 
 bool FrameInfo::validate_source( const DecoderHash & decoder_hash ) const
