@@ -15,8 +15,13 @@ def check(file_id):
 
     #Find the locations of the test vector and ivfcopy binary, and set location of new file
     alfalfa_test_vector_filename = ("{}/../../alfalfa_test_vectors/" + file_id).format(src_dir)
-    ivfcopy = "{}/ivfcopy".format(src_dir)
-    copy_to_location = "{}/../../test_copy.ivf".format(src_dir)
+
+    if not os.path.isfile( alfalfa_test_vector_filename ):
+        sys.stderr.write( "%s: %s not found, skipping test.\n" % ( sys.argv[ 0 ], alfalfa_test_vector_filename ) )
+        sys.exit( 77 ); # automake error code for test skip                          
+
+    ivfcopy = "./ivfcopy"
+    copy_to_location = "./test_copy.ivf"
 
     #Copy IVF file using ivfcopy
     copy_command = ivfcopy + " " + alfalfa_test_vector_filename + " " + copy_to_location
@@ -28,7 +33,7 @@ def check(file_id):
         sys.exit(1)
 
     #Find the location of ivfcompare binary
-    ivfcompare = "{}/ivfcompare".format(src_dir)
+    ivfcompare = "./ivfcompare"
 
     #Compare files using ivfcompare
     compare_command = ivfcompare + " " + alfalfa_test_vector_filename + " " + copy_to_location

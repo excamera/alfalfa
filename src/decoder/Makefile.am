@@ -16,8 +16,9 @@ libalfalfadecoder_a_SOURCES = vp8_raster.hh block.hh bool_decoder.hh decoder.cc 
 	transform.cc tree.cc uncompressed_chunk.cc uncompressed_chunk.hh \
 	vp8_header_structures.hh vp8_prob_data.cc vp8_prob_data.hh scorer.hh \
 	decoder_state.hh loopfilter_sse2.asm loopfilter_block_sse2_x86_64.asm \
-	subpixel_ssse3.asm idctllm_mmx.asm \
+	predictor_sse.hh subpixel_ssse3.asm idctllm_mmx.asm \
 	transform_sse.hh raster_handle.hh raster_handle.cc \
 	player.cc player.hh serialized_frame.hh serialized_frame.cc \
 	dependency_tracking.hh dependency_tracking.cc continuation_player.hh \
-	continuation_player.cc tracking_player.hh tracking_player.cc
+	continuation_player.cc tracking_player.hh tracking_player.cc \
+	config.asm x86_abi_support.asm
