@@ -5,8 +5,8 @@ use File::Path 'rmtree';
 
 sub switch_check {
   my ( $switch_num, $source, $target ) = @_;
-  my $source_file = $ENV{'srcdir'} . '/../../alfalfa_test_vectors/' . ${source};
-  my $target_file = $ENV{'srcdir'} . '/../../alfalfa_test_vectors/' . ${target};
+  my $source_file = '../../alfalfa_test_vectors/' . ${source};
+  my $target_file = '../../alfalfa_test_vectors/' . ${target};
 
   my $randsuffix = sprintf "%08X", rand(0xffffffff);
   my $dirname = "switch-dump$randsuffix";

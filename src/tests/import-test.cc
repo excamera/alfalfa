@@ -9,9 +9,7 @@ using namespace std;
 int alfalfa_import_test( string ivf_file_path, string destination_dir ) {
   bool found;
 
-  FileSystem::change_directory( destination_dir );
-
-  AlfalfaVideo alfalfa_video( ".", OpenMode::READ );
+  AlfalfaVideo alfalfa_video( destination_dir, OpenMode::READ );
 
   RasterList & raster_list = alfalfa_video.raster_list();
   QualityDB & quality_db = alfalfa_video.quality_db();

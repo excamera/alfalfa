@@ -1,23 +1,25 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python
 
-use strict;
+import os
+import sys
 
-sub check {
-  my ( $sha1 ) = @_;
-  my $filename = $ENV{'srcdir'} . '/../../alfalfa_test_vectors/' . ${sha1};
-  unless ( -e $filename ) {
-      print STDERR "$0: $sha1 not found, skipping test.\n";
-      exit 77; # automake error code for test skip
-  }
+ALFALFA_VIDEO_DIR = "alfalfa_video_dir/"
 
-  print STDERR "Checking $sha1... ";
-  my $exit_status = system( "./roundtrip $filename >/dev/null" );
-  if ( $exit_status ) {
-    print STDERR "$0: roundtrip failure on $sha1\n";
-    exit( 1 );
-  }
-  print STDERR "success.\n";
-};
+def check(file_id):
+  alfalfa_test_vector = ("test_vectors/" + file_id)
+
+  if not os.path.isfile( alfalfa_test_vector ):
+    sys.stderr.write( "%s: %s not found, failing test.\n" % ( sys.argv[ 0 ], alfalfa_test_vector ) )
+    sys.exit( 1 );
+
+  exit_code = os.system("../frontend/alfalfa-import %s %s" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR))
+  if exit_code != 0:
+    os.system("rm -rf %s" % ALFALFA_VIDEO_DIR)
+    sys.exit(1)
+  exit_code = os.system("./import-test %s %s" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR))
+  os.system("rm -rf %s" % ALFALFA_VIDEO_DIR)
+  if exit_code != 0:
+    sys.exit(1)
 
 check( '04b68b0a642d8285303d2b8884fc374e09d28ae9' );
 check( '075d4eb18cbb2885d57eae5201cafb54bc43acca' );
@@ -73,6 +75,4 @@ check( 'ea6ba2499a47208ee6393d164d5447c1649cf285' );
 check( 'eeeb9bf9e0fbcf543da64ad6353c6500534ccef7' );
 check( 'ff2941dde20090835032c32c0644b6d401610c57' );
 
-print STDERR "$0: all tests passed\n";
-
-exit 0;
+sys.exit(0)

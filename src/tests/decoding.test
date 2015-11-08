@@ -1,52 +1,23 @@
-#!/usr/bin/env python
+#!/usr/bin/env perl
 
-import os
-import sys
-import random
-import subprocess
+use strict;
 
-def remove_copied_file(copy_to_location):
-    if os.path.exists(copy_to_location):
-        subprocess.call("rm " + copy_to_location, shell=True)
+sub check {
+  my ( $sha1 ) = @_;
+  my $filename = 'test_vectors/' . ${sha1};
+  unless ( -e $filename ) {
+      print STDERR "$0: $sha1 not found, failing test.\n";
+      exit 1;
+  }
 
-
-def check(file_id):
-    src_dir = os.environ.get('srcdir')
-
-    #Find the locations of the test vector and ivfcopy binary, and set location of new file
-    alfalfa_test_vector_filename = ("{}/../../alfalfa_test_vectors/" + file_id).format(src_dir)
-
-    if not os.path.isfile( alfalfa_test_vector_filename ):
-        sys.stderr.write( "%s: %s not found, skipping test.\n" % ( sys.argv[ 0 ], alfalfa_test_vector_filename ) )
-        sys.exit( 77 ); # automake error code for test skip                          
-
-    ivfcopy = "./ivfcopy"
-    copy_to_location = "./test_copy.ivf"
-
-    #Copy IVF file using ivfcopy
-    copy_command = ivfcopy + " " + alfalfa_test_vector_filename + " " + copy_to_location
-    result = subprocess.call(copy_command, shell=True)
-
-    #If copy fails, exit and return error code 1
-    if result:
-        remove_copied_file(copy_to_location)
-        sys.exit(1)
-
-    #Find the location of ivfcompare binary
-    ivfcompare = "./ivfcompare"
-
-    #Compare files using ivfcompare
-    compare_command = ivfcompare + " " + alfalfa_test_vector_filename + " " + copy_to_location
-    result = subprocess.call(compare_command, shell=True)
-
-    #If compare fails, exit and return error code 1
-    if result:
-        remove_copied_file(copy_to_location)
-        sys.exit(1)
-
-    remove_copied_file(copy_to_location)
-
-
+  print STDERR "Checking $sha1... ";
+  my $decoded_sha1 = (split ' ', `./decode-to-stdout $filename 2>&1 | sha1sum` )[ 0 ];
+  if ( $decoded_sha1 ne $sha1 ) {
+    print STDERR "$0: decoding mismatch: expected $sha1, got $decoded_sha1\n";
+    exit( 1 );
+  }
+  print STDERR "success.\n";
+};
 
 check( '04b68b0a642d8285303d2b8884fc374e09d28ae9' );
 check( '075d4eb18cbb2885d57eae5201cafb54bc43acca' );
@@ -102,4 +73,6 @@ check( 'ea6ba2499a47208ee6393d164d5447c1649cf285' );
 check( 'eeeb9bf9e0fbcf543da64ad6353c6500534ccef7' );
 check( 'ff2941dde20090835032c32c0644b6d401610c57' );
 
-sys.exit(0)
+print STDERR "$0: all tests passed\n";
+
+exit 0;

@@ -1,0 +1,22 @@
+#!/usr/bin/perl -w
+
+my $target = q{test_vectors};
+
+if ( -d $target ) {
+  print STDERR "$0: test vectors already in place\n";
+  exit 0;
+}
+
+my $src_test_vectors = $ENV{ 'srcdir' } . q{/../../alfalfa_test_vectors/};
+
+if ( -d $src_test_vectors ) {
+  print STDERR "$0: test vectors available in source directory\n";
+
+  system( qq{git clone $src_test_vectors $target} ) and die qq{Couldn't clone $src_test_vectors locally};
+  exit 0;
+}
+
+print STDERR "$0: fetching test vectors from GitHub";
+
+system( qq{git clone https://github.com/alfalfa/alfalfa_test_vectors $target} )
+  and die qq{Couldn't clone https://github.com/alfalfa/alfalfa_test_vectors};
