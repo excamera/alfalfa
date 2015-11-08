@@ -25,8 +25,12 @@ before_script:
   - sudo -E add-apt-repository -y 'deb http://ftp.us.debian.org/debian unstable main contrib non-free'
   - sudo apt-get update -qq
   - sudo apt-get install -y -qq libglfw3-dev
+  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 99
 
-script: "./autogen.sh && ./configure --enable-debug CXX='g++-4.9' && make && make check || (cat src/tests/test-suite.log && exit 1)"
+script:
+  - ./autogen.sh
+  - ./configure
+  - make distcheck || (cat alfalfa-0.1/_build/src/tests/test-suite.log && exit 1)
 
 notifications:
   slack: keithw:2nINWkhRQ60BzeTDNYXgpLkU
