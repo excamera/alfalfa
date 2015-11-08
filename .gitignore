@@ -50,3 +50,5 @@ Makefile.in
 /src/tests/ivfcompare
 /src/tests/import-test
 /src/tests/trackdb-test
+
+/src/tests/test_vectors/
