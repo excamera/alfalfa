@@ -118,7 +118,7 @@ bool BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
   ProtobufSerializer serializer( filename_ );
 
   // Writing the header
-  serializer.write_raw( magic_number.c_str(), magic_number.length() );
+  serializer.write_string( magic_number );
 
   // Writing entries
   for ( const RecordType & it : collection_.get<SequencedTag>() ) {
@@ -143,10 +143,7 @@ bool BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
   ProtobufDeserializer deserializer( target_filename );
 
   // Reading the header
-  char target_magic_number[ MAX_MAGIC_NUMBER_LENGTH ] = {0};
-  deserializer.read_raw( target_magic_number, magic_number.length() );
-
-  if ( magic_number != target_magic_number ) {
+  if ( magic_number != deserializer.read_string( magic_number.length() ) ) {
     return false;
   }
 

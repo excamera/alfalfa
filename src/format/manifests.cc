@@ -23,10 +23,8 @@ bool VideoManifest::deserialize( const std::string & filename )
 {
   std::string target_filename = ( filename.length() == 0 ) ? filename_ : filename;
   ProtobufDeserializer deserializer( target_filename );
-  char target_magic_number[ MAX_MAGIC_NUMBER_LENGTH ] = {0};
-  deserializer.read_raw( target_magic_number, magic_number.length() );
 
-  if ( magic_number != target_magic_number ) {
+  if ( magic_number != deserializer.read_string( magic_number.length() ) ) {
     return false;
   }
 
@@ -47,7 +45,7 @@ bool VideoManifest::serialize( const std::string & filename )
   ProtobufSerializer serializer( filename_ );
 
   // Writing the header
-  serializer.write_raw( magic_number.c_str(), magic_number.length() );
+  serializer.write_string( magic_number );
 
   AlfalfaProtobufs::VideoInfo message;
   to_protobuf( info_, message );

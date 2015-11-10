@@ -188,9 +188,9 @@ ProtobufSerializer::ProtobufSerializer( const std::string & filename )
 			     S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH ) ) )
 {}
 
-void ProtobufSerializer::write_raw( const void * raw_data, size_t size )
+void ProtobufSerializer::write_string( const std::string & str )
 {
-  coded_output_.WriteRaw( raw_data, size );
+  coded_output_.WriteRaw( str.data(), str.size() );
 }
 
 ProtobufDeserializer::ProtobufDeserializer( const std::string & filename )
@@ -198,7 +198,11 @@ ProtobufDeserializer::ProtobufDeserializer( const std::string & filename )
 		      open( filename.c_str(), O_RDONLY, 0 ) ) )
 {}
 
-bool ProtobufDeserializer::read_raw( void * raw_data, size_t size )
+std::string ProtobufDeserializer::read_string( const size_t size )
 {
-  return coded_input_.ReadRaw( raw_data, size );
+  std::string ret;
+  if ( not coded_input_.ReadString( &ret, size ) ) {
+    throw runtime_error( "ReadString returned false" );
+  }
+  return ret;
 }

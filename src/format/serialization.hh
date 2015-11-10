@@ -93,7 +93,7 @@ protected:
 
 public:
   ProtobufSerializer( const std::string & filename );
-  void write_raw( const void * raw_data, size_t size );
+  void write_string( const std::string & str );
 
   template<class EntryProtobufType>
   bool write_protobuf( const EntryProtobufType & entry );
@@ -108,7 +108,7 @@ protected:
 
 public:
   ProtobufDeserializer( const std::string & filename );
-  bool read_raw( void * raw_data, size_t size );
+  std::string read_string( const size_t size );
 
   template<class EntryProtobufType>
   bool read_protobuf( EntryProtobufType & protobuf );
