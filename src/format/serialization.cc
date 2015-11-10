@@ -1,3 +1,5 @@
+#include <fcntl.h>
+
 #include "serialization.hh"
 
 void to_protobuf( const VideoInfo & info, AlfalfaProtobufs::VideoInfo & message )
@@ -180,23 +182,21 @@ void from_protobuf( const AlfalfaProtobufs::FrameInfo & pfi, FrameInfo & fi )
 }
 
 ProtobufSerializer::ProtobufSerializer( const std::string & filename )
-: fout_( filename )
+  : fout_( SystemCall( filename,
+		       open( filename.c_str(),
+			     O_WRONLY | O_CREAT | O_EXCL,
+			     S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH ) ) )
 {}
 
-bool ProtobufSerializer::write_raw( const void * raw_data, size_t size )
+void ProtobufSerializer::write_raw( const void * raw_data, size_t size )
 {
-  if ( not fout_.is_open() ) {
-    return false;
-  }
-
   coded_output_.WriteRaw( raw_data, size );
-  return true;
 }
 
 ProtobufDeserializer::ProtobufDeserializer( const std::string & filename )
-:fin_( filename )
-{
-}
+  : fin_( SystemCall( filename,
+		      open( filename.c_str(), O_RDONLY, 0 ) ) )
+{}
 
 bool ProtobufDeserializer::read_raw( void * raw_data, size_t size )
 {

@@ -9,6 +9,7 @@
 #include "frame_info.hh"
 #include "dependency_tracking.hh"
 #include "protobufs/alfalfa.pb.h"
+#include "file_descriptor.hh"
 
 struct VideoInfo
 {
@@ -86,13 +87,13 @@ void from_protobuf( const AlfalfaProtobufs::FrameInfo & pfi, FrameInfo & fi );
 class ProtobufSerializer
 {
 protected:
-  std::ofstream fout_;
-  google::protobuf::io::OstreamOutputStream raw_output_ { &fout_ };
+  FileDescriptor fout_;
+  google::protobuf::io::FileOutputStream raw_output_ { fout_.num() };
   google::protobuf::io::CodedOutputStream coded_output_ { &raw_output_ };
 
 public:
   ProtobufSerializer( const std::string & filename );
-  bool write_raw( const void * raw_data, size_t size );
+  void write_raw( const void * raw_data, size_t size );
 
   template<class EntryProtobufType>
   bool write_protobuf( const EntryProtobufType & entry );
@@ -101,8 +102,8 @@ public:
 class ProtobufDeserializer
 {
 protected:
-  std::ifstream fin_;
-  google::protobuf::io::IstreamInputStream raw_input_ { &fin_ };
+  FileDescriptor fin_;
+  google::protobuf::io::FileInputStream raw_input_ { fin_.num() };
   google::protobuf::io::CodedInputStream coded_input_ { &raw_input_ };
 
 public:
@@ -116,10 +117,6 @@ public:
 template<class EntryProtobufType>
 bool ProtobufDeserializer::read_protobuf( EntryProtobufType & message )
 {
-  if ( not fin_.is_open() ) {
-    return false;
-  }
-
   google::protobuf::uint32 size;
   bool has_next = coded_input_.ReadLittleEndian32( &size );
 
@@ -141,14 +138,8 @@ bool ProtobufDeserializer::read_protobuf( EntryProtobufType & message )
 template<class EntryProtobufType>
 bool ProtobufSerializer::write_protobuf( const EntryProtobufType & protobuf )
 {
-  if ( not fout_.is_open() ) {
-    return false;
-  }
-
   coded_output_.WriteLittleEndian32( protobuf.ByteSize() );
-  protobuf.SerializeToCodedStream( &coded_output_ );
-
-  return true;
+  return protobuf.SerializeToCodedStream( &coded_output_ );
 }
 
 #endif /* SERIALIZATION_HH */

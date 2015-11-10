@@ -47,9 +47,7 @@ bool VideoManifest::serialize( const std::string & filename )
   ProtobufSerializer serializer( filename_ );
 
   // Writing the header
-  if ( not serializer.write_raw( magic_number.c_str(), magic_number.length() ) ) {
-    return false;
-  }
+  serializer.write_raw( magic_number.c_str(), magic_number.length() );
 
   AlfalfaProtobufs::VideoInfo message;
   to_protobuf( info_, message );

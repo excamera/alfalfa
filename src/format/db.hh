@@ -118,9 +118,7 @@ bool BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
   ProtobufSerializer serializer( filename_ );
 
   // Writing the header
-  if ( not serializer.write_raw( magic_number.c_str(), magic_number.length() ) ) {
-    return false;
-  }
+  serializer.write_raw( magic_number.c_str(), magic_number.length() );
 
   // Writing entries
   for ( const RecordType & it : collection_.get<SequencedTag>() ) {
