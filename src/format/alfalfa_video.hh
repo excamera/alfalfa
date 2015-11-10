@@ -64,6 +64,7 @@ private:
   SwitchDB switch_db_;
   std::unordered_set<size_t> track_ids_;
   std::map<std::pair<size_t, size_t>, std::unordered_set<size_t>> switch_mappings_;
+  std::shared_ptr<File> ivf_file_;
 
 public:
   AlfalfaVideo( const std::string & directory_name, OpenMode mode );
@@ -102,6 +103,8 @@ public:
   std::pair<TrackDBIterator, TrackDBIterator> get_frames( const SwitchDBIterator & it );
   std::pair<SwitchDBIterator, SwitchDBIterator> get_frames( const TrackDBIterator & it, const size_t & to_track_id );
   double get_quality( int raster_index, const FrameInfo & frame_info );
+
+  const Chunk get_chunk( const FrameInfo & frame_info ) const;
 
   bool good() const;
   bool save();

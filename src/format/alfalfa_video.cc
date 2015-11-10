@@ -48,8 +48,12 @@ AlfalfaVideo::AlfalfaVideo( const string & directory_name, OpenMode mode )
     frame_db_( directory_.frame_db_filename(), "ALFAFRDB", mode ),
     track_db_( directory_.track_db_filename(), "ALFATRDB", mode ),
     switch_db_( directory_.switch_db_filename(), "ALFASWDB", mode ),
-    track_ids_(), switch_mappings_()
-{}
+    track_ids_(), switch_mappings_(), ivf_file_()
+{
+  if ( mode == OpenMode::READ ) {
+    ivf_file_.reset( new File( FileSystem::append( directory_.path(), get_ivf_file_name() ) ) );
+  }
+}
 
 bool AlfalfaVideo::good() const
 {
@@ -88,12 +92,17 @@ if ( not can_combine( video ) ) {
   for (auto it = track_db_.begin(); it != track_db_.end(); it++) {
     track_ids_.insert( it->track_id );
   }
+
+  ivf_file_.reset( new File( FileSystem::append( directory_.path(), get_ivf_file_name() ) ) );
 }
 
 void AlfalfaVideo::import_ivf_file( const string & filename )
 {
   TrackingPlayer player( FileSystem::append( directory_.path(), filename ) );
+
   IVF ivf( FileSystem::append( directory_.path(), filename ) );
+  ivf_file_.reset( new File( FileSystem::append( directory_.path(), filename ) ) );
+
   VideoInfo info( ivf.fourcc(), ivf.width(), ivf.height(), ivf.frame_rate(),
     ivf.time_scale(), ivf.frame_count() );
 
@@ -129,7 +138,7 @@ void AlfalfaVideo::import_ivf_file( const string & filename )
       frame_id++;
       frame_db_.insert( next_frame );
     } else {
-      latest_frame_id = frame_db_.search_by_frame_name( source_hash, 
+      latest_frame_id = frame_db_.search_by_frame_name( source_hash,
         target_hash ).frame_id();
     }
 
@@ -209,6 +218,15 @@ AlfalfaVideo::get_frames( const TrackDBIterator & it, const size_t & to_track_id
                                            from_frame_index, end_switch_frame_index,
                                            switch_db_, frame_db_ );
   return make_pair( begin, end );
+}
+
+const Chunk AlfalfaVideo::get_chunk( const FrameInfo & frame_info ) const
+{
+  if ( ivf_file_ == nullptr ) {
+    throw logic_error( "no ivf file associated with this video." );
+  }
+
+  return ( *ivf_file_ )( frame_info.offset(), frame_info.length() );
 }
 
 double
