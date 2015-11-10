@@ -56,8 +56,6 @@ public:
   bool validate_target( const DecoderHash & decoder_hash ) const;
   bool shown() const;
 
-  Chunk chunk() const;
-
   std::string str() const { return build_frame_name( source_hash_, target_hash_ ); }
 };
 

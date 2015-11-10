@@ -60,6 +60,7 @@ private:
   FrameDB frame_db_;
   TrackDB track_db_;
   std::unordered_set<size_t> track_ids_;
+  std::shared_ptr<File> ivf_file_;
 
 public:
   AlfalfaVideo( const std::string & directory_name, OpenMode mode );
@@ -90,6 +91,8 @@ public:
   Optional<FrameInfo> get_next_frame_info( const size_t & track_id, const size_t & frame_index );
   // TODO(Deepak): Insert stub for get_switches here
   double get_quality( int raster_index, const FrameInfo & frame_info );
+
+  const Chunk get_chunk( const FrameInfo & frame_info ) const;
 
   bool good() const;
   bool save();
