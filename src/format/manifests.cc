@@ -19,10 +19,9 @@ void VideoManifest::set_info( const VideoInfo & info )
   info_.frame_count = info.frame_count;
 }
 
-bool VideoManifest::deserialize( const std::string & filename )
+bool VideoManifest::deserialize()
 {
-  std::string target_filename = ( filename.length() == 0 ) ? filename_ : filename;
-  ProtobufDeserializer deserializer( target_filename );
+  ProtobufDeserializer deserializer( filename_ );
 
   if ( magic_number != deserializer.read_string( magic_number.length() ) ) {
     return false;
@@ -34,14 +33,12 @@ bool VideoManifest::deserialize( const std::string & filename )
   return true;
 }
 
-bool VideoManifest::serialize( const std::string & filename )
+bool VideoManifest::serialize() const
 {
   if ( mode_ == OpenMode::READ ) {
     return false;
   }
 
-  std::string target_filename = ( filename.length() == 0 ) ? filename_ : filename;
-  filename_ = target_filename;
   ProtobufSerializer serializer( filename_ );
 
   // Writing the header

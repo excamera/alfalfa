@@ -67,8 +67,8 @@ public:
   typename SequencedAccess::iterator begin() { return this->collection_.get<SequencedTag>().begin(); }
   typename SequencedAccess::iterator end() { return this->collection_.get<SequencedTag>().end(); }
 
-  bool serialize( const std::string & filename = "" );
-  bool deserialize( const std::string & filename = "" );
+  bool serialize() const;
+  bool deserialize();
 };
 
 template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag>
@@ -107,14 +107,12 @@ void BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
 
 template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag>
 bool BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
-  ::serialize( const std::string & filename )
+  ::serialize() const
 {
   if ( mode_ == OpenMode::READ ) {
     return false;
   }
 
-  std::string target_filename = ( filename.length() == 0 ) ? filename_ : filename;
-  filename_ = target_filename;
   ProtobufSerializer serializer( filename_ );
 
   // Writing the header
@@ -135,12 +133,11 @@ bool BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
 
 template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag>
 bool BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
-  ::deserialize( const std::string & filename )
+  ::deserialize()
 {
   this->collection_.clear();
 
-  std::string target_filename = ( filename.length() == 0 ) ? filename_ : filename;
-  ProtobufDeserializer deserializer( target_filename );
+  ProtobufDeserializer deserializer( filename_ );
 
   // Reading the header
   if ( magic_number != deserializer.read_string( magic_number.length() ) ) {
