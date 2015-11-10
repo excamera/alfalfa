@@ -96,9 +96,6 @@ public:
 
   template<class EntryProtobufType>
   bool write_protobuf( const EntryProtobufType & entry );
-
-  void close();
-  ~ProtobufSerializer();
 };
 
 class ProtobufDeserializer
@@ -114,9 +111,6 @@ public:
 
   template<class EntryProtobufType>
   bool read_protobuf( EntryProtobufType & protobuf );
-
-  void close();
-  ~ProtobufDeserializer();
 };
 
 template<class EntryProtobufType>

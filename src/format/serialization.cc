@@ -198,21 +198,6 @@ bool ProtobufSerializer::write_raw( const void * raw_data, size_t size )
   return true;
 }
 
-void ProtobufSerializer::close()
-{
-  coded_output_.reset( nullptr );
-  raw_output_.reset( nullptr );
-
-  if ( fout_.is_open() ) {
-    fout_.close();
-  }
-}
-
-ProtobufSerializer::~ProtobufSerializer()
-{
-  close();
-}
-
 ProtobufDeserializer::ProtobufDeserializer( const std::string & filename )
 :fin_( filename ), raw_input_( nullptr ), coded_input_( nullptr )
 {
@@ -225,19 +210,4 @@ ProtobufDeserializer::ProtobufDeserializer( const std::string & filename )
 bool ProtobufDeserializer::read_raw( void * raw_data, size_t size )
 {
   return coded_input_->ReadRaw( raw_data, size );
-}
-
-void ProtobufDeserializer::close()
-{
-  coded_input_.reset( nullptr );
-  raw_input_.reset( nullptr );
-
-  if ( fin_.is_open() ) {
-    fin_.close();
-  }
-}
-
-ProtobufDeserializer::~ProtobufDeserializer()
-{
-  close();
 }

@@ -132,7 +132,6 @@ bool BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
     }
   }
 
-  serializer.close();
   return true;
 }
 
@@ -162,7 +161,6 @@ bool BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
     insert( record );
   }
 
-  deserializer.close();
   return true;
 }
 

@@ -33,7 +33,6 @@ bool VideoManifest::deserialize( const std::string & filename )
   AlfalfaProtobufs::VideoInfo message;
   deserializer.read_protobuf( message );
   from_protobuf( message, info_ );
-  deserializer.close();
   return true;
 }
 
@@ -55,7 +54,6 @@ bool VideoManifest::serialize( const std::string & filename )
   AlfalfaProtobufs::VideoInfo message;
   to_protobuf( info_, message );
   bool result = serializer.write_protobuf( message );
-  serializer.close();
   return result;
 }
 
