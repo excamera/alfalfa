@@ -54,7 +54,6 @@ public:
 
 private:
   VideoDirectory directory_;
-  OpenMode mode_;
   VideoManifest video_manifest_;
   RasterList raster_list_;
   QualityDB quality_db_;

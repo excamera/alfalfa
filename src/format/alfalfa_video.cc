@@ -36,7 +36,7 @@ std::string AlfalfaVideo::VideoDirectory::track_db_filename() const
 }
 
 AlfalfaVideo::AlfalfaVideo( const string & directory_name, OpenMode mode )
-  : directory_( FileSystem::get_realpath( directory_name ) ), mode_( mode ),
+  : directory_( FileSystem::get_realpath( directory_name ) ),
     video_manifest_( directory_.video_manifest_filename(), "ALFAVDMF", mode ),
     raster_list_( directory_.raster_list_filename(), "ALFARSLS", mode ),
     quality_db_( directory_.quality_db_filename(), "ALFAQLDB", mode ),
