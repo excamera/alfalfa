@@ -180,13 +180,8 @@ void from_protobuf( const AlfalfaProtobufs::FrameInfo & pfi, FrameInfo & fi )
 }
 
 ProtobufSerializer::ProtobufSerializer( const std::string & filename )
-: fout_( filename ), raw_output_( nullptr ), coded_output_( nullptr )
-{
-  raw_output_.reset(
-    new google::protobuf::io::OstreamOutputStream( &fout_ ) );
-  coded_output_.reset(
-    new google::protobuf::io::CodedOutputStream( raw_output_.get() ) );
-}
+: fout_( filename )
+{}
 
 bool ProtobufSerializer::write_raw( const void * raw_data, size_t size )
 {
@@ -194,20 +189,16 @@ bool ProtobufSerializer::write_raw( const void * raw_data, size_t size )
     return false;
   }
 
-  coded_output_->WriteRaw( raw_data, size );
+  coded_output_.WriteRaw( raw_data, size );
   return true;
 }
 
 ProtobufDeserializer::ProtobufDeserializer( const std::string & filename )
-:fin_( filename ), raw_input_( nullptr ), coded_input_( nullptr )
+:fin_( filename )
 {
-  raw_input_.reset(
-    new google::protobuf::io::IstreamInputStream( &fin_ ) );
-  coded_input_.reset(
-    new google::protobuf::io::CodedInputStream( raw_input_.get() ) );
 }
 
 bool ProtobufDeserializer::read_raw( void * raw_data, size_t size )
 {
-  return coded_input_->ReadRaw( raw_data, size );
+  return coded_input_.ReadRaw( raw_data, size );
 }

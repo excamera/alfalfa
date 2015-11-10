@@ -87,8 +87,8 @@ class ProtobufSerializer
 {
 protected:
   std::ofstream fout_;
-  unique_ptr<google::protobuf::io::ZeroCopyOutputStream> raw_output_;
-  unique_ptr<google::protobuf::io::CodedOutputStream> coded_output_;
+  google::protobuf::io::OstreamOutputStream raw_output_ { &fout_ };
+  google::protobuf::io::CodedOutputStream coded_output_ { &raw_output_ };
 
 public:
   ProtobufSerializer( const std::string & filename );
@@ -102,8 +102,8 @@ class ProtobufDeserializer
 {
 protected:
   std::ifstream fin_;
-  unique_ptr<google::protobuf::io::ZeroCopyInputStream> raw_input_;
-  unique_ptr<google::protobuf::io::CodedInputStream> coded_input_;
+  google::protobuf::io::IstreamInputStream raw_input_ { &fin_ };
+  google::protobuf::io::CodedInputStream coded_input_ { &raw_input_ };
 
 public:
   ProtobufDeserializer( const std::string & filename );
@@ -121,17 +121,17 @@ bool ProtobufDeserializer::read_protobuf( EntryProtobufType & message )
   }
 
   google::protobuf::uint32 size;
-  bool has_next = coded_input_->ReadLittleEndian32( &size );
+  bool has_next = coded_input_.ReadLittleEndian32( &size );
 
   if ( not has_next ) {
     return false;
   }
 
   google::protobuf::io::CodedInputStream::Limit message_limit =
-    coded_input_->PushLimit( size );
+    coded_input_.PushLimit( size );
 
-  if ( message.ParseFromCodedStream( coded_input_.get() ) ) {
-    coded_input_->PopLimit( message_limit );
+  if ( message.ParseFromCodedStream( &coded_input_ ) ) {
+    coded_input_.PopLimit( message_limit );
     return true;
   }
 
@@ -145,8 +145,8 @@ bool ProtobufSerializer::write_protobuf( const EntryProtobufType & protobuf )
     return false;
   }
 
-  coded_output_->WriteLittleEndian32( protobuf.ByteSize() );
-  protobuf.SerializeToCodedStream( coded_output_.get() );
+  coded_output_.WriteLittleEndian32( protobuf.ByteSize() );
+  protobuf.SerializeToCodedStream( &coded_output_ );
 
   return true;
 }
