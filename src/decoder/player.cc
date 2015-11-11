@@ -18,17 +18,6 @@ Optional<RasterHandle> FramePlayer::decode( const Chunk & chunk )
   return decoder_.parse_and_decode_frame( chunk );
 }
 
-Optional<RasterHandle> FramePlayer::decode( const FrameInfo & frame )
-{
-  assert( frame.validate_source( decoder_.get_hash() ) );
-
-  Optional<RasterHandle> raster = decoder_.parse_and_decode_frame( frame.chunk() );
-
-  assert( frame.validate_target( decoder_.get_hash() ) );
-
-  return raster;
-}
-
 bool FramePlayer::can_decode( const FrameInfo & frame ) const
 {
   // FIXME shouldn't have to fully hash this?

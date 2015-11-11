@@ -24,13 +24,15 @@
 #define TRACK_DB_FILENAME "track.db"
 #define VIDEO_MANIFEST_FILENAME "video.manifest"
 
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 
 #include "db.hh"
 #include "ivf.hh"
-#include "manifests.hh"
+#include "player.hh"
 #include "frame_db.hh"
+#include "manifests.hh"
 #include "ivf_writer.hh"
 
 class AlfalfaVideo
@@ -60,13 +62,17 @@ private:
   FrameDB frame_db_;
   TrackDB track_db_;
   std::unordered_set<size_t> track_ids_;
+  std::shared_ptr<File> ivf_file_;
 
 public:
   AlfalfaVideo( const std::string & directory_name, OpenMode mode );
 
   bool can_combine( const AlfalfaVideo & video );
   void combine( const AlfalfaVideo & video, IVFWriter & combined_ivf_writer );
-  void import_ivf_file( const std::string & filename );
+  void import( const std::string & filename,
+    Optional<AlfalfaVideo> original = Optional<AlfalfaVideo>(), const size_t & track_id = 0 );
+    
+  std::string encode( const size_t & track_id, vector<string> vpxenc_args );
 
   VideoManifest & video_manifest() { return video_manifest_; }
   const VideoManifest video_manifest() const { return video_manifest_; }
@@ -90,6 +96,8 @@ public:
   Optional<FrameInfo> get_next_frame_info( const size_t & track_id, const size_t & frame_index );
   // TODO(Deepak): Insert stub for get_switches here
   double get_quality( int raster_index, const FrameInfo & frame_info );
+
+  const Chunk get_chunk( const FrameInfo & frame_info ) const;
 
   bool good() const;
   bool save();

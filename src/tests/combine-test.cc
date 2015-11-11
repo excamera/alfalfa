@@ -26,44 +26,46 @@ int alfalfa_combine_test_double_import( string ivf_file_path, string alfalfa_vid
     const size_t raster = next_frame.target_hash().output_hash;
     const size_t approximate_raster = raster;
 
-    // Check raster_list
-    if ( not raster_list.has( raster ) )
-      return 1;
-
-    // Check quality db
-    found = false;
-    auto it_orig = 
-      quality_db.search_by_original_raster( raster );
-    QualityDBCollectionByOriginalRaster::iterator it_begin_orig = it_orig.first;
-    QualityDBCollectionByOriginalRaster::iterator it_end_orig = it_orig.second;
-    while ( it_begin_orig != it_end_orig ) {
-      if ( it_begin_orig->original_raster != raster )
+    if ( next_frame.target_hash().shown ) {
+      // Check raster_list
+      if ( not raster_list.has( raster ) )
         return 1;
-      if ( it_begin_orig->approximate_raster == approximate_raster ) {
-        if ( it_begin_orig->quality == 1.0 )
-          found = true;
-      }
-      it_begin_orig++;
-    }
-    if ( !found )
-      return 1;
 
-    found = false;
-    auto it_approx =
-      quality_db.search_by_approximate_raster( approximate_raster );
-    QualityDBCollectionByApproximateRaster::iterator it_begin_approx = it_approx.first;
-    QualityDBCollectionByApproximateRaster::iterator it_end_approx = it_approx.second;
-    while ( it_begin_approx != it_end_approx ) {
-      if ( it_begin_approx->approximate_raster != approximate_raster )
-        return 1;
-      if ( it_begin_approx->original_raster == raster ) {
-        if ( it_begin_approx->quality == 1.0 )
-          found = true;
+      // Check quality db
+      found = false;
+      auto it_orig =
+        quality_db.search_by_original_raster( raster );
+      QualityDBCollectionByOriginalRaster::iterator it_begin_orig = it_orig.first;
+      QualityDBCollectionByOriginalRaster::iterator it_end_orig = it_orig.second;
+      while ( it_begin_orig != it_end_orig ) {
+        if ( it_begin_orig->original_raster != raster )
+          return 1;
+        if ( it_begin_orig->approximate_raster == approximate_raster ) {
+          if ( it_begin_orig->quality == 1.0 )
+            found = true;
+        }
+        it_begin_orig++;
       }
-      it_begin_approx++;
+      if ( !found )
+        return 1;
+
+      found = false;
+      auto it_approx =
+        quality_db.search_by_approximate_raster( approximate_raster );
+      QualityDBCollectionByApproximateRaster::iterator it_begin_approx = it_approx.first;
+      QualityDBCollectionByApproximateRaster::iterator it_end_approx = it_approx.second;
+      while ( it_begin_approx != it_end_approx ) {
+        if ( it_begin_approx->approximate_raster != approximate_raster )
+          return 1;
+        if ( it_begin_approx->original_raster == raster ) {
+          if ( it_begin_approx->quality == 1.0 )
+            found = true;
+        }
+        it_begin_approx++;
+      }
+      if ( !found )
+        return 1;
     }
-    if ( !found )
-      return 1;
 
     // Check frame db
     found = false;
@@ -116,7 +118,7 @@ int alfalfa_combine_test_double_import( string ivf_file_path, string alfalfa_vid
     if ( !found ) {
       return 1;
     }
-    
+
     frame_index++;
   }
 

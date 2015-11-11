@@ -26,12 +26,11 @@ private:
 
 protected:
   Decoder decoder_; // FIXME ideally this would be private
-  Optional<RasterHandle> decode( const Chunk & chunk );
 
 public:
   FramePlayer( const uint16_t width, const uint16_t height );
 
-  Optional<RasterHandle> decode( const FrameInfo & frame );
+  Optional<RasterHandle> decode( const Chunk & chunk );
 
   const VP8Raster & example_raster( void ) const;
 

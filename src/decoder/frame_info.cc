@@ -43,13 +43,6 @@ bool FrameInfo::shown() const
   return target_hash_.shown;
 }
 
-Chunk FrameInfo::chunk() const
-{
-  File file( ivf_filename_ );
-
-  return file( offset_, length_ );
-}
-
 std::string build_frame_name( const SourceHash & source_hash,
   const TargetHash & target_hash )
 {
