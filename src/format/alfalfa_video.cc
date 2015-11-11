@@ -1,14 +1,19 @@
-#include <string>
+#include <cstdio>
+#include <sstream>
+#include <algorithm>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <fcntl.h>
 
 #include "exception.hh"
 #include "alfalfa_video.hh"
 #include "tracking_player.hh"
 #include "filesystem.hh"
+#include "system_runner.hh"
 
 AlfalfaVideo::VideoDirectory::VideoDirectory( const std::string & path )
   : directory_path_( path )
-{
-}
+{}
 
 std::string AlfalfaVideo::VideoDirectory::video_manifest_filename() const
 {
@@ -45,6 +50,10 @@ AlfalfaVideo::AlfalfaVideo( const string & directory_name, OpenMode mode )
     track_ids_(),
     ivf_file_()
 {
+  if ( not good() ) {
+    throw Invalid( "invalid alfalfa video." );
+  }
+
   if ( mode == OpenMode::READ ) {
     ivf_file_.reset( new File( FileSystem::append( directory_.path(), get_ivf_file_name() ) ) );
   }
@@ -91,37 +100,162 @@ if ( not can_combine( video ) ) {
   ivf_file_.reset( new File( FileSystem::append( directory_.path(), get_ivf_file_name() ) ) );
 }
 
-void AlfalfaVideo::import_ivf_file( const string & filename )
+std::string AlfalfaVideo::encode( const size_t & track_id,
+  vector<string> vpxenc_args )
 {
+  std::string encoded_file = std::tmpnam( nullptr );
+  std::string fpf_file = std::tmpnam( nullptr );
+  int pipefd[2];
+  int total_passes = 2;
+  pid_t cpid;
+
+  // adding necessary output switches
+  vpxenc_args.push_back( "-o" );
+  vpxenc_args.push_back( encoded_file );
+  vpxenc_args.push_back( "-" );
+  vpxenc_args.push_back( "--fpf=" + fpf_file );
+
+  for ( int pass = 1; pass <= total_passes; pass++ ) {
+    vector<string> full_args = vpxenc_args;
+
+    ostringstream ss;
+    ss << "--passes=" << total_passes;
+    full_args.push_back( ss.str() );
+
+    ss.str( std::string() );
+    ss << "--pass=" << pass;
+    full_args.push_back( ss.str() );
+
+    SystemCall( "encode pipe", pipe( pipefd ) );
+    cpid = SystemCall( "encode fork", fork() );
+
+    if ( cpid == 0 ) {
+      SystemCall( "close stdin", close( STDIN_FILENO ) );
+      SystemCall( "close pipe write", close( pipefd[ 1 ] ) );
+      SystemCall( "dup stdin", dup( pipefd[ 0 ] ) );
+      SystemCall( "close pipe read", close( pipefd[ 0 ] ) );
+      ezexec( full_args, true );
+    }
+    else {
+      SystemCall( "close pipe read", close( pipefd[ 0 ] ) );
+
+      FramePlayer player( video_manifest().width(), video_manifest().height() );
+
+      ostringstream ss;
+      ss << "YUV4MPEG2 W" << video_manifest().width() << " "
+        << "H" << video_manifest().height() << " "
+        << "F" << video_manifest().frame_rate_numerator() << ":" << video_manifest().frame_rate_denominator() << " "
+        << "Ip A0:0 C420 C420jpeg XYSCSS=420JPEG\n";
+
+      std::string header( ss.str() );
+      SystemCall( "write header", write( pipefd[ 1 ], header.c_str(), header.length() ) );
+
+      size_t frame_index = 0;
+      for ( Optional<FrameInfo> frame = get_next_frame_info( track_id, frame_index );
+           frame.initialized();
+           frame = get_next_frame_info( track_id, ++frame_index ) )
+      {
+        Optional<RasterHandle> uncompressed_frame = player.decode( get_chunk( frame.get() ) );
+
+        if ( uncompressed_frame.initialized() ) {
+          SystemCall( "write frame header", write( pipefd[ 1 ], "FRAME\n", strlen("FRAME\n") ) );
+          uncompressed_frame.get().get().dump( pipefd[ 1 ] );
+        }
+      }
+
+      SystemCall( "close pipe write", close( pipefd[ 1 ] ) );
+    }
+
+    int status;
+    SystemCall( "wait", wait( &status ) );
+
+    if ( status != 0 ) {
+      throw runtime_error( "encode failed" );
+    }
+  }
+
+  return encoded_file;
+}
+
+void AlfalfaVideo::import( const string & filename,
+  Optional<AlfalfaVideo> original, const size_t & track_id )
+{
+  bool has_original = original.initialized();
+
   TrackingPlayer player( FileSystem::append( directory_.path(), filename ) );
 
   IVF ivf( FileSystem::append( directory_.path(), filename ) );
   ivf_file_.reset( new File( FileSystem::append( directory_.path(), filename ) ) );
+
+  Optional<FramePlayer> original_player;
+
+  if ( has_original ) {
+    original_player.initialize( FramePlayer( original.get().video_manifest().width(),
+      original.get().video_manifest().height() ) );
+  }
 
   VideoInfo info( ivf.fourcc(), ivf.width(), ivf.height(), ivf.frame_rate(),
     ivf.time_scale(), ivf.frame_count() );
 
   video_manifest_.set_info( info );
 
+  size_t original_frame_index = 0;
   size_t frame_index = 1;
   size_t frame_id = 0;
+
   while ( not player.eof() ) {
-    FrameInfo next_frame( player.serialize_next().first );
+    auto next_frame_data = player.serialize_next();
+    FrameInfo next_frame( next_frame_data.first );
 
-    raster_list_.insert(
-      RasterData{
-        next_frame.target_hash().output_hash
-      }
-    );
+    if ( next_frame.target_hash().shown ) {
+      assert( next_frame.target_hash().shown == next_frame_data.second.initialized() );
 
-    // When importing an alfalfa video, all approximate rasters have a quality of 1.0
-    quality_db_.insert(
-      QualityData{
-        next_frame.target_hash().output_hash,
-        next_frame.target_hash().output_hash,
-        1.0
+      size_t output_hash = next_frame.target_hash().output_hash;
+      double quality = 1.0;
+
+      if ( has_original ) {
+        Optional<FrameInfo> original_frame;
+        for ( original_frame = original.get().get_next_frame_info( track_id, original_frame_index );
+              original_frame.initialized() and not original_frame.get().shown();
+              original_player.get().decode( original.get().get_chunk( original_frame.get() ) ),
+              original_frame = original.get().get_next_frame_info( track_id, ++original_frame_index ) )
+        {}
+
+        if ( original_frame.initialized() ) {
+          auto original_uncompressed_frame = original_player.get().decode(
+            original.get().get_chunk( original_frame.get() ) );
+
+          original_frame_index++;
+
+          assert( original_frame.get().shown() == original_uncompressed_frame.initialized() );
+
+          quality = original_uncompressed_frame.get().get().quality(
+            next_frame_data.second.get() );
+
+          output_hash = original_frame.get().target_hash().output_hash;
+        }
+        else {
+          throw logic_error( "bad original video" );
+        }
       }
-    );
+      else {
+        output_hash = next_frame.target_hash().output_hash;
+      }
+
+      raster_list_.insert(
+        RasterData{
+          output_hash
+        }
+      );
+
+      quality_db_.insert(
+        QualityData{
+          output_hash,
+          next_frame.target_hash().output_hash,
+          quality
+        }
+      );
+    }
 
     size_t latest_frame_id;
     SourceHash source_hash = next_frame.source_hash();
