@@ -41,8 +41,7 @@ int main( int argc, char const *argv[] )
     TempFile encoded_file( "encoded" );
 
     source_video.encode( track_id, vpxenc_args, encoded_file.name() );
-    alfalfa_video.import( encoded_file.name(), make_optional( true, source_video ),
-      track_id );
+    alfalfa_video.import( encoded_file.name(), source_video, track_id );
   } catch ( const exception & e ) {
     print_exception( argv[ 0 ], e );
     return EXIT_FAILURE;

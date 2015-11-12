@@ -18,11 +18,6 @@ SerializableData::SerializableData( const std::string & filename, const std::str
     fin.close();
     break;
 
-  case OpenMode::APPEND:
-    fin.close();
-    good_ = true;
-    break;
-
   case OpenMode::TRUNCATE:
     fin.close();
     good_ = true;

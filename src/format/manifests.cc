@@ -4,7 +4,7 @@ VideoManifest::VideoManifest( const std::string & filename, const std::string & 
   OpenMode mode )
     : SerializableData( filename, magic_number, mode ), info_()
 {
-  if ( good_ == true and ( mode == OpenMode::READ or mode == OpenMode::APPEND ) ) {
+  if ( good_ == true and ( mode == OpenMode::READ ) ) {
     good_ = deserialize();
   }
 }
@@ -121,17 +121,16 @@ TrackDB::search_by_track_id( const size_t & track_id )
   return index.equal_range( track_id );
 }
 
-bool
-TrackDB::has_track( const size_t & track_id )
+bool TrackDB::has_track( const size_t & track_id ) const
 {
-  TrackDBCollectionByTrackIdAndFrameIndex & index = collection_.get<TrackDBByTrackIdAndFrameIndexTag>();
+  const TrackDBCollectionByTrackIdAndFrameIndex & index = collection_.get<TrackDBByTrackIdAndFrameIndexTag>();
   return index.count( track_id ) > 0;
 }
 
 size_t
-TrackDB::get_end_frame_index( const size_t & track_id )
+TrackDB::get_end_frame_index( const size_t & track_id ) const
 {
-  TrackDBCollectionByTrackIdAndFrameIndex & index = collection_.get<TrackDBByTrackIdAndFrameIndexTag>();
+  const TrackDBCollectionByTrackIdAndFrameIndex & index = collection_.get<TrackDBByTrackIdAndFrameIndexTag>();
   return index.count( track_id );
 }
 

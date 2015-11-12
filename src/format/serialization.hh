@@ -35,6 +35,20 @@ struct VideoInfo
   {
       return (double)frame_rate_numerator / frame_rate_denominator;
   }
+
+  bool operator==( const VideoInfo & other ) const
+  {
+    return ( fourcc == other.fourcc and
+      width == other.width and
+      height == other.height and
+      frame_rate_numerator == other.frame_rate_numerator and
+      frame_rate_denominator == other.frame_rate_denominator );
+  }
+
+  bool operator!=( const VideoInfo & other ) const
+  {
+    return not ( ( *this ) == other );
+  }
 };
 
 struct RasterData

@@ -27,7 +27,6 @@ using boost::multi_index_container;
 enum class OpenMode
 {
   READ,
-  APPEND,
   TRUNCATE
 };
 
@@ -77,7 +76,7 @@ BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
   OpenMode mode )
   : SerializableData( filename, magic_number, mode ), collection_()
 {
-  if ( good_ == true and ( mode == OpenMode::READ or mode == OpenMode::APPEND ) ) {
+  if ( good_ == true and ( mode == OpenMode::READ ) ) {
     good_ = deserialize();
   }
 }

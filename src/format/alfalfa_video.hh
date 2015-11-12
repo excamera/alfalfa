@@ -66,16 +66,23 @@ private:
   SwitchDB switch_db_;
   std::unordered_set<size_t> track_ids_;
   std::map<std::pair<size_t, size_t>, std::unordered_set<size_t>> switch_mappings_;
-  std::shared_ptr<File> ivf_file_;
+  Optional<File> ivf_file_;
+  Optional<IVFWriter> ivf_writer_;
+
+  void import_frame( FrameInfo next_frame,
+    const size_t & original_raster, const double & quality,
+    size_t & frame_id, size_t & frame_index, const size_t & track_id );
+
+  string prepare_ivf( const string & filename );
 
 public:
   AlfalfaVideo( const std::string & directory_name, OpenMode mode );
 
   bool can_combine( const AlfalfaVideo & video );
-  void combine( const AlfalfaVideo & video, IVFWriter & combined_ivf_writer );
-  void import( const std::string & filename,
-    Optional<AlfalfaVideo> original = Optional<AlfalfaVideo>(), const size_t & track_id = 0 );
-
+  void combine( const AlfalfaVideo & video );
+  void import( const std::string & filename );
+  void import( const std::string & filename, AlfalfaVideo & original,
+    const size_t & ref_track_id = 0 );
   void encode( const size_t & track_id, vector<string> vpxenc_args,
     const string & destination );
 
@@ -101,19 +108,26 @@ public:
 
   std::pair<std::unordered_set<size_t>::iterator, std::unordered_set<size_t>::iterator>
   get_track_ids();
+
   std::pair<std::unordered_set<size_t>::iterator, std::unordered_set<size_t>::iterator>
   get_track_ids_from_track( const size_t & from_track_id, const size_t & from_frame_index );
 
   std::pair<TrackDBIterator, TrackDBIterator> get_frames( const size_t & track_id );
   std::pair<TrackDBIterator, TrackDBIterator> get_frames( const TrackDBIterator & it );
   std::pair<TrackDBIterator, TrackDBIterator> get_frames( const SwitchDBIterator & it );
-  std::pair<SwitchDBIterator, SwitchDBIterator> get_frames( const TrackDBIterator & it, const size_t & to_track_id );
-  double get_quality( int raster_index, const FrameInfo & frame_info );
+  std::pair<SwitchDBIterator, SwitchDBIterator> get_frames( const TrackDBIterator & it,
+    const size_t & to_track_id );
 
+  double get_quality( int raster_index, const FrameInfo & frame_info );
   const Chunk get_chunk( const FrameInfo & frame_info ) const;
 
   bool good() const;
   bool save();
+
+  AlfalfaVideo( const AlfalfaVideo & other ) = delete;
+  AlfalfaVideo & operator=( const AlfalfaVideo & other ) = delete;
+
+  AlfalfaVideo( AlfalfaVideo && other );
 };
 
 #endif /* ALFALFA_VIDEO_HH */

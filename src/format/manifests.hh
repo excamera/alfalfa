@@ -204,8 +204,8 @@ public:
   // TODO(Deepak): Deprecate this
   std::pair<TrackDBCollectionByTrackIdAndFrameIndex::iterator, TrackDBCollectionByTrackIdAndFrameIndex::iterator>
   search_by_track_id( const size_t & track_id );
-  size_t get_end_frame_index( const size_t & track_id );
-  bool has_track( const size_t & track_id );
+  size_t get_end_frame_index( const size_t & track_id ) const;
+  bool has_track( const size_t & track_id ) const;
   const TrackData &
   get_frame( const size_t & track_id, const size_t & frame_index );
   void merge( const TrackDB & db, map<size_t, size_t> & frame_id_mapping );

@@ -25,49 +25,18 @@ int main( int argc, char const *argv[] )
       return EX_USAGE;
     }
 
-    string alf1_path{ FileSystem::get_realpath( argv[ 1 ] ) };
-    string alf2_path{ FileSystem::get_realpath( argv[ 2 ] ) };
-    string destination_dir{ argv[ 3 ] };
+    string alf1_path( argv[ 1 ] );
+    string alf2_path( argv[ 2 ] );
+    string destination_dir( argv[ 3 ] );
 
     FileSystem::create_directory( destination_dir );
 
-    destination_dir = FileSystem::get_realpath( destination_dir );
-
-    FileSystem::change_directory( destination_dir );
-
     AlfalfaVideo alf1( alf1_path, OpenMode::READ );
     AlfalfaVideo alf2( alf2_path, OpenMode::READ );
+    AlfalfaVideo res_video( destination_dir, OpenMode::TRUNCATE );
 
-    if ( not alf1.good() ) {
-      cerr << "'" << alf1_path << "' is not a valid Alfalfa video." << endl;
-      return EX_DATAERR;
-    }
-
-    if ( not alf2.good() ) {
-      cerr << "'" << alf2_path << "' is not a valid Alfalfa video." << endl;
-      return EX_DATAERR;
-    }
-
-    if ( not alf1.can_combine( alf2 ) ) {
-      cerr << "cannot combine: raster lists are not the same." << endl;
-      return EX_DATAERR;
-    }
-
-    AlfalfaVideo res_video( ".", OpenMode::TRUNCATE );
-    const string new_ivf_filename = res_video.get_ivf_file_name();
-
-    // TODO: Make sure all the fields below are the same for alf1 and alf2
-
-    /* copy all frames into a single ivf file */
-    IVFWriter combined_ivf_writer( FileSystem::append( destination_dir, new_ivf_filename ),
-                                   alf1.video_manifest().fourcc(),
-                                   alf1.video_manifest().width(),
-                                   alf1.video_manifest().height(),
-                                   alf1.video_manifest().frame_rate_numerator(),
-                                   alf1.video_manifest().frame_rate_denominator() );
-
-    res_video.combine( alf1, combined_ivf_writer );
-    res_video.combine( alf2, combined_ivf_writer );
+    res_video.combine( alf1 );
+    res_video.combine( alf2 );
 
     res_video.save();
   } catch (const exception &e ) {
