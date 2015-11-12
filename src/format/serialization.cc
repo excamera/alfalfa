@@ -181,6 +181,26 @@ void from_protobuf( const AlfalfaProtobufs::FrameInfo & pfi, FrameInfo & fi )
   fi.set_index( size_t( pfi.index() ) );
 }
 
+void to_protobuf( const SwitchData &sd, AlfalfaProtobufs::SwitchData & message )
+{
+  message.set_from_track_id( sd.from_track_id );
+  message.set_from_frame_index( sd.from_frame_index );
+  message.set_to_track_id( sd.to_track_id );
+  message.set_to_frame_index( sd.to_frame_index );
+  message.set_frame_id( sd.frame_id );
+  message.set_switch_frame_index( sd.switch_frame_index );
+}
+
+void from_protobuf( const AlfalfaProtobufs::SwitchData &psd, SwitchData & sd )
+{
+  sd.from_track_id = psd.from_track_id();
+  sd.from_frame_index = psd.from_frame_index();
+  sd.to_track_id = psd.to_track_id();
+  sd.to_frame_index = psd.to_frame_index();
+  sd.frame_id = psd.frame_id();
+  sd.switch_frame_index = psd.switch_frame_index();
+}
+
 ProtobufSerializer::ProtobufSerializer( const std::string & filename )
   : fout_( SystemCall( filename,
 		       open( filename.c_str(),

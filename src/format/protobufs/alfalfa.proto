@@ -56,3 +56,12 @@ message TrackData {
   required uint64 frame_index = 2;
   required uint64 frame_id = 3;
 }
+
+message SwitchData {
+  required uint64 from_track_id = 1;
+  required uint64 from_frame_index = 2;
+  required uint64 to_track_id = 3;
+  required uint64 to_frame_index = 4;
+  required uint64 frame_id = 5;
+  required uint64 switch_frame_index = 6;
+}

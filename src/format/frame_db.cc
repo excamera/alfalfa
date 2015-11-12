@@ -45,7 +45,7 @@ FrameDB::has_frame_name( const SourceHash & source_hash, const TargetHash & targ
   return index.count( boost::make_tuple( source_hash, target_hash ) ) > 0;
 }
 
-FrameInfo
+const FrameInfo &
 FrameDB::search_by_frame_id( const size_t & frame_id )
 {
   FrameDataSetCollectionById & index = collection_.get<FrameDataSetByIdTag>();
@@ -56,7 +56,7 @@ FrameDB::search_by_frame_id( const size_t & frame_id )
   return *id_iterator;
 }
 
-FrameInfo
+const FrameInfo &
 FrameDB::search_by_frame_name( const SourceHash & source_hash, const TargetHash & target_hash )
 {
   FrameDataSetCollectionByFrameName & index = collection_.get<FrameDataSetByFrameNameTag>();

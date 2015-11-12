@@ -22,6 +22,7 @@
 #define RASTER_LIST_FILENAME "raster.db"
 #define QUALITY_DB_FILENAME "quality.db"
 #define TRACK_DB_FILENAME "track.db"
+#define SWITCH_DB_FILENAME "switch.db"
 #define VIDEO_MANIFEST_FILENAME "video.manifest"
 
 #include <unordered_map>
@@ -50,6 +51,7 @@ public:
     std::string quality_db_filename() const;
     std::string frame_db_filename() const;
     std::string track_db_filename() const;
+    std::string switch_db_filename() const;
   };
 
 private:
@@ -59,7 +61,9 @@ private:
   QualityDB quality_db_;
   FrameDB frame_db_;
   TrackDB track_db_;
+  SwitchDB switch_db_;
   std::unordered_set<size_t> track_ids_;
+  std::map<std::pair<size_t, size_t>, std::unordered_set<size_t>> switch_mappings_;
 
 public:
   AlfalfaVideo( const std::string & directory_name, OpenMode mode );
@@ -83,12 +87,20 @@ public:
   TrackDB & track_db() { return track_db_; }
   const TrackDB & track_db() const { return track_db_; }
 
+  SwitchDB & switch_db() { return switch_db_; }
+  const SwitchDB & switch_db() const { return switch_db_; }
+
   const string get_ivf_file_name() { return "v"; }
 
-  std::pair<std::unordered_set<size_t>::iterator, std::unordered_set<size_t>::iterator> get_track_ids();
-  FrameInfo get_first_frame( const size_t & track_id );
-  Optional<FrameInfo> get_next_frame_info( const size_t & track_id, const size_t & frame_index );
-  // TODO(Deepak): Insert stub for get_switches here
+  std::pair<std::unordered_set<size_t>::iterator, std::unordered_set<size_t>::iterator>
+  get_track_ids();
+  std::pair<std::unordered_set<size_t>::iterator, std::unordered_set<size_t>::iterator>
+  get_track_ids_from_track( const size_t & from_track_id, const size_t & from_frame_index );
+
+  std::pair<TrackDBIterator, TrackDBIterator> get_frames( const size_t & track_id );
+  std::pair<TrackDBIterator, TrackDBIterator> get_frames( const TrackDBIterator & it );
+  std::pair<TrackDBIterator, TrackDBIterator> get_frames( const SwitchDBIterator & it );
+  std::pair<SwitchDBIterator, SwitchDBIterator> get_frames( const TrackDBIterator & it, const size_t & to_track_id );
   double get_quality( int raster_index, const FrameInfo & frame_info );
 
   bool good() const;

@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "db.hh"
+#include "frame_db.hh"
 #include "dependency_tracking.hh"
 #include "serialization.hh"
 #include "protobufs/alfalfa.pb.h"
@@ -200,12 +201,161 @@ public:
     TrackDBCollection, TrackDBSequencedTag>( filename, magic_number, mode )
   {}
 
+  // TODO(Deepak): Deprecate this
   std::pair<TrackDBCollectionByTrackIdAndFrameIndex::iterator, TrackDBCollectionByTrackIdAndFrameIndex::iterator>
   search_by_track_id( const size_t & track_id );
-  bool has_track_id( const size_t & track_id );
-  Optional<TrackData>
-  search_next_frame( const size_t & track_id, const size_t & frame_index );
+  size_t get_end_frame_index( const size_t & track_id );
+  bool has_track( const size_t & track_id );
+  const TrackData &
+  get_frame( const size_t & track_id, const size_t & frame_index );
   void merge( const TrackDB & db, map<size_t, size_t> & frame_id_mapping );
 };
+
+/*
+ * TrackDB iterator
+ *   iterator over FrameInfo objects -- useful while iterating through track DB
+ */
+class TrackDBIterator : std::iterator<std::forward_iterator_tag, FrameInfo>
+{
+  private:
+    size_t track_id_;
+    size_t frame_index_;
+    TrackDB & track_db_;
+    FrameDB & frame_db_;
+
+  public:
+    TrackDBIterator( size_t track_id, size_t start_frame_index, TrackDB & track_db, FrameDB & frame_db )
+    : track_id_( track_id ), frame_index_( start_frame_index ), track_db_( track_db ),
+      frame_db_( frame_db )
+    {}
+
+    const size_t & track_id() const { return track_id_; }
+    const size_t & frame_index() const { return frame_index_; }
+
+    TrackDBIterator & operator++();
+    TrackDBIterator operator++( int );
+
+    bool operator==( const TrackDBIterator & rhs ) const;
+    bool operator!=( const TrackDBIterator & rhs ) const;
+
+    const FrameInfo & operator*() const;
+    const FrameInfo * operator->() const;
+};
+
+/*
+ * Switch DB
+ *   stores ids of frames that help to switch between different tracks in the
+ *   track DB
+ */
+
+struct SwitchDBSequencedTag;
+struct SwitchDBHashedByTrackIdsAndFrameIndexTag;
+struct SwitchDBOrderedByTrackIdsAndFrameIndicesTag;
+
+typedef multi_index_container
+<
+  SwitchData,
+  indexed_by
+  <
+    hashed_non_unique
+    <
+      tag<SwitchDBHashedByTrackIdsAndFrameIndexTag>,
+      composite_key
+      <
+        SwitchData,
+        member<SwitchData, size_t, &SwitchData::from_track_id>,
+        member<SwitchData, size_t, &SwitchData::to_track_id>,
+        member<SwitchData, size_t, &SwitchData::from_frame_index>
+      >
+    >,
+    ordered_non_unique
+    <
+      tag<SwitchDBOrderedByTrackIdsAndFrameIndicesTag>,
+      composite_key
+      <
+        SwitchData,
+        member<SwitchData, size_t, &SwitchData::from_track_id>,
+        member<SwitchData, size_t, &SwitchData::to_track_id>,
+        member<SwitchData, size_t, &SwitchData::from_frame_index>,
+        member<SwitchData, size_t, &SwitchData::switch_frame_index>
+      >
+    >,
+    sequenced
+    <
+      tag<SwitchDBSequencedTag>
+    >
+  >
+> SwitchDBCollection;
+
+typedef SwitchDBCollection::index<SwitchDBHashedByTrackIdsAndFrameIndexTag>::type
+SwitchDBCollectionHashedByTrackIdsAndFrameIndex;
+typedef SwitchDBCollection::index<SwitchDBOrderedByTrackIdsAndFrameIndicesTag>::type
+SwitchDBCollectionOrderedByTrackIdsAndFrameIndices;
+
+class SwitchDB : public BasicDatabase<SwitchData, AlfalfaProtobufs::SwitchData,
+  SwitchDBCollection, SwitchDBSequencedTag>
+{
+public:
+  SwitchDB( const std::string & filename, const std::string & magic_number, OpenMode mode = OpenMode::READ )
+  : BasicDatabase<SwitchData, AlfalfaProtobufs::SwitchData,
+    SwitchDBCollection, SwitchDBSequencedTag>( filename, magic_number, mode )
+  {}
+
+  size_t get_end_switch_frame_index( const size_t & from_track_id,
+                                     const size_t & to_track_id,
+                                     const size_t & from_frame_index );
+  bool has_switch( const size_t & from_track_id, const size_t & to_track_id,
+                     const size_t & from_frame_index );
+  size_t get_to_frame_index( const size_t & from_track_id,
+                             const size_t & to_track_id,
+                             const size_t & from_frame_index );
+  const SwitchData &
+  get_frame( const size_t & from_track_id, const size_t & to_track_id,
+             const size_t & from_frame_index, const size_t & switch_frame_index );
+};
+
+/*
+ * SwitchDB iterator
+ *   iterator over FrameInfo objects -- useful while iterating through switch DB
+ */
+class SwitchDBIterator : std::iterator<std::forward_iterator_tag, FrameInfo>
+{
+  private:
+    size_t from_track_id_;
+    size_t to_track_id_;
+    size_t from_frame_index_;
+    size_t switch_frame_index_;
+    size_t to_frame_index_;
+    SwitchDB & switch_db_;
+    FrameDB & frame_db_;
+
+  public:
+    SwitchDBIterator( size_t from_track_id, size_t to_track_id, size_t from_frame_index,
+                      size_t start_switch_frame_index, SwitchDB & switch_db,
+                      FrameDB & frame_db )
+    : from_track_id_( from_track_id ), to_track_id_( to_track_id ),
+      from_frame_index_(from_frame_index), switch_frame_index_(start_switch_frame_index),
+      to_frame_index_(0), switch_db_(switch_db), frame_db_(frame_db)
+    {
+      to_frame_index_ = switch_db_.get_to_frame_index( from_track_id_, to_track_id_,
+                                                       from_frame_index_ );
+    }
+
+    const size_t & from_track_id() const { return from_track_id_; }
+    const size_t & to_track_id() const { return to_track_id_; }
+    const size_t & from_frame_index() const { return from_frame_index_; }
+    const size_t & switch_frame_index() const { return switch_frame_index_; }
+    const size_t & to_frame_index() const { return to_frame_index_; }
+
+    SwitchDBIterator & operator++();
+    SwitchDBIterator operator++( int );
+
+    bool operator==( const SwitchDBIterator & rhs ) const;
+    bool operator!=( const SwitchDBIterator & rhs ) const;
+
+    const FrameInfo & operator*() const;
+    const FrameInfo * operator->() const;
+};
+
 
 #endif /* MANIFESTS_HH */

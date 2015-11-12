@@ -35,6 +35,11 @@ std::string AlfalfaVideo::VideoDirectory::track_db_filename() const
   return FileSystem::append( directory_path_, TRACK_DB_FILENAME );
 }
 
+std::string AlfalfaVideo::VideoDirectory::switch_db_filename() const
+{
+  return FileSystem::append( directory_path_, SWITCH_DB_FILENAME );
+}
+
 AlfalfaVideo::AlfalfaVideo( const string & directory_name, OpenMode mode )
   : directory_( FileSystem::get_realpath( directory_name ) ),
     video_manifest_( directory_.video_manifest_filename(), "ALFAVDMF", mode ),
@@ -42,7 +47,8 @@ AlfalfaVideo::AlfalfaVideo( const string & directory_name, OpenMode mode )
     quality_db_( directory_.quality_db_filename(), "ALFAQLDB", mode ),
     frame_db_( directory_.frame_db_filename(), "ALFAFRDB", mode ),
     track_db_( directory_.track_db_filename(), "ALFATRDB", mode ),
-    track_ids_()
+    switch_db_( directory_.switch_db_filename(), "ALFASWDB", mode ),
+    track_ids_(), switch_mappings_()
 {}
 
 bool AlfalfaVideo::good() const
@@ -145,30 +151,64 @@ void AlfalfaVideo::import_ivf_file( const string & filename )
 }
 
 std::pair<std::unordered_set<size_t>::iterator, std::unordered_set<size_t>::iterator>
-AlfalfaVideo::get_track_ids () {
+AlfalfaVideo::get_track_ids() {
   return make_pair( track_ids_.begin(), track_ids_.end() );
 }
 
-FrameInfo
-AlfalfaVideo::get_first_frame( const size_t & track_id ) {
-  if ( not track_db_.has_track_id( track_id ) )
-    throw std::out_of_range( "Track id doesn't exist!" );
-  auto it = track_db_.search_by_track_id( track_id );
-  return frame_db_.search_by_frame_id( it.first->frame_id );
+std::pair<std::unordered_set<size_t>::iterator, std::unordered_set<size_t>::iterator>
+AlfalfaVideo::get_track_ids_from_track(const size_t & from_track_id, const size_t & from_frame_index) {
+  std::unordered_set<size_t> to_track_ids = switch_mappings_.at(
+    make_pair( from_track_id, from_frame_index ) );
+  return make_pair( to_track_ids.begin(), to_track_ids.end() );
 }
 
-Optional<FrameInfo>
-AlfalfaVideo::get_next_frame_info( const size_t & track_id, const size_t & frame_index ) {
-  if ( not track_db_.has_track_id( track_id ) )
-    throw std::out_of_range( "Track id doesn't exist!" );
-  Optional<TrackData> track_data = track_db_.search_next_frame(
-    track_id, frame_index );
-  if ( not track_data.initialized() )
-    return Optional<FrameInfo>();
-  return make_optional(
-    true,
-    frame_db_.search_by_frame_id( track_data.get().frame_id )
-  );
+std::pair<TrackDBIterator, TrackDBIterator>
+AlfalfaVideo::get_frames( const size_t & track_id )
+{
+  size_t end_frame_index = track_db_.get_end_frame_index( track_id );
+  TrackDBIterator begin = TrackDBIterator( track_id, 0, track_db_, frame_db_ );
+  TrackDBIterator end = TrackDBIterator( track_id, end_frame_index, track_db_, frame_db_);
+  return make_pair( begin, end );
+}
+
+std::pair<TrackDBIterator, TrackDBIterator>
+AlfalfaVideo::get_frames( const TrackDBIterator & it )
+{
+  size_t track_id = it.track_id();
+  size_t start_frame_index = it.frame_index();
+  size_t end_frame_index = track_db_.get_end_frame_index( track_id );
+  assert( start_frame_index <= end_frame_index );
+  TrackDBIterator begin = TrackDBIterator( track_id, start_frame_index, track_db_, frame_db_ );
+  TrackDBIterator end = TrackDBIterator( track_id, end_frame_index, track_db_, frame_db_);
+  return make_pair( begin, end );
+}
+
+std::pair<TrackDBIterator, TrackDBIterator>
+AlfalfaVideo::get_frames( const SwitchDBIterator & it )
+{
+  size_t track_id = it.to_track_id();
+  size_t start_frame_index = it.to_frame_index();
+  size_t end_frame_index = track_db_.get_end_frame_index( track_id );
+  assert( start_frame_index <= end_frame_index );
+  TrackDBIterator begin = TrackDBIterator( track_id, start_frame_index, track_db_, frame_db_ );
+  TrackDBIterator end = TrackDBIterator( track_id, end_frame_index, track_db_, frame_db_);
+  return make_pair( begin, end );
+}
+
+std::pair<SwitchDBIterator, SwitchDBIterator>
+AlfalfaVideo::get_frames( const TrackDBIterator & it, const size_t & to_track_id )
+{
+  size_t from_track_id = it.track_id();
+  size_t from_frame_index = it.frame_index();
+  size_t end_switch_frame_index = switch_db_.get_end_switch_frame_index( from_track_id,
+                                                                         to_track_id,
+                                                                         from_frame_index );
+  SwitchDBIterator begin = SwitchDBIterator( from_track_id, to_track_id,
+                                             from_frame_index, 0, switch_db_, frame_db_ );
+  SwitchDBIterator end = SwitchDBIterator( from_track_id, to_track_id,
+                                           from_frame_index, end_switch_frame_index,
+                                           switch_db_, frame_db_ );
+  return make_pair( begin, end );
 }
 
 double

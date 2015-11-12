@@ -67,6 +67,32 @@ struct TrackData
   {}
 };
 
+struct SwitchData
+{
+  size_t from_track_id;
+  size_t from_frame_index;
+  size_t to_track_id;
+  size_t to_frame_index;
+  size_t frame_id;
+  size_t switch_frame_index;
+
+  SwitchData( const size_t & from_track_id, const size_t & from_frame_index,
+    const size_t & to_track_id, const size_t & to_frame_index,
+    const size_t & frame_id, const size_t & switch_frame_index )
+    : from_track_id( from_track_id ),
+      from_frame_index( from_frame_index ),
+      to_track_id( to_track_id ),
+      to_frame_index( to_frame_index ),
+      frame_id( frame_id ),
+      switch_frame_index( switch_frame_index )
+  {}
+
+  SwitchData()
+    : from_track_id(0), from_frame_index(0), to_track_id(0), to_frame_index(0),
+      frame_id(0), switch_frame_index(0)
+  {}
+};
+
 void to_protobuf( const VideoInfo & info, AlfalfaProtobufs::VideoInfo & message );
 void from_protobuf( const AlfalfaProtobufs::VideoInfo & message, VideoInfo & info );
 void to_protobuf( const SourceHash & source_hash, AlfalfaProtobufs::SourceHash & message );
@@ -81,6 +107,8 @@ void to_protobuf( const TrackData & td, AlfalfaProtobufs::TrackData & message );
 void from_protobuf( const AlfalfaProtobufs::TrackData & message, TrackData & td );
 void to_protobuf( const FrameInfo & fi, AlfalfaProtobufs::FrameInfo & message );
 void from_protobuf( const AlfalfaProtobufs::FrameInfo & pfi, FrameInfo & fi );
+void to_protobuf( const SwitchData &sd, AlfalfaProtobufs::SwitchData & message );
+void from_protobuf( const AlfalfaProtobufs::SwitchData &pwd, SwitchData & sd );
 
 // end of protobuf converters
 
