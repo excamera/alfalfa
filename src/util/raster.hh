@@ -59,6 +59,7 @@ public:
 
   void copy_from( const BaseRaster & other );
   void dump( FILE * file ) const;
+  void dump( int fd ) const;
 };
 
 #endif /* RASTER_HH */

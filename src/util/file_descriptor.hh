@@ -1,11 +1,14 @@
 #ifndef FILE_DESCRIPTOR_HH
 #define FILE_DESCRIPTOR_HH
 
+#include <string>
 #include <unistd.h>
 #include <sys/stat.h>
 
 #include "exception.hh"
 #include "chunk.hh"
+
+using namespace std;
 
 class FileDescriptor
 {
@@ -15,10 +18,10 @@ private:
 public:
   FileDescriptor( const int s_fd ) : fd_( s_fd ) {}
 
-  ~FileDescriptor() 
-  { 
+  ~FileDescriptor()
+  {
     if ( fd_ >= 0 ) {
-      SystemCall( "close", close( fd_ ) ); 
+      SystemCall( "close", close( fd_ ) );
     }
   }
 
@@ -42,6 +45,33 @@ public:
     // Need to make sure the old file descriptor doesn't try to
     // close fd_ when it is destructed
     other.fd_ = -1;
+  }
+
+  string::const_iterator write( const string::const_iterator & begin,
+    const string::const_iterator & end )
+  {
+    if ( begin >= end ) {
+      throw runtime_error( "nothing to write" );
+    }
+
+    ssize_t bytes_written = SystemCall( "write", ::write( fd_, &*begin, end - begin ) );
+
+    if ( bytes_written == 0 ) {
+      throw runtime_error( "write returned 0" );
+    }
+
+    return begin + bytes_written;
+  }
+
+  string::const_iterator write( const std::string & buffer, const bool write_all = true )
+  {
+    auto it = buffer.begin();
+
+    do {
+      it = write( it, buffer.end() );
+    } while ( write_all and (it != buffer.end()) );
+
+    return it;
   }
 
   void write( const Chunk & buffer )

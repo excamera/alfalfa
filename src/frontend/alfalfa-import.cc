@@ -19,35 +19,16 @@ int main( int argc, char const *argv[] )
       return EX_USAGE;
     }
 
+    const string ivf_file( argv[ 1 ] );
     const string destination_dir( argv[ 2 ] );
 
-    IVF ivf_file( argv[ 1 ] );
-  
     FileSystem::create_directory( destination_dir );
     AlfalfaVideo alfalfa_video( destination_dir, OpenMode::TRUNCATE );
-
-    const string new_ivf_filename = alfalfa_video.get_ivf_file_name();
-
-    /* copy each frame into a new file, then close the file */
-    {
-      IVFWriter imported_ivf_file( FileSystem::append( destination_dir, new_ivf_filename ),
-				   ivf_file.fourcc(),
-				   ivf_file.width(),
-				   ivf_file.height(),
-				   ivf_file.frame_rate(),
-				   ivf_file.time_scale() );
-
-      /* copy each frame */
-      for ( unsigned int i = 0; i < ivf_file.frame_count(); i++ ) {
-	imported_ivf_file.append_frame( ivf_file.frame( i ) );
-      }
-    }
-  
-    alfalfa_video.import_ivf_file( new_ivf_filename );
+    alfalfa_video.import( ivf_file );
   } catch ( const exception & e ) {
     print_exception( argv[ 0 ], e );
     return EXIT_FAILURE;
   }
-    
+
   return EXIT_SUCCESS;
 }

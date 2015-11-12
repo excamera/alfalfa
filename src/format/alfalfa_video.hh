@@ -25,13 +25,15 @@
 #define SWITCH_DB_FILENAME "switch.db"
 #define VIDEO_MANIFEST_FILENAME "video.manifest"
 
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 
 #include "db.hh"
 #include "ivf.hh"
-#include "manifests.hh"
+#include "player.hh"
 #include "frame_db.hh"
+#include "manifests.hh"
 #include "ivf_writer.hh"
 
 class AlfalfaVideo
@@ -71,7 +73,11 @@ public:
 
   bool can_combine( const AlfalfaVideo & video );
   void combine( const AlfalfaVideo & video, IVFWriter & combined_ivf_writer );
-  void import_ivf_file( const std::string & filename );
+  void import( const std::string & filename,
+    Optional<AlfalfaVideo> original = Optional<AlfalfaVideo>(), const size_t & track_id = 0 );
+
+  void encode( const size_t & track_id, vector<string> vpxenc_args,
+    const string & destination );
 
   VideoManifest & video_manifest() { return video_manifest_; }
   const VideoManifest video_manifest() const { return video_manifest_; }
