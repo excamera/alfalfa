@@ -70,7 +70,7 @@ FilePlayer::FilePlayer( const std::string & filename, IVF && file )
 FrameRawData FilePlayer::get_next_frame( void )
 {
   pair<uint64_t, uint32_t> frame_location = file_.frame_location( frame_no_ );
-  return { file_.frame( frame_no_++ ), frame_location.first, frame_location.second, filename_ };
+  return { file_.frame( frame_no_++ ), frame_location.first, frame_location.second };
 }
 
 RasterHandle FilePlayer::advance( void )

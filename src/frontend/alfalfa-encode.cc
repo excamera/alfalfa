@@ -27,10 +27,9 @@ int main( int argc, char const *argv[] )
     const size_t track_id = atoi( argv[ 2 ] );
     const string destination_dir( argv[ 3 ] );
 
-    AlfalfaVideo source_video( source_path, OpenMode::READ );
+    PlayableAlfalfaVideo source_video( source_path );
 
     FileSystem::create_directory( destination_dir );
-    AlfalfaVideo alfalfa_video( destination_dir, OpenMode::TRUNCATE );
 
     vector<string> vpxenc_args;
     for_each( argv + 4, argv + argc, [ & vpxenc_args ]( const char * arg ) {
@@ -39,8 +38,9 @@ int main( int argc, char const *argv[] )
     );
 
     TempFile encoded_file( "encoded" );
-
     source_video.encode( track_id, vpxenc_args, encoded_file.name() );
+
+    WritableAlfalfaVideo alfalfa_video( destination_dir, IVF( encoded_file.name() ) );
     alfalfa_video.import( encoded_file.name(), source_video, track_id );
   } catch ( const exception & e ) {
     print_exception( argv[ 0 ], e );

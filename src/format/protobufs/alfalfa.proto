@@ -36,13 +36,12 @@ message RasterData {
 }
 
 message FrameInfo {
-  required string ivf_filename = 1;
-  required uint64 offset = 2;
-  required uint64 length = 3;
-  required SourceHash source_hash = 4;
-  required TargetHash target_hash = 5;
-  required uint64 frame_id = 6;
-  required uint64 index = 7;
+  required uint64 offset = 1;
+  required uint64 length = 2;
+  required SourceHash source_hash = 3;
+  required TargetHash target_hash = 4;
+  required uint64 frame_id = 5;
+  required uint64 index = 6;
 }
 
 message QualityData {

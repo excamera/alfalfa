@@ -16,7 +16,6 @@ std::string build_frame_name( const SourceHash & source_hash,
 class FrameInfo
 {
 private:
-  std::string ivf_filename_;
   size_t offset_;
   size_t length_;
   size_t index_;
@@ -26,7 +25,6 @@ private:
 
 public:
   std::string frame_name() const { return str(); }
-  std::string ivf_filename() const { return ivf_filename_; }
   size_t offset() const { return offset_; }
   size_t length() const { return length_; }
   size_t index() const { return index_; }
@@ -34,7 +32,6 @@ public:
   const SourceHash & source_hash() const { return source_hash_; }
   const TargetHash & target_hash() const { return target_hash_; }
 
-  void set_ivf_filename( const std::string & filename ) { ivf_filename_ = filename; }
   void set_source_hash( const SourceHash & source_hash ) { source_hash_ = source_hash; }
   void set_target_hash( const TargetHash & target_hash ) { target_hash_ = target_hash; }
   void set_offset( const size_t & offset ) { offset_ = offset; }
@@ -44,11 +41,10 @@ public:
 
   FrameInfo();
 
-  FrameInfo( const std::string & ivf_filename, const std::string & frame_name,
-             const size_t & offset, const size_t & length );
+  FrameInfo( const std::string & frame_name, const size_t & offset,
+             const size_t & length );
 
-  FrameInfo( const std::string & ivf_filename, const size_t & offset,
-             const size_t & length,
+  FrameInfo( const size_t & offset, const size_t & length,
              const SourceHash & source_hash,
              const TargetHash & target_hash );
 

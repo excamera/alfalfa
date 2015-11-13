@@ -31,9 +31,9 @@ int main( int argc, char const *argv[] )
 
     FileSystem::create_directory( destination_dir );
 
-    AlfalfaVideo alf1( alf1_path, OpenMode::READ );
-    AlfalfaVideo alf2( alf2_path, OpenMode::READ );
-    AlfalfaVideo res_video( destination_dir, OpenMode::TRUNCATE );
+    PlayableAlfalfaVideo alf1( alf1_path );
+    PlayableAlfalfaVideo alf2( alf2_path );
+    WritableAlfalfaVideo res_video( destination_dir, alf1.video_manifest().info() );
 
     res_video.combine( alf1 );
     res_video.combine( alf2 );

@@ -15,7 +15,6 @@ struct FrameRawData
   Chunk chunk;
   uint64_t offset;
   uint32_t length;
-  std::string ivf_filename;
 };
 
 class FramePlayer

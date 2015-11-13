@@ -20,10 +20,12 @@ int main( int argc, char const *argv[] )
     }
 
     const string ivf_file( argv[ 1 ] );
+    const IVF ivf( ivf_file );
     const string destination_dir( argv[ 2 ] );
 
     FileSystem::create_directory( destination_dir );
-    AlfalfaVideo alfalfa_video( destination_dir, OpenMode::TRUNCATE );
+    WritableAlfalfaVideo alfalfa_video( destination_dir, ivf );
+
     alfalfa_video.import( ivf_file );
   } catch ( const exception & e ) {
     print_exception( argv[ 0 ], e );

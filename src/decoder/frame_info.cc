@@ -2,14 +2,13 @@
 #include "file.hh"
 
 FrameInfo::FrameInfo()
-  : ivf_filename_( ), offset_( 0 ), length_( 0 ), index_( 0 ), source_hash_(),
+  : offset_( 0 ), length_( 0 ), index_( 0 ), source_hash_(),
     target_hash_(), frame_id_( 0 )
 {}
 
-FrameInfo::FrameInfo( const std::string & ivf_filename, const std::string & frame_name,
+FrameInfo::FrameInfo( const std::string & frame_name,
                       const size_t & offset, const size_t & length )
-  : ivf_filename_( ivf_filename ),
-    offset_( offset ),
+  : offset_( offset ),
     length_( length ),
     index_( 0 ),
     source_hash_( frame_name ),
@@ -17,10 +16,9 @@ FrameInfo::FrameInfo( const std::string & ivf_filename, const std::string & fram
     frame_id_( 0 )
 {}
 
-FrameInfo::FrameInfo( const std::string & ivf_filename, const size_t & offset, const size_t & length,
+FrameInfo::FrameInfo( const size_t & offset, const size_t & length,
                       const SourceHash & source_hash, const TargetHash & target_hash )
-  : ivf_filename_( ivf_filename ),
-    offset_( offset ),
+  : offset_( offset ),
     length_( length ),
     index_( 0 ),
     source_hash_( source_hash ),
