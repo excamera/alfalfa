@@ -119,8 +119,7 @@ bool BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
 
   // Writing entries
   for ( const RecordType & it : collection_.get<SequencedTag>() ) {
-    RecordProtobufType message;
-    to_protobuf( it, message );
+    RecordProtobufType message = to_protobuf( it );
 
     if ( not serializer.write_protobuf( message ) ) {
       return false;
@@ -147,8 +146,7 @@ bool BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
   RecordProtobufType message;
 
   while ( deserializer.read_protobuf( message ) ) {
-    RecordType record;
-    from_protobuf( message, record );
+    RecordType record = from_protobuf( message );
     insert( record );
   }
 

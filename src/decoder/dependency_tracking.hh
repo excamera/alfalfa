@@ -28,7 +28,6 @@ public:
   Optional<size_t> state_hash, continuation_hash,
                    last_hash, golden_hash, alt_hash;
 
-  SourceHash();
   SourceHash( const std::string & frame_name );
   SourceHash( const Optional<size_t> & state, const Optional<size_t> & continuation,
               const Optional<size_t> & last, const Optional<size_t> & golden,
@@ -55,7 +54,6 @@ public:
   bool golden_to_alternate;
   bool alternate_to_golden;
 
-  UpdateTracker();
   UpdateTracker( bool set_update_last, bool set_update_golden,
                  bool set_update_alternate, bool set_last_to_golden,
                  bool set_last_to_alternate, bool set_golden_to_alternate,
@@ -75,7 +73,6 @@ public:
   size_t state_hash, continuation_hash, output_hash;
   bool shown;
 
-  TargetHash();
   TargetHash( const std::string & frame_name );
   TargetHash( const UpdateTracker & updates, size_t state,
               size_t continuation, size_t output, bool shown );

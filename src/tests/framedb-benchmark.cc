@@ -21,8 +21,8 @@ int main()//( int argc, char const *argv[] )
 
   FrameDB fdb( "fake.db", "ALFAFRDB" );
 
-  std::string line;
-  std::string frame_name;
+  string line;
+  string frame_name;
   size_t offset;
   size_t q;
 
@@ -60,8 +60,8 @@ int main()//( int argc, char const *argv[] )
   cout << "stream_manifest read completed." << endl;
 
   DecoderHash decoder_hash(0, 0, 0, 0, 0);
-  std::chrono::time_point<std::chrono::system_clock> start;
-  std::chrono::duration<double> elapsed_seconds;
+  chrono::time_point<chrono::system_clock> start;
+  chrono::duration<double> elapsed_seconds;
 
   int stream_idx = 0;
 
@@ -72,17 +72,17 @@ int main()//( int argc, char const *argv[] )
       decoder_hash.update( frame.target_hash() );
 
       // looking for the decoder hash using search_by_source_hash method.
-      start = std::chrono::system_clock::now();
+      start = chrono::system_clock::now();
       auto result = fdb.search_by_decoder_hash( decoder_hash );
 
       for ( auto it = result.first; it != result.second; it++ ) {
 
       }
-      elapsed_seconds = std::chrono::system_clock::now() - start;
+      elapsed_seconds = chrono::system_clock::now() - start;
       fdb_hashed_search_times.push_back( elapsed_seconds.count() );
 
       // looking for the decoder hash using linear search.
-      start = std::chrono::system_clock::now();
+      start = chrono::system_clock::now();
 
       for ( auto it = fdb.begin(); it != fdb.end(); it++ ) {
         if ( decoder_hash.can_decode( it->source_hash() ) ) {
@@ -90,7 +90,7 @@ int main()//( int argc, char const *argv[] )
         }
       }
 
-      elapsed_seconds = std::chrono::system_clock::now() - start;
+      elapsed_seconds = chrono::system_clock::now() - start;
       fdb_linear_search_times.push_back( elapsed_seconds.count() );
     }
   }
@@ -98,9 +98,9 @@ int main()//( int argc, char const *argv[] )
   sort( fdb_linear_search_times.begin(), fdb_linear_search_times.end() );
   sort( fdb_hashed_search_times.begin(), fdb_hashed_search_times.end() );
 
-  double fdb_linear_search_mean = std::accumulate(fdb_linear_search_times.begin(), fdb_linear_search_times.end(), 0.0) /
+  double fdb_linear_search_mean = accumulate(fdb_linear_search_times.begin(), fdb_linear_search_times.end(), 0.0) /
    fdb_linear_search_times.size();
-  double fdb_hashed_search_mean = std::accumulate(fdb_hashed_search_times.begin(), fdb_hashed_search_times.end(), 0.0) /
+  double fdb_hashed_search_mean = accumulate(fdb_hashed_search_times.begin(), fdb_hashed_search_times.end(), 0.0) /
     fdb_hashed_search_times.size();
 
   double fdb_linear_search_median = fdb_linear_search_times[ fdb_linear_search_times.size() / 2 ];

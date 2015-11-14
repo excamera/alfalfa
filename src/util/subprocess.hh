@@ -5,8 +5,6 @@
 #include <string>
 #include <memory>
 
-using namespace std;
-
 class Subprocess
 {
 private:
@@ -14,9 +12,9 @@ private:
 
 public:
   Subprocess();
-  void call( const string & command, const string & type = "w" );
+  void call( const std::string & command, const std::string & type = "w" );
 
-  size_t write_string( const string & str );
+  size_t write_string( const std::string & str );
   FILE * stream() { return file_.get(); }
 
   int wait();

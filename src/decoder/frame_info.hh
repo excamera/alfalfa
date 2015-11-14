@@ -8,8 +8,6 @@
 #include "dependency_tracking.hh"
 #include "serialized_frame.hh"
 
-using namespace std;
-
 std::string build_frame_name( const SourceHash & source_hash,
   const TargetHash & target_hash );
 
@@ -38,8 +36,6 @@ public:
   void set_length( const size_t & length ) { length_ = length; }
   void set_index( const size_t & index ) { index_ = index; }
   void set_frame_id( const size_t & frame_id ) { frame_id_ = frame_id; }
-
-  FrameInfo();
 
   FrameInfo( const std::string & frame_name, const size_t & offset,
              const size_t & length );

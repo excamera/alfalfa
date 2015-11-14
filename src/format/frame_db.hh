@@ -24,7 +24,6 @@
 #include "ivf_writer.hh"
 #include "filesystem.hh"
 
-using namespace std;
 using namespace boost::multi_index;
 using boost::multi_index_container;
 
@@ -197,7 +196,8 @@ public:
   const FrameInfo & search_by_frame_name( const SourceHash & source_hash, const TargetHash & target_hash );
 
   void
-  merge( const FrameDB & db, map<size_t, size_t> & frame_id_mapping, IVFWriter & combined_ivf_writer, const string & ivf_file_path );
+  merge( const FrameDB & db, std::map<size_t, size_t> & frame_id_mapping,
+         IVFWriter & combined_ivf_writer, const std::string & ivf_file_path );
 
 };
 

@@ -1,10 +1,12 @@
 #include "db.hh"
 
-SerializableData::SerializableData( const std::string & filename, const std::string & magic_number,
+using namespace std;
+
+SerializableData::SerializableData( const string & filename, const string & magic_number,
   OpenMode mode )
     : filename_( filename ), mode_ ( mode ), good_( false ), magic_number( magic_number )
 {
-  std::ifstream fin( filename );
+  ifstream fin( filename );
 
   switch( mode_ ) {
   case OpenMode::READ:

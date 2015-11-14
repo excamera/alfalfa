@@ -8,8 +8,6 @@
 #include "exception.hh"
 #include "chunk.hh"
 
-using namespace std;
-
 class FileDescriptor
 {
 private:
@@ -47,23 +45,23 @@ public:
     other.fd_ = -1;
   }
 
-  string::const_iterator write( const string::const_iterator & begin,
-    const string::const_iterator & end )
+  std::string::const_iterator write( const std::string::const_iterator & begin,
+    const std::string::const_iterator & end )
   {
     if ( begin >= end ) {
-      throw runtime_error( "nothing to write" );
+      throw std::runtime_error( "nothing to write" );
     }
 
     ssize_t bytes_written = SystemCall( "write", ::write( fd_, &*begin, end - begin ) );
 
     if ( bytes_written == 0 ) {
-      throw runtime_error( "write returned 0" );
+      throw std::runtime_error( "write returned 0" );
     }
 
     return begin + bytes_written;
   }
 
-  string::const_iterator write( const std::string & buffer, const bool write_all = true )
+  std::string::const_iterator write( const std::string & buffer, const bool write_all = true )
   {
     auto it = buffer.begin();
 
@@ -79,9 +77,9 @@ public:
     Chunk amount_left_to_write = buffer;
     while ( amount_left_to_write.size() > 0 ) {
       ssize_t bytes_written = SystemCall( "write",
-					  ::write( fd_, amount_left_to_write.buffer(), amount_left_to_write.size() ) );
+        ::write( fd_, amount_left_to_write.buffer(), amount_left_to_write.size() ) );
       if ( bytes_written == 0 ) {
-	throw internal_error( "write", "returned 0" );
+        throw internal_error( "write", "returned 0" );
       }
       amount_left_to_write = amount_left_to_write( bytes_written );
     }

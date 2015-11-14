@@ -15,41 +15,43 @@
 
 #define VPXENC_EXECUTABLE "vpxenc"
 
-AlfalfaVideo::VideoDirectory::VideoDirectory( const std::string & path )
+using namespace std;
+
+AlfalfaVideo::VideoDirectory::VideoDirectory( const string & path )
   : directory_path_( path )
 {}
 
-std::string AlfalfaVideo::VideoDirectory::video_manifest_filename() const
+string AlfalfaVideo::VideoDirectory::video_manifest_filename() const
 {
   return FileSystem::append( directory_path_, VIDEO_MANIFEST_FILENAME );
 }
 
-std::string AlfalfaVideo::VideoDirectory::raster_list_filename() const
+string AlfalfaVideo::VideoDirectory::raster_list_filename() const
 {
   return FileSystem::append( directory_path_, RASTER_LIST_FILENAME );
 }
 
-std::string AlfalfaVideo::VideoDirectory::quality_db_filename() const
+string AlfalfaVideo::VideoDirectory::quality_db_filename() const
 {
   return FileSystem::append( directory_path_, QUALITY_DB_FILENAME );
 }
 
-std::string AlfalfaVideo::VideoDirectory::frame_db_filename() const
+string AlfalfaVideo::VideoDirectory::frame_db_filename() const
 {
   return FileSystem::append( directory_path_, FRAME_DB_FILENAME );
 }
 
-std::string AlfalfaVideo::VideoDirectory::track_db_filename() const
+string AlfalfaVideo::VideoDirectory::track_db_filename() const
 {
   return FileSystem::append( directory_path_, TRACK_DB_FILENAME );
 }
 
-std::string AlfalfaVideo::VideoDirectory::switch_db_filename() const
+string AlfalfaVideo::VideoDirectory::switch_db_filename() const
 {
   return FileSystem::append( directory_path_, SWITCH_DB_FILENAME );
 }
 
-std::string AlfalfaVideo::VideoDirectory::ivf_filename() const
+string AlfalfaVideo::VideoDirectory::ivf_filename() const
 {
   return FileSystem::append( directory_path_, IVF_FILENAME );
 }
@@ -98,21 +100,21 @@ bool AlfalfaVideo::can_combine( const AlfalfaVideo & video )
   );
 }
 
-std::pair<std::unordered_set<size_t>::iterator, std::unordered_set<size_t>::iterator>
+pair<unordered_set<size_t>::iterator, unordered_set<size_t>::iterator>
 AlfalfaVideo::get_track_ids()
 {
   return make_pair( track_ids_.begin(), track_ids_.end() );
 }
 
-std::pair<std::unordered_set<size_t>::iterator, std::unordered_set<size_t>::iterator>
+pair<unordered_set<size_t>::iterator, unordered_set<size_t>::iterator>
 AlfalfaVideo::get_track_ids_from_track(const size_t from_track_id, const size_t from_frame_index)
 {
-  std::unordered_set<size_t> to_track_ids = switch_mappings_.at(
+  unordered_set<size_t> to_track_ids = switch_mappings_.at(
     make_pair( from_track_id, from_frame_index ) );
   return make_pair( to_track_ids.begin(), to_track_ids.end() );
 }
 
-std::pair<TrackDBIterator, TrackDBIterator>
+pair<TrackDBIterator, TrackDBIterator>
 AlfalfaVideo::get_frames( const size_t track_id )
 {
   size_t end_frame_index = track_db_.get_end_frame_index( track_id );
@@ -121,7 +123,7 @@ AlfalfaVideo::get_frames( const size_t track_id )
   return make_pair( begin, end );
 }
 
-std::pair<TrackDBIterator, TrackDBIterator>
+pair<TrackDBIterator, TrackDBIterator>
 AlfalfaVideo::get_frames( const TrackDBIterator & it )
 {
   size_t track_id = it.track_id();
@@ -133,7 +135,7 @@ AlfalfaVideo::get_frames( const TrackDBIterator & it )
   return make_pair( begin, end );
 }
 
-std::pair<TrackDBIterator, TrackDBIterator>
+pair<TrackDBIterator, TrackDBIterator>
 AlfalfaVideo::get_frames( const SwitchDBIterator & it )
 {
   size_t track_id = it.to_track_id();
@@ -145,7 +147,7 @@ AlfalfaVideo::get_frames( const SwitchDBIterator & it )
   return make_pair( begin, end );
 }
 
-std::pair<SwitchDBIterator, SwitchDBIterator>
+pair<SwitchDBIterator, SwitchDBIterator>
 AlfalfaVideo::get_frames( const TrackDBIterator & it, const size_t to_track_id )
 {
   size_t from_track_id = it.track_id();
@@ -421,7 +423,7 @@ void PlayableAlfalfaVideo::encode( const size_t track_id, vector<string> vpxenc_
       << "F" << video_manifest().frame_rate_numerator() << ":" << video_manifest().frame_rate_denominator() << " "
       << "Ip A0:0 C420 C420jpeg XYSCSS=420JPEG\n";
 
-    std::string header( ss.str() );
+    string header( ss.str() );
     proc.write_string( header );
 
     for( auto track_frames = get_frames( track_id ); track_frames.first != track_frames.second; track_frames.first++ ) {

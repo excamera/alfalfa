@@ -3,7 +3,7 @@
 
 using namespace std;
 
-const std::string VideoDisplay::shader_source_scale_from_pixel_coordinates
+const string VideoDisplay::shader_source_scale_from_pixel_coordinates
 = R"( #version 130
 
       uniform uvec2 window_size;
@@ -26,7 +26,7 @@ const std::string VideoDisplay::shader_source_scale_from_pixel_coordinates
                       224*[-0.38542789394266 .5 -0.11457210605734]'
                       224*[-0.454152908305817 -0.0458470916941834 .5]']') */
 
-const std::string VideoDisplay::shader_source_ycbcr
+const string VideoDisplay::shader_source_ycbcr
 = R"( #version 130
       #extension GL_ARB_texture_rectangle : enable
 
@@ -101,7 +101,7 @@ VideoDisplay::VideoDisplay( const BaseRaster & raster )
   glCheck( "" );
 }
 
-void VideoDisplay::resize( const std::pair<unsigned int, unsigned int> & target_size )
+void VideoDisplay::resize( const pair<unsigned int, unsigned int> & target_size )
 {
   glViewport( 0, 0, target_size.first, target_size.second );
 

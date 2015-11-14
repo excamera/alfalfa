@@ -10,7 +10,7 @@ using namespace std;
 
 int main()
 {
-  std::string db1 = "test-frame-db";
+  string db1 = "test-frame-db";
 
   FrameDB fdb1( db1, "ALFAFRDB", OpenMode::TRUNCATE );
 
@@ -39,7 +39,7 @@ int main()
   FrameDB fdb2( db1, "ALFAFRDB", OpenMode::READ );
 
   size_t state_hash, continuation_hash, last_hash, golden_hash, alt_hash;
-  set<std::string> hashed_search_results, linear_search_results;
+  set<string> hashed_search_results, linear_search_results;
 
   for ( auto it = fdb1.begin(); it != fdb1.end(); it++ ) {
     state_hash = it->source_hash().state_hash.initialized() ? it->source_hash().state_hash.get() : rand();

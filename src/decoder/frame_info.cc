@@ -1,12 +1,9 @@
 #include "frame_info.hh"
 #include "file.hh"
 
-FrameInfo::FrameInfo()
-  : offset_( 0 ), length_( 0 ), index_( 0 ), source_hash_(),
-    target_hash_(), frame_id_( 0 )
-{}
+using namespace std;
 
-FrameInfo::FrameInfo( const std::string & frame_name,
+FrameInfo::FrameInfo( const string & frame_name,
                       const size_t & offset, const size_t & length )
   : offset_( offset ),
     length_( length ),
@@ -41,7 +38,7 @@ bool FrameInfo::shown() const
   return target_hash_.shown;
 }
 
-std::string build_frame_name( const SourceHash & source_hash,
+string build_frame_name( const SourceHash & source_hash,
   const TargetHash & target_hash )
 {
   return source_hash.str() + "#" + target_hash.str();

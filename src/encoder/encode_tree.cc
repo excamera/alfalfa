@@ -2,6 +2,8 @@
 
 #include "bool_encoder.hh"
 
+using namespace std;
+
 template <class enumeration, uint8_t alphabet_size, const TreeArray< alphabet_size > & nodes >
 static void encode( BoolEncoder & encoder,
 		    const Tree< enumeration, alphabet_size, nodes > & value,
@@ -13,7 +15,7 @@ static void encode( BoolEncoder & encoder,
     value_to_index.at( 128 + nodes.at( i ) - 1 ) = i;
   }
 
-  std::vector< std::pair< bool, Probability > > bits;
+  vector< pair< bool, Probability > > bits;
 
   /* find the path to the node */
   uint8_t node_index = value_to_index.at( 128 - value - 1 );

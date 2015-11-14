@@ -54,11 +54,6 @@ static SourceHash decode_source( const string & frame_name )
                      components.at( 3 ), components.at( 4 ) );
 }
 
-SourceHash::SourceHash()
-  : SourceHash( Optional<size_t>(), Optional<size_t>(), Optional<size_t>(),
-    Optional<size_t>(), Optional<size_t>() )
-{}
-
 SourceHash::SourceHash( const string & frame_name )
   : SourceHash( decode_source( frame_name ) )
 {}
@@ -170,10 +165,6 @@ UpdateTracker::UpdateTracker( bool set_update_last, bool set_update_golden,
     alternate_to_golden( set_alternate_to_golden )
 {}
 
-UpdateTracker::UpdateTracker()
-  : UpdateTracker( false, false, false, false, false, false, false )
-{}
-
 static TargetHash decode_target( const string & frame_name )
 {
   SafeArray<size_t, 11> components;
@@ -206,11 +197,6 @@ TargetHash::TargetHash( const UpdateTracker & updates, size_t state,
     continuation_hash( continuation ),
     output_hash( output ),
     shown( show )
-{}
-
-TargetHash::TargetHash()
-: UpdateTracker(), state_hash( 0 ), continuation_hash( 0 ), output_hash( 0 ),
-  shown( false )
 {}
 
 string TargetHash::str() const

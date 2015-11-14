@@ -20,7 +20,7 @@ int main( int argc, char *argv[] )
       throw Unsupported( "not a VP8 file" );
     }
 
-    std::vector< uint32_t > key_frames;
+    vector< uint32_t > key_frames;
 
     /* count key frames */
     unsigned int num_key_frames = 0;

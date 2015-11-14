@@ -107,22 +107,23 @@ struct SwitchData
   {}
 };
 
-void to_protobuf( const VideoInfo & info, AlfalfaProtobufs::VideoInfo & message );
-void from_protobuf( const AlfalfaProtobufs::VideoInfo & message, VideoInfo & info );
-void to_protobuf( const SourceHash & source_hash, AlfalfaProtobufs::SourceHash & message );
-void from_protobuf( const AlfalfaProtobufs::SourceHash & message, SourceHash & source_hash );
-void to_protobuf( const TargetHash & target_hash, AlfalfaProtobufs::TargetHash & message );
-void from_protobuf( const AlfalfaProtobufs::TargetHash & message, TargetHash & target_hash );
-void to_protobuf( const RasterData & rd, AlfalfaProtobufs::RasterData & item );
-void from_protobuf( const AlfalfaProtobufs::RasterData & item, RasterData & rd );
-void to_protobuf( const QualityData & qd, AlfalfaProtobufs::QualityData & message );
-void from_protobuf( const AlfalfaProtobufs::QualityData & message, QualityData & qd );
-void to_protobuf( const TrackData & td, AlfalfaProtobufs::TrackData & message );
-void from_protobuf( const AlfalfaProtobufs::TrackData & message, TrackData & td );
-void to_protobuf( const FrameInfo & fi, AlfalfaProtobufs::FrameInfo & message );
-void from_protobuf( const AlfalfaProtobufs::FrameInfo & pfi, FrameInfo & fi );
-void to_protobuf( const SwitchData &sd, AlfalfaProtobufs::SwitchData & message );
-void from_protobuf( const AlfalfaProtobufs::SwitchData &pwd, SwitchData & sd );
+AlfalfaProtobufs::VideoInfo   to_protobuf( const VideoInfo & info );
+AlfalfaProtobufs::SourceHash  to_protobuf( const SourceHash & source_hash );
+AlfalfaProtobufs::TargetHash  to_protobuf( const TargetHash & target_hash );
+AlfalfaProtobufs::RasterData  to_protobuf( const RasterData & rd );
+AlfalfaProtobufs::QualityData to_protobuf( const QualityData & qd );
+AlfalfaProtobufs::TrackData   to_protobuf( const TrackData & td );
+AlfalfaProtobufs::FrameInfo   to_protobuf( const FrameInfo & fi );
+AlfalfaProtobufs::SwitchData  to_protobuf( const SwitchData &sd );
+
+VideoInfo   from_protobuf( const AlfalfaProtobufs::VideoInfo & message );
+SourceHash  from_protobuf( const AlfalfaProtobufs::SourceHash & message );
+TargetHash  from_protobuf( const AlfalfaProtobufs::TargetHash & message );
+RasterData  from_protobuf( const AlfalfaProtobufs::RasterData & item );
+QualityData from_protobuf( const AlfalfaProtobufs::QualityData & message );
+TrackData   from_protobuf( const AlfalfaProtobufs::TrackData & message );
+FrameInfo   from_protobuf( const AlfalfaProtobufs::FrameInfo & pfi );
+SwitchData  from_protobuf( const AlfalfaProtobufs::SwitchData &pwd );
 
 // end of protobuf converters
 

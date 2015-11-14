@@ -6,7 +6,7 @@
 
 using namespace std;
 
-File::File( const std::string & filename )
+File::File( const string & filename )
   : fd_( SystemCall( filename, open( filename.c_str(), O_RDONLY ) ) ),
     size_( fd_.size() ),
     mmap_region_( MMap_Region( size_, PROT_READ, MAP_SHARED, fd_.num() ) ),

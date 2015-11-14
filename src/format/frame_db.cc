@@ -5,7 +5,9 @@
 #include "serialization.hh"
 #include "protobufs/alfalfa.pb.h"
 
-std::pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator>
+using namespace std;
+
+pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator>
 FrameDB::search_by_output_hash( const size_t & output_hash )
 {
   FrameDataSetCollectionByOutputHash & data_by_output_hash =
@@ -13,7 +15,7 @@ FrameDB::search_by_output_hash( const size_t & output_hash )
   return data_by_output_hash.equal_range( output_hash );
 }
 
-std::pair<FrameDataSetSourceHashSearch::iterator, FrameDataSetSourceHashSearch::iterator>
+pair<FrameDataSetSourceHashSearch::iterator, FrameDataSetSourceHashSearch::iterator>
 FrameDB::search_by_decoder_hash( const DecoderHash & decoder_hash )
 {
   SourceHash query_hash(
@@ -50,7 +52,7 @@ FrameDB::search_by_frame_id( const size_t & frame_id )
 {
   FrameDataSetCollectionById & index = collection_.get<FrameDataSetByIdTag>();
   if ( index.count( frame_id ) == 0 )
-    throw std::out_of_range( "Invalid frame_id!" );
+    throw out_of_range( "Invalid frame_id!" );
   FrameDataSetCollectionById::iterator id_iterator =
     index.find( frame_id );
   return *id_iterator;
@@ -62,7 +64,7 @@ FrameDB::search_by_frame_name( const SourceHash & source_hash, const TargetHash 
   FrameDataSetCollectionByFrameName & index = collection_.get<FrameDataSetByFrameNameTag>();
   auto key = boost::make_tuple( source_hash, target_hash );
   if ( index.count( key ) == 0 )
-    throw std::out_of_range( "Invalid (source_hash, target_hash) pair" );
+    throw out_of_range( "Invalid (source_hash, target_hash) pair" );
   FrameDataSetCollectionByFrameName::iterator name_iterator = index.find( key );
   return *name_iterator;
 }

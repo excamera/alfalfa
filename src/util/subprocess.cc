@@ -1,10 +1,12 @@
 #include "subprocess.hh"
 #include "exception.hh"
 
+using namespace std;
+
 Subprocess::Subprocess()
 {}
 
-void Subprocess::call( const std::string & command, const std::string & type )
+void Subprocess::call( const string & command, const string & type )
 {
   file_.reset( popen( command.c_str(), type.c_str() ) );
 
@@ -25,7 +27,7 @@ int Subprocess::wait()
   return ret;
 }
 
-size_t Subprocess::write_string( const std::string & str )
+size_t Subprocess::write_string( const string & str )
 {
   if ( file_ == nullptr ) {
     throw unix_error( "nowhere to write" );

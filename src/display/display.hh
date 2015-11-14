@@ -7,8 +7,6 @@
 #include "raster.hh"
 #include "gl_objects.hh"
 
-using namespace std;
-
 class VideoDisplay
 {
 private:

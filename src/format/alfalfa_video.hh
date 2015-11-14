@@ -122,11 +122,11 @@ private:
   File ivf_file_;
 
 public:
-  PlayableAlfalfaVideo( const string & directory_name );
+  PlayableAlfalfaVideo( const std::string & directory_name );
 
   const Chunk get_chunk( const FrameInfo & frame_info ) const;
-  void encode( const size_t track_id, vector<string> vpxenc_args,
-               const string & destination );
+  void encode( const size_t track_id, std::vector<std::string> vpxenc_args,
+               const std::string & destination );
 };
 
 class WritableAlfalfaVideo : public AlfalfaVideo
@@ -138,14 +138,14 @@ private:
                      const size_t original_raster, const double quality,
                      size_t & frame_id, size_t & frame_index, const size_t track_id );
 
-  void write_ivf( const string & filename );
+  void write_ivf( const std::string & filename );
 
 public:
-  WritableAlfalfaVideo( const string & directory_name,
-                        const string & fourcc, const uint16_t width, const uint16_t height,
+  WritableAlfalfaVideo( const std::string & directory_name,
+                        const std::string & fourcc, const uint16_t width, const uint16_t height,
                         const uint32_t frame_rate_numerator, const uint32_t frame_rate_denominator );
-  WritableAlfalfaVideo( const string & directory_name, const IVF & ivf );
-  WritableAlfalfaVideo( const string & directory_name, const VideoInfo & info );
+  WritableAlfalfaVideo( const std::string & directory_name, const IVF & ivf );
+  WritableAlfalfaVideo( const std::string & directory_name, const VideoInfo & info );
 
   void combine( const PlayableAlfalfaVideo & video );
   void import( const std::string & filename );

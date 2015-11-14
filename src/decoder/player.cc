@@ -48,7 +48,7 @@ FilePlayer::FilePlayer( const string & filename )
   : FilePlayer( filename, IVF( filename ) )
 {}
 
-FilePlayer::FilePlayer( const std::string & filename, IVF && file )
+FilePlayer::FilePlayer( const string & filename, IVF && file )
   : FramePlayer( file.width(), file.height() ),
     file_ ( move( file ) ),
     filename_( filename )

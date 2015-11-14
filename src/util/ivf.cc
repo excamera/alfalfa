@@ -52,7 +52,7 @@ Chunk IVF::frame( const uint32_t & index ) const
   return file_( entry.first, entry.second );
 }
 
-std::pair<uint64_t, uint32_t> IVF::frame_location( const uint32_t & index ) const
+pair<uint64_t, uint32_t> IVF::frame_location( const uint32_t & index ) const
 {
   return frame_index_.at( index );
 }

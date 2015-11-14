@@ -1,6 +1,8 @@
 #include "manifests.hh"
 
-VideoManifest::VideoManifest( const std::string & filename, const std::string & magic_number,
+using namespace std;
+
+VideoManifest::VideoManifest( const string & filename, const string & magic_number,
   OpenMode mode )
     : SerializableData( filename, magic_number, mode ), info_()
 {
@@ -29,7 +31,7 @@ bool VideoManifest::deserialize()
 
   AlfalfaProtobufs::VideoInfo message;
   deserializer.read_protobuf( message );
-  from_protobuf( message, info_ );
+  info_ = from_protobuf( message );
   return true;
 }
 
@@ -44,10 +46,8 @@ bool VideoManifest::serialize() const
   // Writing the header
   serializer.write_string( magic_number );
 
-  AlfalfaProtobufs::VideoInfo message;
-  to_protobuf( info_, message );
-  bool result = serializer.write_protobuf( message );
-  return result;
+  AlfalfaProtobufs::VideoInfo message = to_protobuf( info_ );
+  return serializer.write_protobuf( message );
 }
 
 bool RasterList::has( const size_t & raster_hash ) const
@@ -60,7 +60,7 @@ size_t RasterList::raster( size_t raster_index )
 {
   const RasterListCollectionRandomAccess & data_by_random_access = collection_.get<RasterListRandomAccessTag>();
   if ( data_by_random_access.size() <= raster_index )
-    throw std::out_of_range( "Invalid raster index!" );
+    throw out_of_range( "Invalid raster index!" );
   return data_by_random_access.at( raster_index ).hash;
 }
 
@@ -92,27 +92,27 @@ QualityDB::search_by_original_and_approximate_raster( const size_t & original_ra
     collection_.get<QualityDBByOriginalAndApproximateRasterTag>();
   auto key = boost::make_tuple( original_raster, approximate_raster );
   if ( index.count( key ) == 0 )
-    throw std::out_of_range( "Raster pair not found!" );
+    throw out_of_range( "Raster pair not found!" );
   QualityDBCollectionByOriginalAndApproximateRaster::iterator it =
     index.find( key );
   return *it;
 }
 
-std::pair<QualityDBCollectionByOriginalRaster::iterator, QualityDBCollectionByOriginalRaster::iterator>
+pair<QualityDBCollectionByOriginalRaster::iterator, QualityDBCollectionByOriginalRaster::iterator>
 QualityDB::search_by_original_raster( const size_t & original_raster )
 {
   QualityDBCollectionByOriginalRaster & index = collection_.get<QualityDBByOriginalRasterTag>();
   return index.equal_range( original_raster );
 }
 
-std::pair<QualityDBCollectionByApproximateRaster::iterator, QualityDBCollectionByApproximateRaster::iterator>
+pair<QualityDBCollectionByApproximateRaster::iterator, QualityDBCollectionByApproximateRaster::iterator>
 QualityDB::search_by_approximate_raster( const size_t & approximate_raster )
 {
   QualityDBCollectionByApproximateRaster & index = collection_.get<QualityDBByApproximateRasterTag>();
   return index.equal_range( approximate_raster );
 }
 
-std::pair<TrackDBCollectionByTrackIdAndFrameIndex::iterator, TrackDBCollectionByTrackIdAndFrameIndex::iterator>
+pair<TrackDBCollectionByTrackIdAndFrameIndex::iterator, TrackDBCollectionByTrackIdAndFrameIndex::iterator>
 TrackDB::search_by_track_id( const size_t & track_id )
 {
   TrackDBCollectionByTrackIdAndFrameIndex & index = collection_.get<TrackDBByTrackIdAndFrameIndexTag>();
@@ -158,7 +158,7 @@ TrackDB::get_frame( const size_t & track_id, const size_t & frame_index )
   boost::tuple<size_t, size_t> ordered_key =
     boost::make_tuple( track_id, frame_index );
   if ( ordered_index.count( ordered_key ) == 0 )
-    throw std::out_of_range( "Invalid (track_id, frame_index) pair" );
+    throw out_of_range( "Invalid (track_id, frame_index) pair" );
   TrackDBCollectionByTrackIdAndFrameIndex::iterator ids_iterator = ordered_index.find(
     ordered_key);
   return *ids_iterator;
@@ -265,7 +265,7 @@ SwitchDB::get_frame( const size_t & from_track_id, const size_t & to_track_id,
   boost::tuple<size_t, size_t, size_t, size_t> ordered_key =
     boost::make_tuple( from_track_id, to_track_id, from_frame_index, switch_frame_index );
   if ( ordered_index.count( ordered_key ) == 0 )
-    throw std::out_of_range( "Frame not found in switch DB" );
+    throw out_of_range( "Frame not found in switch DB" );
   SwitchDBCollectionOrderedByTrackIdsAndFrameIndices::iterator ids_iterator = ordered_index.find(
     ordered_key);
   return *ids_iterator;
