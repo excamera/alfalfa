@@ -121,6 +121,23 @@ TrackDB::search_by_track_id( const size_t & track_id )
   return index.equal_range( track_id );
 }
 
+std::unordered_set<size_t>*
+TrackDB::track_ids()
+{
+  std::unordered_set<size_t> *track_ids = new std::unordered_set<size_t>();
+  TrackDBCollectionByTrackIdAndFrameIndex & index = collection_.get<TrackDBByTrackIdAndFrameIndexTag>();
+  TrackDBCollectionByTrackIdAndFrameIndex::iterator beg = index.begin();
+  TrackDBCollectionByTrackIdAndFrameIndex::iterator end = index.end();
+  while(beg != end)
+  {
+    TrackData track_data = *beg;
+    (*track_ids).insert( track_data.track_id );
+    beg++;
+  }
+  return track_ids;
+}
+
+
 bool TrackDB::has_track( const size_t & track_id ) const
 {
   const TrackDBCollectionByTrackIdAndFrameIndex & index = collection_.get<TrackDBByTrackIdAndFrameIndexTag>();
