@@ -53,5 +53,6 @@ Makefile.in
 /src/tests/import-test
 /src/tests/trackdb-test
 /src/tests/combine-test
+/src/tests/alf-decode-to-stdout
 
 /src/tests/test_vectors/
