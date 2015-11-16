@@ -16,33 +16,21 @@ struct VideoInfo
   std::string fourcc;
   uint16_t width;
   uint16_t height;
-  uint32_t frame_rate_numerator;
-  uint32_t frame_rate_denominator;
-  uint32_t frame_count;
 
   VideoInfo()
-    : fourcc( "VP80" ), width( 0 ), height( 0 ), frame_rate_numerator( 0 ), frame_rate_denominator( 1 ),
-      frame_count( 0 )
+    : fourcc( "VP80" ), width( 0 ), height( 0 )
   {}
 
-  VideoInfo( std::string fourcc, uint16_t width, uint16_t height, uint32_t frame_rate_numerator,
-    uint32_t frame_rate_denominator, uint32_t frame_count )
-    : fourcc( fourcc ), width( width ), height( height ), frame_rate_numerator( frame_rate_numerator ),
-      frame_rate_denominator( frame_rate_denominator ), frame_count( frame_count )
+  VideoInfo( std::string fourcc, uint16_t width, uint16_t height )
+    : fourcc( fourcc ), width( width ), height( height )
   {}
-
-  double frame_rate() const
-  {
-      return (double)frame_rate_numerator / frame_rate_denominator;
-  }
 
   bool operator==( const VideoInfo & other ) const
   {
     return ( fourcc == other.fourcc and
       width == other.width and
-      height == other.height and
-      frame_rate_numerator == other.frame_rate_numerator and
-      frame_rate_denominator == other.frame_rate_denominator );
+      height == other.height
+    );
   }
 
   bool operator!=( const VideoInfo & other ) const

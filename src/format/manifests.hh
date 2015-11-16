@@ -29,10 +29,6 @@ public:
   const std::string & fourcc( void ) const { return info_.fourcc; }
   uint16_t width( void ) const { return info_.width; }
   uint16_t height( void ) const { return info_.height; }
-  double frame_rate( void ) const { return info_.frame_rate(); }
-  uint32_t frame_count( void ) const { return info_.frame_count; }
-  double frame_rate_numerator( void ) const { return info_.frame_rate_numerator; }
-  double frame_rate_denominator( void ) const { return info_.frame_rate_denominator; }
 
   const VideoInfo & info() const { return info_; }
   void set_info( const VideoInfo & info );

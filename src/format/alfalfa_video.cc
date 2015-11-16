@@ -175,27 +175,21 @@ double AlfalfaVideo::get_quality( int raster_index, const FrameInfo & frame_info
 
 WritableAlfalfaVideo::WritableAlfalfaVideo( const string & directory_name,
                                             const string & fourcc,
-                                            const uint16_t width, const uint16_t height,
-                                            const uint32_t frame_rate_numerator,
-                                            const uint32_t frame_rate_denominator )
+                                            const uint16_t width, const uint16_t height )
   : AlfalfaVideo( directory_name, OpenMode::TRUNCATE ),
-    ivf_writer_( directory_.ivf_filename(), fourcc, width, height,
-      frame_rate_numerator, frame_rate_denominator )
+    ivf_writer_( directory_.ivf_filename(), fourcc, width, height, 24, 1 )
 {
-  video_manifest_.set_info( VideoInfo( fourcc, width, height,
-    frame_rate_numerator, frame_rate_denominator, 0 ) );
+  video_manifest_.set_info( VideoInfo( fourcc, width, height ) );
 }
 
 WritableAlfalfaVideo::WritableAlfalfaVideo( const string & directory_name,
                                             const IVF & ivf )
-  : WritableAlfalfaVideo( directory_name, ivf.fourcc(), ivf.width(), ivf.height(),
-      ivf.frame_rate(), ivf.time_scale() )
+  : WritableAlfalfaVideo( directory_name, ivf.fourcc(), ivf.width(), ivf.height() )
 {}
 
 WritableAlfalfaVideo::WritableAlfalfaVideo( const string & directory_name,
                                             const VideoInfo & info )
-  : WritableAlfalfaVideo( directory_name, info.fourcc, info.width, info.height,
-    info.frame_rate_numerator, info.frame_rate_denominator )
+  : WritableAlfalfaVideo( directory_name, info.fourcc, info.width, info.height )
 {}
 
 void WritableAlfalfaVideo::combine( const PlayableAlfalfaVideo & video )
@@ -419,8 +413,8 @@ void PlayableAlfalfaVideo::encode( const size_t track_id, vector<string> vpxenc_
 
     ostringstream ss;
     ss << "YUV4MPEG2 W" << video_manifest().width() << " "
+      << "F1:1 "
       << "H" << video_manifest().height() << " "
-      << "F" << video_manifest().frame_rate_numerator() << ":" << video_manifest().frame_rate_denominator() << " "
       << "Ip A0:0 C420 C420jpeg XYSCSS=420JPEG\n";
 
     string header( ss.str() );

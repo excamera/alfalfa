@@ -43,7 +43,8 @@ int main( int argc, char const *argv[] )
   //One frame count per video
   uint32_t frame_count = 0;
   //Get frame rate for video
-  double frame_rate = alf.video_manifest().frame_rate();
+  // FIXME fix the frame rate
+  double frame_rate = 24.0;
   //Initialize duration
   double duration_in_seconds = 0.0;
 

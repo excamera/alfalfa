@@ -142,8 +142,7 @@ private:
 
 public:
   WritableAlfalfaVideo( const std::string & directory_name,
-                        const std::string & fourcc, const uint16_t width, const uint16_t height,
-                        const uint32_t frame_rate_numerator, const uint32_t frame_rate_denominator );
+                        const std::string & fourcc, const uint16_t width, const uint16_t height );
   WritableAlfalfaVideo( const std::string & directory_name, const IVF & ivf );
   WritableAlfalfaVideo( const std::string & directory_name, const VideoInfo & info );
 
