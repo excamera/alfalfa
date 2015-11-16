@@ -206,7 +206,7 @@ public:
   const TrackData &
   get_frame( const size_t & track_id, const size_t & frame_index );
   void merge( const TrackDB & db, std::map<size_t, size_t> & frame_id_mapping );
-  std::unordered_set<size_t>* track_ids();
+  std::unordered_set<size_t> track_ids();
 };
 
 /*
