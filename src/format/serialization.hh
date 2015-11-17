@@ -83,9 +83,9 @@ struct SwitchData
   size_t frame_id;
   size_t switch_frame_index;
 
-  SwitchData( const size_t & from_track_id, const size_t & from_frame_index,
-    const size_t & to_track_id, const size_t & to_frame_index,
-    const size_t & frame_id, const size_t & switch_frame_index )
+  SwitchData( const size_t from_track_id, const size_t from_frame_index,
+              const size_t to_track_id, const size_t to_frame_index,
+              const size_t frame_id, const size_t switch_frame_index )
     : from_track_id( from_track_id ),
       from_frame_index( from_frame_index ),
       to_track_id( to_track_id ),

@@ -209,6 +209,7 @@ void WritableAlfalfaVideo::combine( const PlayableAlfalfaVideo & video )
   video_manifest_.set_info( video.video_manifest().info() );
   quality_db_.merge( video.quality_db() );
   map<size_t, size_t> frame_id_mapping;
+  map<size_t, size_t> track_id_mapping;
 
   for ( auto item = video.get_frames().first; item != video.get_frames().second; item++ ) {
     size_t offset = ivf_writer_.append_frame( video.get_chunk( *item ) );
@@ -217,7 +218,8 @@ void WritableAlfalfaVideo::combine( const PlayableAlfalfaVideo & video )
     frame_id_mapping[ item->frame_id() ] = frame_db_.insert( *item );
   }
 
-  track_db_.merge( video.track_db(), frame_id_mapping );
+  track_db_.merge( video.track_db(), frame_id_mapping, track_id_mapping );
+  switch_db_.merge( video.switch_db(), frame_id_mapping, track_id_mapping );
 }
 
 void WritableAlfalfaVideo::insert_frame( FrameInfo next_frame,
@@ -341,6 +343,25 @@ void WritableAlfalfaVideo::import( const string & filename,
   }
 
   save();
+}
+
+void
+WritableAlfalfaVideo::insert_switch_frames( const TrackDBIterator & origin_iterator,
+                                            const std::vector<FrameInfo> & frames,
+                                            const TrackDBIterator & dest_iterator )
+{
+  size_t from_track_id = origin_iterator.track_id();
+  size_t from_frame_index = origin_iterator.frame_index();
+  size_t to_track_id = dest_iterator.track_id();
+  size_t to_frame_index = dest_iterator.frame_index();
+  size_t switch_frame_index = 0;
+  for (FrameInfo frame : frames) {
+    size_t frame_id = frame_db_.insert( frame );
+    SwitchData switch_data = SwitchData( from_track_id, from_frame_index, to_track_id,
+                                         to_frame_index, frame_id, switch_frame_index );
+    switch_db_.insert( switch_data );
+    switch_frame_index++;
+  }
 }
 
 bool WritableAlfalfaVideo::save()

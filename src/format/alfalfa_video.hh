@@ -172,6 +172,10 @@ public:
   /* Import function used to create an encoded video. */
   void import( const std::string & filename, PlayableAlfalfaVideo & original,
                const size_t ref_track_id = 0 );
+  /* Insert the provided frames into the switch db. */
+  void insert_switch_frames( const TrackDBIterator & origin_iterator,
+                             const std::vector<FrameInfo> & frames,
+                             const TrackDBIterator & dest_iterator );
 
   size_t import_frame( FrameInfo frame_info, const Chunk & chunk );
 

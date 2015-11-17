@@ -157,11 +157,12 @@ TrackDB::get_frame( const size_t & track_id, const size_t & frame_index )
   return *ids_iterator;
 }
 
-void TrackDB::merge( const TrackDB & db, map<size_t, size_t> & frame_id_mapping )
+void TrackDB::merge( const TrackDB & db,
+                     map<size_t, size_t> & frame_id_mapping,
+                     map<size_t, size_t> & track_id_mapping )
 {
   TrackDBCollectionByTrackIdAndFrameIndex & track_db_by_ids =
     collection_.get<TrackDBByTrackIdAndFrameIndexTag>();
-  map<size_t, size_t> track_id_mapping;
 
   for ( auto item : db.collection_.get<TrackDBSequencedTag>() ) {
     if ( track_id_mapping.count( item.track_id ) > 0 ) {
@@ -175,9 +176,9 @@ void TrackDB::merge( const TrackDB & db, map<size_t, size_t> & frame_id_mapping 
       track_id_mapping[ item.track_id ] = new_track_id;
       item.track_id = new_track_id;
     } else {
-      track_id_mapping[item.track_id] = item.track_id;
+      track_id_mapping[ item.track_id ] = item.track_id;
     }
-    item.frame_id = frame_id_mapping[item.frame_id];
+    item.frame_id = frame_id_mapping[ item.frame_id ];
     insert( item );
   }
 }
@@ -249,7 +250,6 @@ SwitchDB::get_to_frame_index( const size_t from_track_id, const size_t to_track_
   return index.find( boost::make_tuple( from_track_id, to_track_id, from_frame_index ) )->to_frame_index;
 }
 
-
 const SwitchData &
 SwitchDB::get_frame( const size_t from_track_id, const size_t to_track_id,
                      const size_t from_frame_index, const size_t switch_frame_index )
@@ -262,6 +262,18 @@ SwitchDB::get_frame( const size_t from_track_id, const size_t to_track_id,
   SwitchDBCollectionOrderedByTrackIdsAndFrameIndices::iterator ids_iterator = ordered_index.find(
     ordered_key);
   return *ids_iterator;
+}
+
+void SwitchDB::merge( const SwitchDB & db,
+                      map<size_t, size_t> & frame_id_mapping,
+                      map<size_t, size_t> & track_id_mapping )
+{
+  for ( auto item : db.collection_.get<SwitchDBSequencedTag>() ) {
+    item.from_track_id = track_id_mapping[ item.from_track_id ];
+    item.to_track_id = track_id_mapping[ item.to_track_id ];
+    item.frame_id = frame_id_mapping[ item.frame_id ];
+    insert( item );
+  }
 }
 
 SwitchDBIterator &
