@@ -15,6 +15,7 @@ int main()
   string db1 = "test-frame-db";
 
   FrameDB fdb1( db1, "ALFAFRDB", OpenMode::TRUNCATE );
+  set<size_t> frame_ids;
 
   for( size_t i = 0; i < 3048; i++ ) {
     SourceHash source_hash(
@@ -33,7 +34,11 @@ int main()
 
     FrameInfo fi( i * 4312, i * 2134, source_hash, target_hash );
 
-    fdb1.insert( fi );
+    size_t frame_id = fdb1.insert( fi );
+    /* Shouldn't have any duplicates in frame_ids generated. */
+    if ( frame_ids.count( frame_id ) > 0 )
+      return 1;
+    frame_ids.insert( frame_id );
   }
 
   fdb1.serialize();

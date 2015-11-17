@@ -13,20 +13,6 @@ int main()
   TrackDB tdb( db, "ALFATRDB", OpenMode::TRUNCATE );
 
   for (size_t i = 0; i < NUM_ELEMENTS; i++) {
-    SourceHash source_hash(
-      make_optional( ( i >> 0 ) & 1, i * 1234 + 0 ),
-      make_optional( ( i >> 1 ) & 1, i * 1234 + 1 ),
-      make_optional( ( i >> 2 ) & 1, i * 1234 + 2 ),
-      make_optional( ( i >> 3 ) & 1, i * 1234 + 3 ),
-      make_optional( ( i >> 4 ) & 1, i * 1234 + 4 )
-    );
-
-    UpdateTracker update_tracker( ( i % 2 ) & 1, ( i % 3 ) & 1, ( i % 4 ) & 1 , ( i % 5 ) & 1,
-      ( i % 6 ) & 1, ( i % 7 ) & 1, ( i % 8 ) & 1 );
-
-    TargetHash target_hash( update_tracker, i * 1234 + 5, i * 1234 + 6,
-      i * 1234 + 7, ( i % 5 ) &  1 );
-
     size_t track_id = i / 10;
     size_t frame_index = i % 10;
     size_t frame_id = NUM_ELEMENTS - i;
