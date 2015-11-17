@@ -55,7 +55,7 @@ typedef multi_index_container
   RasterData,
   indexed_by
   <
-    ordered_unique
+    ordered_non_unique
     <
       tag<RasterListByHashTag>,
       member<RasterData, size_t, &RasterData::hash>
@@ -106,7 +106,7 @@ typedef multi_index_container
   QualityData,
   indexed_by
   <
-    hashed_unique
+    hashed_non_unique
     <
       tag<QualityDBByOriginalAndApproximateRasterTag>,
       composite_key

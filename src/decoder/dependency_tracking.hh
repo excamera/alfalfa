@@ -127,7 +127,7 @@ namespace std
   {
     size_t operator()( const TargetHash & hash ) const
     {
-      size_t hash_val;
+      size_t hash_val = 0;
 
       boost::hash_combine( hash_val, hash.state_hash );
       boost::hash_combine( hash_val, hash.output_hash );
@@ -138,6 +138,7 @@ namespace std
       boost::hash_combine( hash_val, hash.last_to_alternate );
       boost::hash_combine( hash_val, hash.golden_to_alternate );
       boost::hash_combine( hash_val, hash.alternate_to_golden );
+      boost::hash_combine( hash_val, hash.shown );
 
       return hash_val;
     }

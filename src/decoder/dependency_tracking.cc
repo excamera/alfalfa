@@ -97,7 +97,7 @@ bool SourceHash::operator==( const SourceHash & other ) const
 
 bool SourceHash::operator!=( const SourceHash & other ) const
 {
-  return !( ( *this ) == other );
+  return not( ( *this ) == other );
 }
 
 UpdateTracker::UpdateTracker( bool set_update_last, bool set_update_golden,
@@ -170,12 +170,13 @@ bool TargetHash::operator==( const TargetHash & other ) const
     last_to_golden == other.last_to_golden and
     last_to_alternate == other.last_to_alternate and
     golden_to_alternate == other.golden_to_alternate and
-    alternate_to_golden == other.alternate_to_golden );
+    alternate_to_golden == other.alternate_to_golden and
+    shown               == other.shown );
 }
 
 bool TargetHash::operator!=( const TargetHash & other ) const
 {
-  return !( ( *this ) == other );
+  return not( ( *this ) == other );
 }
 
 DecoderHash::DecoderHash( size_t state_hash, size_t last_hash, size_t golden_hash, size_t alt_hash )
