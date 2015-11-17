@@ -4,6 +4,8 @@
 #include <set>
 #include <map>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <unordered_set>
 
@@ -192,21 +194,32 @@ TrackDBCollectionByTrackIdAndFrameIndex;
 class TrackDB : public BasicDatabase<TrackData, AlfalfaProtobufs::TrackData,
   TrackDBCollection, TrackDBSequencedTag>
 {
+private:
+  std::unordered_set<size_t> track_ids_;
+  std::unordered_map<size_t, size_t> track_frame_indices_;
+
 public:
   TrackDB( const std::string & filename, const std::string & magic_number, OpenMode mode = OpenMode::READ )
   : BasicDatabase<TrackData, AlfalfaProtobufs::TrackData,
-    TrackDBCollection, TrackDBSequencedTag>( filename, magic_number, mode )
-  {}
+    TrackDBCollection, TrackDBSequencedTag>( filename, magic_number, mode ),
+    track_ids_(), track_frame_indices_()
+  {
+    for ( auto it = begin(); it != end(); it++ ) {
+      track_ids_.insert( it->track_id );
+      track_frame_indices_[ it->track_id ] = get_end_frame_index( it->track_id );
+    }
+  }
 
-  // TODO(Deepak): Deprecate this
-  std::pair<TrackDBCollectionByTrackIdAndFrameIndex::iterator, TrackDBCollectionByTrackIdAndFrameIndex::iterator>
-  search_by_track_id( const size_t & track_id );
+  size_t insert( TrackData td );
+
+  std::pair<std::unordered_set<size_t>::iterator, std::unordered_set<size_t>::iterator>
+  get_track_ids();
+
   size_t get_end_frame_index( const size_t & track_id ) const;
   bool has_track( const size_t & track_id ) const;
   const TrackData &
   get_frame( const size_t & track_id, const size_t & frame_index );
   void merge( const TrackDB & db, std::map<size_t, size_t> & frame_id_mapping );
-  std::unordered_set<size_t> track_ids();
 };
 
 /*

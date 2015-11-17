@@ -177,7 +177,6 @@ AlfalfaProtobufs::FrameInfo to_protobuf( const FrameInfo & fi )
   *message.mutable_target_hash() = to_protobuf( fi.target_hash() );
 
   message.set_frame_id( fi.frame_id() );
-  message.set_index( fi.index() );
 
   return message;
 }
@@ -192,8 +191,6 @@ FrameInfo from_protobuf( const AlfalfaProtobufs::FrameInfo & pfi )
   );
 
   fi.set_frame_id( size_t( pfi.frame_id() ) );
-  fi.set_index( size_t( pfi.index() ) );
-
   return fi;
 }
 

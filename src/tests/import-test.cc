@@ -14,7 +14,6 @@ int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
   RasterList & raster_list = alfalfa_video.raster_list();
   QualityDB & quality_db = alfalfa_video.quality_db();
   FrameDB & frame_db = alfalfa_video.frame_db();
-  TrackDB & track_db = alfalfa_video.track_db();
 
   TrackingPlayer player( ivf_file_path );
   size_t frame_index = 0;
@@ -84,15 +83,17 @@ int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
     // Check track db
     found = false;
     auto it_ids =
-      track_db.search_by_track_id( 0 );
-    TrackDBCollectionByTrackIdAndFrameIndex::iterator it_begin_ids = it_ids.first;
-    TrackDBCollectionByTrackIdAndFrameIndex::iterator it_end_ids = it_ids.second;
+      alfalfa_video.get_frames( 0 );
+    TrackDBIterator it_begin_ids = it_ids.first;
+    TrackDBIterator it_end_ids = it_ids.second;
+    size_t local_frame_index = 0;
     while ( it_begin_ids != it_end_ids ) {
-      FrameInfo frame_info = frame_db.search_by_frame_id( it_begin_ids->frame_id );
-      if ( it_begin_ids->frame_index == frame_index and
+      FrameInfo frame_info = *it_begin_ids;
+      if ( local_frame_index == frame_index and
            frame_info.source_hash() == next_frame.source_hash() and
            frame_info.target_hash() == next_frame.target_hash() )
         found = true;
+      local_frame_index++;
       it_begin_ids++;
     }
     if ( !found ) {

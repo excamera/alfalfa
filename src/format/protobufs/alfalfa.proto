@@ -38,7 +38,6 @@ message FrameInfo {
   required SourceHash source_hash = 3;
   required TargetHash target_hash = 4;
   required uint64 frame_id = 5;
-  required uint64 index = 6;
 }
 
 message QualityData {

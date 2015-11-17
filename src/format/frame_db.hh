@@ -177,11 +177,18 @@ public:
 class FrameDB : public BasicDatabase<FrameInfo, AlfalfaProtobufs::FrameInfo,
   FrameDataSetCollection, FrameDataSetSequencedTag>
 {
+private:
+  size_t frame_id_;
+
 public:
   FrameDB( const std::string & filename, const std::string & magic_number, OpenMode mode = OpenMode::READ )
     : BasicDatabase<FrameInfo, AlfalfaProtobufs::FrameInfo,
-      FrameDataSetCollection, FrameDataSetSequencedTag>( filename, magic_number, mode )
-  {}
+      FrameDataSetCollection, FrameDataSetSequencedTag>( filename, magic_number, mode ),
+      frame_id_( 0 )
+  {
+    while (has_frame_id( frame_id_ ))
+      frame_id_++;
+  }
 
   std::pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator>
   search_by_output_hash( const size_t & output_hash );
@@ -189,15 +196,13 @@ public:
   std::pair<FrameDataSetSourceHashSearch::iterator, FrameDataSetSourceHashSearch::iterator>
   search_by_decoder_hash( const DecoderHash & decoder_hash );
 
+  size_t insert( FrameInfo frame );
+
   bool has_frame_id( const size_t & frame_id );
   bool has_frame_name( const SourceHash & source_hash, const TargetHash & target_hash );
   const FrameInfo & search_by_frame_id( const size_t & frame_id );
 
   const FrameInfo & search_by_frame_name( const SourceHash & source_hash, const TargetHash & target_hash );
-
-  void
-  merge( const FrameDB & db, std::map<size_t, size_t> & frame_id_mapping,
-         IVFWriter & combined_ivf_writer, const std::string & ivf_file_path );
 
 };
 

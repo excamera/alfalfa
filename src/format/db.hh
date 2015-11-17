@@ -64,7 +64,10 @@ public:
   void merge( const BasicDatabase & db );
 
   typename SequencedAccess::iterator begin() { return this->collection_.get<SequencedTag>().begin(); }
+  typename SequencedAccess::iterator begin() const { return this->collection_.get<SequencedTag>().begin(); }
+
   typename SequencedAccess::iterator end() { return this->collection_.get<SequencedTag>().end(); }
+  typename SequencedAccess::iterator end() const { return this->collection_.get<SequencedTag>().end(); }
 
   bool serialize() const;
   bool deserialize();

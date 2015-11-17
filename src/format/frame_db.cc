@@ -33,6 +33,23 @@ FrameDB::search_by_decoder_hash( const DecoderHash & decoder_hash )
   return make_pair( results.begin(), results.end() );
 }
 
+size_t
+FrameDB::insert( FrameInfo frame )
+{
+  size_t returned_frame_id;
+  SourceHash source_hash = frame.source_hash();
+  TargetHash target_hash = frame.target_hash();
+  if ( not has_frame_name( source_hash, target_hash ) ) {
+    returned_frame_id = frame_id_;
+    frame_id_++;
+    frame.set_frame_id( returned_frame_id );
+    collection_.insert( frame );
+  } else {
+    returned_frame_id = search_by_frame_name( source_hash, target_hash ).frame_id();
+  }
+  return returned_frame_id;
+}
+
 bool
 FrameDB::has_frame_id( const size_t & frame_id )
 {
@@ -67,33 +84,6 @@ FrameDB::search_by_frame_name( const SourceHash & source_hash, const TargetHash 
     throw out_of_range( "Invalid (source_hash, target_hash) pair" );
   FrameDataSetCollectionByFrameName::iterator name_iterator = index.find( key );
   return *name_iterator;
-}
-
-void
-FrameDB::merge( const FrameDB & db, map<size_t, size_t> & frame_id_mapping, IVFWriter & combined_ivf_writer, const string & ivf_file_path )
-{
-  IVF ivf_file( ivf_file_path );
-  for ( auto item : db.collection_.get<FrameDataSetSequencedTag>() ) {
-    if ( has_frame_name( item.source_hash(), item.target_hash() ) ) {
-      FrameInfo frame_info = search_by_frame_name( item.source_hash(), item.target_hash() );
-      frame_id_mapping[item.frame_id()] = frame_info.frame_id();
-    }
-    else if ( has_frame_id( item.frame_id() ) ) {
-      size_t new_frame_id = item.frame_id();
-      while ( not has_frame_id( new_frame_id ) ) {
-        new_frame_id++;
-      }
-      frame_id_mapping[ item.frame_id() ] = new_frame_id;
-    } else {
-      frame_id_mapping[item.frame_id()] = item.frame_id();
-    }
-
-    size_t offset = combined_ivf_writer.append_frame( ivf_file.frame( item.index() ) );
-    item.set_offset( offset );
-    item.set_frame_id( frame_id_mapping[item.frame_id()] );
-    insert( item );
-  }
-
 }
 
 FrameDataSetSourceHashSearch::FrameDataSetSourceHashSearchIterator::FrameDataSetSourceHashSearchIterator(

@@ -9,13 +9,11 @@ using namespace std;
 int alfalfa_combine_test_double_import( string ivf_file_path, string alfalfa_video_dir ) {
   bool found;
 
-  FileSystem::change_directory( alfalfa_video_dir );
-  AlfalfaVideo alfalfa_video( ".", OpenMode::READ );
+  AlfalfaVideo alfalfa_video( alfalfa_video_dir, OpenMode::READ );
 
   RasterList & raster_list = alfalfa_video.raster_list();
   QualityDB & quality_db = alfalfa_video.quality_db();
   FrameDB & frame_db = alfalfa_video.frame_db();
-  TrackDB & track_db = alfalfa_video.track_db();
 
   TrackingPlayer player( ivf_file_path );
   size_t frame_index = 0;
@@ -86,34 +84,38 @@ int alfalfa_combine_test_double_import( string ivf_file_path, string alfalfa_vid
     bool found;
 
     found = false;
-    auto it_ids =
-      track_db.search_by_track_id( 0 );
-    TrackDBCollectionByTrackIdAndFrameIndex::iterator it_begin_ids = it_ids.first;
-    TrackDBCollectionByTrackIdAndFrameIndex::iterator it_end_ids = it_ids.second;
-    while ( it_begin_ids != it_end_ids ) {
-      FrameInfo frame_info = frame_db.search_by_frame_id( it_begin_ids->frame_id );
-      if ( it_begin_ids->frame_index == frame_index and
+    pair<TrackDBIterator, TrackDBIterator> it_ids1 =
+      alfalfa_video.get_frames( 0 );
+    TrackDBIterator it_begin_ids1 = it_ids1.first;
+    TrackDBIterator it_end_ids1 = it_ids1.second;
+    size_t local_frame_index1 = 0;
+    while ( it_begin_ids1 != it_end_ids1 ) {
+      FrameInfo frame_info = *it_begin_ids1;
+      if ( local_frame_index1 == frame_index and
            frame_info.source_hash() == next_frame.source_hash() and
            frame_info.target_hash() == next_frame.target_hash() )
         found = true;
-      it_begin_ids++;
+      local_frame_index1++;
+      it_begin_ids1++;
     }
     if ( !found ) {
       return 1;
     }
 
     found = false;
-    it_ids =
-      track_db.search_by_track_id( 1 );
-    it_begin_ids = it_ids.first;
-    it_end_ids = it_ids.second;
-    while ( it_begin_ids != it_end_ids ) {
-      FrameInfo frame_info = frame_db.search_by_frame_id( it_begin_ids->frame_id );
-      if ( it_begin_ids->frame_index == frame_index and
+    pair<TrackDBIterator, TrackDBIterator> it_ids2 =
+      alfalfa_video.get_frames( 1 );
+    TrackDBIterator it_begin_ids2 = it_ids2.first;
+    TrackDBIterator it_end_ids2 = it_ids2.second;
+    size_t local_frame_index2 = 0;
+    while ( it_begin_ids2 != it_end_ids2 ) {
+      FrameInfo frame_info = *it_begin_ids2;
+      if ( local_frame_index2 == frame_index and
            frame_info.source_hash() == next_frame.source_hash() and
            frame_info.target_hash() == next_frame.target_hash() )
         found = true;
-      it_begin_ids++;
+      local_frame_index2++;
+      it_begin_ids2++;
     }
     if ( !found ) {
       return 1;

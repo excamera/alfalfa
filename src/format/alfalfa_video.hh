@@ -66,7 +66,6 @@ protected:
   FrameDB frame_db_;
   TrackDB track_db_;
   SwitchDB switch_db_;
-  std::unordered_set<size_t> track_ids_;
   std::map<std::pair<size_t, size_t>, std::unordered_set<size_t>> switch_mappings_;
 
 public:
@@ -98,8 +97,9 @@ public:
   get_track_ids();
 
   std::pair<std::unordered_set<size_t>::iterator, std::unordered_set<size_t>::iterator>
-  get_track_ids_from_track( const size_t from_track_id, const size_t from_frame_index );
+  get_track_ids_for_switch( const size_t from_track_id, const size_t from_frame_index );
 
+  std::pair<FrameDataSetCollectionSequencedAccess::iterator, FrameDataSetCollectionSequencedAccess::iterator> get_frames( void ) const;
   std::pair<TrackDBIterator, TrackDBIterator> get_frames( const size_t track_id );
   std::pair<TrackDBIterator, TrackDBIterator> get_frames( const TrackDBIterator & it );
   std::pair<TrackDBIterator, TrackDBIterator> get_frames( const SwitchDBIterator & it );
@@ -136,7 +136,7 @@ private:
 
   void insert_frame( FrameInfo next_frame,
                      const size_t original_raster, const double quality,
-                     size_t & frame_id, size_t & frame_index, const size_t track_id );
+                     const size_t track_id );
 
   void write_ivf( const std::string & filename );
 
@@ -151,7 +151,7 @@ public:
   void import( const std::string & filename, PlayableAlfalfaVideo & original,
                const size_t ref_track_id = 0 );
 
-  void import_frame( FrameInfo frame_info, const Chunk & chunk, const size_t frame_id );
+  size_t import_frame( FrameInfo frame_info, const Chunk & chunk );
 
   bool save();
 };

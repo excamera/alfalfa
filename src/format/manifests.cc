@@ -109,31 +109,25 @@ QualityDB::search_by_approximate_raster( const size_t & approximate_raster )
   return index.equal_range( approximate_raster );
 }
 
-pair<TrackDBCollectionByTrackIdAndFrameIndex::iterator, TrackDBCollectionByTrackIdAndFrameIndex::iterator>
-TrackDB::search_by_track_id( const size_t & track_id )
+size_t TrackDB::insert( TrackData td )
 {
-  TrackDBCollectionByTrackIdAndFrameIndex & index = collection_.get<TrackDBByTrackIdAndFrameIndexTag>();
-  // Only specify the first field, since our ordered_index is sorted
-  // first by track ID and then by frame ID
-  return index.equal_range( track_id );
+  track_ids_.insert( td.track_id );
+  size_t frame_index;
+  if ( track_frame_indices_.count( td.track_id ) == 0 ) {
+    frame_index = 0;
+  } else {
+    frame_index = track_frame_indices_[ td.track_id ];
+  }
+  track_frame_indices_[ td.track_id ] = frame_index + 1;
+  td.frame_index = frame_index;
+  collection_.insert( td );
+  return frame_index;
 }
 
-std::unordered_set<size_t> TrackDB::track_ids()
+pair<unordered_set<size_t>::iterator, unordered_set<size_t>::iterator>
+TrackDB::get_track_ids()
 {
-  std::unordered_set<size_t> track_ids;
-
-  TrackDBCollectionByTrackIdAndFrameIndex & index = collection_.get<TrackDBByTrackIdAndFrameIndexTag>();
-  TrackDBCollectionByTrackIdAndFrameIndex::iterator beg = index.begin();
-  TrackDBCollectionByTrackIdAndFrameIndex::iterator end = index.end();
-
-  while(beg != end)
-  {
-    TrackData track_data = *beg;
-    track_ids.insert( track_data.track_id );
-    beg++;
-  }
-
-  return track_ids;
+  return make_pair( track_ids_.begin(), track_ids_.end() );
 }
 
 bool TrackDB::has_track( const size_t & track_id ) const

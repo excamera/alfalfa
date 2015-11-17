@@ -4,10 +4,11 @@ using namespace std;
 
 #define NUM_ELEMENTS 1000
 
-int track_db_collection_test() {
-  TrackDBCollection track_db_collection;
-  TrackDBCollectionByTrackIdAndFrameIndex &
-    track_db_collection_ordered = track_db_collection.get<TrackDBByTrackIdAndFrameIndexTag>();
+int main()
+{
+  std::string db = "test-track-db";
+
+  TrackDB tdb( db, "ALFATRDB", OpenMode::TRUNCATE );
 
   for (size_t i = 0; i < NUM_ELEMENTS; i++) {
     SourceHash source_hash(
@@ -24,47 +25,34 @@ int track_db_collection_test() {
     TargetHash target_hash( update_tracker, i * 1234 + 5, i * 1234 + 6,
       i * 1234 + 7, ( i % 5 ) &  1 );
 
-    size_t frame_index = i % 10;
     size_t track_id = i / 10;
+    size_t frame_index = i % 10;
     size_t frame_id = NUM_ELEMENTS - i;
 
     // Make sure track_data is not in track_db yet
-    if ( track_db_collection_ordered.count( boost::make_tuple(
-      track_id, frame_index ) ) > 0 ) {
+    if ( tdb.get_end_frame_index( track_id ) != frame_index ) {
       return 1;
     }
+
+    cout << "Passed pre-insert check...\n";
 
     // Insert track data into track_db
-    TrackData track_data( track_id, frame_index, frame_id );
-    track_db_collection.insert( track_data );
+    TrackData track_data( track_id, frame_id );
+    tdb.insert( track_data );
 
     // Make sure new track_data is reflected in the indices
-    if ( track_db_collection_ordered.count( boost::make_tuple(
-      track_id, frame_index ) ) == 0 ) {
+    cout << "Track_id: " << track_id << endl;
+    cout << "Frame_index: " << frame_index << endl;
+    if ( tdb.get_end_frame_index( track_id) != (frame_index + 1) ) {
       return 1;
     }
-  }
-
-  // Check if ordering guarantees are maintained
-  for (size_t track_id = 0; track_id < 10; track_id++) {
-    auto id_iterators = track_db_collection_ordered.equal_range( track_id );
-    TrackDBCollectionByTrackIdAndFrameIndex::iterator begin = id_iterators.first;
-    TrackDBCollectionByTrackIdAndFrameIndex::iterator end = id_iterators.second;
-    size_t prev_frame_index = 0;
-    while (begin != end) {
-      if (begin->track_id != track_id)
-        return 1;
-      if (begin->frame_index < prev_frame_index)
-        return 1;
-      prev_frame_index = begin->frame_index;
-      begin++;
+    TrackData track_data_returned = tdb.get_frame( track_id, frame_index );
+    if ( track_data_returned.frame_id != frame_id || track_data_returned.track_id != track_id ) {
+      return 1;
     }
-  }
-  
-  return 0;
-}
 
-int main()
-{
-  return track_db_collection_test();
+    cout << "Passed post-insert check...\n";
+  }
+
+  return 0;
 }

@@ -64,7 +64,7 @@ AlfalfaVideo::AlfalfaVideo( const string & directory_name, OpenMode mode )
     frame_db_( directory_.frame_db_filename(), "ALFAFRDB", mode ),
     track_db_( directory_.track_db_filename(), "ALFATRDB", mode ),
     switch_db_( directory_.switch_db_filename(), "ALFASWDB", mode ),
-    track_ids_(), switch_mappings_()
+    switch_mappings_()
 {
   if ( not good() ) {
     throw invalid_argument( "invalid alfalfa video." );
@@ -79,7 +79,6 @@ AlfalfaVideo::AlfalfaVideo( AlfalfaVideo && other )
     frame_db_( move( other.frame_db_ ) ),
     track_db_( move( other.track_db_ ) ),
     switch_db_( move( other.switch_db_ ) ),
-    track_ids_( move( other.track_ids_ ) ),
     switch_mappings_( move( other.switch_mappings_ ) )
 {}
 
@@ -103,15 +102,21 @@ bool AlfalfaVideo::can_combine( const AlfalfaVideo & video )
 pair<unordered_set<size_t>::iterator, unordered_set<size_t>::iterator>
 AlfalfaVideo::get_track_ids()
 {
-  return make_pair( track_ids_.begin(), track_ids_.end() );
+  return track_db_.get_track_ids();
 }
 
 pair<unordered_set<size_t>::iterator, unordered_set<size_t>::iterator>
-AlfalfaVideo::get_track_ids_from_track(const size_t from_track_id, const size_t from_frame_index)
+AlfalfaVideo::get_track_ids_for_switch(const size_t from_track_id, const size_t from_frame_index)
 {
   unordered_set<size_t> to_track_ids = switch_mappings_.at(
     make_pair( from_track_id, from_frame_index ) );
   return make_pair( to_track_ids.begin(), to_track_ids.end() );
+}
+
+pair<FrameDataSetCollectionSequencedAccess::iterator, FrameDataSetCollectionSequencedAccess::iterator>
+AlfalfaVideo::get_frames() const
+{
+  return make_pair( frame_db_.begin(), frame_db_.end() );
 }
 
 pair<TrackDBIterator, TrackDBIterator>
@@ -205,17 +210,19 @@ void WritableAlfalfaVideo::combine( const PlayableAlfalfaVideo & video )
   quality_db_.merge( video.quality_db() );
   map<size_t, size_t> frame_id_mapping;
 
-  frame_db_.merge( video.frame_db(), frame_id_mapping, ivf_writer_, video.directory().ivf_filename() );
+  for ( auto item = video.get_frames().first; item != video.get_frames().second; item++ ) {
+    size_t offset = ivf_writer_.append_frame( video.get_chunk( *item ) );
+    FrameInfo frame_info = *item;
+    frame_info.set_offset( offset );
+    frame_id_mapping[ item->frame_id() ] = frame_db_.insert( *item );
+  }
 
   track_db_.merge( video.track_db(), frame_id_mapping );
-  for (auto it = track_db_.begin(); it != track_db_.end(); it++) {
-    track_ids_.insert( it->track_id );
-  }
 }
 
 void WritableAlfalfaVideo::insert_frame( FrameInfo next_frame,
-                                         const size_t original_raster, const double quality,
-                                         size_t & frame_id, size_t & frame_index,
+                                         const size_t original_raster,
+                                         const double quality,
                                          const size_t track_id )
 {
   if ( next_frame.target_hash().shown ) {
@@ -234,31 +241,14 @@ void WritableAlfalfaVideo::insert_frame( FrameInfo next_frame,
     );
   }
 
-  size_t latest_frame_id;
-  SourceHash source_hash = next_frame.source_hash();
-  TargetHash target_hash = next_frame.target_hash();
-
-  next_frame.set_index( frame_index );
-  if ( not frame_db_.has_frame_name( source_hash, target_hash ) ) {
-    next_frame.set_frame_id( frame_id );
-    latest_frame_id = frame_id;
-    frame_id++;
-    frame_db_.insert( next_frame );
-  } else {
-    latest_frame_id = frame_db_.search_by_frame_name( source_hash,
-      target_hash ).frame_id();
-  }
+  size_t frame_id = frame_db_.insert( next_frame );
 
   track_db_.insert(
     TrackData{
       track_id,
-      frame_index,
-      latest_frame_id
+      frame_id
     }
   );
-
-  track_ids_.insert( track_id );
-  frame_index++;
 }
 
 void WritableAlfalfaVideo::write_ivf( const string & filename )
@@ -270,8 +260,7 @@ void WritableAlfalfaVideo::write_ivf( const string & filename )
   }
 }
 
-void WritableAlfalfaVideo::import_frame( FrameInfo fi, const Chunk & chunk,
-                                         /* XXX */ const size_t frame_id )
+size_t WritableAlfalfaVideo::import_frame( FrameInfo fi, const Chunk & chunk )
 {
   size_t offset = ivf_writer_.append_frame( chunk );
   fi.set_offset( offset );
@@ -280,9 +269,9 @@ void WritableAlfalfaVideo::import_frame( FrameInfo fi, const Chunk & chunk,
   TargetHash target_hash = fi.target_hash();
 
   if ( not frame_db_.has_frame_name( source_hash, target_hash ) ) {
-    fi.set_frame_id( frame_id );
-    frame_db_.insert( fi );
+    return frame_db_.insert( fi );
   }
+  return frame_db_.search_by_frame_name( source_hash, target_hash ).frame_id();
 }
 
 void WritableAlfalfaVideo::import( const string & filename )
@@ -290,8 +279,6 @@ void WritableAlfalfaVideo::import( const string & filename )
   write_ivf( filename );
   TrackingPlayer player( directory_.ivf_filename() );
 
-  size_t frame_index = 0;
-  size_t frame_id = 0;
   size_t track_id = 0;
 
   while ( not player.eof() ) {
@@ -301,14 +288,14 @@ void WritableAlfalfaVideo::import( const string & filename )
     size_t original_raster = next_frame.target_hash().output_hash;
     double quality = 1.0;
 
-    insert_frame( next_frame, original_raster, quality, frame_id, frame_index,
-      track_id );
+    insert_frame( next_frame, original_raster, quality, track_id );
   }
 
   save();
 }
 
-void WritableAlfalfaVideo::import( const string & filename, PlayableAlfalfaVideo & original,
+void WritableAlfalfaVideo::import( const string & filename,
+                                   PlayableAlfalfaVideo & original,
                                    const size_t ref_track_id )
 {
   write_ivf( filename );
@@ -317,8 +304,6 @@ void WritableAlfalfaVideo::import( const string & filename, PlayableAlfalfaVideo
   FramePlayer original_player( original.video_manifest().width(), original.video_manifest().height() );
   auto track_frames = original.get_frames( ref_track_id );
 
-  size_t frame_index = 0;
-  size_t frame_id = 0;
   size_t track_id = 0;
 
   while ( not player.eof() ) {
@@ -352,7 +337,7 @@ void WritableAlfalfaVideo::import( const string & filename, PlayableAlfalfaVideo
       throw invalid_argument( "inconsistent frame db" );
     }
 
-    insert_frame( next_frame, original_raster, quality, frame_id, frame_index, track_id );
+    insert_frame( next_frame, original_raster, quality, track_id );
   }
 
   save();

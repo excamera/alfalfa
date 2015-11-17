@@ -57,10 +57,15 @@ struct TrackData
   size_t frame_index;
   size_t frame_id;
 
-  TrackData( const size_t & track_id, const size_t & frame_index,
-    const size_t & frame_id )
+  TrackData ( const size_t track_id, const size_t frame_index,
+              const size_t frame_id ) : track_id( track_id ),
+                                        frame_index( frame_index ),
+                                        frame_id( frame_id )
+  {}
+
+  TrackData( const size_t track_id, const size_t frame_id )
     : track_id( track_id ),
-      frame_index( frame_index ),
+      frame_index( 0 ),
       frame_id( frame_id )
   {}
 

@@ -7,7 +7,6 @@ FrameInfo::FrameInfo( const string & frame_name,
                       const size_t & offset, const size_t & length )
   : offset_( offset ),
     length_( length ),
-    index_( 0 ),
     source_hash_( frame_name ),
     target_hash_( frame_name ),
     frame_id_( 0 )
@@ -17,7 +16,6 @@ FrameInfo::FrameInfo( const size_t & offset, const size_t & length,
                       const SourceHash & source_hash, const TargetHash & target_hash )
   : offset_( offset ),
     length_( length ),
-    index_( 0 ),
     source_hash_( source_hash ),
     target_hash_( target_hash ),
     frame_id_( 0 )
