@@ -71,6 +71,7 @@ protected:
 public:
   AlfalfaVideo( const std::string & directory_name, OpenMode mode = OpenMode::READ );
 
+  /* Checks if it's possible to merge with the given alfalfa video. */
   bool can_combine( const AlfalfaVideo & video );
 
   VideoManifest & video_manifest() { return video_manifest_; }
@@ -93,19 +94,36 @@ public:
   SwitchDB & switch_db() { return switch_db_; }
   const SwitchDB & switch_db() const { return switch_db_; }
 
+  /* Gets an iterator over all available track ids. */
   std::pair<std::unordered_set<size_t>::iterator, std::unordered_set<size_t>::iterator>
   get_track_ids();
 
+  /* Gets an iterator over all available track ids that we can switch to from
+     the provided track and frame_index. */
   std::pair<std::unordered_set<size_t>::iterator, std::unordered_set<size_t>::iterator>
   get_track_ids_for_switch( const size_t from_track_id, const size_t from_frame_index );
 
+  /* Gets an iterator over all frames in the alf video's frame db. */
   std::pair<FrameDataSetCollectionSequencedAccess::iterator, FrameDataSetCollectionSequencedAccess::iterator> get_frames( void ) const;
+
+  /* Gets an iterator over all frames associated with the particular track. */
   std::pair<TrackDBIterator, TrackDBIterator> get_frames( const size_t track_id );
+
+  /* Gets an iterator over all remaining frames in the track associated with
+     the passed in TrackDBIterator. */
   std::pair<TrackDBIterator, TrackDBIterator> get_frames( const TrackDBIterator & it );
+
+  /* Gets an iterator over all remaining frames in the new track once the switch
+     implied by the passed-in iterator is applied. */
   std::pair<TrackDBIterator, TrackDBIterator> get_frames( const SwitchDBIterator & it );
+
+  /* Gets an iterator over all frames associated with the switch from the current
+     track and frame_index position to the provided track. */
   std::pair<SwitchDBIterator, SwitchDBIterator> get_frames( const TrackDBIterator & it,
                                                             const size_t to_track_id );
 
+  /* Get the quality of the frame associated with supplied frame_info, given
+     position in the original raster list. */
   double get_quality( int raster_index, const FrameInfo & frame_info );
 
   bool good() const;
@@ -146,8 +164,12 @@ public:
   WritableAlfalfaVideo( const std::string & directory_name, const IVF & ivf );
   WritableAlfalfaVideo( const std::string & directory_name, const VideoInfo & info );
 
+  /* Combine the provided video with the current video. Makes sure frame ids /
+     track ids / switch ids don't conflict. */
   void combine( const PlayableAlfalfaVideo & video );
+  /* Convert supplied ivf file into alfalfa video. */
   void import( const std::string & filename );
+  /* Import function used to create an encoded video. */
   void import( const std::string & filename, PlayableAlfalfaVideo & original,
                const size_t ref_track_id = 0 );
 

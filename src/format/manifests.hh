@@ -85,8 +85,8 @@ public:
     RasterListCollection, RasterListSequencedTag>( filename, magic_number, mode )
   {}
 
-  bool has( const size_t & raster_hash ) const;
-  size_t raster( size_t raster_index );
+  bool has( const size_t raster_hash ) const;
+  size_t raster( const size_t raster_index );
   bool operator==( const RasterList & other ) const;
   bool operator!=( const RasterList & other ) const;
 };
@@ -150,11 +150,11 @@ public:
   {}
 
   QualityData
-  search_by_original_and_approximate_raster( const size_t & original_raster, const size_t & approximate_raster );
+  search_by_original_and_approximate_raster( const size_t original_raster, const size_t approximate_raster );
   std::pair<QualityDBCollectionByOriginalRaster::iterator, QualityDBCollectionByOriginalRaster::iterator>
-  search_by_original_raster( const size_t & original_raster );
+  search_by_original_raster( const size_t original_raster );
   std::pair<QualityDBCollectionByApproximateRaster::iterator, QualityDBCollectionByApproximateRaster::iterator>
-  search_by_approximate_raster( const size_t & approximate_raster );
+  search_by_approximate_raster( const size_t approximate_raster );
 };
 
 /*
@@ -199,7 +199,7 @@ private:
   std::unordered_map<size_t, size_t> track_frame_indices_;
 
 public:
-  TrackDB( const std::string & filename, const std::string & magic_number, OpenMode mode = OpenMode::READ )
+  TrackDB( const std::string filename, const std::string magic_number, OpenMode mode = OpenMode::READ )
   : BasicDatabase<TrackData, AlfalfaProtobufs::TrackData,
     TrackDBCollection, TrackDBSequencedTag>( filename, magic_number, mode ),
     track_ids_(), track_frame_indices_()
@@ -215,10 +215,11 @@ public:
   std::pair<std::unordered_set<size_t>::iterator, std::unordered_set<size_t>::iterator>
   get_track_ids();
 
-  size_t get_end_frame_index( const size_t & track_id ) const;
-  bool has_track( const size_t & track_id ) const;
   const TrackData &
   get_frame( const size_t & track_id, const size_t & frame_index );
+
+  size_t get_end_frame_index( const size_t track_id ) const;
+  bool has_track( const size_t track_id ) const;
   void merge( const TrackDB & db, std::map<size_t, size_t> & frame_id_mapping );
 };
 
@@ -312,17 +313,17 @@ public:
     SwitchDBCollection, SwitchDBSequencedTag>( filename, magic_number, mode )
   {}
 
-  size_t get_end_switch_frame_index( const size_t & from_track_id,
-                                     const size_t & to_track_id,
-                                     const size_t & from_frame_index );
-  bool has_switch( const size_t & from_track_id, const size_t & to_track_id,
-                     const size_t & from_frame_index );
-  size_t get_to_frame_index( const size_t & from_track_id,
-                             const size_t & to_track_id,
-                             const size_t & from_frame_index );
+  size_t get_end_switch_frame_index( const size_t from_track_id,
+                                     const size_t to_track_id,
+                                     const size_t from_frame_index );
+  bool has_switch( const size_t from_track_id, const size_t to_track_id,
+                   const size_t from_frame_index );
+  size_t get_to_frame_index( const size_t from_track_id,
+                             const size_t to_track_id,
+                             const size_t from_frame_index );
   const SwitchData &
-  get_frame( const size_t & from_track_id, const size_t & to_track_id,
-             const size_t & from_frame_index, const size_t & switch_frame_index );
+  get_frame( const size_t from_track_id, const size_t to_track_id,
+             const size_t from_frame_index, const size_t switch_frame_index );
 };
 
 /*

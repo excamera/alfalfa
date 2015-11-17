@@ -47,13 +47,13 @@ bool VideoManifest::serialize() const
   return serializer.write_protobuf( message );
 }
 
-bool RasterList::has( const size_t & raster_hash ) const
+bool RasterList::has( const size_t raster_hash ) const
 {
   const RasterListCollectionByHash & data_by_hash = collection_.get<RasterListByHashTag>();
   return data_by_hash.count( raster_hash ) > 0;
 }
 
-size_t RasterList::raster( size_t raster_index )
+size_t RasterList::raster( const size_t raster_index )
 {
   const RasterListCollectionRandomAccess & data_by_random_access = collection_.get<RasterListRandomAccessTag>();
   if ( data_by_random_access.size() <= raster_index )
@@ -83,7 +83,8 @@ bool RasterList::operator!=( const RasterList & other ) const
 }
 
 QualityData
-QualityDB::search_by_original_and_approximate_raster( const size_t & original_raster, const size_t & approximate_raster )
+QualityDB::search_by_original_and_approximate_raster( const size_t original_raster,
+                                                      const size_t approximate_raster )
 {
   QualityDBCollectionByOriginalAndApproximateRaster & index =
     collection_.get<QualityDBByOriginalAndApproximateRasterTag>();
@@ -96,14 +97,14 @@ QualityDB::search_by_original_and_approximate_raster( const size_t & original_ra
 }
 
 pair<QualityDBCollectionByOriginalRaster::iterator, QualityDBCollectionByOriginalRaster::iterator>
-QualityDB::search_by_original_raster( const size_t & original_raster )
+QualityDB::search_by_original_raster( const size_t original_raster )
 {
   QualityDBCollectionByOriginalRaster & index = collection_.get<QualityDBByOriginalRasterTag>();
   return index.equal_range( original_raster );
 }
 
 pair<QualityDBCollectionByApproximateRaster::iterator, QualityDBCollectionByApproximateRaster::iterator>
-QualityDB::search_by_approximate_raster( const size_t & approximate_raster )
+QualityDB::search_by_approximate_raster( const size_t approximate_raster )
 {
   QualityDBCollectionByApproximateRaster & index = collection_.get<QualityDBByApproximateRasterTag>();
   return index.equal_range( approximate_raster );
@@ -130,14 +131,14 @@ TrackDB::get_track_ids()
   return make_pair( track_ids_.begin(), track_ids_.end() );
 }
 
-bool TrackDB::has_track( const size_t & track_id ) const
+bool TrackDB::has_track( const size_t track_id ) const
 {
   const TrackDBCollectionByTrackIdAndFrameIndex & index = collection_.get<TrackDBByTrackIdAndFrameIndexTag>();
   return index.count( track_id ) > 0;
 }
 
 size_t
-TrackDB::get_end_frame_index( const size_t & track_id ) const
+TrackDB::get_end_frame_index( const size_t track_id ) const
 {
   const TrackDBCollectionByTrackIdAndFrameIndex & index = collection_.get<TrackDBByTrackIdAndFrameIndexTag>();
   return index.count( track_id );
@@ -225,24 +226,24 @@ TrackDBIterator::operator->() const
 }
 
 bool
-SwitchDB::has_switch( const size_t & from_track_id, const size_t & to_track_id,
-                      const size_t & from_frame_index )
+SwitchDB::has_switch( const size_t from_track_id, const size_t to_track_id,
+                      const size_t from_frame_index )
 {
   SwitchDBCollectionHashedByTrackIdsAndFrameIndex & index = collection_.get<SwitchDBHashedByTrackIdsAndFrameIndexTag>();
   return index.count( boost::make_tuple( from_track_id, to_track_id, from_frame_index ) ) > 0;
 }
 
 size_t
-SwitchDB::get_end_switch_frame_index( const size_t & from_track_id, const size_t & to_track_id,
-                               const size_t & from_frame_index )
+SwitchDB::get_end_switch_frame_index( const size_t from_track_id, const size_t to_track_id,
+                                      const size_t from_frame_index )
 {
   SwitchDBCollectionHashedByTrackIdsAndFrameIndex & index = collection_.get<SwitchDBHashedByTrackIdsAndFrameIndexTag>();
   return index.count( boost::make_tuple( from_track_id, to_track_id, from_frame_index ) );
 }
 
 size_t
-SwitchDB::get_to_frame_index( const size_t & from_track_id, const size_t & to_track_id,
-                    const size_t & from_frame_index )
+SwitchDB::get_to_frame_index( const size_t from_track_id, const size_t to_track_id,
+                              const size_t from_frame_index )
 {
   SwitchDBCollectionHashedByTrackIdsAndFrameIndex & index = collection_.get<SwitchDBHashedByTrackIdsAndFrameIndexTag>();
   return index.find( boost::make_tuple( from_track_id, to_track_id, from_frame_index ) )->to_frame_index;
@@ -250,8 +251,8 @@ SwitchDB::get_to_frame_index( const size_t & from_track_id, const size_t & to_tr
 
 
 const SwitchData &
-SwitchDB::get_frame( const size_t & from_track_id, const size_t & to_track_id,
-                     const size_t & from_frame_index, const size_t & switch_frame_index )
+SwitchDB::get_frame( const size_t from_track_id, const size_t to_track_id,
+                     const size_t from_frame_index, const size_t switch_frame_index )
 {
   SwitchDBCollectionOrderedByTrackIdsAndFrameIndices & ordered_index = collection_.get<SwitchDBOrderedByTrackIdsAndFrameIndicesTag>();
   boost::tuple<size_t, size_t, size_t, size_t> ordered_key =

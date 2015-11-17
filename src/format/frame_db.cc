@@ -8,7 +8,7 @@
 using namespace std;
 
 pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator>
-FrameDB::search_by_output_hash( const size_t & output_hash )
+FrameDB::search_by_output_hash( const size_t output_hash )
 {
   FrameDataSetCollectionByOutputHash & data_by_output_hash =
     collection_.get<FrameDataSetByOutputHashTag>();
@@ -51,7 +51,7 @@ FrameDB::insert( FrameInfo frame )
 }
 
 bool
-FrameDB::has_frame_id( const size_t & frame_id )
+FrameDB::has_frame_id( const size_t frame_id )
 {
   FrameDataSetCollectionById & index = collection_.get<FrameDataSetByIdTag>();
   return index.count( frame_id ) > 0;
@@ -65,7 +65,7 @@ FrameDB::has_frame_name( const SourceHash & source_hash, const TargetHash & targ
 }
 
 const FrameInfo &
-FrameDB::search_by_frame_id( const size_t & frame_id )
+FrameDB::search_by_frame_id( const size_t frame_id )
 {
   FrameDataSetCollectionById & index = collection_.get<FrameDataSetByIdTag>();
   if ( index.count( frame_id ) == 0 )
