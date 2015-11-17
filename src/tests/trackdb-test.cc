@@ -4,6 +4,8 @@ using namespace std;
 
 #define NUM_ELEMENTS 1000
 
+/* Creates a mock track db with synthetic data. Mainly checks the index
+   computation logic within the track db insert method. */
 int main()
 {
   std::string db = "test-track-db";
@@ -34,15 +36,11 @@ int main()
       return 1;
     }
 
-    cout << "Passed pre-insert check...\n";
-
     // Insert track data into track_db
     TrackData track_data( track_id, frame_id );
     tdb.insert( track_data );
 
     // Make sure new track_data is reflected in the indices
-    cout << "Track_id: " << track_id << endl;
-    cout << "Frame_index: " << frame_index << endl;
     if ( tdb.get_end_frame_index( track_id) != (frame_index + 1) ) {
       return 1;
     }
@@ -50,8 +48,6 @@ int main()
     if ( track_data_returned.frame_id != frame_id || track_data_returned.track_id != track_id ) {
       return 1;
     }
-
-    cout << "Passed post-insert check...\n";
   }
 
   return 0;

@@ -6,6 +6,9 @@
 
 using namespace std;
 
+/* Simple import test. Imports a given ivf file, and checks if the metadata
+   in the generated alfalfa video's dbs is consistent with what's directly
+   read from the raw ivf input file. */
 int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
   bool found;
 

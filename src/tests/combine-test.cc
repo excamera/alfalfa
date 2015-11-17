@@ -6,6 +6,9 @@
 
 using namespace std;
 
+/* Simple combine test. Imports the same video twice, and combines them.
+   Checks to make sure entries in the raster list, quality db and frame db
+   aren't replicated. Also checks to make sure track db has two distinct tracks. */
 int alfalfa_combine_test_double_import( string ivf_file_path, string alfalfa_video_dir ) {
   bool found;
 

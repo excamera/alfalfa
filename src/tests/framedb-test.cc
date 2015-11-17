@@ -8,6 +8,8 @@
 
 using namespace std;
 
+/* Creates a simple mock frame db, and cheks to make sure invariants provided
+   by the different indices are maintained. */
 int main()
 {
   string db1 = "test-frame-db";
