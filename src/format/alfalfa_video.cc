@@ -320,7 +320,9 @@ void WritableAlfalfaVideo::import( const string & filename,
     size_t original_raster = next_frame.target_hash().output_hash;
     double quality = 1.0;
 
-    if ( next_frame.target_hash().shown and next_frame_data.second.initialized() ) {
+    if ( next_frame.target_hash().shown ) {
+      assert(  next_frame.target_hash().shown == next_frame_data.second.initialized() );
+
       while ( track_frames.first != track_frames.second and not track_frames.first->shown() ) {
         track_frames.first++;
       }
@@ -339,9 +341,6 @@ void WritableAlfalfaVideo::import( const string & filename,
       else {
         throw logic_error( "bad original video" );
       }
-    }
-    else if ( not next_frame_data.second.initialized() ) {
-      throw invalid_argument( "inconsistent frame db" );
     }
 
     insert_frame( next_frame, original_raster, quality, track_id );
