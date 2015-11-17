@@ -331,6 +331,7 @@ void WritableAlfalfaVideo::import( const string & filename,
       assert(  next_frame.target_hash().shown == next_frame_data.second.initialized() );
 
       while ( track_frames.first != track_frames.second and not track_frames.first->shown() ) {
+        original_player.decode( original.get_chunk( *track_frames.first ) );
         track_frames.first++;
       }
 
@@ -339,7 +340,7 @@ void WritableAlfalfaVideo::import( const string & filename,
           original.get_chunk( *track_frames.first ) );
 
         quality = original_uncompressed_frame.get().get().quality(
-          next_frame_data.second.get() );
+          next_frame_data.second.get().get() );
 
         original_raster = track_frames.first->target_hash().output_hash;
 

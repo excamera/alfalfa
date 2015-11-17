@@ -88,7 +88,7 @@ int main( int argc, char const *argv[] )
         pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator> frame_iterator = frame_db.search_by_output_hash( fi.target_hash().output_hash );
 
         uint64_t frame_length = ( *frame_iterator.first ).length();
-        cout << frame_length << " ";
+
         total_coded_size += frame_length;
         // Increment iterator to get next frame in track
         track_beginning++;
