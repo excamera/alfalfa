@@ -82,8 +82,8 @@ size_t IVFWriter::append_frame( const Chunk & chunk )
 
   /* append the frame header to the file */
   fd_.write( Chunk( &new_header.at( 0 ), new_header.size() ) );
-  size_t written_offset = file_size_;
   file_size_ += new_header .size();
+  size_t written_offset = file_size_;
 
   /* append the frame to the file */
   fd_.write( chunk );

@@ -19,9 +19,9 @@ combine_test_SOURCES = combine-test.cc
 framedb_benchmark_SOURCES = framedb-benchmark.cc
 ivfcompare_SOURCES = ivfcompare.cc
 
-dist_check_SCRIPTS = fetch-vectors.test decoding.test roundtrip-verify.test switch-test ivfcopy.test end-to-end-import.test end-to-end-combine.test alf-decoding.test
+dist_check_SCRIPTS = fetch-vectors.test decoding.test roundtrip-verify.test switch-test ivfcopy.test end-to-end-import.test end-to-end-combine.test alf-decoding.test alf-decoding-combine.test
 
-TESTS = fetch-vectors.test decoding.test encode-loopback roundtrip-verify.test framedb-test ivfcopy.test trackdb-test end-to-end-import.test end-to-end-combine.test alf-decoding.test # switch-test
+TESTS = fetch-vectors.test decoding.test encode-loopback roundtrip-verify.test framedb-test ivfcopy.test trackdb-test end-to-end-import.test end-to-end-combine.test alf-decoding.test alf-decoding-combine.test # switch-test
 
 # some tests depend on the test vectors having been fetched
 # represent the dependency in case of a parallel compile
