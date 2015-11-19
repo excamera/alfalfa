@@ -12,7 +12,7 @@ using namespace std;
 int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
   bool found;
 
-  AlfalfaVideo alfalfa_video( alfalfa_video_dir, OpenMode::READ );
+  PlayableAlfalfaVideo alfalfa_video( alfalfa_video_dir );
 
   RasterList & raster_list = alfalfa_video.raster_list();
   QualityDB & quality_db = alfalfa_video.quality_db();

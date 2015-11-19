@@ -212,10 +212,12 @@ void WritableAlfalfaVideo::combine( const PlayableAlfalfaVideo & video )
   map<size_t, size_t> track_id_mapping;
 
   for ( auto item = video.get_frames().first; item != video.get_frames().second; item++ ) {
-    size_t offset = ivf_writer_.append_frame( video.get_chunk( *item ) );
     FrameInfo frame_info = *item;
-    frame_info.set_offset( offset );
-    frame_id_mapping[ item->frame_id() ] = frame_db_.insert( *item );
+    if ( not frame_db_.has_frame_name( frame_info.source_hash(), frame_info.target_hash() ) ) {
+      size_t offset = ivf_writer_.append_frame( video.get_chunk( frame_info ) );
+      frame_info.set_offset( offset );
+    }
+    frame_id_mapping[ item->frame_id() ] = frame_db_.insert( frame_info );
   }
 
   track_db_.merge( video.track_db(), frame_id_mapping, track_id_mapping );
@@ -253,15 +255,6 @@ void WritableAlfalfaVideo::insert_frame( FrameInfo next_frame,
   );
 }
 
-void WritableAlfalfaVideo::write_ivf( const string & filename )
-{
-  IVF ivf_file( filename );
-
-  for ( unsigned int i = 0; i < ivf_file.frame_count(); i++ ) {
-    ivf_writer_.append_frame( ivf_file.frame( i ) );
-  }
-}
-
 size_t WritableAlfalfaVideo::import_frame( FrameInfo fi, const Chunk & chunk )
 {
   size_t offset = ivf_writer_.append_frame( chunk );
@@ -278,19 +271,29 @@ size_t WritableAlfalfaVideo::import_frame( FrameInfo fi, const Chunk & chunk )
 
 void WritableAlfalfaVideo::import( const string & filename )
 {
-  write_ivf( filename );
-  TrackingPlayer player( directory_.ivf_filename() );
+  IVF ivf_file( filename );
+  TrackingPlayer player( filename );
 
+  unsigned int i = 0;
   size_t track_id = 0;
 
   while ( not player.eof() ) {
     auto next_frame_data = player.serialize_next();
     FrameInfo next_frame( next_frame_data.first );
 
+    SourceHash source_hash = next_frame.source_hash();
+    TargetHash target_hash = next_frame.target_hash();
+
+    if ( not frame_db_.has_frame_name( source_hash, target_hash ) ) {
+      size_t offset = ivf_writer_.append_frame( ivf_file.frame( i ) );
+      next_frame.set_offset( offset );
+    }
+
     size_t original_raster = next_frame.target_hash().output_hash;
     double quality = 1.0;
 
     insert_frame( next_frame, original_raster, quality, track_id );
+    i++;
   }
 
   save();
@@ -300,17 +303,26 @@ void WritableAlfalfaVideo::import( const string & filename,
                                    PlayableAlfalfaVideo & original,
                                    const size_t ref_track_id )
 {
-  write_ivf( filename );
-  TrackingPlayer player( directory_.ivf_filename() );
+  IVF ivf_file( filename );
+  TrackingPlayer player( filename );
 
   FramePlayer original_player( original.video_manifest().width(), original.video_manifest().height() );
   auto track_frames = original.get_frames( ref_track_id );
 
+  unsigned int i = 0;
   size_t track_id = 0;
 
   while ( not player.eof() ) {
     auto next_frame_data = player.serialize_next();
     FrameInfo next_frame( next_frame_data.first );
+
+    SourceHash source_hash = next_frame.source_hash();
+    TargetHash target_hash = next_frame.target_hash();
+
+    if ( not frame_db_.has_frame_name( source_hash, target_hash ) ) {
+      size_t offset = ivf_writer_.append_frame( ivf_file.frame( i ) );
+      next_frame.set_offset( offset );
+    }
 
     size_t original_raster = next_frame.target_hash().output_hash;
     double quality = 1.0;
@@ -340,6 +352,7 @@ void WritableAlfalfaVideo::import( const string & filename,
     }
 
     insert_frame( next_frame, original_raster, quality, track_id );
+    i++;
   }
 
   save();

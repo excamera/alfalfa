@@ -68,9 +68,9 @@ protected:
   SwitchDB switch_db_;
   std::map<std::pair<size_t, size_t>, std::unordered_set<size_t>> switch_mappings_;
 
-public:
   AlfalfaVideo( const std::string & directory_name, OpenMode mode = OpenMode::READ );
 
+public:
   /* Checks if it's possible to merge with the given alfalfa video. */
   bool can_combine( const AlfalfaVideo & video );
 
@@ -155,8 +155,6 @@ private:
   void insert_frame( FrameInfo next_frame,
                      const size_t original_raster, const double quality,
                      const size_t track_id );
-
-  void write_ivf( const std::string & filename );
 
 public:
   WritableAlfalfaVideo( const std::string & directory_name,
