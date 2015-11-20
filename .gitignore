@@ -50,9 +50,10 @@ Makefile.in
 /src/tests/framedb-test
 /src/tests/framedb-benchmark
 /src/tests/ivfcompare
-/src/tests/import-test
 /src/tests/trackdb-test
-/src/tests/combine-test
+/src/tests/alfalfa-combine-check
+/src/tests/alfalfa-encode-check
+/src/tests/alfalfa-import-check
 /src/tests/alf-decode-to-stdout
 
 /src/tests/test_vectors/

@@ -89,8 +89,9 @@ QualityDB::search_by_original_and_approximate_raster( const size_t original_rast
   QualityDBCollectionByOriginalAndApproximateRaster & index =
     collection_.get<QualityDBByOriginalAndApproximateRasterTag>();
   auto key = boost::make_tuple( original_raster, approximate_raster );
-  if ( index.count( key ) == 0 )
+  if ( index.count( key ) == 0 ) {
     throw out_of_range( "Raster pair not found!" );
+  }
   QualityDBCollectionByOriginalAndApproximateRaster::iterator it =
     index.find( key );
   return *it;

@@ -149,7 +149,7 @@ bool SourceHash::operator==( const SourceHash & other ) const
 
 bool SourceHash::operator!=( const SourceHash & other ) const
 {
-  return !( ( *this ) == other );
+  return not( ( *this ) == other );
 }
 
 UpdateTracker::UpdateTracker( bool set_update_last, bool set_update_golden,
@@ -215,21 +215,22 @@ string TargetHash::str() const
 
 bool TargetHash::operator==( const TargetHash & other ) const
 {
-  return ( state_hash == other.state_hash and
-    continuation_hash == other.continuation_hash and
-    output_hash == other.output_hash and
-    update_last == other.update_last and
-    update_golden == other.update_golden and
-    update_alternate == other.update_alternate and
-    last_to_golden == other.last_to_golden and
-    last_to_alternate == other.last_to_alternate and
+  return ( state_hash   == other.state_hash and
+    continuation_hash   == other.continuation_hash and
+    output_hash         == other.output_hash and
+    update_last         == other.update_last and
+    update_golden       == other.update_golden and
+    update_alternate    == other.update_alternate and
+    last_to_golden      == other.last_to_golden and
+    last_to_alternate   == other.last_to_alternate and
     golden_to_alternate == other.golden_to_alternate and
-    alternate_to_golden == other.alternate_to_golden );
+    alternate_to_golden == other.alternate_to_golden and
+    shown               == other.shown );
 }
 
 bool TargetHash::operator!=( const TargetHash & other ) const
 {
-  return !( ( *this ) == other );
+  return not( ( *this ) == other );
 }
 
 DecoderHash::DecoderHash( size_t state_hash, size_t continuation_hash, size_t last_hash, size_t golden_hash, size_t alt_hash )
