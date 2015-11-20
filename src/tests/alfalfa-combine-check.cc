@@ -8,7 +8,7 @@ using namespace std;
 
 /* Combine test checker. Ensures that the combined video has the right entries
    in the raster list, quality db and frame db. */
-void alfalfa_combine_test_check( string alfalfa_video_dir, string alfalfa_video_combined_dir, size_t combined_track_id ) {
+void alfalfa_combine_test_check( string alfalfa_video_dir, string alfalfa_video_combined_dir ) {
   PlayableAlfalfaVideo alfalfa_video( alfalfa_video_dir );
   PlayableAlfalfaVideo alfalfa_video_combined( alfalfa_video_combined_dir );
 
@@ -62,20 +62,35 @@ void alfalfa_combine_test_check( string alfalfa_video_dir, string alfalfa_video_
   }
 
   // Now check the track db
-  auto track_frames = alfalfa_video.get_frames( 0 );
-  auto track_frames_combined = alfalfa_video_combined.get_frames( combined_track_id );
-  while ( track_frames.first != track_frames.second ||
-          track_frames_combined.first != track_frames_combined.second ) {
-    if ( not ( track_frames.first->source_hash() == track_frames_combined.first->source_hash() &&
-               track_frames.first->target_hash() == track_frames_combined.first->target_hash() ) ) {
-      throw logic_error( "tracks differ" );
+  auto track_ids = alfalfa_video.get_track_ids();
+  for ( ; track_ids.first != track_ids.second; track_ids.first++ ) {
+    bool found_matching_track = false;
+    auto track_ids_combined = alfalfa_video_combined.get_track_ids();
+    for ( ; track_ids_combined.first != track_ids_combined.second; track_ids_combined.first++ ) {
+      auto track_frames = alfalfa_video.get_frames( *track_ids.first );
+      auto track_frames_combined = alfalfa_video_combined.get_frames( *track_ids_combined.first );
+      bool found = true;
+      while ( track_frames.first != track_frames.second ||
+              track_frames_combined.first != track_frames_combined.second ) {
+        if ( not ( ( track_frames.first->source_hash() ==
+                     track_frames_combined.first->source_hash() ) &&
+                   ( track_frames.first->target_hash() ==
+                     track_frames_combined.first->target_hash() ) ) ) {
+          found = false;
+          break;
+        }
+        track_frames.first++;
+        track_frames_combined.first++;
+      }
+      if ( not ( ( track_frames.first == track_frames.second ) and
+                 ( track_frames_combined.first == track_frames_combined.second ) ) )
+        found = false;
+      if ( found )
+        found_matching_track = true;
     }
-    track_frames.first++;
-    track_frames_combined.first++;
+    if ( not found_matching_track )
+      throw logic_error( "could not find track in combined video's track db" );
   }
-  if ( not ( ( track_frames.first == track_frames.second ) and
-             ( track_frames_combined.first == track_frames_combined.second ) ) )
-    throw logic_error( "tracks are of different length" );
 }
 
 int main(int argc, char const *argv[]) {
@@ -89,8 +104,8 @@ int main(int argc, char const *argv[]) {
     string alfalfa_video_dir2( argv[ 2 ] );
     string alfalfa_video_dir_combined( argv[ 3 ] );
 
-    alfalfa_combine_test_check( alfalfa_video_dir1, alfalfa_video_dir_combined, 0 );
-    alfalfa_combine_test_check( alfalfa_video_dir2, alfalfa_video_dir_combined, 1 );
+    alfalfa_combine_test_check( alfalfa_video_dir1, alfalfa_video_dir_combined );
+    alfalfa_combine_test_check( alfalfa_video_dir2, alfalfa_video_dir_combined );
   } catch (const exception &e ) {
     print_exception( argv[ 0 ], e );
     return EXIT_FAILURE;
