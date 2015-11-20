@@ -20,9 +20,9 @@ alfalfa_encode_check_SOURCES = alfalfa-encode-check.cc
 framedb_benchmark_SOURCES = framedb-benchmark.cc
 ivfcompare_SOURCES = ivfcompare.cc
 
-dist_check_SCRIPTS = fetch-vectors.test decoding.test roundtrip-verify.test switch-test ivfcopy.test alfalfa-import.test alfalfa-combine.test alfalfa-encode.test alfalfa-combine-encode.test alfalfa-decoding.test alfalfa-decoding-combine.test
+dist_check_SCRIPTS = fetch-vectors.test decoding.test roundtrip-verify.test switch-test ivfcopy.test alfalfa-import.test alfalfa-combine.test alfalfa-encode.test alfalfa-combine-encode.test alfalfa-combine-encode-multiple.test alfalfa-decoding.test alfalfa-decoding-combine.test
 
-TESTS = fetch-vectors.test decoding.test encode-loopback roundtrip-verify.test framedb-test ivfcopy.test trackdb-test alfalfa-import.test alfalfa-combine.test alfalfa-encode.test alfalfa-combine-encode.test alfalfa-decoding.test alfalfa-decoding-combine.test # switch-test
+TESTS = fetch-vectors.test decoding.test encode-loopback roundtrip-verify.test framedb-test ivfcopy.test trackdb-test alfalfa-import.test alfalfa-combine.test alfalfa-encode.test alfalfa-combine-encode.test alfalfa-combine-encode-multiple.test alfalfa-decoding.test alfalfa-decoding-combine.test # switch-test
 
 # some tests depend on the test vectors having been fetched
 # represent the dependency in case of a parallel compile
@@ -33,6 +33,7 @@ alfalfa-import.log: fetch-vectors.log
 alfalfa-combine.log: fetch-vectors.log
 alfalfa-encode.log: fetch-vectors.log
 alfalfa-combine-encode.log: fetch-vectors.log
+alfalfa-combine-encode-multiple.log: fetch-vectors.log
 alfalfa-decoding.test: fetch-vectors.log
 alfalfa-decoding-combine.test: fetch-vectors.log
 
