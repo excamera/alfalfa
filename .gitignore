@@ -56,6 +56,6 @@ Makefile.in
 /src/tests/alfalfa-combine-check
 /src/tests/alfalfa-encode-check
 /src/tests/alfalfa-import-check
-/src/tests/alf-decode-to-stdout
+/src/tests/alfalfa-decode-to-stdout
 
 /src/tests/test_vectors/

@@ -1,28 +1,34 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python
 
-use strict;
+import os
+import sys
 
-sub check {
-  my ( $sha1 ) = @_;
-  my $filename = 'test_vectors/' . ${sha1};
-  unless ( -e $filename ) {
-      print STDERR "$0: $sha1 not found, failing test.\n";
-      exit 1;
-  }
+ALFALFA_VIDEO_DIR1 = "alfalfa_video_dir1/"
+ALFALFA_VIDEO_DIR2 = "alfalfa_video_dir2/"
+ALFALFA_VIDEO_DIR_COMBINED = "alfalfa_video_dir_combined/"
 
-  print STDERR "Checking $sha1... ";
-  my $alfalfa_video_directory = "./$sha1";
-  my $alfalfa_import_command = "../frontend/alfalfa-import $filename $alfalfa_video_directory";
-  system( $alfalfa_import_command );
-  my $decoded_sha1 = (split ' ', `./alf-decode-to-stdout $alfalfa_video_directory 0 2>&1 | sha1sum` )[ 0 ];
-  my $remove_alfalfa_directory_command = "rm -r $alfalfa_video_directory";
-  system( $remove_alfalfa_directory_command );
-  if ( $decoded_sha1 ne $sha1 ) {
-    print STDERR "$0: decoding mismatch: expected $sha1, got $decoded_sha1\n";
-    exit( 1 );
-  }
-  print STDERR "success.\n";
-};
+def check(file_id):
+  alfalfa_test_vector = ("test_vectors/" + file_id)
+
+  if not os.path.isfile( alfalfa_test_vector ):
+    sys.stderr.write( "%s: %s not found, failing test.\n" % ( sys.argv[ 0 ], alfalfa_test_vector ) )
+    sys.exit( 1 );
+
+  exit_code1 = os.system("../frontend/alfalfa-import %s %s" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR1))
+  exit_code2 = os.system("../frontend/alfalfa-import %s %s" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR2))
+  exit_code3 = os.system("../frontend/alfalfa-combine %s %s %s" % (ALFALFA_VIDEO_DIR1, ALFALFA_VIDEO_DIR2, ALFALFA_VIDEO_DIR_COMBINED))
+  if exit_code1 != 0 or exit_code2 != 0 or exit_code3 != 0:
+    os.system("rm -rf %s" % ALFALFA_VIDEO_DIR1)
+    os.system("rm -rf %s" % ALFALFA_VIDEO_DIR2)
+    os.system("rm -rf %s" % ALFALFA_VIDEO_DIR_COMBINED)
+    sys.exit(1)
+  output1 = os.popen("./alfalfa-decode-to-stdout %s 0 2>&1 | sha1sum" % (ALFALFA_VIDEO_DIR_COMBINED)).read().split(" ")[0]
+  output2 = os.popen("./alfalfa-decode-to-stdout %s 1 2>&1 | sha1sum" % (ALFALFA_VIDEO_DIR_COMBINED)).read().split(" ")[0]
+  os.system("rm -rf %s" % ALFALFA_VIDEO_DIR1)
+  os.system("rm -rf %s" % ALFALFA_VIDEO_DIR2)
+  os.system("rm -rf %s" % ALFALFA_VIDEO_DIR_COMBINED)
+  if file_id != output1 or file_id != output2:
+    sys.exit(1)
 
 check( '04b68b0a642d8285303d2b8884fc374e09d28ae9' );
 check( '075d4eb18cbb2885d57eae5201cafb54bc43acca' );
@@ -78,6 +84,4 @@ check( 'ea6ba2499a47208ee6393d164d5447c1649cf285' );
 check( 'eeeb9bf9e0fbcf543da64ad6353c6500534ccef7' );
 check( 'ff2941dde20090835032c32c0644b6d401610c57' );
 
-print STDERR "$0: all tests passed\n";
-
-exit 0;
+sys.exit(0)

@@ -3,19 +3,19 @@
 import os
 import sys
 
-ALFALFA_VIDEO_DIR1 = "alfalfa_video_dir1/"
-ALFALFA_VIDEO_DIR2 = "alfalfa_video_dir2/"
-ALFALFA_VIDEO_DIR_COMBINED = "alfalfa_video_dir_combined/"
+ALFALFA_VIDEO_DIR1 = "alfalfa_video_dir_raw_raw/"
+ALFALFA_VIDEO_DIR2 = "alfalfa_video_dir_encoded_raw/"
+ALFALFA_VIDEO_DIR_COMBINED = "alfalfa_video_dir_encoded_combined/"
 
 def check(file_id):
   try:
     alfalfa_test_vector = ("test_vectors/" + file_id)
 
     if os.system("../frontend/alfalfa-import %s %s" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR1)):
-      raise Exception("alfalfa-import (1) failed.")
+      raise Exception("alfalfa-import failed.")
 
-    if os.system("../frontend/alfalfa-import %s %s" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR2)):
-      raise Exception("alfalfa-import (2) failed.")
+    if os.system("../frontend/alfalfa-encode %s 0 %s --best -v --ivf --q-hist=100 --rate-hist=100 --end-usage=cq --buf-sz=1000000 --auto-alt-ref=1 --cq-level=10 --tune=ssim --kf-max-dist=1000000 --buf-initial-sz=0 --buf-optimal-sz=500000 --lag-in-frames=16 --target-bitrate=50000000" % (ALFALFA_VIDEO_DIR1, ALFALFA_VIDEO_DIR2)):
+      raise Exception("alfalfa-encode failed.")
 
     if os.system("../frontend/alfalfa-combine %s %s %s" % (ALFALFA_VIDEO_DIR1, ALFALFA_VIDEO_DIR2, ALFALFA_VIDEO_DIR_COMBINED)):
       raise Exception("alfalfa-combine failed.")
