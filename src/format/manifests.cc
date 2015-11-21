@@ -126,6 +126,13 @@ size_t TrackDB::insert( TrackData td )
   return frame_index;
 }
 
+pair<TrackDBCollectionByFrameIdIndex::const_iterator, TrackDBCollectionByFrameIdIndex::const_iterator>
+TrackDB::search_by_frame_id( const size_t frame_id ) const
+{
+  const TrackDBCollectionByFrameIdIndex & index = collection_.get<TrackDBByFrameIdTag>();
+  return index.equal_range( frame_id );
+}
+
 pair<unordered_set<size_t>::const_iterator, unordered_set<size_t>::const_iterator>
 TrackDB::get_track_ids() const
 {

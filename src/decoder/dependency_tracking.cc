@@ -131,7 +131,7 @@ static TargetHash decode_target( const string & frame_name )
   return TargetHash( UpdateTracker( components.at( 3 ), components.at ( 4 ), components.at( 5 ),
                                     components.at( 6 ), components.at( 7 ), components.at( 8 ),
                                     components.at( 9 ) ),
-                     components.at( 0 ), components.at( 1 ), components.at( 2 ) ); 
+                     components.at( 0 ), components.at( 1 ), components.at( 2 ) );
 }
 
 TargetHash::TargetHash( const string & frame_name )
@@ -162,13 +162,14 @@ string TargetHash::str() const
 
 bool TargetHash::operator==( const TargetHash & other ) const
 {
-  return ( state_hash == other.state_hash and
-    output_hash == other.output_hash and
-    update_last == other.update_last and
-    update_golden == other.update_golden and
-    update_alternate == other.update_alternate and
-    last_to_golden == other.last_to_golden and
-    last_to_alternate == other.last_to_alternate and
+  return ( state_hash   == other.state_hash and
+    continuation_hash   == other.continuation_hash and
+    output_hash         == other.output_hash and
+    update_last         == other.update_last and
+    update_golden       == other.update_golden and
+    update_alternate    == other.update_alternate and
+    last_to_golden      == other.last_to_golden and
+    last_to_alternate   == other.last_to_alternate and
     golden_to_alternate == other.golden_to_alternate and
     alternate_to_golden == other.alternate_to_golden and
     shown               == other.shown );

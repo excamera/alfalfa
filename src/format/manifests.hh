@@ -167,7 +167,7 @@ public:
  */
 
 struct TrackDBByTrackIdAndFrameIndexTag;
-struct TrackDBByTrackIdAndFrameIdTag;
+struct TrackDBByFrameIdTag;
 struct TrackDBSequencedTag;
 
 typedef multi_index_container
@@ -185,6 +185,11 @@ typedef multi_index_container
         member<TrackData, size_t, &TrackData::frame_index>
       >
     >,
+    hashed_non_unique
+    <
+      tag<TrackDBByFrameIdTag>,
+      member<TrackData, size_t, &TrackData::frame_id>
+    >,
     sequenced
     <
       tag<TrackDBSequencedTag>
@@ -194,9 +199,10 @@ typedef multi_index_container
 
 typedef TrackDBCollection::index<TrackDBByTrackIdAndFrameIndexTag>::type
 TrackDBCollectionByTrackIdAndFrameIndex;
+typedef TrackDBCollection::index<TrackDBByFrameIdTag>::type
+TrackDBCollectionByFrameIdIndex;
 typedef TrackDBCollection::index<TrackDBSequencedTag>::type
 TrackDBCollectionSequencedAccess;
-
 
 class TrackDB : public BasicDatabase<TrackData, AlfalfaProtobufs::TrackData,
   TrackDBCollection, TrackDBSequencedTag>
@@ -225,6 +231,9 @@ public:
   const TrackData &
   get_frame( const size_t & track_id, const size_t & frame_index ) const;
 
+  std::pair<TrackDBCollectionByFrameIdIndex::const_iterator,
+    TrackDBCollectionByFrameIdIndex::const_iterator>
+  search_by_frame_id( const size_t frame_id ) const;
   size_t get_end_frame_index( const size_t track_id ) const;
   bool has_track( const size_t track_id ) const;
 };
