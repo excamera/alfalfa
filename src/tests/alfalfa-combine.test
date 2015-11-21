@@ -3,9 +3,9 @@
 import os
 import sys
 
-ALFALFA_VIDEO_DIR1 = "alfalfa_video_dir1/"
-ALFALFA_VIDEO_DIR2 = "alfalfa_video_dir2/"
-ALFALFA_VIDEO_DIR_COMBINED = "alfalfa_video_dir_combined/"
+ALFALFA_VIDEO_DIR1 = "alfalfa_video_dir1_combine/"
+ALFALFA_VIDEO_DIR2 = "alfalfa_video_dir2_combine/"
+ALFALFA_VIDEO_DIR_COMBINED = "alfalfa_video_dir_combined_combine/"
 
 def check(file_id):
   try:

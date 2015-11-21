@@ -3,11 +3,11 @@
 import os
 import sys
 
-ALFALFA_VIDEO_DIR1 = "alfalfa_video_dir_multiple_raw/"
-ALFALFA_VIDEO_DIR2 = "alfalfa_video_dir_multiple_encoded1/"
-ALFALFA_VIDEO_DIR3 = "alfalfa_video_dir_multiple_encoded2/"
-ALFALFA_VIDEO_DIR_INTR = "alfalfa_video_dir_intr/"
-ALFALFA_VIDEO_DIR_COMBINED = "alfalfa_video_dir_multiple_combined/"
+ALFALFA_VIDEO_DIR1 = "alfalfa_video_dir1_combine_encode_multiple/"
+ALFALFA_VIDEO_DIR2 = "alfalfa_video_dir2_combine_encode_multiple/"
+ALFALFA_VIDEO_DIR3 = "alfalfa_video_dir3_combine_encode_multiple/"
+ALFALFA_VIDEO_DIR_INTR = "alfalfa_video_dir_intr_combine_encode_multiple/"
+ALFALFA_VIDEO_DIR_COMBINED = "alfalfa_video_dir_combined_combine_encode_multiple/"
 
 def check(file_id):
   try:

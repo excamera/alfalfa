@@ -3,8 +3,8 @@
 import os
 import sys
 
-ALFALFA_ORG_VIDEO = "alfalfa_video_dir_raw/"
-ALFALFA_ENC_VIDEO = "alfalfa_video_dir_encoded/"
+ALFALFA_ORG_VIDEO = "alfalfa_video_dir1_encode/"
+ALFALFA_ENC_VIDEO = "alfalfa_video_dir_encoded_encode/"
 
 def check(file_id):
   print file_id

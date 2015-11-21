@@ -3,9 +3,9 @@
 import os
 import sys
 
-ALFALFA_VIDEO_DIR1 = "alfalfa_video_dir1/"
-ALFALFA_VIDEO_DIR2 = "alfalfa_video_dir2/"
-ALFALFA_VIDEO_DIR_COMBINED = "alfalfa_video_dir_combined/"
+ALFALFA_VIDEO_DIR1 = "alfalfa_video_dir1_decoding/"
+ALFALFA_VIDEO_DIR2 = "alfalfa_video_dir2_decoding/"
+ALFALFA_VIDEO_DIR_COMBINED = "alfalfa_video_dir_combined_decoding/"
 
 def check(file_id):
   alfalfa_test_vector = ("test_vectors/" + file_id)
