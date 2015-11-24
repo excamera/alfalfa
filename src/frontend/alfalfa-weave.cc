@@ -56,6 +56,7 @@ class StreamState
 private:
   ContinuationPlayer stream_player_;
 
+  vector<FrameInfo> cur_frames_ {};
   // List of players we are generating continuations from
   vector<SwitchPlayer> switch_players_ {};
 
@@ -75,7 +76,7 @@ private:
       if ( player == stream_player_ ) {
         // If this player has converged onto the track, we no longer
         // need to track it, so add its info to the SwitchDB
-        player.write_switches( new_alf, track_frame_ );
+        player.write_switches( new_alf, ++TrackDBIterator( track_frame_ ) );
       } else {
         auto iter = find( new_players.begin(), new_players.end(), player ); 
         if ( iter != new_players.end() ) {
@@ -92,18 +93,6 @@ private:
     switch_players_ = move( new_players );
   }
 
-  void update_switch_players( const FrameInfo & frame )
-  {
-    for ( SwitchPlayer & player : switch_players_ ) {
-      if ( not player.need_continuation() and player.can_decode( frame ) ) {
-        stream_player_.apply_changes( player );
-        player.add_switch_frame( frame );
-      } else {
-        player.set_need_continuation( true );
-      }
-    }
-  }
-
 public:
   StreamState( const pair<TrackDBIterator, TrackDBIterator> & track_pair,
                const PlayableAlfalfaVideo & source_alf )
@@ -113,52 +102,70 @@ public:
       source_alf_( source_alf )
   {}
 
-  void advance_until_shown( void )
+  void update_switch_players( WritableAlfalfaVideo & alf )
   {
+    for ( SwitchPlayer & player : switch_players_ ) {
+      for ( const FrameInfo & frame : cur_frames_ ) {
+        if ( not player.need_continuation() and player.can_decode( frame ) ) {
+          player.safe_decode( frame, source_alf_.get_chunk( frame ) );
+          player.add_switch_frame( frame );
+        } else {
+          player.set_need_continuation( true );
+        }
+      }
+    }
+
+    cleanup_switch_players( alf );
+  }
+
+
+  void advance_until_shown()
+  {
+    cur_frames_.clear();
     // Serialize and write until next displayed frame
     while ( not eos() ) {
       const FrameInfo & frame = *track_frame_;
-      track_frame_++;
 
       stream_player_.decode( source_alf_.get_chunk( frame ) );
-      update_switch_players( frame );
+      cur_frames_.push_back( frame );
 
       if ( frame.shown() ) {
         return;
       }
+
+      track_frame_++;
     }
     throw Unsupported( "Undisplayed frames at end of video unsupported" );
   }
 
+  void advance_past_shown()
+  {
+    track_frame_++;
+  }
+
   void new_source( StreamState & other )
   {
-    // If the player is on a key frame then it doesn't need other can
-    // decode the key frame and not worry about this switch
-    if ( not stream_player_.on_key_frame() ) {
-      switch_players_.emplace_back( other.track_frame_, other.stream_player_ );
-    }
+    switch_players_.emplace_back( other.track_frame_, other.stream_player_ );
   }
 
   // Create all the necessary continuation frames for this point in the track,
   // and save them into new_alf
   void make_continuations( WritableAlfalfaVideo & new_alf )
   {
-    cleanup_switch_players( new_alf );
-
     for ( SwitchPlayer & switch_player : switch_players_ ) {
       // Check if the source needs a continuation at this point
       if ( switch_player.need_continuation() ) {
         for ( const SerializedFrame & frame : stream_player_.make_reference_updates( switch_player ) ) {
           FrameInfo info = new_alf.import_serialized_frame( frame );
           switch_player.add_switch_frame( info );
-          switch_player.decode( frame.chunk() );
+          switch_player.safe_decode( info, frame.chunk() );
         }
 
         if ( stream_player_.need_state_update( switch_player ) ) {
           SerializedFrame state_update = stream_player_.make_state_update( switch_player );
           FrameInfo info = new_alf.import_serialized_frame( state_update );
           switch_player.add_switch_frame( info );
-          switch_player.decode( state_update.chunk() );
+          switch_player.safe_decode( info, state_update.chunk() );
         }
 
         SerializedFrame inter = stream_player_.rewrite_inter_frame( switch_player ); 
@@ -167,15 +174,19 @@ public:
         
         // Even if we didn't need to make a new continuation frame, we still need to sync the most recent
         // changes from stream player (the same effect as decoding stream_player's last frame)
-        stream_player_.apply_changes( switch_player );
+        //stream_player_.apply_changes( switch_player );
+        switch_player.safe_decode( info, inter.chunk() );
 
         // Set player as not needing continuation, will be reevaluated next frame
         switch_player.set_need_continuation( false );
       }
+    }
+  }
 
-      // Regardless of whether or not this stream actually needed a continuation, after this point
-      // it no longer needs an unshown "first step" continuation
-      switch_player.unset_first_continuation();
+  void write_final_switches( WritableAlfalfaVideo & new_alf )
+  {
+    for ( const SwitchPlayer & player : switch_players_ ) {
+      player.write_switches( new_alf, track_end_ );
     }
   }
 
@@ -224,11 +235,17 @@ public:
         source_stream.new_source( target_stream );
       }
 
-      // Make the continuations for each stream
       for ( StreamState & stream : streams_ ) {
+        stream.update_switch_players( new_alf_ );
         stream.make_continuations( new_alf_ );
+        stream.advance_past_shown();
       }
     }
+
+    for ( StreamState & stream : streams_ ) {
+      stream.write_final_switches( new_alf_ );
+    }
+
     new_alf_.save();
   }
 };

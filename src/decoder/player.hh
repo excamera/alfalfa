@@ -30,6 +30,8 @@ public:
 
   Optional<RasterHandle> decode( const Chunk & chunk );
 
+  Optional<RasterHandle> safe_decode( const FrameInfo & info, const Chunk & chunk );
+
   const VP8Raster & example_raster( void ) const;
 
   bool can_decode( const FrameInfo & frame ) const;

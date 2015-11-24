@@ -99,14 +99,14 @@ bool AlfalfaVideo::can_combine( const AlfalfaVideo & video )
   );
 }
 
-pair<unordered_set<size_t>::iterator, unordered_set<size_t>::iterator>
-AlfalfaVideo::get_track_ids()
+pair<unordered_set<size_t>::const_iterator, unordered_set<size_t>::const_iterator>
+AlfalfaVideo::get_track_ids() const
 {
   return track_db_.get_track_ids();
 }
 
 pair<unordered_set<size_t>::iterator, unordered_set<size_t>::iterator>
-AlfalfaVideo::get_track_ids_for_switch(const size_t from_track_id, const size_t from_frame_index)
+AlfalfaVideo::get_track_ids_for_switch(const size_t from_track_id, const size_t from_frame_index) const
 {
   unordered_set<size_t> to_track_ids = switch_mappings_.at(
     make_pair( from_track_id, from_frame_index ) );
@@ -120,7 +120,7 @@ AlfalfaVideo::get_frames() const
 }
 
 pair<TrackDBIterator, TrackDBIterator>
-AlfalfaVideo::get_frames( const size_t track_id )
+AlfalfaVideo::get_frames( const size_t track_id ) const
 {
   size_t end_frame_index = track_db_.get_end_frame_index( track_id );
   TrackDBIterator begin = TrackDBIterator( track_id, 0, track_db_, frame_db_ );
@@ -129,7 +129,7 @@ AlfalfaVideo::get_frames( const size_t track_id )
 }
 
 pair<TrackDBIterator, TrackDBIterator>
-AlfalfaVideo::get_frames( const TrackDBIterator & it )
+AlfalfaVideo::get_frames( const TrackDBIterator & it ) const
 {
   size_t track_id = it.track_id();
   size_t start_frame_index = it.frame_index();
@@ -141,7 +141,7 @@ AlfalfaVideo::get_frames( const TrackDBIterator & it )
 }
 
 pair<TrackDBIterator, TrackDBIterator>
-AlfalfaVideo::get_frames( const SwitchDBIterator & it )
+AlfalfaVideo::get_frames( const SwitchDBIterator & it ) const
 {
   size_t track_id = it.to_track_id();
   size_t start_frame_index = it.to_frame_index();
@@ -153,13 +153,14 @@ AlfalfaVideo::get_frames( const SwitchDBIterator & it )
 }
 
 pair<SwitchDBIterator, SwitchDBIterator>
-AlfalfaVideo::get_frames( const TrackDBIterator & it, const size_t to_track_id )
+AlfalfaVideo::get_frames( const TrackDBIterator & it, const size_t to_track_id ) const
 {
   size_t from_track_id = it.track_id();
   size_t from_frame_index = it.frame_index();
   size_t end_switch_frame_index = switch_db_.get_end_switch_frame_index( from_track_id,
                                                                          to_track_id,
                                                                          from_frame_index );
+
   SwitchDBIterator begin = SwitchDBIterator( from_track_id, to_track_id,
                                              from_frame_index, 0, switch_db_, frame_db_ );
   SwitchDBIterator end = SwitchDBIterator( from_track_id, to_track_id,
@@ -168,7 +169,7 @@ AlfalfaVideo::get_frames( const TrackDBIterator & it, const size_t to_track_id )
   return make_pair( begin, end );
 }
 
-double AlfalfaVideo::get_quality( int raster_index, const FrameInfo & frame_info )
+double AlfalfaVideo::get_quality( int raster_index, const FrameInfo & frame_info ) const
 {
   size_t original_raster = raster_list_.raster( raster_index );
   size_t approximate_raster = frame_info.target_hash().output_hash;
@@ -361,6 +362,7 @@ WritableAlfalfaVideo::insert_switch_frames( const TrackDBIterator & origin_itera
   size_t to_track_id = dest_iterator.track_id();
   size_t to_frame_index = dest_iterator.frame_index();
   size_t switch_frame_index = 0;
+
   for (FrameInfo frame : frames) {
     size_t frame_id = frame_db_.insert( frame );
     SwitchData switch_data = SwitchData( from_track_id, from_frame_index, to_track_id,
@@ -376,7 +378,8 @@ bool WritableAlfalfaVideo::save()
     raster_list_.serialize() and
     quality_db_.serialize() and
     track_db_.serialize() and
-    frame_db_.serialize();
+    frame_db_.serialize() and
+    switch_db_.serialize();
 }
 
 /* PlayableAlfalfaVideo */
@@ -396,6 +399,9 @@ void PlayableAlfalfaVideo::encode( const size_t track_id, vector<string> vpxenc_
 {
   TempFile fpf_file( "fpf" );
   const int total_passes = 2;
+
+  // Newer libvpx versions default to vp9 so explicitly state that we want vp8
+  vpxenc_args.push_back( "--codec=vp8" );
 
   // adding necessary output switches
   vpxenc_args.push_back( "-o" );

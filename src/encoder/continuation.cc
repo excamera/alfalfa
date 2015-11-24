@@ -86,15 +86,18 @@ RefUpdateFrameMacroblock::Macroblock( const typename TwoD< Macroblock >::Context
     U_( frame_U, c.column * 2, c.row * 2 ),
     V_( frame_V, c.column * 2, c.row * 2 )
 {
-  if ( ref_update.macroblock( c.column, c.row ).initialized() ) {
-    mb_skip_coeff_.initialize( false );
+  if ( not ref_update.macroblock( c.column, c.row ).initialized() ) {
+    mb_skip_coeff_.initialize( true );
     return;
   }
 
-  ReferenceUpdater::MacroblockDiff difference = ref_update.macroblock( c.column, c.row ).get();;
+  Y2_.set_coded( false );
+
+  ReferenceUpdater::MacroblockDiff difference = ref_update.macroblock( c.column, c.row ).get();
 
   /* Write the difference into the blocks */
   Y_.forall_ij( [&] ( YBlock & block, unsigned int column, unsigned int row ) {
+      block.set_Y_without_Y2();
       write_block_as_intra( block, difference.y_residue( column, row ) );
       has_nonzero_ |= block.has_nonzero();
    } );
@@ -125,21 +128,73 @@ RefUpdateFrameHeader::RefUpdateFrameHeader( const reference_frame & frame, uint8
 
 StateUpdateFrameHeader::StateUpdateFrameHeader( const ProbabilityTables & source_probabilities,
                                                 const ProbabilityTables & target_probabilities )
-  : mv_prob_replacement(),
+  : token_prob_update(),
+    intra_16x16_prob(),
+    intra_chroma_prob(),
+    mv_prob_replacement(),
     log2_number_of_dct_partitions( 0 ),
     update_segmentation(),
     prob_skip_false()
 {
+  /* match coefficient probabilities in frame header */
+  for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
+    for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
+      for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
+	for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
+	  const auto & source = source_probabilities.coeff_probs.at( i ).at( j ).at( k ).at( l );
+	  const auto & target = target_probabilities.coeff_probs.at( i ).at( j ).at( k ).at( l );
+
+	  token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( source != target, target );
+	}
+      }
+    }
+  }
+
+  /* match intra_16x16_probs in frame header */
+  bool update_y_mode_probs = false;
+  Array< Unsigned< 8 >, 4 > new_y_mode_probs;
+
+  for ( unsigned int i = 0; i < 4; i++ ) {
+    const auto & source = source_probabilities.y_mode_probs.at( i );
+    const auto & target = target_probabilities.y_mode_probs.at( i );
+
+    new_y_mode_probs.at( i ) = target;
+
+    if ( source != target ) {
+      update_y_mode_probs = true;
+    }
+  }
+
+  if ( update_y_mode_probs ) {
+    intra_16x16_prob.initialize( new_y_mode_probs );
+  }
+
+  /* match intra_chroma_prob in frame header */
+  bool update_chroma_mode_probs = false;
+  Array< Unsigned< 8 >, 3 > new_chroma_mode_probs;
+
+  for ( unsigned int i = 0; i < 3; i++ ) {
+    const auto & source = source_probabilities.uv_mode_probs.at( i );
+    const auto & target = target_probabilities.uv_mode_probs.at( i );
+
+    new_chroma_mode_probs.at( i ) = target;
+
+    if ( source != target ) {
+      update_chroma_mode_probs = true;
+    }
+  }
+
+  if ( update_chroma_mode_probs ) {
+    intra_chroma_prob.initialize( new_chroma_mode_probs );
+  }
+
   /* match motion_vector_probs in frame header */
   for ( uint8_t i = 0; i < 2; i++ ) {
     for ( uint8_t j = 0; j < MV_PROB_CNT; j++ ) {
       const auto & source = source_probabilities.motion_vector_probs.at( i ).at( j );
       const auto & target = target_probabilities.motion_vector_probs.at( i ).at( j );
 
-      if ( target == 0 or (target != 1 and target % 2 != 0) ) {
-        /* Only need to use a replacement if it can't be represented in the 7 bits of an MVProbUpdate */
-        mv_prob_replacement.at( i ).at( j ) = MVProbReplacement( source != target, target );
-      }
+      mv_prob_replacement.at( i ).at( j ) = MVProbReplacement( source != target, target );
     }
   }
 }
@@ -148,8 +203,8 @@ template <>
 StateUpdateFrame::Frame( const ProbabilityTables & source_probabilities,
                          const ProbabilityTables & target_probabilities )
   : show_( false ),
-    display_width_( 0 ),
-    display_height_( 0 ),
+    display_width_( 1 ), // Hack to make the underlying TwoD's have more than 0 width / height
+    display_height_( 1 ),
     header_( source_probabilities, target_probabilities ),
     ref_updates_( false, false, false, false, false, false, false )
 {}
@@ -199,20 +254,101 @@ RefUpdateFrame::Frame( const reference_frame & ref_to_update,
   optimize_continuation_coefficients();
 }
 
-static RasterHandle make_new_reference( const reference_frame & frame, const RasterHandle & current,
-                                        const RasterHandle & target, const ReferenceDependency & deps )
+static void translate_block_deps( vector<vector<bool>> & required, const int block_column, const int block_row, const MotionVector & mv,
+                                  const unsigned size, const int width, const int height, const int macroblock_size )
 {
-  assert( VP8Raster::macroblock_dimension( current.get().display_height() ) == deps.num_macroblocks_vert() );
-  assert( VP8Raster::macroblock_dimension( current.get().display_width() ) == deps.num_macroblocks_horiz() );
+  int row = block_row * size + ( mv.y() >> 3 );
+  int col = block_column * size + ( mv.x() >> 3 );
 
-  MutableRasterHandle mutable_raster( current.get().width(), current.get().height() );
+  int upper_row = 0;
+  int right_col = 0;
+  int bottom_row = 0;
+  int left_col = 0;
+  
+  if ( ( mv.x() & 7 ) == 0 and ( mv.y() & 7 ) == 0 ) {
+    upper_row = row + size - 1;
+    right_col = col + size - 1;
+    bottom_row = row;
+    left_col = col;
+  }
+  else {
+    upper_row = row + size + 3;
+    right_col = col + size + 3;
+    bottom_row = row - 2;
+    left_col = col - 2;
+  }
+
+  upper_row /= macroblock_size;
+  right_col /= macroblock_size;
+  bottom_row /= macroblock_size;
+  left_col /= macroblock_size;
+
+  for ( int cur_row = bottom_row; cur_row <= upper_row; cur_row++ ) {
+    for ( int cur_col = left_col; cur_col <= right_col; cur_col++ ) {
+      /* Make sure this isn't referencing something off the edge of the raster */
+      int bounded_row = min( max( cur_row, 0 ), height - 1);
+      int bounded_col = min( max( cur_col, 0 ), width - 1);
+
+      required.at( bounded_row ).at( bounded_col ) = true;
+    }
+  }
+
+#if 0
+  // More explicit version, designed to loop over individual pixels
+  for ( int cur_row = bottom_row; cur_row <= upper_row; cur_row++ ) {
+    for ( int cur_col = left_col; cur_col <= right_col; cur_col++ ) {
+      /* Make sure this isn't referencing something off the edge of the raster */
+      int bounded_row = min( max( cur_row / macroblock_size, 0 ), height - 1);
+      int bounded_col = min( max( cur_col / macroblock_size, 0 ), width - 1);
+
+      required.at( bounded_row ).at( bounded_col ) = true;
+    }
+  }
+#endif
+}
+
+template <>
+void InterFrameMacroblock::record_dependencies( vector<vector<bool>> & required ) const
+{
+  /* FIXME Shares a lot of code with VP8Raster::Block::inter_predict and probably is fucking slow */
+  if ( Y2_.prediction_mode() == SPLITMV ) {
+    /* Each block has its own motion vector. Look at all of these and see which macroblocks they
+     * point at */
+    Y_.forall( [&] ( const YBlock & block ) { 
+                 translate_block_deps( required, block.context().column, block.context().row,
+                                       block.motion_vector(),
+                                       4, context_.width,
+                                       context_.height, 16 );
+               } );
+    U_.forall( [&] ( const UVBlock & block ) { 
+                 translate_block_deps( required, block.context().column, block.context().row,
+                                       block.motion_vector(),
+                                       4, context_.width,
+                                       context_.height, 8 );
+               } );
+  } else {
+    translate_block_deps( required, Y_.at( 0, 0 ).context().column / 4, Y_.at( 0, 0 ).context().row / 4,
+                         base_motion_vector(), 16, context_.width, context_.height, 16 );
+
+    translate_block_deps( required, U_.at( 0, 0 ).context().column / 2, U_.at( 0, 0 ).context().row / 2,
+                         U_.at( 0, 0 ).motion_vector(), 8, context_.width, context_.height, 8 );
+  }
+}
+
+static RasterHandle make_new_reference( const reference_frame & frame, const VP8Raster & current,
+                                        const VP8Raster & target, const ReferenceDependency & deps )
+{
+  assert( VP8Raster::macroblock_dimension( current.display_height() ) == deps.num_macroblocks_vert() );
+  assert( VP8Raster::macroblock_dimension( current.display_width() ) == deps.num_macroblocks_horiz() );
+
+  MutableRasterHandle mutable_raster( current.width(), current.height() );
 
   for ( unsigned row = 0; row < deps.num_macroblocks_vert(); row++ ) {
     for ( unsigned col = 0; col < deps.num_macroblocks_horiz(); col++ ) {
       if ( deps.need_update_macroblock( frame, col, row ) ) {
-        mutable_raster.get().macroblock( col, row ) = target.get().macroblock( col, row );
+        mutable_raster.get().macroblock( col, row ) = target.macroblock( col, row );
       } else {
-        mutable_raster.get().macroblock( col, row ) = current.get().macroblock( col, row );
+        mutable_raster.get().macroblock( col, row ) = current.macroblock( col, row );
       }
     }
   }
@@ -229,9 +365,9 @@ ReferenceDependency::ReferenceDependency( const TwoD<InterFrameMacroblock> & fra
 {
   assert( width_ > 0 and height_ > 0 );
   frame_macroblocks.forall( [&]( const InterFrameMacroblock & macroblock ) {
-                              for ( pair<unsigned, unsigned> coord : macroblock.required_macroblocks() ) {
+                              if ( macroblock.inter_coded() ) {
                                 reference_frame ref_dep = macroblock.header().reference();
-                                needed_macroblocks_.at( ref_dep - 1 ).at( coord.second ).at( coord.first ) = true;
+                                macroblock.record_dependencies( needed_macroblocks_.at( ref_dep - 1 ) );
                               }
                             } );
 }
@@ -242,19 +378,113 @@ bool ReferenceDependency::need_update_macroblock( const reference_frame & ref_fr
   return needed_macroblocks_.at( ref_frame - 1 ).at( row ).at( col );
 }
 
-ReferenceUpdater::ReferenceUpdater( const reference_frame & frame, const RasterHandle & current,
-                                    const RasterHandle & target, const ReferenceDependency & deps )
+static void check_ref( const EdgeExtendedRaster & ref, int column, int row )
+{
+  if (ref.at( column, row ) != 1 ) {
+    cerr << "Unupdated pixel at " << column << " " << row << "\n";
+    assert( false );
+  }
+}
+
+template <unsigned size>
+void VP8Raster::Block<size>::analyze_inter_predict( const MotionVector & mv, const TwoD< uint8_t > & ref )
+{
+  EdgeExtendedRaster reference( ref );
+  const int source_column = context().column * size + (mv.x() >> 3);
+  const int source_row = context().row * size + (mv.y() >> 3);
+
+  if ( (mv.x() & 7) == 0 and (mv.y() & 7) == 0 ) {
+    contents_.forall_ij( [&] ( uint8_t &, unsigned int column, unsigned int row )
+			 { 
+                           check_ref( reference, source_column + column, source_row + row );
+                         } );
+    return;
+  }
+
+  for ( uint8_t row = 0; row < size + 5; row++ ) {
+    for ( uint8_t column = 0; column < size; column++ ) {
+      const int real_row = source_row + row - 2;
+      const int real_column = source_column + column;
+
+      check_ref( reference, real_column - 2,   real_row );
+      check_ref( reference, real_column - 1, real_row );
+      check_ref( reference, real_column, real_row );
+      check_ref( reference, real_column + 1, real_row );
+      check_ref( reference, real_column + 2, real_row );
+      check_ref( reference, real_column + 3, real_row );
+    }
+  }
+}
+
+template<>
+void InterFrameMacroblock::analyze_dependencies( VP8Raster::Macroblock & raster, const VP8Raster & reference ) const
+{
+  if ( Y2_.prediction_mode() == SPLITMV ) {
+    Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
+		  { raster.Y_sub.at( column, row ).analyze_inter_predict( block.motion_vector(), reference.Y() ); } );
+    U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
+		  { raster.U_sub.at( column, row ).analyze_inter_predict( block.motion_vector(), reference.U() ); } );
+  } else {
+    raster.Y.analyze_inter_predict( base_motion_vector(), reference.Y() );
+    raster.U.analyze_inter_predict( U_.at( 0, 0 ).motion_vector(), reference.U() );
+  }
+}
+
+/**
+ * Makes a new Raster with 1 stored in updated macroblocks and 0 in the other macroblocks
+ */
+static RasterHandle make_fake_reference( const reference_frame & frame, const ReferenceDependency & deps,
+                                         const unsigned width, const unsigned height )
+{
+  MutableRasterHandle reference( width, height );
+  for ( unsigned row = 0; row < deps.num_macroblocks_vert(); row++ ) {
+    for ( unsigned col = 0; col < deps.num_macroblocks_horiz(); col++ ) {
+      if ( deps.need_update_macroblock( frame, col, row ) ) {
+        reference.get().macroblock(col, row).Y.mutable_contents().fill( 1 );
+        reference.get().macroblock(col, row).U.mutable_contents().fill( 1 );
+        reference.get().macroblock(col, row).V.mutable_contents().fill( 1 );
+      }
+      else {
+        reference.get().macroblock(col, row).Y.mutable_contents().fill( 0 );
+        reference.get().macroblock(col, row).U.mutable_contents().fill( 0 );
+        reference.get().macroblock(col, row).V.mutable_contents().fill( 0 );
+      }
+    }
+  }
+  return move( reference );
+}
+
+template<>
+void InterFrame::analyze_dependencies( const ReferenceDependency & deps ) const
+{
+  VP8Raster raster( display_width_, display_height_ );
+
+  References fake_refs( display_width_, display_height_ );
+
+  fake_refs.last = make_fake_reference( LAST_FRAME, deps, display_width_, display_height_ );
+  fake_refs.golden = make_fake_reference( GOLDEN_FRAME, deps, display_width_, display_height_ );
+  fake_refs.alternative_reference = make_fake_reference( ALTREF_FRAME, deps, display_width_, display_height_ );
+
+  macroblock_headers_.get().forall_ij( [&] ( const InterFrameMacroblock & macroblock, const unsigned col, const unsigned row ) {
+                                        if ( macroblock.inter_coded() ) {
+                                          macroblock.analyze_dependencies( raster.macroblock( col, row ), fake_refs.at( macroblock.header().reference() ) );
+                                        }
+                                       } );
+}
+
+ReferenceUpdater::ReferenceUpdater( const reference_frame & frame, const VP8Raster & current,
+                                    const VP8Raster & target, const ReferenceDependency & deps )
   : new_reference_( make_new_reference( frame, current, target, deps ) ),
     diffs_( deps.num_macroblocks_vert(), vector<Optional<ReferenceUpdater::MacroblockDiff>>( deps.num_macroblocks_horiz() ) ),
-    prob_skip_( 0 ), width_( target.get().width() ), height_( target.get().height() )
+    prob_skip_( 0 ), width_( target.width() ), height_( target.height() )
 {
-  assert( current.get().width() == target.get().width() and current.get().height() == target.get().height() );
+  assert( current.width() == target.width() and current.height() == target.height() );
   // FIXME revisit this function
   unsigned num_updated = 0;
   for ( unsigned row = 0; row < diffs_.size(); row++ ) {
     for ( unsigned col = 0; col < diffs_[ 0 ].size(); col++ ) {
       if ( deps.need_update_macroblock( frame, col, row ) ) {
-        diffs_[ row ][ col ].initialize( ReferenceUpdater::MacroblockDiff( target.get().macroblock( col, row ), current.get().macroblock( col, row ) ) );
+        diffs_[ row ][ col ].initialize( ReferenceUpdater::MacroblockDiff( target.macroblock( col, row ), current.macroblock( col, row ) ) );
         num_updated++;
       }
     }
@@ -326,8 +556,6 @@ ReferenceUpdater::Residue ReferenceUpdater::MacroblockDiff::v_residue( const uns
 // took care of
 template <>
 InterFrame::Frame( const InterFrame & original,
-                   const ProbabilityTables & source_probs,
-                   const ProbabilityTables & target_probs,
                    const Optional<Segmentation> & target_segmentation,
                    const Optional<FilterAdjustments> & target_filter )
   : show_( original.show_frame() ),
@@ -343,20 +571,6 @@ InterFrame::Frame( const InterFrame & original,
   Y_.copy_from( original.Y_ );
   U_.copy_from( original.U_ );
   V_.copy_from( original.V_ );
-
-  /* match coefficient probabilities in frame header */
-  for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
-    for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
-      for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
-	for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
-	  const auto & source = source_probs.coeff_probs.at( i ).at( j ).at( k ).at( l );
-	  const auto & target = target_probs.coeff_probs.at( i ).at( j ).at( k ).at( l );
-
-	  header_.token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( source != target, target );
-	}
-      }
-    }
-  }
 
   /* match segmentation if necessary */
   if ( target_segmentation.initialized() ) {

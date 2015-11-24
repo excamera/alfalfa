@@ -118,14 +118,6 @@ bool Decoder::operator==( const Decoder & other ) const
     references_.alternative_reference == other.references_.alternative_reference;
 }
    
-DecoderDiff Decoder::operator-( const Decoder & other ) const
-{
-  return DecoderDiff { other.state_.probability_tables,
-                       state_.probability_tables,
-                       state_.segmentation,
-                       state_.filter_adjustments };
-}
-
 References::References( const uint16_t width, const uint16_t height )
   : References( MutableRasterHandle( width, height ) )
 {}
@@ -174,41 +166,6 @@ size_t DecoderState::hash( void ) const
   return hash_val;
 }
 
-size_t ProbabilityTables::hash( void ) const
-{
-  size_t hash_val = 0;
-
-  for ( auto const & block_sub : coeff_probs ) {
-    for ( auto const & bands_sub : block_sub ) {
-      for ( auto const & contexts_sub : bands_sub ) {
-	boost::hash_range( hash_val, contexts_sub.begin(), contexts_sub.end() );
-      }
-    }
-  }
-
-  boost::hash_range( hash_val, y_mode_probs.begin(), y_mode_probs.end() );
-
-  boost::hash_range( hash_val, uv_mode_probs.begin(), uv_mode_probs.end() );
-
-  for ( auto const & sub : motion_vector_probs ) {
-    boost::hash_range( hash_val, sub.begin(), sub.end() );
-  }
-
-  return hash_val;
-}
-
-void ProbabilityTables::mv_prob_replace( const Enumerate<Enumerate<MVProbReplacement, MV_PROB_CNT>, 2> & mv_replacements )
-{
-  for ( uint8_t i = 0; i < mv_replacements.size(); i++ ) {
-    for ( uint8_t j = 0; j < mv_replacements.at( i ).size(); j++ ) {
-      const auto & prob = mv_replacements.at( i ).at( j );
-      if ( prob.initialized() ) {
-        motion_vector_probs.at( i ).at( j ) = prob.get();
-      }
-    }
-  }
-}
-
 size_t FilterAdjustments::hash( void ) const
 {
   size_t hash_val = 0;
@@ -235,14 +192,6 @@ size_t Segmentation::hash( void ) const
   boost::hash_range( hash_val, map.begin(), map.end() );
 
   return hash_val;
-}
-
-bool ProbabilityTables::operator==( const ProbabilityTables & other ) const
-{
-  return coeff_probs == other.coeff_probs
-    and y_mode_probs == other.y_mode_probs
-    and uv_mode_probs == other.uv_mode_probs
-    and motion_vector_probs == other.motion_vector_probs;
 }
 
 bool FilterAdjustments::operator==( const FilterAdjustments & other ) const

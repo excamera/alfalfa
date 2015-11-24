@@ -87,7 +87,7 @@ public:
   void reconstruct_continuation( const VP8Raster & continuation, VP8Raster::Macroblock & raster ) const;
 
   /* list of coordinates for macroblocks that inter prediction needs */
-  std::vector<std::pair<unsigned, unsigned>> required_macroblocks() const;
+  void record_dependencies( std::vector<std::vector<bool>> & required ) const;
 
   void loopfilter( const Optional< FilterAdjustments > & filter_adjustments,
 		   const FilterParameters & loopfilter,
@@ -115,6 +115,12 @@ public:
   void accumulate_token_branches( TokenBranchCounts & counts ) const;
 
   void zero_out();
+
+  void analyze_dependencies( VP8Raster::Macroblock & raster, const VP8Raster & reference ) const;
+
+  bool operator==( const Macroblock & other ) const { return has_nonzero_ == other.has_nonzero_ and mb_skip_coeff_ == other.mb_skip_coeff_ and segment_id_ == other.segment_id_; }
+
+  bool operator!=( const Macroblock & other ) const { return not operator==( other ); }
 };
 
 struct KeyFrameMacroblockHeader

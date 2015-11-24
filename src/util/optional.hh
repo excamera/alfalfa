@@ -98,6 +98,11 @@ public:
     }
   }
 
+  bool operator!=( const Optional<T> & other ) const
+  {
+    return not operator==( other );
+  }
+
   /* getters */
   bool initialized( void ) const { return initialized_; }
   const T & get( void ) const { assert( initialized() ); return object_; }

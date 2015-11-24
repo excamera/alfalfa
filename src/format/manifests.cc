@@ -53,7 +53,7 @@ bool RasterList::has( const size_t raster_hash ) const
   return data_by_hash.count( raster_hash ) > 0;
 }
 
-size_t RasterList::raster( const size_t raster_index )
+size_t RasterList::raster( const size_t raster_index ) const
 {
   const RasterListCollectionRandomAccess & data_by_random_access = collection_.get<RasterListRandomAccessTag>();
   if ( data_by_random_access.size() <= raster_index )
@@ -84,30 +84,30 @@ bool RasterList::operator!=( const RasterList & other ) const
 
 QualityData
 QualityDB::search_by_original_and_approximate_raster( const size_t original_raster,
-                                                      const size_t approximate_raster )
+                                                      const size_t approximate_raster ) const
 {
-  QualityDBCollectionByOriginalAndApproximateRaster & index =
+  const QualityDBCollectionByOriginalAndApproximateRaster & index =
     collection_.get<QualityDBByOriginalAndApproximateRasterTag>();
   auto key = boost::make_tuple( original_raster, approximate_raster );
   if ( index.count( key ) == 0 ) {
     throw out_of_range( "Raster pair not found!" );
   }
-  QualityDBCollectionByOriginalAndApproximateRaster::iterator it =
+  QualityDBCollectionByOriginalAndApproximateRaster::const_iterator it =
     index.find( key );
   return *it;
 }
 
-pair<QualityDBCollectionByOriginalRaster::iterator, QualityDBCollectionByOriginalRaster::iterator>
-QualityDB::search_by_original_raster( const size_t original_raster )
+pair<QualityDBCollectionByOriginalRaster::const_iterator, QualityDBCollectionByOriginalRaster::const_iterator>
+QualityDB::search_by_original_raster( const size_t original_raster ) const
 {
-  QualityDBCollectionByOriginalRaster & index = collection_.get<QualityDBByOriginalRasterTag>();
+  const QualityDBCollectionByOriginalRaster & index = collection_.get<QualityDBByOriginalRasterTag>();
   return index.equal_range( original_raster );
 }
 
-pair<QualityDBCollectionByApproximateRaster::iterator, QualityDBCollectionByApproximateRaster::iterator>
-QualityDB::search_by_approximate_raster( const size_t approximate_raster )
+pair<QualityDBCollectionByApproximateRaster::const_iterator, QualityDBCollectionByApproximateRaster::const_iterator>
+QualityDB::search_by_approximate_raster( const size_t approximate_raster ) const
 {
-  QualityDBCollectionByApproximateRaster & index = collection_.get<QualityDBByApproximateRasterTag>();
+  const QualityDBCollectionByApproximateRaster & index = collection_.get<QualityDBByApproximateRasterTag>();
   return index.equal_range( approximate_raster );
 }
 
@@ -126,8 +126,8 @@ size_t TrackDB::insert( TrackData td )
   return frame_index;
 }
 
-pair<unordered_set<size_t>::iterator, unordered_set<size_t>::iterator>
-TrackDB::get_track_ids()
+pair<unordered_set<size_t>::const_iterator, unordered_set<size_t>::const_iterator>
+TrackDB::get_track_ids() const
 {
   return make_pair( track_ids_.begin(), track_ids_.end() );
 }
@@ -146,14 +146,14 @@ TrackDB::get_end_frame_index( const size_t track_id ) const
 }
 
 const TrackData &
-TrackDB::get_frame( const size_t & track_id, const size_t & frame_index )
+TrackDB::get_frame( const size_t & track_id, const size_t & frame_index ) const
 {
-  TrackDBCollectionByTrackIdAndFrameIndex & ordered_index = collection_.get<TrackDBByTrackIdAndFrameIndexTag>();
+  const TrackDBCollectionByTrackIdAndFrameIndex & ordered_index = collection_.get<TrackDBByTrackIdAndFrameIndexTag>();
   boost::tuple<size_t, size_t> ordered_key =
     boost::make_tuple( track_id, frame_index );
   if ( ordered_index.count( ordered_key ) == 0 )
     throw out_of_range( "Invalid (track_id, frame_index) pair" );
-  TrackDBCollectionByTrackIdAndFrameIndex::iterator ids_iterator = ordered_index.find(
+  TrackDBCollectionByTrackIdAndFrameIndex::const_iterator ids_iterator = ordered_index.find(
     ordered_key);
   return *ids_iterator;
 }
@@ -229,38 +229,38 @@ TrackDBIterator::operator->() const
 
 bool
 SwitchDB::has_switch( const size_t from_track_id, const size_t to_track_id,
-                      const size_t from_frame_index )
+                      const size_t from_frame_index ) const
 {
-  SwitchDBCollectionHashedByTrackIdsAndFrameIndex & index = collection_.get<SwitchDBHashedByTrackIdsAndFrameIndexTag>();
+  const SwitchDBCollectionHashedByTrackIdsAndFrameIndex & index = collection_.get<SwitchDBHashedByTrackIdsAndFrameIndexTag>();
   return index.count( boost::make_tuple( from_track_id, to_track_id, from_frame_index ) ) > 0;
 }
 
 size_t
 SwitchDB::get_end_switch_frame_index( const size_t from_track_id, const size_t to_track_id,
-                                      const size_t from_frame_index )
+                                      const size_t from_frame_index ) const
 {
-  SwitchDBCollectionHashedByTrackIdsAndFrameIndex & index = collection_.get<SwitchDBHashedByTrackIdsAndFrameIndexTag>();
+  const SwitchDBCollectionHashedByTrackIdsAndFrameIndex & index = collection_.get<SwitchDBHashedByTrackIdsAndFrameIndexTag>();
   return index.count( boost::make_tuple( from_track_id, to_track_id, from_frame_index ) );
 }
 
 size_t
 SwitchDB::get_to_frame_index( const size_t from_track_id, const size_t to_track_id,
-                              const size_t from_frame_index )
+                              const size_t from_frame_index ) const
 {
-  SwitchDBCollectionHashedByTrackIdsAndFrameIndex & index = collection_.get<SwitchDBHashedByTrackIdsAndFrameIndexTag>();
+  const SwitchDBCollectionHashedByTrackIdsAndFrameIndex & index = collection_.get<SwitchDBHashedByTrackIdsAndFrameIndexTag>();
   return index.find( boost::make_tuple( from_track_id, to_track_id, from_frame_index ) )->to_frame_index;
 }
 
 const SwitchData &
 SwitchDB::get_frame( const size_t from_track_id, const size_t to_track_id,
-                     const size_t from_frame_index, const size_t switch_frame_index )
+                     const size_t from_frame_index, const size_t switch_frame_index ) const
 {
-  SwitchDBCollectionOrderedByTrackIdsAndFrameIndices & ordered_index = collection_.get<SwitchDBOrderedByTrackIdsAndFrameIndicesTag>();
+  const SwitchDBCollectionOrderedByTrackIdsAndFrameIndices & ordered_index = collection_.get<SwitchDBOrderedByTrackIdsAndFrameIndicesTag>();
   boost::tuple<size_t, size_t, size_t, size_t> ordered_key =
     boost::make_tuple( from_track_id, to_track_id, from_frame_index, switch_frame_index );
   if ( ordered_index.count( ordered_key ) == 0 )
     throw out_of_range( "Frame not found in switch DB" );
-  SwitchDBCollectionOrderedByTrackIdsAndFrameIndices::iterator ids_iterator = ordered_index.find(
+  SwitchDBCollectionOrderedByTrackIdsAndFrameIndices::const_iterator ids_iterator = ordered_index.find(
     ordered_key);
   return *ids_iterator;
 }

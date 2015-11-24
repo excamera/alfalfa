@@ -111,6 +111,8 @@ public:
   }
 
   static constexpr unsigned int size( void ) { return len; }
+
+  bool operator==( const Array & other ) const { return storage_ == other.storage_; }
 };
 
 template <class T, unsigned int size>

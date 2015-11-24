@@ -49,15 +49,14 @@ SerializedFrame ContinuationPlayer::make_state_update( const SourcePlayer & sour
 {
   assert( not on_key_frame_ );
 
-  /* FIXME probably remove the diff */
-  DecoderDiff diff = decoder_ - source.decoder_;
-
-  StateUpdateFrame state_frame( diff.source_probabilities, diff.target_probabilities );
+  StateUpdateFrame state_frame( source.decoder_.get_state().probability_tables,
+                                decoder_.get_state().probability_tables );
 
   DecoderState new_state = source.decoder_.get_state();
-  new_state.probability_tables.mv_prob_replace( state_frame.header().mv_prob_replacement );
+  vector<uint8_t> raw = state_frame.serialize( new_state.probability_tables );
+  new_state.probability_tables.update( state_frame.header() );
 
-  vector<uint8_t> raw = state_frame.serialize( diff.target_probabilities );
+  assert( new_state.probability_tables == decoder_.get_state().probability_tables );
 
   SourceHash source_hash = source.decoder_.source_hash( DependencyTracker { true, false, false, false } );
   TargetHash target_hash( UpdateTracker( false, false, false, false, false, false, false ),
@@ -67,17 +66,32 @@ SerializedFrame ContinuationPlayer::make_state_update( const SourcePlayer & sour
   return SerializedFrame( FrameName( source_hash, target_hash ), raw );
 }
 
-static SerializedFrame make_partial_ref( const reference_frame & ref_frame,
-                                    const ReferenceDependency & deps,
-                                    const Decoder & source,
-                                    const Decoder & target )
+template <class FrameType>
+static bool correctly_serialized( const Decoder & orig_decoder,
+                                  const vector<uint8_t> & raw_frame,
+                                  const FrameType & frame )
 {
-  ReferenceUpdater updater( ref_frame, source.get_references().last,
-                            target.get_references().last, deps );
+  Decoder decoder( orig_decoder );
+
+  FrameType new_frame = decoder.parse_frame<FrameType>( decoder.decompress_frame( Chunk( raw_frame.data(), raw_frame.size() ) ) );
+
+  return frame == new_frame;
+}
+
+static SerializedFrame make_partial_ref( const reference_frame & ref_frame,
+                                         const ReferenceDependency & deps,
+                                         const Decoder & source,
+                                         const References & target_refs )
+{
+
+  ReferenceUpdater updater( ref_frame, source.get_references().at( ref_frame ),
+                            target_refs.at( ref_frame ), deps );
 
   RefUpdateFrame ref_update( ref_frame, updater );
 
   vector<uint8_t> raw_frame = ref_update.serialize( source.get_state().probability_tables );
+
+  assert( correctly_serialized( source, raw_frame, ref_update ) );
 
   SourceHash source_hash = source.source_hash( DependencyTracker { true, ref_frame == LAST_FRAME,
                                                                    ref_frame == GOLDEN_FRAME,
@@ -101,34 +115,59 @@ vector<SerializedFrame> ContinuationPlayer::make_reference_updates( const Source
   vector<SerializedFrame> frames;
 
   if ( missing.last and used.need_last ) {
-    frames.push_back( make_partial_ref( LAST_FRAME, dependencies, source.decoder_, decoder_ ) );
+    frames.push_back( make_partial_ref( LAST_FRAME, dependencies, source.decoder_, prev_references_ ) );
   }
 
   if ( missing.golden and used.need_golden ) {
-    frames.push_back( make_partial_ref( GOLDEN_FRAME, dependencies, source.decoder_, decoder_ ) );
+    frames.push_back( make_partial_ref( GOLDEN_FRAME, dependencies, source.decoder_, prev_references_ ) );
   }
 
   if ( missing.alternate and used.need_alternate ) {
-    frames.push_back( make_partial_ref( ALTREF_FRAME, dependencies, source.decoder_, decoder_ ) );
+    frames.push_back( make_partial_ref( ALTREF_FRAME, dependencies, source.decoder_, prev_references_ ) );
   }
 
   return frames;
 }
 
+static bool correct_output( const FramePlayer & source, const vector<uint8_t> & raw, const RasterHandle & orig_output )
+{
+  FramePlayer player( source );
+
+  Optional<RasterHandle> output = player.decode( Chunk( raw.data(), raw.size() ) );
+
+  const VP8Raster & correct = orig_output.get();
+  const VP8Raster & real = output.get().get();
+
+  for ( unsigned row = 0; row < correct.height() / 16; row++ ) {
+    for ( unsigned col = 0; col < correct.width() / 16; col++ ) {
+      if ( not ( correct.macroblock( col, row ) == real.macroblock( col, row ) ) ) {
+        cerr << "Incorrect macroblock at: " << col << " " << row << "\n";
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
 SerializedFrame ContinuationPlayer::rewrite_inter_frame( const SourcePlayer & source ) const
 {
-  DecoderDiff difference = decoder_ - source.decoder_;
-
   // Should only be making continuations off a shown frame
   assert( shown_ );
   // A key frame will have been written out anyway and can be used by anyone
   assert( not on_key_frame_ );
 
   InterFrame inter( inter_frame_.get(),
-                    difference.source_probabilities, difference.target_probabilities,
-                    difference.target_segmentation, difference.target_filter );
+                    decoder_.get_state().segmentation, decoder_.get_state().filter_adjustments );
 
-  vector<uint8_t> raw = inter.serialize( difference.target_probabilities );
+  vector<uint8_t> raw = inter.serialize( source.decoder_.get_state().probability_tables );
+
+  assert( correctly_serialized( source.decoder_, raw, inter ) );
+  assert( correct_output( source, raw, cur_output_ ) );
+
+  // Checks if we correctly analyzed the dependencies of the inter frame's
+  // macroblocks. Slow.
+  //inter.analyze_dependencies( ReferenceDependency( inter.macroblocks() ) );
 
   return SerializedFrame( FrameName( SourceHash( source.decoder_.source_hash( inter.get_used() ) ),
                                      TargetHash( decoder_.target_hash( inter.get_updated(), cur_output_,

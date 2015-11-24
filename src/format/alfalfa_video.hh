@@ -95,36 +95,36 @@ public:
   const SwitchDB & switch_db() const { return switch_db_; }
 
   /* Gets an iterator over all available track ids. */
-  std::pair<std::unordered_set<size_t>::iterator, std::unordered_set<size_t>::iterator>
-  get_track_ids();
+  std::pair<std::unordered_set<size_t>::const_iterator, std::unordered_set<size_t>::const_iterator>
+  get_track_ids() const;
 
   /* Gets an iterator over all available track ids that we can switch to from
      the provided track and frame_index. */
   std::pair<std::unordered_set<size_t>::iterator, std::unordered_set<size_t>::iterator>
-  get_track_ids_for_switch( const size_t from_track_id, const size_t from_frame_index );
+  get_track_ids_for_switch( const size_t from_track_id, const size_t from_frame_index ) const;
 
   /* Gets an iterator over all frames in the alf video's frame db. */
   std::pair<FrameDataSetCollectionSequencedAccess::iterator, FrameDataSetCollectionSequencedAccess::iterator> get_frames( void ) const;
 
   /* Gets an iterator over all frames associated with the particular track. */
-  std::pair<TrackDBIterator, TrackDBIterator> get_frames( const size_t track_id );
+  std::pair<TrackDBIterator, TrackDBIterator> get_frames( const size_t track_id ) const;
 
   /* Gets an iterator over all remaining frames in the track associated with
      the passed in TrackDBIterator. */
-  std::pair<TrackDBIterator, TrackDBIterator> get_frames( const TrackDBIterator & it );
+  std::pair<TrackDBIterator, TrackDBIterator> get_frames( const TrackDBIterator & it ) const;
 
   /* Gets an iterator over all remaining frames in the new track once the switch
      implied by the passed-in iterator is applied. */
-  std::pair<TrackDBIterator, TrackDBIterator> get_frames( const SwitchDBIterator & it );
+  std::pair<TrackDBIterator, TrackDBIterator> get_frames( const SwitchDBIterator & it ) const;
 
   /* Gets an iterator over all frames associated with the switch from the current
      track and frame_index position to the provided track. */
   std::pair<SwitchDBIterator, SwitchDBIterator> get_frames( const TrackDBIterator & it,
-                                                            const size_t to_track_id );
+                                                            const size_t to_track_id ) const;
 
   /* Get the quality of the frame associated with supplied frame_info, given
      position in the original raster list. */
-  double get_quality( int raster_index, const FrameInfo & frame_info );
+  double get_quality( int raster_index, const FrameInfo & frame_info ) const;
 
   bool good() const;
 

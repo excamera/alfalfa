@@ -38,6 +38,16 @@ public:
   void idct_add( VP8Raster::Block4 & output ) const;
 
   void set_dc_coefficient( const int16_t & val );
+
+  bool operator==( const DCTCoefficients & other ) const
+  {
+    return coefficients_ == other.coefficients_;
+  }
+
+  bool operator!=( const DCTCoefficients & other ) const
+  {
+    return not operator==( other );
+  }
 } ;
 
 template <BlockType initial_block_type, class PredictionMode>
@@ -83,6 +93,11 @@ public:
     static_assert( initial_block_type == Y_after_Y2,
 		   "set_Y_without_Y2 called on non-Y coded block" );
     type_ = Y_without_Y2;
+  }
+
+  void set_coded ( const bool coded )
+  {
+    coded_ = coded;
   }
 
   void set_if_coded( void )
@@ -133,6 +148,15 @@ public:
   void calculate_has_nonzero();
 
   void zero_out();
+
+  bool operator==( const Block & other ) const
+  {
+    return coefficients_ == other.coefficients_ and
+           prediction_mode_ == other.prediction_mode_ and
+           motion_vector_ == other.motion_vector_;
+  }
+
+  bool operator!=( const Block & other ) const { return not operator==( other ); }
 };
 
 using Y2Block = Block< Y2, mbmode >;

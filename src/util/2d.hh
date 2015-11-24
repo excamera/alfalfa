@@ -212,6 +212,8 @@ public:
 
   bool operator==( const TwoD<T> & other ) const { return *storage_ == *( other.storage_ ); }
 
+  bool operator!=( const TwoD<T> & other ) const { return not operator==( other ); }
+
   /* forbid copying */
   TwoD( const TwoD & other ) = delete;
   TwoD & operator=( const TwoD & other ) = delete;
@@ -305,6 +307,11 @@ public:
     }
 
     return true;
+  }
+
+  bool operator!=( const TwoDSubRange< T, sub_width, sub_height > & other ) const
+  {
+    return not operator==( other );
   }
 
   template <class type>

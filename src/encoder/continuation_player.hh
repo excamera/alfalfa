@@ -48,13 +48,12 @@ class SourcePlayer : public FramePlayer
 {
 friend class ContinuationPlayer;
 private:
-  bool need_continuation_, first_continuation_;
+  bool need_continuation_;
 
 public:
   SourcePlayer( const ContinuationPlayer & original )
     : FramePlayer( original ),
-      need_continuation_( true ), // Assume we're making a continuation frame unless we've shown otherwise
-      first_continuation_( true )
+      need_continuation_( false )
   {}
 
   void set_need_continuation( bool b )
@@ -69,13 +68,7 @@ public:
 
   bool operator==( const SourcePlayer & other) const
   {
-    return FramePlayer::operator==( other ) and need_continuation_ == other.need_continuation_ and
-      first_continuation_ == other.first_continuation_;
-  }
-
-  void unset_first_continuation()
-  {
-    first_continuation_ = false;
+    return FramePlayer::operator==( other ) and need_continuation_ == other.need_continuation_;
   }
 };
 

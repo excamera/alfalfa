@@ -13,7 +13,7 @@ using namespace std;
 
 int main( int argc, char const *argv[] )
 {
-  //try {
+  try {
     if ( argc != 3 ) {
       cerr << "Usage: " << argv[ 0 ] << " <ivf-file> <destination-dir>" << endl;
       return EX_USAGE;
@@ -27,10 +27,10 @@ int main( int argc, char const *argv[] )
     WritableAlfalfaVideo alfalfa_video( destination_dir, ivf );
 
     alfalfa_video.import( ivf_file );
-  //} catch ( const exception & e ) {
-  //  print_exception( argv[ 0 ], e );
-  //  return EXIT_FAILURE;
-  //}
+  } catch ( const exception & e ) {
+    print_exception( argv[ 0 ], e );
+    return EXIT_FAILURE;
+  }
 
   return EXIT_SUCCESS;
 }

@@ -4,8 +4,6 @@
 #include "macroblock.hh"
 #include "vp8_raster.hh"
 
-#include "config.h"
-
 using namespace std;
 
 template <unsigned int size>
@@ -331,29 +329,6 @@ void VP8Raster::Block4::intra_predict( const bmode b_mode )
   default: throw LogicError();
   }
 }
-
-class EdgeExtendedRaster
-{
-private:
-  const TwoD< uint8_t > & master_;
-
-public:
-  EdgeExtendedRaster( const TwoD< uint8_t > & master )
-    : master_( master ) {}
-
-  uint8_t at( const int column, const int row ) const
-  {
-    int bounded_column = column;
-    if ( bounded_column < 0 ) bounded_column = 0;
-    if ( bounded_column > int(master_.width() - 1) ) bounded_column = master_.width() - 1;
-
-    int bounded_row = row;
-    if ( bounded_row < 0 ) bounded_row = 0;
-    if ( bounded_row > int(master_.height() - 1) ) bounded_row = master_.height() - 1;
-
-    return master_.at( bounded_column, bounded_row );
-  }
-};
 
 static constexpr SafeArray<SafeArray<int16_t, 6>, 8> sixtap_filters =
   {{ { { 0,  0,  128,    0,   0,  0 } },

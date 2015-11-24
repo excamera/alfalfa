@@ -93,6 +93,7 @@ public:
     void intra_predict( const PredictionMode mb_mode );
 
     void inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference );
+    void analyze_inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference );
 
     template <class ReferenceType>
     void safe_inter_predict( const MotionVector & mv, const ReferenceType & reference,
@@ -176,6 +177,29 @@ public:
   }
 
   static unsigned int macroblock_dimension( const unsigned int num ) { return ( num + 15 ) / 16; }
+};
+
+class EdgeExtendedRaster
+{
+private:
+  const TwoD< uint8_t > & master_;
+
+public:
+  EdgeExtendedRaster( const TwoD< uint8_t > & master )
+    : master_( master ) {}
+
+  uint8_t at( const int column, const int row ) const
+  {
+    int bounded_column = column;
+    if ( bounded_column < 0 ) bounded_column = 0;
+    if ( bounded_column > int(master_.width() - 1) ) bounded_column = master_.width() - 1;
+
+    int bounded_row = row;
+    if ( bounded_row < 0 ) bounded_row = 0;
+    if ( bounded_row > int(master_.height() - 1) ) bounded_row = master_.height() - 1;
+
+    return master_.at( bounded_column, bounded_row );
+  }
 };
 
 #endif //

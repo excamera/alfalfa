@@ -1,0 +1,65 @@
+#!/usr/bin/env perl
+
+use strict;
+use File::Path 'rmtree';
+
+sub check {
+  my ( $orig_ivf, $step ) = @_;
+  $step ||= 1;
+
+  $orig_ivf = 'test_vectors/' . $orig_ivf;
+
+  my $randsuffix = sprintf "%08X", rand(0xffffffff);
+  my $orig_alf = "switch-orig-$randsuffix.alf";
+
+  my $encode_alf = "switch-encode-$randsuffix.alf";
+
+  system( "../frontend/alfalfa-import $orig_ivf $orig_alf" );
+  system( "../frontend/alfalfa-encode $orig_alf 0 $encode_alf --best -v --ivf --q-hist=100 --rate-hist=100 --end-usage=cq --buf-sz=1000000 --auto-alt-ref=1  --cq-level=63 --tune=ssim --kf-max-dist=1000000 --buf-initial-sz=0 --buf-optimal-sz=500000 --lag-in-frames=16 --target-bitrate=50000000" );
+
+  my $combined_alf = "switch-combine-$randsuffix.alf";
+
+  system( "../frontend/alfalfa-combine $orig_alf $encode_alf $combined_alf" );
+
+  my $weaved_alf = "switch-weave-$randsuffix.alf";
+
+  system( "../frontend/alfalfa-weave $combined_alf $weaved_alf 0  1" );
+
+  my $total_frames = `../frontend/alfalfa-describe $weaved_alf |grep "Frame Count" | awk -F' ' '{print \$3}'`;
+
+  if ( $total_frames == 0 ) {
+    printf STDERR "$0: weave failed\n";
+    exit( 1 );
+  }
+
+  my $error = 0;
+
+  for ( my $switch_num = 0; $switch_num < $total_frames; $switch_num += $step ) {
+    my $weave_sha1 = ( split ' ', `./alfalfa-continuation-switch $weaved_alf $switch_num | sha1sum` )[ 0 ];
+
+    my $correct_sha1 = ( split ' ', `./alfalfa-fake-switch $weaved_alf $switch_num | sha1sum` )[ 0 ];
+
+    if ( $weave_sha1 ne $correct_sha1 ) {
+      printf STDERR "$0: switch mismatch\n";
+      $error = 1;
+      last;
+    }
+  }
+
+  rmtree [ $orig_alf ];
+  rmtree [ $encode_alf ];
+  rmtree [ $combined_alf ];
+  rmtree [ $weaved_alf ];
+
+  if ( $error ) {
+    exit( 1 );
+  }
+}
+
+check( '2a4c049c2f8e3a19ee39ffd7074cecd68006a101', 13 );
+check( 'dbdd07032180b63689fc0475cdfac1ed927cd253' );
+check( '075d4eb18cbb2885d57eae5201cafb54bc43acca' );
+
+print STDERR "$0: all tests passed\n";
+
+exit 0;

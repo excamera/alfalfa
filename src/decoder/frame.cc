@@ -435,6 +435,14 @@ string InterFrame::stats( void ) const
     reference_update_stats();
 }
 
+template <class FrameHeaderType, class MacroblockType>
+bool Frame<FrameHeaderType, MacroblockType>::operator==( const Frame & other ) const
+{
+  return Y2_ == other.Y2_ and Y_ == other.Y_ and U_ == other.U_ and V_ == other.V_ and
+         macroblock_headers_ == other.macroblock_headers_ and
+         header_ == other.header_;
+}
+
 template class Frame<KeyFrameHeader, KeyFrameMacroblock>;
 template class Frame<InterFrameHeader, InterFrameMacroblock>;
 template class Frame<StateUpdateFrameHeader, StateUpdateFrameMacroblock>;

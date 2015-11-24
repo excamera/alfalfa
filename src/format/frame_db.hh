@@ -141,12 +141,12 @@ private:
   private:
     size_t stage_;
     SourceHash source_hash_;
-    FrameDataSetCollectionBySourceHash & data_set_;
-    FrameDataSetCollectionBySourceHash::iterator itr_;
-    FrameDataSetCollectionBySourceHash::iterator begin_, current_end_;
+    const FrameDataSetCollectionBySourceHash & data_set_;
+    FrameDataSetCollectionBySourceHash::const_iterator itr_;
+    FrameDataSetCollectionBySourceHash::const_iterator begin_, current_end_;
 
   public:
-    FrameDataSetSourceHashSearchIterator( FrameDataSetCollectionBySourceHash & data_set,
+    FrameDataSetSourceHashSearchIterator( const FrameDataSetCollectionBySourceHash & data_set,
       SourceHash source_hash, bool end );
 
     FrameDataSetSourceHashSearchIterator( const FrameDataSetSourceHashSearchIterator & it );
@@ -162,13 +162,14 @@ private:
   };
 
   SourceHash source_hash_;
-  FrameDataSetCollectionBySourceHash & data_set_;
+  const FrameDataSetCollectionBySourceHash & data_set_;
   FrameDataSetSourceHashSearchIterator begin_iterator_, end_iterator_;
 
 public:
   typedef FrameDataSetSourceHashSearchIterator iterator;
+  typedef FrameDataSetSourceHashSearchIterator const_iterator;
 
-  FrameDataSetSourceHashSearch( FrameDataSetCollectionBySourceHash & data_set, SourceHash source_hash );
+  FrameDataSetSourceHashSearch( const FrameDataSetCollectionBySourceHash & data_set, SourceHash source_hash );
 
   iterator begin() { return begin_iterator_; }
   iterator end() { return end_iterator_; }
@@ -190,19 +191,19 @@ public:
       frame_id_++;
   }
 
-  std::pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator>
-  search_by_output_hash( const size_t output_hash );
+  std::pair<FrameDataSetCollectionByOutputHash::const_iterator, FrameDataSetCollectionByOutputHash::const_iterator>
+  search_by_output_hash( const size_t output_hash ) const;
 
-  std::pair<FrameDataSetSourceHashSearch::iterator, FrameDataSetSourceHashSearch::iterator>
-  search_by_decoder_hash( const DecoderHash & decoder_hash );
+  std::pair<FrameDataSetSourceHashSearch::const_iterator, FrameDataSetSourceHashSearch::const_iterator>
+  search_by_decoder_hash( const DecoderHash & decoder_hash ) const;
 
   size_t insert( FrameInfo frame );
 
-  bool has_frame_id( const size_t frame_id );
-  bool has_frame_name( const FrameName & name );
-  const FrameInfo & search_by_frame_id( const size_t frame_id );
+  bool has_frame_id( const size_t frame_id ) const;
+  bool has_frame_name( const FrameName & name ) const;
+  const FrameInfo & search_by_frame_id( const size_t frame_id ) const;
 
-  const FrameInfo & search_by_frame_name( const FrameName & name );
+  const FrameInfo & search_by_frame_name( const FrameName & name ) const;
 
 };
 

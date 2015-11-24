@@ -10,6 +10,8 @@ struct References;
 struct Segmentation;
 struct FilterAdjustments;
 
+class ReferenceDependency;
+
 struct Quantizers
 {
   Quantizer quantizer;
@@ -62,9 +64,8 @@ class Frame
   /* Construct a RefUpdateFrame */
   Frame( const reference_frame & ref_to_update, const ReferenceUpdater & update_info );
 
+  /* Rewrite InterFrame */
   Frame( const Frame & original,
-         const ProbabilityTables & source_probs,
-         const ProbabilityTables & target_probs,
          const Optional<Segmentation> & target_segmentation,
          const Optional<FilterAdjustments> & target_filter );
 
@@ -98,6 +99,10 @@ class Frame
   uint8_t dct_partition_count( void ) const { return 1 << header_.log2_number_of_dct_partitions; }
 
   bool show_frame( void ) const { return show_; }
+
+  bool operator==( const Frame & other ) const;
+
+  void analyze_dependencies( const ReferenceDependency & deps ) const;
 };
 
 using KeyFrame = Frame<KeyFrameHeader, KeyFrameMacroblock>;
@@ -144,8 +149,8 @@ private:
   uint8_t prob_skip_;
   unsigned width_, height_;
 public:
-  ReferenceUpdater( const reference_frame & ref_frame, const RasterHandle & current,
-                    const RasterHandle & target, const ReferenceDependency & dependencies );
+  ReferenceUpdater( const reference_frame & ref_frame, const VP8Raster & current,
+                    const VP8Raster & target, const ReferenceDependency & dependencies );
 
   Optional<ReferenceUpdater::MacroblockDiff> macroblock( const unsigned int column, const unsigned int row ) const;
 

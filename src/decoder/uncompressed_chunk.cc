@@ -35,7 +35,7 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
       experimental_ = true;
       reference_update_ = false;
       break;
-    case 5:
+    case 6:
       reconstruction_filter_ = ReconstructionFilterType::Bicubic;
       loop_filter_ = LoopFilterType::NoFilter;
       experimental_ = true;
@@ -52,8 +52,10 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
     uint32_t first_partition_length = frame.bits( 5, 19 );
     uint32_t first_partition_byte_offset = key_frame_ ? 10 : 3;
 
-    if ( frame.size() <= first_partition_byte_offset + first_partition_length ) {
-      throw Invalid( "invalid VP8 first partition length" );
+    if ( not ( experimental_ and not reference_update_ ) ) {
+      if ( frame.size() <= first_partition_byte_offset + first_partition_length ) {
+        throw Invalid( "invalid VP8 first partition length" );
+      }
     }
 
     first_partition_ = frame( first_partition_byte_offset, first_partition_length );

@@ -10,126 +10,6 @@
 
 using namespace std;
 
-static vector< uint8_t > make_frame( const bool key_frame,
-				     const bool show_frame,
-				     const bool experimental,
-                                     const bool reference_update,
-				     const uint16_t width,
-				     const uint16_t height,
-				     const vector< uint8_t > & first_partition,
-				     const vector< vector< uint8_t > > & dct_partitions )
-{
-  if ( width > 16383 or height > 16383 ) {
-    throw Invalid( "VP8 frame dimensions too large." );
-  }
-
-  if ( dct_partitions.empty() ) {
-    throw Invalid( "at least one DCT partition is required." );
-  }
-
-  vector< uint8_t > ret;
-
-  const uint32_t first_partition_length = first_partition.size();
-
-  /* frame tag */
-  ret.emplace_back( ( !key_frame ) | ( reference_update << 2 ) | ( experimental << 3 ) |
-                    ( show_frame << 4 ) | ( first_partition_length & 0x7 ) << 5 );
-  ret.emplace_back( ( first_partition_length & 0x7f8 ) >> 3 );
-  ret.emplace_back( ( first_partition_length & 0x7f800 ) >> 11 );
-
-  if ( key_frame ) {
-    /* start code */
-    ret.emplace_back( 0x9d );
-    ret.emplace_back( 0x01 );
-    ret.emplace_back( 0x2a );
-
-    /* width */
-    ret.emplace_back( width & 0xff );
-    ret.emplace_back( (width & 0x3f00) >> 8 );
-
-    /* height */
-    ret.emplace_back( height & 0xff );
-    ret.emplace_back( (height & 0x3f00) >> 8 );
-  }
-
-  /* first partition */
-  ret.insert( ret.end(), first_partition.begin(), first_partition.end() );
-
-  /* DCT partition lengths */
-  for ( unsigned int i = 0; i < dct_partitions.size() - 1; i++ ) {
-    const uint32_t length = dct_partitions.at( i ).size();
-    ret.emplace_back( length & 0xff );
-    ret.emplace_back( (length & 0xff00) >> 8 );
-    ret.emplace_back( (length & 0xff0000) >> 16 );
-  }
-
-  for ( const auto & dct_partition : dct_partitions ) {
-    ret.insert( ret.end(), dct_partition.begin(), dct_partition.end() );
-  }
-
-  return ret;
-}
-
-template <>
-vector<uint8_t> KeyFrame::serialize( const ProbabilityTables & probability_tables ) const
-{
-  ProbabilityTables frame_probability_tables( probability_tables );
-  frame_probability_tables.coeff_prob_update( header() );
-
-  return make_frame( true,
-		     show_,
-                     false,
-                     false,
-		     display_width_, display_height_,
-		     serialize_first_partition( frame_probability_tables ),
-		     serialize_tokens( frame_probability_tables ) );
-}
-
-template <>
-vector<uint8_t> InterFrame::serialize( const ProbabilityTables & probability_tables ) const
-{
-  ProbabilityTables frame_probability_tables( probability_tables );
-  frame_probability_tables.update( header() );
-
-  return make_frame( false,
-		     show_,
-                     false,
-                     false,
-		     display_width_, display_height_,
-		     serialize_first_partition( frame_probability_tables ),
-		     serialize_tokens( frame_probability_tables ) );
-}
-
-template <>
-vector<uint8_t> RefUpdateFrame::serialize( const ProbabilityTables & probability_tables ) const
-{
-  ProbabilityTables frame_probability_tables( probability_tables );
-  frame_probability_tables.coeff_prob_update( header() );
-
-  return make_frame( false,
-                     show_,
-                     true,
-                     true,
-                     display_width_, display_height_,
-                     serialize_first_partition( frame_probability_tables ),
-                     serialize_tokens( frame_probability_tables ) );
-}
-
-template <>
-vector<uint8_t> StateUpdateFrame::serialize( const ProbabilityTables & probability_tables ) const
-{
-  ProbabilityTables frame_probability_tables( probability_tables );
-  frame_probability_tables.mv_prob_replace( header().mv_prob_replacement );
-
-  return make_frame( false,
-                     show_,
-                     true,
-                     false,
-                     display_width_, display_height_,
-                     serialize_first_partition( frame_probability_tables ),
-                     serialize_tokens( frame_probability_tables ) );
-}
-
 static void encode( BoolEncoder & encoder, const Boolean & flag, const Probability probability = 128 )
 {
   encoder.put( flag, probability );
@@ -237,6 +117,9 @@ static void encode( BoolEncoder & encoder, const UpdateSegmentation & h )
 
 static void encode( BoolEncoder & encoder, const StateUpdateFrameHeader & h )
 {
+  encode( encoder, h.token_prob_update );
+  encode( encoder, h.intra_16x16_prob );
+  encode( encoder, h.intra_chroma_prob );
   encode( encoder, h.mv_prob_replacement );
 }
 
@@ -523,6 +406,15 @@ vector< uint8_t > Frame< FrameHeaderType, MacroblockType >::serialize_first_part
 							    header(),
 							    segment_tree_probs,
 							    probability_tables ); } );
+
+  return encoder.finish();
+}
+
+template <>
+vector<uint8_t> StateUpdateFrame::serialize_first_partition( const ProbabilityTables & ) const
+{
+  BoolEncoder encoder;
+  encode( encoder, header() );
 
   return encoder.finish();
 }
@@ -857,3 +749,121 @@ void Block< initial_block_type,
     encoder.put( false, prob.at( 0 ) );
   }
 }
+
+static vector< uint8_t > make_frame( const bool key_frame,
+				     const bool show_frame,
+				     const bool experimental,
+                                     const bool reference_update,
+				     const uint16_t width,
+				     const uint16_t height,
+				     const vector< uint8_t > & first_partition,
+				     const vector< vector< uint8_t > > & dct_partitions )
+{
+  if ( width > 16383 or height > 16383 ) {
+    throw Invalid( "VP8 frame dimensions too large." );
+  }
+
+  if ( dct_partitions.empty() ) {
+    throw Invalid( "at least one DCT partition is required." );
+  }
+
+  vector< uint8_t > ret;
+
+  const uint32_t first_partition_length = first_partition.size();
+
+  /* frame tag */
+  ret.emplace_back( ( !key_frame ) | ( reference_update << 2 ) | ( experimental << 3 ) |
+                    ( show_frame << 4 ) | ( first_partition_length & 0x7 ) << 5 );
+  ret.emplace_back( ( first_partition_length & 0x7f8 ) >> 3 );
+  ret.emplace_back( ( first_partition_length & 0x7f800 ) >> 11 );
+
+  if ( key_frame ) {
+    /* start code */
+    ret.emplace_back( 0x9d );
+    ret.emplace_back( 0x01 );
+    ret.emplace_back( 0x2a );
+
+    /* width */
+    ret.emplace_back( width & 0xff );
+    ret.emplace_back( (width & 0x3f00) >> 8 );
+
+    /* height */
+    ret.emplace_back( height & 0xff );
+    ret.emplace_back( (height & 0x3f00) >> 8 );
+  }
+
+  /* first partition */
+  ret.insert( ret.end(), first_partition.begin(), first_partition.end() );
+
+  /* DCT partition lengths */
+  for ( unsigned int i = 0; i < dct_partitions.size() - 1; i++ ) {
+    const uint32_t length = dct_partitions.at( i ).size();
+    ret.emplace_back( length & 0xff );
+    ret.emplace_back( (length & 0xff00) >> 8 );
+    ret.emplace_back( (length & 0xff0000) >> 16 );
+  }
+
+  for ( const auto & dct_partition : dct_partitions ) {
+    ret.insert( ret.end(), dct_partition.begin(), dct_partition.end() );
+  }
+
+  return ret;
+}
+
+template <>
+vector<uint8_t> KeyFrame::serialize( const ProbabilityTables & probability_tables ) const
+{
+  ProbabilityTables frame_probability_tables( probability_tables );
+  frame_probability_tables.coeff_prob_update( header() );
+
+  return make_frame( true,
+		     show_,
+                     false,
+                     false,
+		     display_width_, display_height_,
+		     serialize_first_partition( frame_probability_tables ),
+		     serialize_tokens( frame_probability_tables ) );
+}
+
+template <>
+vector<uint8_t> InterFrame::serialize( const ProbabilityTables & probability_tables ) const
+{
+  ProbabilityTables frame_probability_tables( probability_tables );
+  frame_probability_tables.update( header() );
+
+  return make_frame( false,
+		     show_,
+                     false,
+                     false,
+		     display_width_, display_height_,
+		     serialize_first_partition( frame_probability_tables ),
+		     serialize_tokens( frame_probability_tables ) );
+}
+
+template <>
+vector<uint8_t> RefUpdateFrame::serialize( const ProbabilityTables & probability_tables ) const
+{
+  ProbabilityTables frame_probability_tables( probability_tables );
+  frame_probability_tables.coeff_prob_update( header() );
+
+  return make_frame( false,
+                     show_,
+                     true,
+                     true,
+                     display_width_, display_height_,
+                     serialize_first_partition( frame_probability_tables ),
+                     serialize_tokens( frame_probability_tables ) );
+}
+
+template <>
+vector<uint8_t> StateUpdateFrame::serialize( const ProbabilityTables & probability_tables ) const
+{
+  return make_frame( false,
+                     show_,
+                     true,
+                     false,
+                     display_width_, display_height_,
+                     serialize_first_partition( probability_tables ),
+                     vector<vector<uint8_t>>{ vector<uint8_t>() } );
+}
+

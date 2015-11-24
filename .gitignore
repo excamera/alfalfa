@@ -45,9 +45,6 @@ Makefile.in
 /src/tests/encode-loopback
 /src/tests/extract-key-frames
 /src/tests/roundtrip
-/src/tests/videodir-to-stdout
-/src/tests/switch-to-stdout
-/src/tests/single-frameify
 /src/tests/state-collisions
 /src/tests/ivfcopy
 /src/tests/framedb-test
@@ -58,5 +55,7 @@ Makefile.in
 /src/tests/alfalfa-encode-check
 /src/tests/alfalfa-import-check
 /src/tests/alfalfa-decode-to-stdout
+/src/tests/alfalfa-continuation-switch
+/src/tests/alfalfa-fake-switch
 
 /src/tests/test_vectors/

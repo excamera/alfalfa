@@ -103,8 +103,6 @@ void DCTCoefficients::idct_add( VP8Raster::Block4 & output ) const
 template <BlockType initial_block_type, class PredictionMode>
 void Block< initial_block_type, PredictionMode >::add_residue( VP8Raster::Block4 & output ) const
 {
-  assert( type_ == UV or type_ == Y_without_Y2 );
-
   for ( uint8_t i = 0; i < 16; i++ ) {
     output.at( i % 4, i / 4 ) = clamp255( output.at( i % 4, i / 4 )
 					  + coefficients_.at( zigzag.at( i ) ) );

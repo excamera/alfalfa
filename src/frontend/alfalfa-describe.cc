@@ -34,9 +34,8 @@ int main( int argc, char const *argv[] )
     PlayableAlfalfaVideo alf( alf_path );
 
     // Get databases from alfalfa video
-    QualityDB quality_db = alf.quality_db();
-    TrackDB track_db = alf.track_db();
-    FrameDB frame_db = alf.frame_db();
+    const QualityDB & quality_db = alf.quality_db();
+    const FrameDB & frame_db = alf.frame_db();
 
     // One frame count per video
     uint32_t frame_count = 0;
@@ -46,8 +45,7 @@ int main( int argc, char const *argv[] )
     // Initialize duration
     double duration_in_seconds = 0.0;
 
-    pair<unordered_set<size_t>::iterator, unordered_set<size_t>::iterator>
-    track_ids_iterator = alf.get_track_ids();
+    auto track_ids_iterator = alf.get_track_ids();
 
     // Loop through each track_id
     for ( auto it = track_ids_iterator.first; it != track_ids_iterator.second; it++ )
@@ -72,7 +70,7 @@ int main( int argc, char const *argv[] )
         FrameInfo fi = *track_beginning;
         if ( fi.target_hash().shown ) {
           // Get an iterator to the quality data for a frame and read quality member variable
-          pair<QualityDBCollectionByApproximateRaster::iterator, QualityDBCollectionByApproximateRaster::iterator> quality_iterator = quality_db.search_by_approximate_raster( fi.target_hash().output_hash );
+          auto quality_iterator = quality_db.search_by_approximate_raster( fi.target_hash().output_hash );
           double quality = ( *quality_iterator.first ).quality;
           quality_sum += quality;
 
@@ -84,7 +82,7 @@ int main( int argc, char const *argv[] )
           frame_count++;
         }
         // Get an iterator to the frame even if it is not shown. Total coded size includes both shown and unshown frames.
-        pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator> frame_iterator = frame_db.search_by_output_hash( fi.target_hash().output_hash );
+        auto frame_iterator = frame_db.search_by_output_hash( fi.target_hash().output_hash );
 
         uint64_t frame_length = ( *frame_iterator.first ).length();
 

@@ -3,6 +3,11 @@
 
 using namespace std;
 
+FrameName::FrameName( const string & name )
+  : source( name ),
+    target( name )
+{}
+
 FrameName::FrameName( const SourceHash & s, const TargetHash & t )
   : source( s ),
     target( t )

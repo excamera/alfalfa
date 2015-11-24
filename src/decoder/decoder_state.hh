@@ -5,57 +5,6 @@
 #include "frame.hh"
 
 template <class HeaderType>
-void ProbabilityTables::coeff_prob_update( const HeaderType & header )
-{
-  /* token probabilities (if given in frame header) */
-  for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
-    for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
-      for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
-	for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
-	  const auto & node = header.token_prob_update.at( i ).at( j ).at( k ).at( l ).coeff_prob;
-	  if ( node.initialized() ) {
-	    coeff_probs.at( i ).at( j ).at( k ).at( l ) = node.get();
-	  }
-	}
-      }
-    }
-  }
-}
-  
-template <unsigned int size>
-static void assign( SafeArray< Probability, size > & dest, const Array< Unsigned<8>, size > & src )
-{
-  for ( unsigned int i = 0; i < size; i++ ) {
-    dest.at( i ) = src.at( i );
-  }
-}
-
-template <class HeaderType>
-void ProbabilityTables::update( const HeaderType & header )
-{
-  coeff_prob_update( header );
-
-  /* update intra-mode probabilities in inter macroblocks */
-  if ( header.intra_16x16_prob.initialized() ) {
-    assign( y_mode_probs, header.intra_16x16_prob.get() );
-  }
-
-  if ( header.intra_chroma_prob.initialized() ) {
-    assign( uv_mode_probs, header.intra_chroma_prob.get() );
-  }
-
-  /* update motion vector component probabilities */
-  for ( uint8_t i = 0; i < header.mv_prob_update.size(); i++ ) {
-    for ( uint8_t j = 0; j < header.mv_prob_update.at( i ).size(); j++ ) {
-      const auto & prob = header.mv_prob_update.at( i ).at( j );
-      if ( prob.initialized() ) {
-	motion_vector_probs.at( i ).at( j ) = prob.get();
-      }
-    }
-  }
-}
-
-template <class HeaderType>
 void Segmentation::update( const HeaderType & header )
 {
   assert( header.update_segmentation.initialized() );
@@ -190,8 +139,7 @@ inline StateUpdateFrame DecoderState::parse_and_apply<StateUpdateFrame>( const U
   /* parse interframe header */
   StateUpdateFrame myframe( false, width, height, first_partition );
 
-  /* State update frames currently only update the motion vectors */
-  probability_tables.mv_prob_replace( myframe.header().mv_prob_replacement );
+  probability_tables.update( myframe.header() );
 
   return myframe;
 }

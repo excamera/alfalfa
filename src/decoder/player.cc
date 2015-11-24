@@ -17,6 +17,30 @@ Optional<RasterHandle> FramePlayer::decode( const Chunk & chunk )
   return decoder_.parse_and_decode_frame( chunk );
 }
 
+Optional<RasterHandle> FramePlayer::safe_decode( const FrameInfo & info, const Chunk & chunk )
+{
+#ifndef NDEBUG
+  DecoderHash correct_hash = decoder_.get_hash();
+  if ( not correct_hash.can_decode( info.source_hash() ) ) {
+    throw Invalid( "Player cannot decode frame" );
+  }
+
+  Optional<RasterHandle> output = decode( chunk );
+
+  DecoderHash real_hash = decoder_.get_hash();
+  correct_hash.update( info.target_hash() );
+
+  if ( real_hash != correct_hash ) {
+    cerr << real_hash.str() << " " << correct_hash.str() << " from " << info.frame_name() << "\n";
+    throw Invalid( "Player incorrectly decoded frame" );
+  }
+
+  return output;
+#else
+  return decode( chunk )
+#endif
+}
+
 bool FramePlayer::can_decode( const FrameInfo & frame ) const
 {
   // FIXME shouldn't have to fully hash this?

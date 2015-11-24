@@ -144,14 +144,6 @@ struct DecoderState
   size_t hash( void ) const;
 };
 
-struct DecoderDiff
-{
-  ProbabilityTables source_probabilities;
-  ProbabilityTables target_probabilities;
-  Optional<Segmentation> target_segmentation;
-  Optional<FilterAdjustments> target_filter;
-};
-
 class Decoder
 {
 private:
@@ -191,8 +183,6 @@ public:
   References get_references( void ) const;
 
   bool operator==( const Decoder & other ) const;
-
-  DecoderDiff operator-( const Decoder & other ) const;
 };
 
 #endif /* DECODER_HH */

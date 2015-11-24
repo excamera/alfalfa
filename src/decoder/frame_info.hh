@@ -14,6 +14,7 @@ struct FrameName
 
   std::string str() const;
 
+  FrameName( const std::string & name );
   FrameName( const SourceHash & source, const TargetHash & target );
 };
 

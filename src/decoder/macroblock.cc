@@ -7,6 +7,8 @@
 #include "quantization.cc"
 #include "tree.cc"
 
+#include <algorithm>
+
 using namespace std;
 
 static bmode implied_subblock_mode( const mbmode y_mode )
@@ -395,7 +397,13 @@ template<>
 void RefUpdateFrameMacroblock::decode_prediction_modes( BoolDecoder &,
 						        const ProbabilityTables & )
 {
-  /* Don't need this currently */
+  /* Unset coded since pixel diffs don't need the Y2 block */
+  Y2_.set_coded( false );
+
+  Y_.forall( [&]( YBlock & block )
+	     {
+	       block.set_Y_without_Y2();
+	     } );
 }
 
 template<>
@@ -550,58 +558,6 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
 		    { block.dequantize( quantizer ).idct_add( raster.V_sub.at( column, row ) ); } );
     }
   }
-}
-
-/* Default case is macroblock doesn't depend on anything */
-template <class FrameHeaderType, class MacroblockHeaderType>
-vector<pair<unsigned, unsigned>> Macroblock<FrameHeaderType, MacroblockHeaderType>::required_macroblocks() const
-{
-  return vector<pair<unsigned, unsigned>>();
-}
-
-template <class ContextType> 
-static vector<pair<unsigned, unsigned>> translate_block_deps( const ContextType & context, const MotionVector & mv, unsigned size )
-{
-  vector<pair<unsigned, unsigned>> coords;
-
-  unsigned col = context.column * size + ( mv.x() >> 3 );
-  unsigned row = context.row * size + ( mv.y() >> 3 );
-
-  for ( unsigned cur_row = VP8Raster::macroblock_dimension( row - 2 ); cur_row < VP8Raster::macroblock_dimension( row + size + 3 ); cur_row++ ) {
-    for ( unsigned cur_col = VP8Raster::macroblock_dimension( col - 2 ); cur_col <  VP8Raster::macroblock_dimension( col + size + 3 ); cur_col++ ) {
-      coords.push_back( make_pair( cur_col, cur_row ) );
-    }
-  }
-
-  return coords;
-}
-
-template <>
-vector<pair<unsigned, unsigned>> InterFrameMacroblock::required_macroblocks() const
-{
-  vector<pair<unsigned, unsigned>> required;
-
-  /* FIXME Shares a lot of code with VP8Raster::Block::inter_predict and probably is fucking slow */
-  if ( Y2_.prediction_mode() == SPLITMV ) {
-    /* Each block has its own motion vector. Look at all of these and see which macroblocks they
-     * point at */
-    Y_.forall( [&] ( const YBlock & block ) { 
-                 auto block_deps = translate_block_deps( block.context(), block.motion_vector(), 16 );
-                 required.insert( required.end(), block_deps.begin(), block_deps.end() );
-               } );
-    U_.forall( [&] ( const UVBlock & block ) { 
-                 auto block_deps = translate_block_deps( block.context(), block.motion_vector(), 8 );
-                 required.insert( required.end(), block_deps.begin(), block_deps.end() );
-               } );
-  } else {
-    auto coords = translate_block_deps( Y_.at( 0, 0 ).context(), base_motion_vector(), 16 );
-    required.insert( required.end(), coords.begin(), coords.end() );
-
-    coords = translate_block_deps( U_.at( 0, 0 ).context(), U_.at( 0, 0 ).motion_vector(), 8 );
-    required.insert( required.end(), coords.begin(), coords.end() );
-  }
-
-  return required;
 }
 
 template <class FrameHeaderType, class MacroblockHeaderType>
