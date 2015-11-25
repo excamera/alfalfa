@@ -1,45 +1,36 @@
+#include <cassert>
+
 #include "subprocess.hh"
 #include "exception.hh"
 
 using namespace std;
 
-Subprocess::Subprocess()
+template <typename T>
+T * notnull( const string & attempt, T * x )
+{
+  if ( x ) { return x; }
+  throw unix_error( attempt );
+}
+
+Subprocess::Subprocess( const string & command, const string & type )
+  : file_( notnull( "popen", popen( command.c_str(), type.c_str() ) ) )
 {}
 
-void Subprocess::call( const string & command, const string & type )
+void Subprocess::Deleter::operator()( FILE * x ) const
 {
-  file_.reset( popen( command.c_str(), type.c_str() ) );
+  SystemCall( "pclose", pclose( x ) );
+}
 
-  if ( file_ == nullptr ) {
-    throw unix_error( "popen failed" );
+void Subprocess::write_string( const string & str )
+{
+  assert( file_ );
+  if ( 1 != fwrite( str.data(), str.length(), 1, file_.get() ) ) {
+    throw runtime_error( "fwrite returned short write" );
   }
 }
 
-int Subprocess::wait()
+void Subprocess::close()
 {
-  if ( file_ == nullptr ) {
-    throw unix_error( "nothing to close" );
-  }
-
-  int ret = SystemCall( "pclose", pclose( file_.get() ) );
-  file_.release();
-
-  return ret;
-}
-
-size_t Subprocess::write_string( const string & str )
-{
-  if ( file_ == nullptr ) {
-    throw unix_error( "nowhere to write" );
-  }
-
-  return SystemCall( "fwrite", fwrite( str.c_str(), 1, str.length(), file_.get() ) );
-}
-
-Subprocess::~Subprocess()
-{
-  if ( file_ != nullptr ) {
-    pclose( file_.get() );
-    file_.release();
-  }
+  file_.reset();
+  assert( not file_ );
 }

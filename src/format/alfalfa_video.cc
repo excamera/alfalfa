@@ -416,8 +416,7 @@ void PlayableAlfalfaVideo::encode( const size_t track_id, vector<string> vpxenc_
     stage_command << "--passes=" << total_passes
                   << " --pass=" << pass;
 
-    Subprocess proc;
-    proc.call( stage_command.str(), "w" );
+    Subprocess proc( stage_command.str(), "w" );
 
     FramePlayer player( video_manifest().width(), video_manifest().height() );
 
@@ -427,10 +426,9 @@ void PlayableAlfalfaVideo::encode( const size_t track_id, vector<string> vpxenc_
       << "H" << video_manifest().height() << " "
       << "Ip A0:0 C420 C420jpeg XYSCSS=420JPEG\n";
 
-    string header( ss.str() );
-    proc.write_string( header );
+    proc.write_string( ss.str() );
 
-    for( auto track_frames = get_frames( track_id ); track_frames.first != track_frames.second; track_frames.first++ ) {
+    for ( auto track_frames = get_frames( track_id ); track_frames.first != track_frames.second; track_frames.first++ ) {
       Optional<RasterHandle> uncompressed_frame = player.decode( get_chunk( *track_frames.first ) );
 
       if ( uncompressed_frame.initialized() ) {
@@ -439,10 +437,6 @@ void PlayableAlfalfaVideo::encode( const size_t track_id, vector<string> vpxenc_
       }
     }
 
-    int status = proc.wait();
-
-    if ( status != 0 ) {
-      throw runtime_error( "encode failed" );
-    }
+    proc.close();
   }
 }
