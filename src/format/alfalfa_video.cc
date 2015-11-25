@@ -395,7 +395,7 @@ void PlayableAlfalfaVideo::encode( const size_t track_id, vector<string> vpxenc_
                                    const string & destination )
 {
   TempFile fpf_file( "fpf" );
-  int total_passes = 2;
+  const int total_passes = 2;
 
   // adding necessary output switches
   vpxenc_args.push_back( "-o" );
@@ -412,8 +412,6 @@ void PlayableAlfalfaVideo::encode( const size_t track_id, vector<string> vpxenc_
   );
 
   for ( int pass = 1; pass <= total_passes; pass++ ) {
-    vector<string> full_args = vpxenc_args;
-
     ostringstream stage_command( vpxenc_command.str(), ios_base::app | ios_base::out );
     stage_command << "--passes=" << total_passes
                   << " --pass=" << pass;
