@@ -1,16 +1,8 @@
 #ifndef RASTER_HH
 #define RASTER_HH
 
-#include <memory>
-#include <boost/functional/hash.hpp>
-#include <cmath>
-
 #include "2d.hh"
-#include "ssim.hh"
 #include "safe_array.hh"
-#include <config.h>
-
-#include <iostream>
 
 /* For an array of pixels, context and separate construction not necessary */
 template<>

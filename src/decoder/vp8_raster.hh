@@ -1,6 +1,7 @@
 #ifndef VP8_RASTER_H
 #define VP8_RASTER_H
 
+#include "config.h"
 #include "raster.hh"
 
 #ifdef HAVE_SSE2

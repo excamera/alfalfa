@@ -4,6 +4,8 @@
 #include "macroblock.hh"
 #include "vp8_raster.hh"
 
+#include "config.h"
+
 using namespace std;
 
 template <unsigned int size>

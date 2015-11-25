@@ -1,5 +1,8 @@
+#include <boost/functional/hash.hpp>
+
 #include "exception.hh"
 #include "raster.hh"
+#include "ssim.hh"
 
 BaseRaster::BaseRaster( const unsigned int display_width, const unsigned int display_height,
   const unsigned int width, const unsigned int height)
