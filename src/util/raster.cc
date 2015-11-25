@@ -60,16 +60,3 @@ void BaseRaster::dump( FILE * file ) const
     fwrite( &V().at( 0, row ), (1 + display_width()) / 2, 1, file );
   }
 }
-
-void BaseRaster::dump( int fd ) const
-{
-  for ( unsigned int row = 0; row < display_height(); row++ ) {
-    SystemCall( "write raster", write( fd, &Y().at( 0, row ), display_width() ) );
-  }
-  for ( unsigned int row = 0; row < (1 + display_height()) / 2; row++ ) {
-    SystemCall( "write raster", write( fd, &U().at( 0, row ), (1 + display_width()) / 2 ) );
-  }
-  for ( unsigned int row = 0; row < (1 + display_height()) / 2; row++ ) {
-    SystemCall( "write raster", write( fd, &V().at( 0, row ), (1 + display_width()) / 2 ) );
-  }
-}
