@@ -5,6 +5,8 @@
 #include <string>
 #include <memory>
 
+#include "chunk.hh"
+
 /* wraps popen */
 class Subprocess
 {
@@ -15,8 +17,7 @@ private:
 public:
   Subprocess( const std::string & command, const std::string & type );
 
-  void write_string( const std::string & str );
-  FILE * stream() { return file_.get(); }
+  void write( const Chunk & chunk );
 
   void close(); /* may throw exception, so better for caller to call explicitly
 		   instead of letting destructor possibly throw */

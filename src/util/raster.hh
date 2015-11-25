@@ -1,8 +1,11 @@
 #ifndef RASTER_HH
 #define RASTER_HH
 
+#include <vector>
+
 #include "2d.hh"
 #include "safe_array.hh"
+#include "chunk.hh"
 
 /* For an array of pixels, context and separate construction not necessary */
 template<>
@@ -43,6 +46,9 @@ public:
   unsigned int display_width( void ) const { return display_width_; }
   unsigned int display_height( void ) const { return display_height_; }
 
+  unsigned int chroma_display_width() const { return (1 + display_width_) / 2; }
+  unsigned int chroma_display_height() const { return (1 + display_height_) / 2; }
+
   // SSIM as determined by libx264
   double quality( const BaseRaster & other ) const;
 
@@ -50,7 +56,9 @@ public:
   bool operator!=( const BaseRaster & other ) const;
 
   void copy_from( const BaseRaster & other );
-  void dump( FILE * file ) const;
+
+  std::vector<Chunk> display_rectangle_as_planar() const;
+  void dump( FILE * file ) const; /* only used for debugging */
 };
 
 #endif /* RASTER_HH */

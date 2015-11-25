@@ -406,10 +406,9 @@ void PlayableAlfalfaVideo::encode( const size_t track_id, vector<string> vpxenc_
   ostringstream vpxenc_command;
   vpxenc_command << VPXENC_EXECUTABLE << " ";
 
-  for_each( vpxenc_args.begin(), vpxenc_args.end(), [ &vpxenc_command ]( string & s ) {
-      vpxenc_command << s <<  " ";
-    }
-  );
+  for ( const auto & s : vpxenc_args ) {
+    vpxenc_command << s <<  " ";
+  }
 
   for ( int pass = 1; pass <= total_passes; pass++ ) {
     ostringstream stage_command( vpxenc_command.str(), ios_base::app | ios_base::out );
@@ -420,23 +419,24 @@ void PlayableAlfalfaVideo::encode( const size_t track_id, vector<string> vpxenc_
 
     FramePlayer player( video_manifest().width(), video_manifest().height() );
 
-    ostringstream ss;
-    ss << "YUV4MPEG2 W" << video_manifest().width() << " "
-      << "F1:1 "
-      << "H" << video_manifest().height() << " "
-      << "Ip A0:0 C420 C420jpeg XYSCSS=420JPEG\n";
-
-    proc.write_string( ss.str() );
+    /* yuv4mpeg header */
+    proc.write( "YUV4MPEG2 W" + to_string( video_manifest().width() ) + " "
+		+ "F1:1 H" + to_string( video_manifest().height() ) + " "
+		+ "Ip A0:0 C420 C420jpeg XYSCSS=420JPEG\n" );
 
     for ( auto track_frames = get_frames( track_id ); track_frames.first != track_frames.second; track_frames.first++ ) {
-      Optional<RasterHandle> uncompressed_frame = player.decode( get_chunk( *track_frames.first ) );
+      Optional<RasterHandle> raster_handle = player.decode( get_chunk( *track_frames.first ) );
 
-      if ( uncompressed_frame.initialized() ) {
-        proc.write_string( "FRAME\n" );
-        uncompressed_frame.get().get().dump( proc.stream() );
+      if ( raster_handle.initialized() ) {
+	const string frame_tag { "FRAME\n" };
+        proc.write( frame_tag );
+
+	for ( const auto & chunk : raster_handle.get().get().display_rectangle_as_planar() ) {
+	  proc.write( chunk );
+	}
       }
     }
 
-    proc.close();
+    proc.close(); /* may throw an exception, so call explicitly instead of letting destructor do it */
   }
 }

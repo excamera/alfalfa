@@ -42,6 +42,11 @@ public:
       size_( s_size )
   {}
 
+  Chunk( const std::string & str )
+    : buffer_( reinterpret_cast<const uint8_t *>( str.data() ) ),
+      size_( str.size() )
+  {}
+
   const uint8_t * buffer( void ) const { return buffer_; }
   const uint64_t & size( void ) const { return size_; }
 

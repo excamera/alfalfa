@@ -21,10 +21,10 @@ void Subprocess::Deleter::operator()( FILE * x ) const
   SystemCall( "pclose", pclose( x ) );
 }
 
-void Subprocess::write_string( const string & str )
+void Subprocess::write( const Chunk & chunk )
 {
   assert( file_ );
-  if ( 1 != fwrite( str.data(), str.length(), 1, file_.get() ) ) {
+  if ( 1 != fwrite( chunk.buffer(), chunk.size(), 1, file_.get() ) ) {
     throw runtime_error( "fwrite returned short write" );
   }
 }
