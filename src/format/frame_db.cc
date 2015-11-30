@@ -32,6 +32,21 @@ FrameDB::search_by_decoder_hash( const DecoderHash & decoder_hash ) const
   return make_pair( results.begin(), results.end() );
 }
 
+pair<FrameDataSetCollectionBySourceHash::iterator, FrameDataSetCollectionBySourceHash::iterator>
+FrameDB::search_by_source_hash( const SourceHash & source_hash )
+{
+  FrameDataSetCollectionBySourceHash & data_by_source_hash =
+    collection_.get<FrameDataSetBySourceHashTag>();
+
+  return data_by_source_hash.equal_range( source_hash );
+}
+
+std::pair<FrameDataSetCollectionBySourceHash::iterator, FrameDataSetCollectionBySourceHash::iterator>
+FrameDB::search_for_keyframes()
+{
+  return search_by_source_hash( SourceHash::keyframe );
+}
+
 size_t
 FrameDB::insert( FrameInfo frame )
 {
@@ -86,7 +101,7 @@ FrameDB::search_by_frame_name( const FrameName & name ) const
 FrameDataSetSourceHashSearch::FrameDataSetSourceHashSearchIterator::FrameDataSetSourceHashSearchIterator(
   const FrameDataSetCollectionBySourceHash & data_set,
   SourceHash source_hash, bool end )
-  : stage_( 31 ),
+  : stage_( 15 ),
     source_hash_( source_hash ),
     data_set_( data_set ),
     itr_(), begin_(), current_end_()
@@ -124,9 +139,9 @@ FrameDataSetSourceHashSearch::FrameDataSetSourceHashSearchIterator::operator++()
 
     SourceHash query_hash(
       make_optional( (stage_ >> 0) & 1, source_hash_.state_hash.get() ),
-      make_optional( (stage_ >> 2) & 1, source_hash_.last_hash.get() ),
-      make_optional( (stage_ >> 3) & 1, source_hash_.golden_hash.get() ),
-      make_optional( (stage_ >> 4) & 1, source_hash_.alt_hash.get() )
+      make_optional( (stage_ >> 1) & 1, source_hash_.last_hash.get() ),
+      make_optional( (stage_ >> 2) & 1, source_hash_.golden_hash.get() ),
+      make_optional( (stage_ >> 3) & 1, source_hash_.alt_hash.get() )
     );
 
     auto result = data_set_.equal_range( query_hash );

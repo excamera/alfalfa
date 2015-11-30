@@ -39,6 +39,8 @@ struct SourceHash
 
   bool operator==( const SourceHash & other ) const;
   bool operator!=( const SourceHash & other ) const;
+
+  static const SourceHash keyframe;
 };
 
 struct UpdateTracker

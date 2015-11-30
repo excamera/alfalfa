@@ -197,6 +197,12 @@ public:
   std::pair<FrameDataSetSourceHashSearch::const_iterator, FrameDataSetSourceHashSearch::const_iterator>
   search_by_decoder_hash( const DecoderHash & decoder_hash ) const;
 
+  std::pair<FrameDataSetCollectionBySourceHash::iterator, FrameDataSetCollectionBySourceHash::iterator>
+  search_by_source_hash( const SourceHash & source_hash );
+
+  std::pair<FrameDataSetCollectionBySourceHash::iterator, FrameDataSetCollectionBySourceHash::iterator>
+  search_for_keyframes();
+
   size_t insert( FrameInfo frame );
 
   bool has_frame_id( const size_t frame_id ) const;
@@ -204,7 +210,6 @@ public:
   const FrameInfo & search_by_frame_id( const size_t frame_id ) const;
 
   const FrameInfo & search_by_frame_name( const FrameName & name ) const;
-
 };
 
 #endif /* FRAME_DB */

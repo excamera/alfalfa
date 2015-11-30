@@ -52,3 +52,8 @@ bool FrameInfo::shown() const
 {
   return name_.target.shown;
 }
+
+bool FrameInfo::is_keyframe() const
+{
+  return name_.source == SourceHash::keyframe;
+}

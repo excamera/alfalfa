@@ -8,6 +8,10 @@
 
 using namespace std;
 
+const SourceHash SourceHash::keyframe( make_optional<size_t>( false, 0 ),
+  make_optional<size_t>( false, 0 ), make_optional<size_t>( false, 0 ),
+  make_optional<size_t>( false, 0 ) );
+
 bool & DependencyTracker::reference( const reference_frame reference_id )
 {
   switch( reference_id ) {
@@ -163,7 +167,6 @@ string TargetHash::str() const
 bool TargetHash::operator==( const TargetHash & other ) const
 {
   return ( state_hash   == other.state_hash and
-    continuation_hash   == other.continuation_hash and
     output_hash         == other.output_hash and
     update_last         == other.update_last and
     update_golden       == other.update_golden and

@@ -63,6 +63,8 @@ public:
   bool validate_source( const DecoderHash & decoder_hash ) const;
   bool validate_target( const DecoderHash & decoder_hash ) const;
   bool shown() const;
+
+  bool is_keyframe() const;
 };
 
 #endif /* FRAME_INFO_HH */
