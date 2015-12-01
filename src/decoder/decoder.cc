@@ -12,6 +12,10 @@ Decoder::Decoder( const uint16_t width, const uint16_t height )
     references_( width, height )
 {}
 
+Decoder::Decoder( DecoderState state, References refs )
+  : state_( state ), references_( refs )
+{}
+
 UncompressedChunk Decoder::decompress_frame( const Chunk & compressed_frame ) const
 {
   /* parse uncompressed data chunk */
@@ -58,24 +62,30 @@ template pair<bool, RasterHandle> Decoder::decode_frame<StateUpdateFrame>( const
 /* This function takes care of the full decoding process from decompressing the Chunk
  * to returning an Optional<RasterHandle> as the output
  */
-Optional<RasterHandle> Decoder::parse_and_decode_frame( const Chunk & compressed_frame )
+pair<bool, RasterHandle> Decoder::get_frame_output( const Chunk & compressed_frame )
 {
   UncompressedChunk decompressed_frame = decompress_frame( compressed_frame );
   if ( decompressed_frame.key_frame() ) {
     auto output = decode_frame( parse_frame<KeyFrame>( decompressed_frame ) );
-    return make_optional( output.first, output.second );
+    return make_pair( output.first, output.second );
   } else if ( decompressed_frame.experimental() ) {
     if ( decompressed_frame.reference_update() ) {
       auto output = decode_frame( parse_frame<RefUpdateFrame>( decompressed_frame ) );
-      return make_optional( output.first, output.second );
+      return make_pair( output.first, output.second );
     } else {
       auto output = decode_frame( parse_frame<StateUpdateFrame>( decompressed_frame ) );
-      return make_optional( output.first, output.second );
+      return make_pair( output.first, output.second );
     }
   } else {
     auto output = decode_frame( parse_frame<InterFrame>( decompressed_frame ) );
-    return make_optional( output.first, output.second );
+    return make_pair( output.first, output.second );
   }
+}
+
+Optional<RasterHandle> Decoder::parse_and_decode_frame( const Chunk & compressed_frame )
+{
+  pair<bool, RasterHandle> output = get_frame_output( compressed_frame );
+  return make_optional( output.first, output.second );
 }
 
 SourceHash Decoder::source_hash( const DependencyTracker & deps ) const
@@ -111,7 +121,7 @@ bool Decoder::operator==( const Decoder & other ) const
     references_.golden == other.references_.golden and
     references_.alternative_reference == other.references_.alternative_reference;
 }
-   
+
 References::References( const uint16_t width, const uint16_t height )
   : References( MutableRasterHandle( width, height ) )
 {}

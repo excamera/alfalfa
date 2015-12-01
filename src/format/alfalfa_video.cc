@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <sstream>
 #include <algorithm>
+#include <forward_list>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <fcntl.h>
@@ -127,6 +128,12 @@ AlfalfaVideo::get_frames_by_output_hash( const size_t output_hash ) const
   return frame_db_.search_by_output_hash( output_hash );
 }
 
+pair<FrameDataSetSourceHashSearch::iterator, FrameDataSetSourceHashSearch::iterator>
+AlfalfaVideo::get_frames_by_decoder_hash( const DecoderHash & decoder_hash ) const
+{
+  return frame_db_.search_by_decoder_hash( decoder_hash );
+}
+
 pair<FrameDataSetCollectionSequencedAccess::iterator, FrameDataSetCollectionSequencedAccess::iterator>
 AlfalfaVideo::get_frames() const
 {
@@ -192,6 +199,36 @@ AlfalfaVideo::get_frames( const size_t track_id ) const
 }
 
 pair<TrackDBIterator, TrackDBIterator>
+AlfalfaVideo::get_frames( const size_t track_id, const size_t start_index,
+                          const size_t end_index ) const
+{
+  if ( start_index > end_index ) {
+    throw invalid_argument( "start_index is greater than end_index." );
+  }
+
+  TrackDBIterator begin( track_id, start_index, track_db_, frame_db_ );
+  TrackDBIterator end( track_id, end_index + 1, track_db_, frame_db_ );
+
+  return make_pair( begin, end );
+}
+
+std::pair<SwitchDBIterator, SwitchDBIterator>
+AlfalfaVideo::get_frames( const size_t from_track_id,
+                          const size_t to_track_id,
+                          const size_t from_frame_index,
+                          const size_t switch_start_index,
+                          const size_t switch_end_index ) const
+{
+  SwitchDBIterator begin( from_track_id, to_track_id, from_frame_index, switch_start_index,
+    switch_db_, frame_db_ );
+  SwitchDBIterator end( from_track_id, to_track_id, from_frame_index, switch_end_index + 1,
+    switch_db_, frame_db_ );
+
+  return make_pair( begin, end );
+}
+
+
+pair<TrackDBIterator, TrackDBIterator>
 AlfalfaVideo::get_frames( const TrackDBIterator & it ) const
 {
   size_t track_id = it.track_id();
@@ -232,12 +269,98 @@ AlfalfaVideo::get_frames( const TrackDBIterator & it, const size_t to_track_id )
   return make_pair( begin, end );
 }
 
+pair<TrackDBIterator, TrackDBIterator>
+AlfalfaVideo::get_frames_reverse( const size_t track_id, const size_t frame_index ) const
+{
+  size_t end_frame_index = track_db_.get_end_frame_index( track_id );
+  assert( frame_index < end_frame_index );
+  // To avoid error when building with debug flag.
+  (void) end_frame_index;
+  TrackDBIterator begin( track_id, frame_index, track_db_, frame_db_);
+  TrackDBIterator end( track_id, -1, track_db_, frame_db_ );
+  return make_pair( begin, end );
+}
+
+vector<pair<SwitchDBIterator, SwitchDBIterator> >
+AlfalfaVideo::get_switches_ending_with_frame( const size_t frame_id ) const
+{
+  auto switches = switch_db_.get_switches_by_frame_id( frame_id );
+  vector<pair<SwitchDBIterator, SwitchDBIterator> > results;
+
+  for ( auto sw = switches.first; sw != switches.second; sw++ ) {
+    SwitchDBIterator begin(
+      sw->from_track_id, sw->to_track_id, sw->from_frame_index,
+      sw->switch_frame_index, switch_db_, frame_db_
+    );
+
+    SwitchDBIterator end(
+      sw->from_track_id, sw->to_track_id, sw->from_frame_index,
+      -1, switch_db_, frame_db_
+    );
+
+    results.push_back( make_pair( begin, end ) );
+  }
+
+  return results;
+}
+
 double AlfalfaVideo::get_quality( int raster_index, const FrameInfo & frame_info ) const
 {
   size_t original_raster = raster_list_.raster( raster_index ).hash;
   size_t approximate_raster = frame_info.target_hash().output_hash;
   return quality_db_.search_by_original_and_approximate_raster(
     original_raster, approximate_raster ).quality;
+}
+
+vector<set<size_t> > AlfalfaVideo::build_frames_graph( bool dependency_graph )
+{
+  size_t N = frame_db_.size();
+  vector<set<size_t> > A( N );
+  auto keyframe_search = frame_db_.search_for_keyframes();
+
+  for ( auto keyframe = keyframe_search.first; keyframe != keyframe_search.second; keyframe++ ) {
+    DecoderHash decoder_state( 0, 0, 0, 0 );
+    decoder_state.update( keyframe->target_hash() );
+
+    forward_list<pair<size_t, DecoderHash> > Q;
+    set<size_t> visited;
+
+    Q.push_front( make_pair( keyframe->frame_id(), decoder_state ) );
+
+    while ( not Q.empty() ) {
+      pair<size_t, DecoderHash> current = Q.front();
+      Q.pop_front();
+
+      visited.insert( current.first );
+
+      const FrameInfo & frame_info = frame_db_[ current.first ];
+      bool is_keyframe = frame_info.is_keyframe();
+
+      DecoderHash current_state = current.second;
+      auto next_frames = frame_db_.search_by_decoder_hash( current_state );
+
+      for ( auto it = next_frames.first; it != next_frames.second; it++ ) {
+        if ( is_keyframe and it->is_keyframe() ) {
+          continue;
+        }
+
+        if ( dependency_graph ) {
+          A[ it->frame_id() ].insert( frame_info.frame_id() );
+        }
+        else {
+          A[ frame_info.frame_id() ].insert( it->frame_id() );
+        }
+
+        if ( not it->is_keyframe() and visited.count( it->frame_id() ) == 0 ) {
+          DecoderHash new_state = current_state;
+          new_state.update( it->target_hash() );
+          Q.push_front( make_pair( it->frame_id(), new_state ) );
+        }
+      }
+    }
+  }
+
+  return A;
 }
 
 /* WritableAlfalfaVideo */
@@ -458,4 +581,3 @@ combine( WritableAlfalfaVideo & combined_video, const PlayableAlfalfaVideo & vid
     combined_video.insert_switch_data( item );
   }
 }
-

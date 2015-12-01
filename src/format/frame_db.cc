@@ -32,17 +32,25 @@ FrameDB::search_by_decoder_hash( const DecoderHash & decoder_hash ) const
   return make_pair( results.begin(), results.end() );
 }
 
-pair<FrameDataSetCollectionBySourceHash::iterator, FrameDataSetCollectionBySourceHash::iterator>
-FrameDB::search_by_source_hash( const SourceHash & source_hash )
+pair<FrameDataSetCollectionByStateHash::const_iterator, FrameDataSetCollectionByStateHash::const_iterator>
+FrameDB::search_by_state_hash( const size_t state_hash ) const
 {
-  FrameDataSetCollectionBySourceHash & data_by_source_hash =
+  const FrameDataSetCollectionByStateHash & data_by_state_hash =
+    collection_.get<FrameDataSetByStateHashTag>();
+  return data_by_state_hash.equal_range( state_hash );
+}
+
+pair<FrameDataSetCollectionBySourceHash::const_iterator, FrameDataSetCollectionBySourceHash::const_iterator>
+FrameDB::search_by_source_hash( const SourceHash & source_hash ) const
+{
+  const FrameDataSetCollectionBySourceHash & data_by_source_hash =
     collection_.get<FrameDataSetBySourceHashTag>();
 
   return data_by_source_hash.equal_range( source_hash );
 }
 
-std::pair<FrameDataSetCollectionBySourceHash::iterator, FrameDataSetCollectionBySourceHash::iterator>
-FrameDB::search_for_keyframes()
+std::pair<FrameDataSetCollectionBySourceHash::const_iterator, FrameDataSetCollectionBySourceHash::const_iterator>
+FrameDB::search_for_keyframes() const
 {
   return search_by_source_hash( SourceHash::keyframe );
 }
@@ -96,6 +104,11 @@ FrameDB::search_by_frame_name( const FrameName & name ) const
     throw out_of_range( "Invalid (source_hash, target_hash) pair" );
   FrameDataSetCollectionByFrameName::const_iterator name_iterator = index.find( key );
   return *name_iterator;
+}
+
+const FrameInfo & FrameDB::operator[]( size_t id ) const
+{
+  return search_by_frame_id( id );
 }
 
 FrameDataSetSourceHashSearch::FrameDataSetSourceHashSearchIterator::FrameDataSetSourceHashSearchIterator(

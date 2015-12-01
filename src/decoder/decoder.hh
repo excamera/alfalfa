@@ -147,11 +147,12 @@ struct DecoderState
 class Decoder
 {
 private:
-  DecoderState state_;  
+  DecoderState state_;
   References references_;
 
 public:
   Decoder( const uint16_t width, const uint16_t height );
+  Decoder( DecoderState state, References references );
 
   const VP8Raster & example_raster( void ) const { return references_.last; }
 
@@ -167,6 +168,7 @@ public:
   template<class FrameType>
   std::pair<bool, RasterHandle> decode_frame( const FrameType & frame );
 
+  std::pair<bool, RasterHandle> get_frame_output( const Chunk & compressed_frame );
   Optional<RasterHandle> parse_and_decode_frame( const Chunk & compressed_frame );
 
   template <class FrameType>

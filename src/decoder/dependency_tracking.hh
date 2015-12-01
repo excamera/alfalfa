@@ -154,6 +154,15 @@ namespace std
   };
 
   template<>
+  struct hash<DecoderHash>
+  {
+    size_t operator()( const DecoderHash & hash ) const
+    {
+      return hash.hash();
+    }
+  };
+
+  template<>
   struct equal_to<SourceHash>
   {
     bool operator()( const SourceHash & lhs, const SourceHash & rhs ) const
@@ -166,6 +175,15 @@ namespace std
   struct equal_to<TargetHash>
   {
     bool operator()( const TargetHash & lhs, const TargetHash & rhs ) const
+    {
+      return lhs == rhs;
+    }
+  };
+
+  template<>
+  struct equal_to<DecoderHash>
+  {
+    bool operator()( const DecoderHash & lhs, const DecoderHash & rhs ) const
     {
       return lhs == rhs;
     }

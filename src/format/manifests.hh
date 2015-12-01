@@ -258,11 +258,14 @@ class TrackDBIterator : std::iterator<std::forward_iterator_tag, FrameInfo>
       frame_db_( frame_db )
     {}
 
-    const size_t & track_id() const { return track_id_; }
-    const size_t & frame_index() const { return frame_index_; }
+    size_t track_id() const { return track_id_; }
+    size_t frame_index() const { return frame_index_; }
 
     TrackDBIterator & operator++();
     TrackDBIterator operator++( int );
+
+    TrackDBIterator & operator--();
+    TrackDBIterator operator--( int );
 
     bool operator==( const TrackDBIterator & rhs ) const;
     bool operator!=( const TrackDBIterator & rhs ) const;
@@ -280,6 +283,7 @@ class TrackDBIterator : std::iterator<std::forward_iterator_tag, FrameInfo>
 struct SwitchDBSequencedTag;
 struct SwitchDBHashedByTrackIdsAndFrameIndexTag;
 struct SwitchDBOrderedByTrackIdsAndFrameIndicesTag;
+struct SwitchDBHashedByFrameIdsTag;
 
 typedef multi_index_container
 <
@@ -309,6 +313,11 @@ typedef multi_index_container
         member<SwitchData, size_t, &SwitchData::switch_frame_index>
       >
     >,
+    hashed_non_unique
+    <
+      tag<SwitchDBHashedByFrameIdsTag>,
+      member<SwitchData, size_t, &SwitchData::frame_id>
+    >,
     sequenced
     <
       tag<SwitchDBSequencedTag>
@@ -320,6 +329,8 @@ typedef SwitchDBCollection::index<SwitchDBHashedByTrackIdsAndFrameIndexTag>::typ
 SwitchDBCollectionHashedByTrackIdsAndFrameIndex;
 typedef SwitchDBCollection::index<SwitchDBOrderedByTrackIdsAndFrameIndicesTag>::type
 SwitchDBCollectionOrderedByTrackIdsAndFrameIndices;
+typedef SwitchDBCollection::index<SwitchDBHashedByFrameIdsTag>::type
+SwtichDBCollectionHashedByFrameIds;
 typedef SwitchDBCollection::index<SwitchDBSequencedTag>::type
 SwitchDBCollectionSequencedAccess;
 
@@ -344,6 +355,10 @@ public:
   const SwitchData &
   get_frame( const size_t from_track_id, const size_t to_track_id,
              const size_t from_frame_index, const size_t switch_frame_index ) const;
+
+  std::pair<SwtichDBCollectionHashedByFrameIds::const_iterator,
+  SwtichDBCollectionHashedByFrameIds::const_iterator>
+  get_switches_by_frame_id( const size_t frame_id ) const;
 };
 
 /*
@@ -381,6 +396,9 @@ class SwitchDBIterator : std::iterator<std::forward_iterator_tag, FrameInfo>
 
     SwitchDBIterator & operator++();
     SwitchDBIterator operator++( int );
+
+    SwitchDBIterator & operator--();
+    SwitchDBIterator operator--( int );
 
     bool operator==( const SwitchDBIterator & rhs ) const;
     bool operator!=( const SwitchDBIterator & rhs ) const;

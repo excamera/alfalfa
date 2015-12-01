@@ -27,6 +27,7 @@
 #define IVF_FILENAME "v"
 
 #include <string>
+#include <set>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -100,6 +101,9 @@ public:
   std::pair<TrackDBCollectionSequencedAccess::iterator, TrackDBCollectionSequencedAccess::iterator>
   get_track_data( void ) const;
 
+  /* Gets number of frames in a given track. */
+  size_t get_track_size( const size_t track_id ) const { return track_db_.get_end_frame_index( track_id ); }
+
   /* Gets an iterator over all switch data in the alf video's switch db. */
   std::pair<SwitchDBCollectionSequencedAccess::iterator, SwitchDBCollectionSequencedAccess::iterator>
   get_switch_data( void ) const;
@@ -114,14 +118,19 @@ public:
   std::pair<std::unordered_set<size_t>::const_iterator, std::unordered_set<size_t>::const_iterator>
   get_track_ids() const;
 
+  std::pair<TrackDBCollectionByFrameIdIndex::const_iterator, TrackDBCollectionByFrameIdIndex::const_iterator>
+  get_track_data_by_frame_id( const size_t frame_id ) const { return track_db_.search_by_frame_id( frame_id ); }
+
   /* Gets an iterator over all available track ids that we can switch to from
      the provided track and frame_index. */
   std::pair<std::unordered_set<size_t>::iterator, std::unordered_set<size_t>::iterator>
   get_track_ids_for_switch( const size_t from_track_id, const size_t from_frame_index ) const;
 
-  /* Gets an iterator over all frames  by output hash. */
+  /* Gets an iterator over all frames  by output hash / decoder hash. */
   std::pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator>
   get_frames_by_output_hash( const size_t output_hash ) const;
+  std::pair<FrameDataSetSourceHashSearch::iterator, FrameDataSetSourceHashSearch::iterator>
+  get_frames_by_decoder_hash( const DecoderHash & decoder_hash ) const;
 
   /* Determines if alfalfa video has a frame with provided name. */
   bool
@@ -130,9 +139,23 @@ public:
   /* Returns FrameInfo associated with provided name. */
   const FrameInfo &
   get_frame( const FrameName & name ) const { return frame_db_.search_by_frame_name( name ); }
+  const FrameInfo &
+  get_frame( const size_t frame_id ) const { return frame_db_.search_by_frame_id( frame_id ); }
+  const TrackData &
+  get_frame( const size_t track_id, const size_t frame_index ) const { return track_db_.get_frame( track_id, frame_index ); }
 
   /* Gets an iterator over all frames associated with the particular track. */
   std::pair<TrackDBIterator, TrackDBIterator> get_frames( const size_t track_id ) const;
+
+  std::pair<TrackDBIterator, TrackDBIterator> get_frames( const size_t track_id,
+                                                          const size_t start_index,
+                                                          const size_t end_index ) const;
+
+  std::pair<SwitchDBIterator, SwitchDBIterator> get_frames( const size_t from_track_id,
+                                                            const size_t to_track_id,
+                                                            const size_t from_frame_index,
+                                                            const size_t switch_start_index,
+                                                            const size_t switch_end_index ) const;
 
   /* Gets an iterator over all remaining frames in the track associated with
      the passed in TrackDBIterator. */
@@ -147,9 +170,19 @@ public:
   std::pair<SwitchDBIterator, SwitchDBIterator> get_frames( const TrackDBIterator & it,
                                                             const size_t to_track_id ) const;
 
+  /* Gets an iterator in the track starting from the given frame, backwards
+     to the beginning. */
+  std::pair<TrackDBIterator, TrackDBIterator> get_frames_reverse( const size_t track_id,
+                                                                  const size_t frame_index ) const;
+
+  std::vector<std::pair<SwitchDBIterator, SwitchDBIterator> >
+  get_switches_ending_with_frame( const size_t frame_id ) const;
+
   /* Get the quality of the frame associated with supplied frame_info, given
      position in the original raster list. */
   double get_quality( int raster_index, const FrameInfo & frame_info ) const;
+
+  std::vector<std::set<size_t> > build_frames_graph( bool dependency_graph = true );
 
   bool good() const;
 
@@ -186,7 +219,7 @@ public:
                      const size_t original_raster, const double quality,
                      const size_t track_id );
   size_t append_frame_to_ivf( Chunk chunk ) { return ivf_writer_.append_frame( chunk ); }
-  void insert_raster( RasterData data ) { raster_list_.insert( data ); } 
+  void insert_raster( RasterData data ) { raster_list_.insert( data ); }
   void insert_quality_data( QualityData data ) { quality_db_.insert( data ); }
   void insert_track_data( TrackData data ) { track_db_.insert( data ); }
   void insert_switch_data( SwitchData data ) { switch_db_.insert( data ); }

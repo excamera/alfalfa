@@ -37,6 +37,15 @@ struct FrameData_OutputHashExtractor
   result_type & operator()( FrameInfo * fd ) { return fd->target_hash().output_hash; }
 };
 
+struct FrameData_StateHashExtractor
+{
+  typedef const size_t result_type;
+
+  const result_type & operator()( const FrameInfo & fd ) const { return fd.target_hash().state_hash; }
+  result_type & operator()( FrameInfo * fd ) { return fd->target_hash().state_hash; }
+};
+
+
 struct FrameData_SourceHashExtractor
 {
   typedef const SourceHash result_type;
@@ -68,6 +77,7 @@ struct FrameData_FrameIdExtractor
 
 struct FrameDataSetByIdTag;
 struct FrameDataSetByOutputHashTag;
+struct FrameDataSetByStateHashTag;
 struct FrameDataSetBySourceHashTag;
 struct FrameDataSetByFrameNameTag;
 struct FrameDataSetSequencedTag;
@@ -109,6 +119,11 @@ typedef multi_index_container
     >,
     hashed_non_unique
     <
+      tag<FrameDataSetByStateHashTag>,
+      FrameData_StateHashExtractor
+    >,
+    hashed_non_unique
+    <
       tag<FrameDataSetBySourceHashTag>,
       FrameData_SourceHashExtractor,
       std::hash<SourceHash>,
@@ -125,6 +140,8 @@ typedef FrameDataSetCollection::index<FrameDataSetByIdTag>::type
 FrameDataSetCollectionById;
 typedef FrameDataSetCollection::index<FrameDataSetByOutputHashTag>::type
 FrameDataSetCollectionByOutputHash;
+typedef FrameDataSetCollection::index<FrameDataSetByStateHashTag>::type
+FrameDataSetCollectionByStateHash;
 typedef FrameDataSetCollection::index<FrameDataSetBySourceHashTag>::type
 FrameDataSetCollectionBySourceHash;
 typedef FrameDataSetCollection::index<FrameDataSetByFrameNameTag>::type
@@ -197,11 +214,14 @@ public:
   std::pair<FrameDataSetSourceHashSearch::const_iterator, FrameDataSetSourceHashSearch::const_iterator>
   search_by_decoder_hash( const DecoderHash & decoder_hash ) const;
 
-  std::pair<FrameDataSetCollectionBySourceHash::iterator, FrameDataSetCollectionBySourceHash::iterator>
-  search_by_source_hash( const SourceHash & source_hash );
+  std::pair<FrameDataSetCollectionByStateHash::const_iterator, FrameDataSetCollectionByStateHash::const_iterator>
+  search_by_state_hash( const size_t state_hash ) const;
 
-  std::pair<FrameDataSetCollectionBySourceHash::iterator, FrameDataSetCollectionBySourceHash::iterator>
-  search_for_keyframes();
+  std::pair<FrameDataSetCollectionBySourceHash::const_iterator, FrameDataSetCollectionBySourceHash::const_iterator>
+  search_by_source_hash( const SourceHash & source_hash ) const ;
+
+  std::pair<FrameDataSetCollectionBySourceHash::const_iterator, FrameDataSetCollectionBySourceHash::const_iterator>
+  search_for_keyframes() const;
 
   size_t insert( FrameInfo frame );
 
@@ -210,6 +230,8 @@ public:
   const FrameInfo & search_by_frame_id( const size_t frame_id ) const;
 
   const FrameInfo & search_by_frame_name( const FrameName & name ) const;
+
+  const FrameInfo & operator[]( size_t id ) const;
 };
 
 #endif /* FRAME_DB */

@@ -180,6 +180,21 @@ TrackDBIterator::operator++( int )
   return tmp;
 }
 
+TrackDBIterator &
+TrackDBIterator::operator--()
+{
+  frame_index_--;
+  return *this;
+}
+
+TrackDBIterator
+TrackDBIterator::operator--( int )
+{
+  TrackDBIterator tmp( *this );
+  --( *this );
+  return tmp;
+}
+
 bool
 TrackDBIterator::operator==( const TrackDBIterator & rhs ) const
 {
@@ -246,6 +261,15 @@ SwitchDB::get_frame( const size_t from_track_id, const size_t to_track_id,
   return *ids_iterator;
 }
 
+pair<SwtichDBCollectionHashedByFrameIds::const_iterator, SwtichDBCollectionHashedByFrameIds::const_iterator>
+SwitchDB::get_switches_by_frame_id( const size_t frame_id ) const
+{
+  const SwtichDBCollectionHashedByFrameIds & index =
+    collection_.get<SwitchDBHashedByFrameIdsTag>();
+    
+  return index.equal_range( frame_id );
+}
+
 SwitchDBIterator &
 SwitchDBIterator::operator++()
 {
@@ -258,6 +282,21 @@ SwitchDBIterator::operator++( int )
 {
   SwitchDBIterator tmp( *this );
   ++( *this );
+  return tmp;
+}
+
+SwitchDBIterator &
+SwitchDBIterator::operator--()
+{
+  switch_frame_index_--;
+  return *this;
+}
+
+SwitchDBIterator
+SwitchDBIterator::operator--( int )
+{
+  SwitchDBIterator tmp( *this );
+  --( *this );
   return tmp;
 }
 

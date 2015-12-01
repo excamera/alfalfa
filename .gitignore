@@ -39,6 +39,7 @@ Makefile.in
 /src/frontend/alfalfa-combine
 /src/frontend/alfalfa-describe
 /src/frontend/alfalfa-encode
+/src/frontend/alfalfa-play-manually
 /src/frontend/alfalfa-play-super-manually
 /src/frontend/alfalfa-verify
 /src/tests/decode-to-stdout

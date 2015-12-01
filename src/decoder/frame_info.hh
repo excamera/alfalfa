@@ -1,6 +1,7 @@
 #ifndef FRAME_INFO_HH
 #define FRAME_INFO_HH
 
+#include <set>
 #include <string>
 #include <fstream>
 
