@@ -66,6 +66,8 @@ SerializedFrame ContinuationPlayer::make_state_update( const SourcePlayer & sour
   return SerializedFrame( FrameName( source_hash, target_hash ), raw );
 }
 
+#ifndef NDEBUG
+
 template <class FrameType>
 static bool correctly_serialized( const Decoder & orig_decoder,
                                   const vector<uint8_t> & raw_frame,
@@ -77,6 +79,29 @@ static bool correctly_serialized( const Decoder & orig_decoder,
 
   return frame == new_frame;
 }
+
+static bool correct_output( const FramePlayer & source, const vector<uint8_t> & raw, const RasterHandle & orig_output )
+{
+  FramePlayer player( source );
+
+  Optional<RasterHandle> output = player.decode( Chunk( raw.data(), raw.size() ) );
+
+  const VP8Raster & correct = orig_output.get();
+  const VP8Raster & real = output.get().get();
+
+  for ( unsigned row = 0; row < correct.height() / 16; row++ ) {
+    for ( unsigned col = 0; col < correct.width() / 16; col++ ) {
+      if ( not ( correct.macroblock( col, row ) == real.macroblock( col, row ) ) ) {
+        cerr << "Incorrect macroblock at: " << col << " " << row << "\n";
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+#endif
 
 static SerializedFrame make_partial_ref( const reference_frame & ref_frame,
                                          const ReferenceDependency & deps,
@@ -127,27 +152,6 @@ vector<SerializedFrame> ContinuationPlayer::make_reference_updates( const Source
   }
 
   return frames;
-}
-
-static bool correct_output( const FramePlayer & source, const vector<uint8_t> & raw, const RasterHandle & orig_output )
-{
-  FramePlayer player( source );
-
-  Optional<RasterHandle> output = player.decode( Chunk( raw.data(), raw.size() ) );
-
-  const VP8Raster & correct = orig_output.get();
-  const VP8Raster & real = output.get().get();
-
-  for ( unsigned row = 0; row < correct.height() / 16; row++ ) {
-    for ( unsigned col = 0; col < correct.width() / 16; col++ ) {
-      if ( not ( correct.macroblock( col, row ) == real.macroblock( col, row ) ) ) {
-        cerr << "Incorrect macroblock at: " << col << " " << row << "\n";
-        return false;
-      }
-    }
-  }
-
-  return true;
 }
 
 SerializedFrame ContinuationPlayer::rewrite_inter_frame( const SourcePlayer & source ) const

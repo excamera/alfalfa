@@ -37,7 +37,8 @@ Optional<RasterHandle> FramePlayer::safe_decode( const FrameInfo & info, const C
 
   return output;
 #else
-  return decode( chunk )
+  (void)info; // suppress unused warning
+  return decode( chunk );
 #endif
 }
 
