@@ -205,14 +205,15 @@ private:
 
 public:
   ContinuationGenerator( const string & source_alf_path, const string & new_alf_path,
-                         size_t track_id, size_t other_track_id )
+                         vector<size_t> track_ids )
     : orig_alf_( source_alf_path ), new_alf_( new_alf_path, orig_alf_.video_manifest().info() )
   {
     /* Copy in the source video */
     new_alf_.combine( orig_alf_ );
 
-    streams_.emplace_back( orig_alf_.get_frames( track_id ), orig_alf_ );
-    streams_.emplace_back( orig_alf_.get_frames( other_track_id ), orig_alf_ );
+    for ( size_t track_id : track_ids ) {
+      streams_.emplace_back( orig_alf_.get_frames( track_id ), orig_alf_ );
+    }
   }
 
   void write_continuations()
@@ -253,13 +254,18 @@ public:
 int main( int argc, const char * const argv[] )
 {
   if ( argc < 5 ) {
-    cerr << "Usage: " << argv[ 0 ] << " <input-alf> <output-alf> <trajectoryA> <trajectoryB>" << endl;
+    cerr << "Usage: " << argv[ 0 ] << " <input-alf> <output-alf> <trajectoryA> <trajectoryB> ..." << endl;
     return EXIT_FAILURE;
   }
 
   FileSystem::create_directory( argv[ 2 ] );
 
-  ContinuationGenerator generator( argv[ 1 ], argv[ 2 ], stoul( argv[ 3 ] ), stoul( argv[ 4 ] ) );
+  vector<size_t> track_ids;
+  for ( int i = 3; i < argc; i++ ) {
+    track_ids.push_back( stoul( argv[ i ] ) );
+  }
+
+  ContinuationGenerator generator( argv[ 1 ], argv[ 2 ], track_ids );
 
   generator.write_continuations();
 }
