@@ -133,9 +133,10 @@ vector<SerializedFrame> ContinuationPlayer::make_reference_updates( const Source
   assert( not on_key_frame_ );
 
   DependencyTracker used = inter_frame_.get().get_used();
-  MissingTracker missing = source.decoder_.find_missing( prev_references_ );
 
   ReferenceDependency dependencies( inter_frame_.get().macroblocks() );
+
+  MissingTracker missing = source.decoder_.find_missing( prev_references_, dependencies );
 
   vector<SerializedFrame> frames;
 

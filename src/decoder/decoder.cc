@@ -100,12 +100,6 @@ DecoderHash Decoder::get_hash( void ) const
                       references_.golden.hash(), references_.alternative_reference.hash() );
 }
 
-MissingTracker Decoder::find_missing( const References & refs ) const
-{
-  return MissingTracker { references_.last != refs.last, references_.golden != refs.golden,
-                          references_.alternative_reference != refs.alternative_reference };
-}
-
 References Decoder::get_references( void ) const
 {
   return references_;

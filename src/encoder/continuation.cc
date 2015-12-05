@@ -356,6 +356,30 @@ static RasterHandle make_new_reference( const reference_frame & frame, const VP8
   return RasterHandle( move( mutable_raster ) );
 }
 
+static bool partially_equal_reference( const reference_frame & frame, const RasterHandle & reference,
+                                       const RasterHandle & other_reference, const ReferenceDependency & deps )
+{
+  for ( unsigned row = 0; row < reference.get().macroblocks().height(); row++ ) {
+    for ( unsigned col = 0; col < reference.get().macroblocks().width(); col++ ) {
+      const VP8Raster::Macroblock & macroblock = reference.get().macroblock( col, row );
+      const VP8Raster::Macroblock & other = other_reference.get().macroblock( col, row );
+      if ( deps.need_update_macroblock( frame, col, row ) and macroblock != other ) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+MissingTracker Decoder::find_missing( const References & refs,
+                                      const ReferenceDependency & deps ) const
+{
+  return MissingTracker { not partially_equal_reference( LAST_FRAME, refs.last, references_.last, deps ),
+                          not partially_equal_reference( GOLDEN_FRAME, refs.golden, references_.golden, deps ),
+                          not partially_equal_reference( ALTREF_FRAME, refs.alternative_reference, references_.alternative_reference, deps ) };
+}
+
 ReferenceDependency::ReferenceDependency( const TwoD<InterFrameMacroblock> & frame_macroblocks )
   : width_( frame_macroblocks.width() ),
     height_( frame_macroblocks.height() ),

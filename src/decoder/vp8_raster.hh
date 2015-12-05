@@ -142,6 +142,11 @@ public:
         and V.contents() == other.V.contents();
     }
 
+    bool operator!=( const Macroblock & other ) const
+    {
+      return not operator==( other );
+    }
+
     Macroblock & operator=( const Macroblock & other )
     {
       Y.mutable_contents().copy_from( other.Y.contents() );
@@ -153,15 +158,15 @@ public:
   };
 
 private:
-  TwoD< Block4 > Y_subblocks_ { width_ / 4, height_ / 4, Y_ },
+  TwoD<Block4> Y_subblocks_ { width_ / 4, height_ / 4, Y_ },
     U_subblocks_ { width_ / 8, height_ / 8, U_ },
     V_subblocks_ { width_ / 8, height_ / 8, V_ };
 
-  TwoD< Block16 > Y_bigblocks_ { width_ / 16, height_ / 16, Y_ };
-  TwoD< Block8 >  U_bigblocks_ { width_ / 16, height_ / 16, U_ };
-  TwoD< Block8 >  V_bigblocks_ { width_ / 16, height_ / 16, V_ };
+  TwoD<Block16> Y_bigblocks_ { width_ / 16, height_ / 16, Y_ };
+  TwoD<Block8>  U_bigblocks_ { width_ / 16, height_ / 16, U_ };
+  TwoD<Block8>  V_bigblocks_ { width_ / 16, height_ / 16, V_ };
 
-  TwoD< Macroblock > macroblocks_ { width_ / 16, height_ / 16, *this };
+  TwoD<Macroblock> macroblocks_ { width_ / 16, height_ / 16, *this };
 
 public:
   VP8Raster( const unsigned int display_width, const unsigned int display_height );
@@ -177,6 +182,8 @@ public:
   }
 
   static unsigned int macroblock_dimension( const unsigned int num ) { return ( num + 15 ) / 16; }
+
+  const TwoD<Macroblock> & macroblocks() const { return macroblocks_; }
 };
 
 class EdgeExtendedRaster

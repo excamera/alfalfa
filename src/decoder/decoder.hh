@@ -17,7 +17,7 @@ class Chunk;
 class VP8Raster;
 struct KeyFrameHeader;
 struct InterFrameHeader;
-struct ContinuationState;
+class ReferenceDependency;
 
 struct ProbabilityTables
 {
@@ -176,7 +176,7 @@ public:
     frame.copy_to( output, references_ );
   }
 
-  MissingTracker find_missing( const References & refs ) const;
+  MissingTracker find_missing( const References & refs, const ReferenceDependency & deps ) const;
 
   DecoderState get_state() const { return state_; }
 
