@@ -35,10 +35,6 @@ int main( int argc, char *argv[] )
     string alf_path( argv[ 1 ] );
     PlayableAlfalfaVideo alf( alf_path );
 
-    //Get the track database and the frame database
-    TrackDB track_db = alf.track_db();
-    FrameDB frame_db = alf.frame_db();
-
     //Get all the track ids for a video
     auto track_ids_iterator = alf.get_track_ids();
 
@@ -55,7 +51,7 @@ int main( int argc, char *argv[] )
       TrackDBIterator track_end = track_db_iterator.second;
 
       //Get the frame player, which contains the decoder
-      FramePlayer player( alf.video_manifest().width(), alf.video_manifest().height() );
+      FramePlayer player( alf.get_info().width, alf.get_info().height );
 
       //Loop over the entire track frame by frame
       while( track_beginning != track_end ) {

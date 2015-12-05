@@ -16,8 +16,8 @@ int main( int argc, char * argv[] )
     PlayableAlfalfaVideo alf( argv[ 1 ] );
     unsigned int switch_frame = stoi( argv[ 2 ] );
 
-    FramePlayer source_player( alf.video_manifest().width(), alf.video_manifest().height() );
-    FramePlayer target_player( alf.video_manifest().width(), alf.video_manifest().height() );
+    FramePlayer source_player( alf.get_info().width, alf.get_info().height );
+    FramePlayer target_player( alf.get_info().width, alf.get_info().height );
 
     auto source_track = alf.get_frames( 0 );
     auto target_track = alf.get_frames( 1 );

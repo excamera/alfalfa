@@ -36,7 +36,7 @@ int main( int argc, char *argv[] )
     TrackDBIterator track_end = track_db_iterator.second;
 
     //Create a video player and a video display
-    FramePlayer player( alf.video_manifest().width(), alf.video_manifest().height() );
+    FramePlayer player( alf.get_info().width, alf.get_info().height );
     VideoDisplay display { player.example_raster() };
 
     //Loop over the entire track frame by frame

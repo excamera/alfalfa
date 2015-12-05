@@ -14,10 +14,6 @@ int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
 
   PlayableAlfalfaVideo alfalfa_video( alfalfa_video_dir );
 
-  RasterList & raster_list = alfalfa_video.raster_list();
-  QualityDB & quality_db = alfalfa_video.quality_db();
-  FrameDB & frame_db = alfalfa_video.frame_db();
-
   TrackingPlayer player( ivf_file_path );
   size_t frame_index = 0;
 
@@ -29,13 +25,13 @@ int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
 
     if ( next_frame.target_hash().shown ) {
       // Check raster_list
-      if ( not raster_list.has( raster ) )
+      if ( not alfalfa_video.has_raster( raster ) )
         return 1;
 
       // Check quality db
       found = false;
       auto it_orig =
-        quality_db.search_by_original_raster( raster );
+        alfalfa_video.get_quality_data_by_original_raster( raster );
       QualityDBCollectionByOriginalRaster::iterator it_begin_orig = it_orig.first;
       QualityDBCollectionByOriginalRaster::iterator it_end_orig = it_orig.second;
       while ( it_begin_orig != it_end_orig ) {
@@ -52,7 +48,7 @@ int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
 
       found = false;
       auto it_approx =
-        quality_db.search_by_approximate_raster( approximate_raster );
+        alfalfa_video.get_quality_data_by_approximate_raster( approximate_raster );
       QualityDBCollectionByApproximateRaster::iterator it_begin_approx = it_approx.first;
       QualityDBCollectionByApproximateRaster::iterator it_end_approx = it_approx.second;
       while ( it_begin_approx != it_end_approx ) {
@@ -71,7 +67,7 @@ int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
     // Check frame db
     found = false;
     auto it_output_hash =
-      frame_db.search_by_output_hash( raster );
+      alfalfa_video.get_frames_by_output_hash( raster );
     FrameDataSetCollectionByOutputHash::iterator it_begin_output_hash = it_output_hash.first;
     FrameDataSetCollectionByOutputHash::iterator it_end_output_hash = it_output_hash.second;
     while ( it_begin_output_hash != it_end_output_hash ) {

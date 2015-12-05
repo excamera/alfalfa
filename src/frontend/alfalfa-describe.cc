@@ -33,10 +33,6 @@ int main( int argc, char const *argv[] )
     string alf_path( argv[ 1 ] );
     PlayableAlfalfaVideo alf( alf_path );
 
-    // Get databases from alfalfa video
-    const QualityDB & quality_db = alf.quality_db();
-    const FrameDB & frame_db = alf.frame_db();
-
     // One frame count per video
     uint32_t frame_count = 0;
     // Get frame rate for video
@@ -70,7 +66,7 @@ int main( int argc, char const *argv[] )
         FrameInfo fi = *track_beginning;
         if ( fi.target_hash().shown ) {
           // Get an iterator to the quality data for a frame and read quality member variable
-          auto quality_iterator = quality_db.search_by_approximate_raster( fi.target_hash().output_hash );
+          pair<QualityDBCollectionByApproximateRaster::iterator, QualityDBCollectionByApproximateRaster::iterator> quality_iterator = alf.get_quality_data_by_approximate_raster( fi.target_hash().output_hash );
           double quality = ( *quality_iterator.first ).quality;
           quality_sum += quality;
 
@@ -82,7 +78,7 @@ int main( int argc, char const *argv[] )
           frame_count++;
         }
         // Get an iterator to the frame even if it is not shown. Total coded size includes both shown and unshown frames.
-        auto frame_iterator = frame_db.search_by_output_hash( fi.target_hash().output_hash );
+        pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator> frame_iterator = alf.get_frames_by_output_hash( fi.target_hash().output_hash );
 
         uint64_t frame_length = ( *frame_iterator.first ).length();
 
@@ -111,8 +107,8 @@ int main( int argc, char const *argv[] )
     cout << "Frame Count: " << frame_count << " total frames" << endl;
     cout << "Frame Rate: " << frame_rate << " frames/sec" << endl;
     cout << "Video Duration: " << duration_in_seconds << " sec" << endl;
-    cout << "Video Width: " << alf.video_manifest().width() << " pixels" << endl;
-    cout << "Video Height: " << alf.video_manifest().height() << " pixels" << endl;
+    cout << "Video Width: " << alf.get_info().width << " pixels" << endl;
+    cout << "Video Height: " << alf.get_info().height << " pixels" << endl;
   } catch ( const exception &e ) {
     print_exception( argv[ 0 ], e );
     return EXIT_FAILURE;

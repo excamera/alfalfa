@@ -40,7 +40,8 @@ int main( int argc, char const *argv[] )
     TempFile encoded_file( "encoded" );
     source_video.encode( track_id, vpxenc_args, encoded_file.name() );
 
-    WritableAlfalfaVideo alfalfa_video( destination_dir, IVF( encoded_file.name() ) );
+    IVF encoded = IVF( encoded_file.name() );
+    WritableAlfalfaVideo alfalfa_video( destination_dir, encoded.fourcc(), encoded.width(), encoded.height() );
     alfalfa_video.import( encoded_file.name(), source_video, track_id );
   } catch ( const exception & e ) {
     print_exception( argv[ 0 ], e );

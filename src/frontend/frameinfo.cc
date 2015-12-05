@@ -15,19 +15,17 @@ int main( int argc, char * argv[] )
 
   PlayableAlfalfaVideo alf( argv[ 1 ] );
 
-  const unsigned width = alf.video_manifest().width();
-  const unsigned height = alf.video_manifest().height();
-
-  const FrameDB & db = alf.frame_db();
+  const unsigned width = alf.get_info().width;
+  const unsigned height = alf.get_info().height;
 
   FrameName name( argv[ 2 ] );
 
-  if ( not db.has_frame_name( name ) ) {
+  if ( not alf.has_frame_name( name ) ) {
     cerr << argv[ 1 ] << " not in FrameDB\n";
     return EXIT_FAILURE;
   }
 
-  FrameInfo frame = db.search_by_frame_name( name );
+  FrameInfo frame = alf.get_frame( name );
 
   UncompressedChunk uncompressed_chunk( alf.get_chunk( frame ),
                                         width,

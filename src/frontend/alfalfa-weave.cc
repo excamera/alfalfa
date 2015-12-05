@@ -96,7 +96,7 @@ private:
 public:
   StreamState( const pair<TrackDBIterator, TrackDBIterator> & track_pair,
                const PlayableAlfalfaVideo & source_alf )
-    : stream_player_( source_alf.video_manifest().width(), source_alf.video_manifest().height() ),
+    : stream_player_( source_alf.get_info().width, source_alf.get_info().height ),
       track_frame_( track_pair.first ),
       track_end_( track_pair.second ),
       source_alf_( source_alf )
@@ -206,7 +206,7 @@ private:
 public:
   ContinuationGenerator( const string & source_alf_path, const string & new_alf_path,
                          vector<size_t> track_ids )
-    : orig_alf_( source_alf_path ), new_alf_( new_alf_path, orig_alf_.video_manifest().info() )
+    : orig_alf_( source_alf_path ), new_alf_( new_alf_path, orig_alf_.get_info().fourcc, orig_alf_.get_info().width, orig_alf_.get_info().height )
   {
     /* Copy in the source video */
     new_alf_.combine( orig_alf_ );

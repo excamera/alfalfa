@@ -13,27 +13,19 @@ void alfalfa_combine_test_check( string alfalfa_video_dir, string alfalfa_video_
   PlayableAlfalfaVideo alfalfa_video_combined( alfalfa_video_combined_dir );
 
   // First, make sure that the raster lists are identical
-  RasterList raster_list = alfalfa_video.raster_list();
-  RasterList raster_list_combined = alfalfa_video_combined.raster_list();
-  for ( auto it = raster_list.begin(); it != raster_list.end(); it++ ) {
-    if ( not raster_list_combined.has( it->hash ) )
-      throw invalid_argument( "raster lists don't match!" );
-  }
-  for ( auto it = raster_list_combined.begin(); it != raster_list_combined.end(); it++ ) {
-    if ( not raster_list.has( it->hash ) )
-      throw invalid_argument( "raster lists don't match!" );
+  if ( !alfalfa_video.equal_raster_lists( alfalfa_video_combined ) ) {
+    throw invalid_argument( "raster lists don't match!" );
   }
 
   // Now, check the quality db
-  QualityDB quality_db = alfalfa_video.quality_db();
-  QualityDB quality_db_combined = alfalfa_video_combined.quality_db();
-  for ( auto it = quality_db.begin(); it != quality_db.end(); it++ ) {
+  for ( auto quality_data = alfalfa_video.get_quality_data();
+        quality_data.first != quality_data.second; quality_data.first++ ) {
     bool found;
     found = false;
-    auto original_results = quality_db_combined.search_by_original_raster( it->original_raster );
+    auto original_results = alfalfa_video_combined.get_quality_data_by_original_raster( quality_data.first->original_raster );
     while ( original_results.first != original_results.second ) {
-      if ( original_results.first->approximate_raster == it->approximate_raster and
-           original_results.first->quality == it->quality )
+      if ( original_results.first->approximate_raster == quality_data.first->approximate_raster and
+           original_results.first->quality == quality_data.first->quality )
         found = true;
       original_results.first++;
     }
@@ -41,10 +33,10 @@ void alfalfa_combine_test_check( string alfalfa_video_dir, string alfalfa_video_
       throw logic_error( "quality_data not found in combined video." );
 
     found = false;
-    auto approx_results = quality_db_combined.search_by_approximate_raster( it->approximate_raster );
+    auto approx_results = alfalfa_video_combined.get_quality_data_by_approximate_raster( quality_data.first->approximate_raster );
     while ( approx_results.first != approx_results.second ) {
-      if ( approx_results.first->original_raster == it->original_raster and
-           approx_results.first->quality == it->quality )
+      if ( approx_results.first->original_raster == quality_data.first->original_raster and
+           approx_results.first->quality == quality_data.first->quality )
         found = true;
       approx_results.first++;
     }
@@ -53,11 +45,9 @@ void alfalfa_combine_test_check( string alfalfa_video_dir, string alfalfa_video_
   }
 
   // Now check the frame db
-  FrameDB frame_db = alfalfa_video.frame_db();
-  FrameDB frame_db_combined = alfalfa_video_combined.frame_db();
   auto frames = alfalfa_video.get_frames();
   for ( auto it = frames.first; it != frames.second; it++ ) {
-    if ( not frame_db_combined.has_frame_name( it->name() ) )
+    if ( not alfalfa_video_combined.has_frame_name( it->name() ) )
       throw logic_error( "frame missing" );
   }
 

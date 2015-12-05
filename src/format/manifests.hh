@@ -76,6 +76,7 @@ RasterListCollectionByHash;
 typedef RasterListCollection::index<RasterListRandomAccessTag>::type
 RasterListCollectionRandomAccess;
 
+
 class RasterList : public BasicDatabase<RasterData, AlfalfaProtobufs::RasterData,
   RasterListCollection, RasterListSequencedTag>
 {
@@ -86,7 +87,7 @@ public:
   {}
 
   bool has( const size_t raster_hash ) const;
-  size_t raster( const size_t raster_index ) const;
+  RasterData raster( const size_t raster_index ) const;
   bool operator==( const RasterList & other ) const;
   bool operator!=( const RasterList & other ) const;
 };
@@ -139,6 +140,9 @@ typedef QualityDBCollection::index<QualityDBByOriginalRasterTag>::type
 QualityDBCollectionByOriginalRaster;
 typedef QualityDBCollection::index<QualityDBByApproximateRasterTag>::type
 QualityDBCollectionByApproximateRaster;
+typedef QualityDBCollection::index<QualityDBSequencedTag>::type
+QualityDBCollectionSequencedAccess;
+
 
 class QualityDB : public BasicDatabase<QualityData, AlfalfaProtobufs::QualityData,
   QualityDBCollection, QualityDBSequencedTag>
@@ -190,6 +194,9 @@ typedef multi_index_container
 
 typedef TrackDBCollection::index<TrackDBByTrackIdAndFrameIndexTag>::type
 TrackDBCollectionByTrackIdAndFrameIndex;
+typedef TrackDBCollection::index<TrackDBSequencedTag>::type
+TrackDBCollectionSequencedAccess;
+
 
 class TrackDB : public BasicDatabase<TrackData, AlfalfaProtobufs::TrackData,
   TrackDBCollection, TrackDBSequencedTag>
@@ -307,6 +314,9 @@ typedef SwitchDBCollection::index<SwitchDBHashedByTrackIdsAndFrameIndexTag>::typ
 SwitchDBCollectionHashedByTrackIdsAndFrameIndex;
 typedef SwitchDBCollection::index<SwitchDBOrderedByTrackIdsAndFrameIndicesTag>::type
 SwitchDBCollectionOrderedByTrackIdsAndFrameIndices;
+typedef SwitchDBCollection::index<SwitchDBSequencedTag>::type
+SwitchDBCollectionSequencedAccess;
+
 
 class SwitchDB : public BasicDatabase<SwitchData, AlfalfaProtobufs::SwitchData,
   SwitchDBCollection, SwitchDBSequencedTag>

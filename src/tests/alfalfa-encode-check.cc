@@ -22,8 +22,8 @@ void alfalfa_encode_test( string original_video_path, string encoded_video_path 
     throw invalid_argument( "uncombinable videos." );
   }
 
-  FramePlayer original_player( original.video_manifest().width(), original.video_manifest().height() );
-  FramePlayer encoded_player( encoded.video_manifest().width(), encoded.video_manifest().height() );
+  FramePlayer original_player( original.get_info().width, original.get_info().height );
+  FramePlayer encoded_player( encoded.get_info().width, encoded.get_info().height );
 
   auto original_frames = original.get_frames( track_id );
   auto encoded_frames = encoded.get_frames( track_id );
@@ -43,7 +43,7 @@ void alfalfa_encode_test( string original_video_path, string encoded_video_path 
         throw invalid_argument( "encoded video is inconsistent with the original." );
       }
 
-      if ( original.raster_list().raster( raster_index ) != encoded.raster_list().raster( raster_index ) ) {
+      if ( not original.equal_raster_lists( encoded ) ) {
         throw logic_error( "original rasters don't line up." );
       }
 
@@ -59,7 +59,7 @@ void alfalfa_encode_test( string original_video_path, string encoded_video_path 
       original_frames.first++;
     }
 
-    if ( not encoded.frame_db().has_frame_name( encoded_frames.first->name() ) ) {
+    if ( not encoded.has_frame_name( encoded_frames.first->name() ) ) {
       throw logic_error( "invalid framedb." );
     }
 

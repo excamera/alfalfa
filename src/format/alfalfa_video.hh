@@ -71,28 +71,41 @@ protected:
   AlfalfaVideo( const std::string & directory_name, OpenMode mode = OpenMode::READ );
 
 public:
+  /* Getter for video info. */
+  const VideoInfo & get_info() const { return video_manifest_.info(); }
+
+  /* Getters for raster data. */
+  size_t get_raster_list_size( void ) const;
+  RasterData get_raster( const size_t raster_index ) const;
+  bool has_raster( const size_t raster ) const;
+  bool equal_raster_lists( const AlfalfaVideo & video );
+
+  /* Gets an iterator over all quality data in the alf video's quality db. */
+  std::pair<QualityDBCollectionSequencedAccess::iterator, QualityDBCollectionSequencedAccess::iterator>
+  get_quality_data( void ) const;
+
+  /* Gets an iterator over quality data by approximate raster. */
+  std::pair<QualityDBCollectionByApproximateRaster::iterator, QualityDBCollectionByApproximateRaster::iterator>
+  get_quality_data_by_approximate_raster( const size_t approximate_raster );
+
+  /* Gets an iterator over quality data by original raster. */
+  std::pair<QualityDBCollectionByOriginalRaster::iterator, QualityDBCollectionByOriginalRaster::iterator>
+  get_quality_data_by_original_raster( const size_t original_raster );
+
+  /* Gets an iterator over all frames in the alf video's frame db. */
+  std::pair<FrameDataSetCollectionSequencedAccess::iterator, FrameDataSetCollectionSequencedAccess::iterator>
+  get_frames( void ) const;
+
+  /* Gets an iterator over all track data in the alf video's track db. */
+  std::pair<TrackDBCollectionSequencedAccess::iterator, TrackDBCollectionSequencedAccess::iterator>
+  get_track_data( void ) const;
+
+  /* Gets an iterator over all switch data in the alf video's switch db. */
+  std::pair<SwitchDBCollectionSequencedAccess::iterator, SwitchDBCollectionSequencedAccess::iterator>
+  get_switch_data( void ) const;
+
   /* Checks if it's possible to merge with the given alfalfa video. */
   bool can_combine( const AlfalfaVideo & video );
-
-  VideoManifest & video_manifest() { return video_manifest_; }
-  const VideoManifest video_manifest() const { return video_manifest_; }
-
-  const VideoDirectory & directory() const { return directory_; }
-
-  RasterList & raster_list() { return raster_list_; }
-  const RasterList & raster_list() const { return raster_list_; }
-
-  QualityDB & quality_db() { return quality_db_; }
-  const QualityDB & quality_db() const { return quality_db_; }
-
-  FrameDB & frame_db() { return frame_db_; }
-  const FrameDB & frame_db() const { return frame_db_; }
-
-  TrackDB & track_db() { return track_db_; }
-  const TrackDB & track_db() const { return track_db_; }
-
-  SwitchDB & switch_db() { return switch_db_; }
-  const SwitchDB & switch_db() const { return switch_db_; }
 
   /* Gets an iterator over all available track ids. */
   std::pair<std::unordered_set<size_t>::const_iterator, std::unordered_set<size_t>::const_iterator>
@@ -103,8 +116,17 @@ public:
   std::pair<std::unordered_set<size_t>::iterator, std::unordered_set<size_t>::iterator>
   get_track_ids_for_switch( const size_t from_track_id, const size_t from_frame_index ) const;
 
-  /* Gets an iterator over all frames in the alf video's frame db. */
-  std::pair<FrameDataSetCollectionSequencedAccess::iterator, FrameDataSetCollectionSequencedAccess::iterator> get_frames( void ) const;
+  /* Gets an iterator over all frames  by output hash. */
+  std::pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator>
+  get_frames_by_output_hash( const size_t output_hash );
+
+  /* Determines if alfalfa video has a frame with provided name. */
+  bool
+  has_frame_name( const FrameName & name ) { return frame_db_.has_frame_name( name ); }
+
+  /* Returns FrameInfo associated with provided name. */
+  const FrameInfo &
+  get_frame( const FrameName & name ) { return frame_db_.search_by_frame_name( name ); }
 
   /* Gets an iterator over all frames associated with the particular track. */
   std::pair<TrackDBIterator, TrackDBIterator> get_frames( const size_t track_id ) const;
@@ -159,8 +181,6 @@ private:
 public:
   WritableAlfalfaVideo( const std::string & directory_name,
                         const std::string & fourcc, const uint16_t width, const uint16_t height );
-  WritableAlfalfaVideo( const std::string & directory_name, const IVF & ivf );
-  WritableAlfalfaVideo( const std::string & directory_name, const VideoInfo & info );
 
   /* Combine the provided video with the current video. Makes sure frame ids /
      track ids / switch ids don't conflict. */
@@ -170,6 +190,13 @@ public:
   /* Import function used to create an encoded video. */
   void import( const std::string & filename, PlayableAlfalfaVideo & original,
                const size_t ref_track_id = 0 );
+
+  /* Insert helper methods. Each of these methods preserve the alf video's invariants. */
+  void insert_raster( RasterData data ) { raster_list_.insert( data ); } 
+  void insert_quality_data( QualityData data ) { quality_db_.insert( data ); }
+  void insert_track_data( TrackData data ) { track_db_.insert( data ); }
+  void insert_switch_data( SwitchData data ) { switch_db_.insert( data ); }
+  size_t insert_frame_data( FrameInfo data, const Chunk & chunk );
   /* Insert the provided frames into the switch db. */
   void insert_switch_frames( const TrackDBIterator & origin_iterator,
                              const std::vector<FrameInfo> & frames,

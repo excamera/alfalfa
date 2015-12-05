@@ -17,7 +17,7 @@ int main( int argc, char * argv[] )
 
     unsigned switch_num = stoul( argv[ 2 ] );
 
-    FramePlayer player( alf.video_manifest().width(), alf.video_manifest().height() );
+    FramePlayer player( alf.get_info().width, alf.get_info().height );
 
     auto track_pair = alf.get_frames( 0 );
     TrackDBIterator cur_frame = track_pair.first;
@@ -48,8 +48,7 @@ int main( int argc, char * argv[] )
       }
     }
 
-    TrackDBIterator new_track_start( switches.first.to_track_id(), switches.first.to_frame_index(), alf.track_db(),
-                                     alf.frame_db() );
+    TrackDBIterator new_track_start = alf.get_frames( switches.second ).first;
 
     pair<TrackDBIterator, TrackDBIterator> new_track = alf.get_frames( new_track_start );
 

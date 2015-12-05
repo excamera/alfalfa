@@ -24,7 +24,7 @@ int main( int argc, char const *argv[] )
     const string destination_dir( argv[ 2 ] );
 
     FileSystem::create_directory( destination_dir );
-    WritableAlfalfaVideo alfalfa_video( destination_dir, ivf );
+    WritableAlfalfaVideo alfalfa_video( destination_dir, ivf.fourcc(), ivf.width(), ivf.height() );
 
     alfalfa_video.import( ivf_file );
   } catch ( const exception & e ) {

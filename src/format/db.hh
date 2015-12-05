@@ -61,7 +61,6 @@ public:
   BasicDatabase( const std::string & filename, const std::string & magic_number,
     OpenMode mode = OpenMode::READ );
   void insert( RecordType record );
-  void merge( const BasicDatabase & db );
 
   typename SequencedAccess::iterator begin() { return this->collection_.get<SequencedTag>().begin(); }
   typename SequencedAccess::iterator begin() const { return this->collection_.get<SequencedTag>().begin(); }
@@ -96,15 +95,6 @@ void BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
   ::insert( RecordType record )
 {
   this->collection_.insert( record );
-}
-
-template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag>
-void BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
-  ::merge( const BasicDatabase & db )
-{
-  for ( auto const & item : db.collection_.get<SequencedTag>() ) {
-    insert( item );
-  }
 }
 
 template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag>

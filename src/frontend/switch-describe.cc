@@ -53,14 +53,14 @@ private:
 
   bool is_key_frame( const FrameInfo & frame )
   {
-    UncompressedChunk uncompressed( alf_.get_chunk( frame ), alf_.video_manifest().width(), alf_.video_manifest().height() );
+    UncompressedChunk uncompressed( alf_.get_chunk( frame ), alf_.get_info().width, alf_.get_info().height );
 
     return uncompressed.key_frame();
   }
 
   bool is_experimental_frame( const FrameInfo & frame )
   {
-    UncompressedChunk uncompressed( alf_.get_chunk( frame ), alf_.video_manifest().width(), alf_.video_manifest().height() );
+    UncompressedChunk uncompressed( alf_.get_chunk( frame ), alf_.get_info().width, alf_.get_info().height );
 
     return uncompressed.experimental();
   }
@@ -143,9 +143,7 @@ public:
         switch_size += s->length();
       }
 
-
-      TrackDBIterator target_end( target_pos.track_id(), switches.first.to_frame_index(),
-                                  alf_.track_db(), alf_.frame_db() );
+      TrackDBIterator target_end = alf_.get_frames( switches.second ).first;
       for ( TrackDBIterator t = target_pos; t != target_end; t++ ) {
         target_size += t->length();
       }

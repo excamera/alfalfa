@@ -53,12 +53,12 @@ bool RasterList::has( const size_t raster_hash ) const
   return data_by_hash.count( raster_hash ) > 0;
 }
 
-size_t RasterList::raster( const size_t raster_index ) const
+RasterData RasterList::raster( const size_t raster_index ) const
 {
   const RasterListCollectionRandomAccess & data_by_random_access = collection_.get<RasterListRandomAccessTag>();
   if ( data_by_random_access.size() <= raster_index )
     throw out_of_range( "Invalid raster index!" );
-  return data_by_random_access.at( raster_index ).hash;
+  return data_by_random_access.at( raster_index );
 }
 
 bool RasterList::operator==( const RasterList & other ) const
