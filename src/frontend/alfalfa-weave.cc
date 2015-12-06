@@ -209,7 +209,7 @@ public:
     : orig_alf_( source_alf_path ), new_alf_( new_alf_path, orig_alf_.get_info().fourcc, orig_alf_.get_info().width, orig_alf_.get_info().height )
   {
     /* Copy in the source video */
-    new_alf_.combine( orig_alf_ );
+    combine( new_alf_, orig_alf_ );
 
     for ( size_t track_id : track_ids ) {
       streams_.emplace_back( orig_alf_.get_frames( track_id ), orig_alf_ );

@@ -35,8 +35,8 @@ int main( int argc, char const *argv[] )
     PlayableAlfalfaVideo alf2( alf2_path );
     WritableAlfalfaVideo res_video( destination_dir, alf1.get_info().fourcc, alf1.get_info().width, alf1.get_info().height );
 
-    res_video.combine ( alf1 );
-    res_video.combine ( alf2 );
+    combine ( res_video, alf1 );
+    combine ( res_video, alf2 );
 
     res_video.save();
   } catch (const exception &e ) {

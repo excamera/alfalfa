@@ -107,6 +107,9 @@ public:
   /* Checks if it's possible to merge with the given alfalfa video. */
   bool can_combine( const AlfalfaVideo & video );
 
+  /* Checks if alfalfa video has the given track. */
+  bool has_track( const size_t track_id ) { return track_db_.has_track( track_id ); }
+
   /* Gets an iterator over all available track ids. */
   std::pair<std::unordered_set<size_t>::const_iterator, std::unordered_set<size_t>::const_iterator>
   get_track_ids() const;
@@ -174,24 +177,15 @@ class WritableAlfalfaVideo : public AlfalfaVideo
 private:
   IVFWriter ivf_writer_;
 
-  void insert_frame( FrameInfo next_frame,
-                     const size_t original_raster, const double quality,
-                     const size_t track_id );
-
 public:
   WritableAlfalfaVideo( const std::string & directory_name,
                         const std::string & fourcc, const uint16_t width, const uint16_t height );
 
-  /* Combine the provided video with the current video. Makes sure frame ids /
-     track ids / switch ids don't conflict. */
-  void combine( const PlayableAlfalfaVideo & video );
-  /* Convert supplied ivf file into alfalfa video. */
-  void import( const std::string & filename );
-  /* Import function used to create an encoded video. */
-  void import( const std::string & filename, PlayableAlfalfaVideo & original,
-               const size_t ref_track_id = 0 );
-
   /* Insert helper methods. Each of these methods preserve the alf video's invariants. */
+  void insert_frame( FrameInfo next_frame,
+                     const size_t original_raster, const double quality,
+                     const size_t track_id );
+  size_t append_frame_to_ivf( Chunk chunk ) { return ivf_writer_.append_frame( chunk ); }
   void insert_raster( RasterData data ) { raster_list_.insert( data ); } 
   void insert_quality_data( QualityData data ) { quality_db_.insert( data ); }
   void insert_track_data( TrackData data ) { track_db_.insert( data ); }
@@ -201,10 +195,12 @@ public:
   void insert_switch_frames( const TrackDBIterator & origin_iterator,
                              const std::vector<FrameInfo> & frames,
                              const TrackDBIterator & dest_iterator );
-
   FrameInfo import_serialized_frame( const SerializedFrame & frame );
 
   bool save();
 };
+
+void combine( WritableAlfalfaVideo& combined_video,
+              const PlayableAlfalfaVideo & video );
 
 #endif /* ALFALFA_VIDEO_HH */

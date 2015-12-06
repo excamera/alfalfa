@@ -11,6 +11,31 @@
 
 using namespace std;
 
+void import( WritableAlfalfaVideo & alfalfa_video, const string & filename )
+{
+  IVF ivf_file( filename );
+  TrackingPlayer player( filename );
+
+  unsigned int i = 0;
+  size_t track_id = 0;
+
+  while ( not player.eof() ) {
+    auto next_frame_data = player.serialize_next();
+    FrameInfo next_frame( next_frame_data.first );
+
+    if ( not alfalfa_video.has_frame_name( next_frame.name() ) ) {
+      size_t offset = alfalfa_video.append_frame_to_ivf( ivf_file.frame( i ) );
+      next_frame.set_offset( offset );
+    }
+
+    size_t original_raster = next_frame.target_hash().output_hash;
+    double quality = 1.0;
+
+    alfalfa_video.insert_frame( next_frame, original_raster, quality, track_id );
+    i++;
+  }
+}
+
 int main( int argc, char const *argv[] )
 {
   try {
@@ -26,7 +51,9 @@ int main( int argc, char const *argv[] )
     FileSystem::create_directory( destination_dir );
     WritableAlfalfaVideo alfalfa_video( destination_dir, ivf.fourcc(), ivf.width(), ivf.height() );
 
-    alfalfa_video.import( ivf_file );
+    import( alfalfa_video, ivf_file );
+
+    alfalfa_video.save();
   } catch ( const exception & e ) {
     print_exception( argv[ 0 ], e );
     return EXIT_FAILURE;
