@@ -227,9 +227,6 @@ public:
 
   size_t get_end_frame_index( const size_t track_id ) const;
   bool has_track( const size_t track_id ) const;
-  void merge( const TrackDB & db,
-              std::map<size_t, size_t> & frame_id_mapping,
-              std::map<size_t, size_t> & track_id_mapping );
 };
 
 /*
@@ -338,9 +335,6 @@ public:
   const SwitchData &
   get_frame( const size_t from_track_id, const size_t to_track_id,
              const size_t from_frame_index, const size_t switch_frame_index ) const;
-  void merge( const SwitchDB & db,
-              std::map<size_t, size_t> & frame_id_mapping,
-              std::map<size_t, size_t> & track_id_mapping );
 };
 
 /*

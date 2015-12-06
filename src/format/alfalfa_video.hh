@@ -78,7 +78,7 @@ public:
   size_t get_raster_list_size( void ) const;
   RasterData get_raster( const size_t raster_index ) const;
   bool has_raster( const size_t raster ) const;
-  bool equal_raster_lists( const AlfalfaVideo & video );
+  bool equal_raster_lists( const AlfalfaVideo & video ) const;
 
   /* Gets an iterator over all quality data in the alf video's quality db. */
   std::pair<QualityDBCollectionSequencedAccess::iterator, QualityDBCollectionSequencedAccess::iterator>
@@ -86,11 +86,11 @@ public:
 
   /* Gets an iterator over quality data by approximate raster. */
   std::pair<QualityDBCollectionByApproximateRaster::iterator, QualityDBCollectionByApproximateRaster::iterator>
-  get_quality_data_by_approximate_raster( const size_t approximate_raster );
+  get_quality_data_by_approximate_raster( const size_t approximate_raster ) const;
 
   /* Gets an iterator over quality data by original raster. */
   std::pair<QualityDBCollectionByOriginalRaster::iterator, QualityDBCollectionByOriginalRaster::iterator>
-  get_quality_data_by_original_raster( const size_t original_raster );
+  get_quality_data_by_original_raster( const size_t original_raster ) const;
 
   /* Gets an iterator over all frames in the alf video's frame db. */
   std::pair<FrameDataSetCollectionSequencedAccess::iterator, FrameDataSetCollectionSequencedAccess::iterator>
@@ -105,10 +105,10 @@ public:
   get_switch_data( void ) const;
 
   /* Checks if it's possible to merge with the given alfalfa video. */
-  bool can_combine( const AlfalfaVideo & video );
+  bool can_combine( const AlfalfaVideo & video ) const;
 
   /* Checks if alfalfa video has the given track. */
-  bool has_track( const size_t track_id ) { return track_db_.has_track( track_id ); }
+  bool has_track( const size_t track_id ) const { return track_db_.has_track( track_id ); }
 
   /* Gets an iterator over all available track ids. */
   std::pair<std::unordered_set<size_t>::const_iterator, std::unordered_set<size_t>::const_iterator>
@@ -121,15 +121,15 @@ public:
 
   /* Gets an iterator over all frames  by output hash. */
   std::pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator>
-  get_frames_by_output_hash( const size_t output_hash );
+  get_frames_by_output_hash( const size_t output_hash ) const;
 
   /* Determines if alfalfa video has a frame with provided name. */
   bool
-  has_frame_name( const FrameName & name ) { return frame_db_.has_frame_name( name ); }
+  has_frame_name( const FrameName & name ) const { return frame_db_.has_frame_name( name ); }
 
   /* Returns FrameInfo associated with provided name. */
   const FrameInfo &
-  get_frame( const FrameName & name ) { return frame_db_.search_by_frame_name( name ); }
+  get_frame( const FrameName & name ) const { return frame_db_.search_by_frame_name( name ); }
 
   /* Gets an iterator over all frames associated with the particular track. */
   std::pair<TrackDBIterator, TrackDBIterator> get_frames( const size_t track_id ) const;
@@ -169,7 +169,7 @@ public:
 
   const Chunk get_chunk( const FrameInfo & frame_info ) const;
   void encode( const size_t track_id, std::vector<std::string> vpxenc_args,
-               const std::string & destination );
+               const std::string & destination ) const;
 };
 
 class WritableAlfalfaVideo : public AlfalfaVideo

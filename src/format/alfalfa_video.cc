@@ -110,19 +110,19 @@ AlfalfaVideo::get_quality_data() const
 }
 
 pair<QualityDBCollectionByApproximateRaster::iterator, QualityDBCollectionByApproximateRaster::iterator>
-AlfalfaVideo::get_quality_data_by_approximate_raster( const size_t approximate_raster )
+AlfalfaVideo::get_quality_data_by_approximate_raster( const size_t approximate_raster ) const
 {
   return quality_db_.search_by_approximate_raster( approximate_raster );
 }
 
 pair<QualityDBCollectionByOriginalRaster::iterator, QualityDBCollectionByOriginalRaster::iterator>
-AlfalfaVideo::get_quality_data_by_original_raster( const size_t original_raster )
+AlfalfaVideo::get_quality_data_by_original_raster( const size_t original_raster ) const
 {
   return quality_db_.search_by_original_raster( original_raster );
 }
 
 pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator>
-AlfalfaVideo::get_frames_by_output_hash( const size_t output_hash )
+AlfalfaVideo::get_frames_by_output_hash( const size_t output_hash ) const
 {
   return frame_db_.search_by_output_hash( output_hash );
 }
@@ -145,7 +145,7 @@ AlfalfaVideo::get_switch_data() const
   return make_pair( switch_db_.begin(), switch_db_.end() );
 }
 
-bool AlfalfaVideo::equal_raster_lists( const AlfalfaVideo & video )
+bool AlfalfaVideo::equal_raster_lists( const AlfalfaVideo & video ) const
 {
   if ( get_raster_list_size() != video.get_raster_list_size() )
     return false;
@@ -157,7 +157,7 @@ bool AlfalfaVideo::equal_raster_lists( const AlfalfaVideo & video )
   return true;
 }
 
-bool AlfalfaVideo::can_combine( const AlfalfaVideo & video )
+bool AlfalfaVideo::can_combine( const AlfalfaVideo & video ) const
 {
   return (
     raster_list_.size() == 0 or
@@ -349,7 +349,7 @@ const Chunk PlayableAlfalfaVideo::get_chunk( const FrameInfo & frame_info ) cons
 }
 
 void PlayableAlfalfaVideo::encode( const size_t track_id, vector<string> vpxenc_args,
-                                   const string & destination )
+                                   const string & destination ) const
 {
   TempFile fpf_file( "fpf" );
   const int total_passes = 2;

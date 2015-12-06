@@ -158,32 +158,6 @@ TrackDB::get_frame( const size_t & track_id, const size_t & frame_index ) const
   return *ids_iterator;
 }
 
-void TrackDB::merge( const TrackDB & db,
-                     map<size_t, size_t> & frame_id_mapping,
-                     map<size_t, size_t> & track_id_mapping )
-{
-  TrackDBCollectionByTrackIdAndFrameIndex & track_db_by_ids =
-    collection_.get<TrackDBByTrackIdAndFrameIndexTag>();
-
-  for ( auto item : db.collection_.get<TrackDBSequencedTag>() ) {
-    if ( track_id_mapping.count( item.track_id ) > 0 ) {
-      item.track_id = track_id_mapping[ item.track_id ];
-    }
-    else if ( track_db_by_ids.count( item.track_id ) > 0 ) {
-      size_t new_track_id = item.track_id;
-      while ( track_db_by_ids.count ( new_track_id ) > 0 ) {
-        new_track_id++;
-      }
-      track_id_mapping[ item.track_id ] = new_track_id;
-      item.track_id = new_track_id;
-    } else {
-      track_id_mapping[ item.track_id ] = item.track_id;
-    }
-    item.frame_id = frame_id_mapping[ item.frame_id ];
-    insert( item );
-  }
-}
-
 TrackDBIterator &
 TrackDBIterator::operator++()
 {
@@ -263,18 +237,6 @@ SwitchDB::get_frame( const size_t from_track_id, const size_t to_track_id,
   SwitchDBCollectionOrderedByTrackIdsAndFrameIndices::const_iterator ids_iterator = ordered_index.find(
     ordered_key);
   return *ids_iterator;
-}
-
-void SwitchDB::merge( const SwitchDB & db,
-                      map<size_t, size_t> & frame_id_mapping,
-                      map<size_t, size_t> & track_id_mapping )
-{
-  for ( auto item : db.collection_.get<SwitchDBSequencedTag>() ) {
-    item.from_track_id = track_id_mapping[ item.from_track_id ];
-    item.to_track_id = track_id_mapping[ item.to_track_id ];
-    item.frame_id = frame_id_mapping[ item.frame_id ];
-    insert( item );
-  }
 }
 
 SwitchDBIterator &
