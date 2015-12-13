@@ -17,13 +17,11 @@ struct VideoInfo
   uint16_t width;
   uint16_t height;
 
-  VideoInfo()
-    : fourcc( "VP80" ), width( 0 ), height( 0 )
-  {}
+  VideoInfo();
+  VideoInfo( std::string fourcc, uint16_t width, uint16_t height );
+  VideoInfo( const AlfalfaProtobufs::VideoInfo & message );
 
-  VideoInfo( std::string fourcc, uint16_t width, uint16_t height )
-    : fourcc( fourcc ), width( width ), height( height )
-  {}
+  AlfalfaProtobufs::VideoInfo to_protobuf() const;
 
   bool operator==( const VideoInfo & other ) const
   {
@@ -42,6 +40,11 @@ struct VideoInfo
 struct RasterData
 {
   size_t hash;
+
+  RasterData( const size_t hash );
+  RasterData( const AlfalfaProtobufs::RasterData & message );
+
+  AlfalfaProtobufs::RasterData to_protobuf() const;
 };
 
 struct QualityData
@@ -49,6 +52,12 @@ struct QualityData
   size_t original_raster;
   size_t approximate_raster;
   double quality;
+
+  QualityData( const size_t original_raster, const size_t approximate_raster,
+               const double quality );
+  QualityData( const AlfalfaProtobufs::QualityData & message );
+
+  AlfalfaProtobufs::QualityData to_protobuf() const;
 };
 
 struct TrackData
@@ -58,20 +67,11 @@ struct TrackData
   size_t frame_id;
 
   TrackData ( const size_t track_id, const size_t frame_index,
-              const size_t frame_id ) : track_id( track_id ),
-                                        frame_index( frame_index ),
-                                        frame_id( frame_id )
-  {}
+              const size_t frame_id );
+  TrackData( const size_t track_id, const size_t frame_id );
+  TrackData( const AlfalfaProtobufs::TrackData & message );
 
-  TrackData( const size_t track_id, const size_t frame_id )
-    : track_id( track_id ),
-      frame_index( 0 ),
-      frame_id( frame_id )
-  {}
-
-  TrackData()
-    : track_id(0), frame_index(0), frame_id(0)
-  {}
+  AlfalfaProtobufs::TrackData to_protobuf() const;
 };
 
 struct SwitchData
@@ -85,40 +85,11 @@ struct SwitchData
 
   SwitchData( const size_t from_track_id, const size_t from_frame_index,
               const size_t to_track_id, const size_t to_frame_index,
-              const size_t frame_id, const size_t switch_frame_index )
-    : from_track_id( from_track_id ),
-      from_frame_index( from_frame_index ),
-      to_track_id( to_track_id ),
-      to_frame_index( to_frame_index ),
-      frame_id( frame_id ),
-      switch_frame_index( switch_frame_index )
-  {}
+              const size_t frame_id, const size_t switch_frame_index );
+  SwitchData( const AlfalfaProtobufs::SwitchData & message );
 
-  SwitchData()
-    : from_track_id(0), from_frame_index(0), to_track_id(0), to_frame_index(0),
-      frame_id(0), switch_frame_index(0)
-  {}
+  AlfalfaProtobufs::SwitchData to_protobuf() const;
 };
-
-AlfalfaProtobufs::VideoInfo   to_protobuf( const VideoInfo & info );
-AlfalfaProtobufs::SourceHash  to_protobuf( const SourceHash & source_hash );
-AlfalfaProtobufs::TargetHash  to_protobuf( const TargetHash & target_hash );
-AlfalfaProtobufs::RasterData  to_protobuf( const RasterData & rd );
-AlfalfaProtobufs::QualityData to_protobuf( const QualityData & qd );
-AlfalfaProtobufs::TrackData   to_protobuf( const TrackData & td );
-AlfalfaProtobufs::FrameInfo   to_protobuf( const FrameInfo & fi );
-AlfalfaProtobufs::SwitchData  to_protobuf( const SwitchData &sd );
-
-VideoInfo   from_protobuf( const AlfalfaProtobufs::VideoInfo & message );
-SourceHash  from_protobuf( const AlfalfaProtobufs::SourceHash & message );
-TargetHash  from_protobuf( const AlfalfaProtobufs::TargetHash & message );
-RasterData  from_protobuf( const AlfalfaProtobufs::RasterData & item );
-QualityData from_protobuf( const AlfalfaProtobufs::QualityData & message );
-TrackData   from_protobuf( const AlfalfaProtobufs::TrackData & message );
-FrameInfo   from_protobuf( const AlfalfaProtobufs::FrameInfo & pfi );
-SwitchData  from_protobuf( const AlfalfaProtobufs::SwitchData &pwd );
-
-// end of protobuf converters
 
 class ProtobufSerializer
 {

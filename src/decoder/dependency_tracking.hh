@@ -5,6 +5,7 @@
 #include "safe_array.hh"
 #include "modemv_data.hh"
 #include "raster_handle.hh"
+#include "protobufs/alfalfa.pb.h"
 
 #include <string>
 #include <initializer_list>
@@ -30,6 +31,9 @@ struct SourceHash
   SourceHash( const std::string & frame_name );
   SourceHash( const Optional<size_t> & state, const Optional<size_t> & last,
               const Optional<size_t> & golden, const Optional<size_t> & alt );
+  SourceHash( const AlfalfaProtobufs::SourceHash & message );
+
+  AlfalfaProtobufs::SourceHash to_protobuf() const;
 
   std::string str() const;
 
@@ -68,6 +72,9 @@ struct TargetHash : public UpdateTracker
 
   TargetHash( const std::string & frame_name );
   TargetHash( const UpdateTracker & updates, size_t state, size_t output, bool shown );
+  TargetHash( const AlfalfaProtobufs::TargetHash & message );
+
+  AlfalfaProtobufs::TargetHash to_protobuf() const;
 
   std::string str() const;
 

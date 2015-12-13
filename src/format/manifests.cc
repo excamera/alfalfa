@@ -28,7 +28,7 @@ bool VideoManifest::deserialize()
 
   AlfalfaProtobufs::VideoInfo message;
   deserializer.read_protobuf( message );
-  info_ = from_protobuf( message );
+  info_ = VideoInfo( message );
   return true;
 }
 
@@ -43,7 +43,7 @@ bool VideoManifest::serialize() const
   // Writing the header
   serializer.write_string( magic_number );
 
-  AlfalfaProtobufs::VideoInfo message = to_protobuf( info_ );
+  AlfalfaProtobufs::VideoInfo message = info_.to_protobuf();
   return serializer.write_protobuf( message );
 }
 
