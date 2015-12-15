@@ -444,7 +444,7 @@ public:
     References refs( video_.get_info().width, video_.get_info().height );
     DecoderState state( video_.get_info().width, video_.get_info().height );
 
-    auto frames = video_.get_frames( path.track_id, path.start_index, path.end_index );
+    auto frames = video_.get_track_range( path.track_id, path.start_index, path.end_index );
 
     for ( auto frame = frames.first; frame != frames.second; frame++ ) {
       Decoder && decoder = get_decoder( *frame );
@@ -462,7 +462,7 @@ public:
     References refs( video_.get_info().width, video_.get_info().height );
     DecoderState state( video_.get_info().width, video_.get_info().height );
 
-    auto frames = video_.get_frames( path.from_track_id, path.to_track_id,
+    auto frames = video_.get_switch_range( path.from_track_id, path.to_track_id,
       path.from_frame_index, path.switch_start_index, path.switch_end_index );
 
     for ( auto frame = frames.first; frame != frames.second; frame++ ) {
