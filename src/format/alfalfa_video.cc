@@ -121,10 +121,16 @@ AlfalfaVideo::get_quality_data_by_original_raster( const size_t original_raster 
   return quality_db_.search_by_original_raster( original_raster );
 }
 
-pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator>
+pair<FrameDataSetCollectionByOutputHash::const_iterator, FrameDataSetCollectionByOutputHash::const_iterator>
 AlfalfaVideo::get_frames_by_output_hash( const size_t output_hash ) const
 {
   return frame_db_.search_by_output_hash( output_hash );
+}
+
+pair<FrameDataSetSourceHashSearch::const_iterator, FrameDataSetSourceHashSearch::const_iterator>
+AlfalfaVideo::get_frames_by_decoder_hash( const DecoderHash & decoder_hash ) const
+{
+  return frame_db_.search_by_decoder_hash( decoder_hash );
 }
 
 pair<FrameDataSetCollectionSequencedAccess::iterator, FrameDataSetCollectionSequencedAccess::iterator>
@@ -185,10 +191,9 @@ AlfalfaVideo::get_track_ids_for_switch(const size_t from_track_id, const size_t 
 pair<TrackDBIterator, TrackDBIterator>
 AlfalfaVideo::get_frames( const size_t track_id ) const
 {
+  size_t start_frame_index = 0;
   size_t end_frame_index = track_db_.get_end_frame_index( track_id );
-  TrackDBIterator begin = TrackDBIterator( track_id, 0, track_db_, frame_db_ );
-  TrackDBIterator end = TrackDBIterator( track_id, end_frame_index, track_db_, frame_db_);
-  return make_pair( begin, end );
+  return get_track_range( track_id, start_frame_index, end_frame_index );
 }
 
 pair<TrackDBIterator, TrackDBIterator>
@@ -198,9 +203,7 @@ AlfalfaVideo::get_frames( const TrackDBIterator & it ) const
   size_t start_frame_index = it.frame_index();
   size_t end_frame_index = track_db_.get_end_frame_index( track_id );
   assert( start_frame_index <= end_frame_index );
-  TrackDBIterator begin = TrackDBIterator( track_id, start_frame_index, track_db_, frame_db_ );
-  TrackDBIterator end = TrackDBIterator( track_id, end_frame_index, track_db_, frame_db_);
-  return make_pair( begin, end );
+  return get_track_range( track_id, start_frame_index, end_frame_index );
 }
 
 pair<TrackDBIterator, TrackDBIterator>
@@ -210,8 +213,16 @@ AlfalfaVideo::get_frames( const SwitchDBIterator & it ) const
   size_t start_frame_index = it.to_frame_index();
   size_t end_frame_index = track_db_.get_end_frame_index( track_id );
   assert( start_frame_index <= end_frame_index );
+  return get_track_range( track_id, start_frame_index, end_frame_index );
+}
+
+pair<TrackDBIterator, TrackDBIterator>
+AlfalfaVideo::get_track_range( const size_t track_id,
+                               const size_t start_frame_index,
+                               const size_t end_frame_index ) const
+{
   TrackDBIterator begin = TrackDBIterator( track_id, start_frame_index, track_db_, frame_db_ );
-  TrackDBIterator end = TrackDBIterator( track_id, end_frame_index, track_db_, frame_db_);
+  TrackDBIterator end = TrackDBIterator( track_id, end_frame_index, track_db_, frame_db_ );
   return make_pair( begin, end );
 }
 
@@ -220,6 +231,14 @@ AlfalfaVideo::get_frames( const TrackDBIterator & it, const size_t to_track_id )
 {
   size_t from_track_id = it.track_id();
   size_t from_frame_index = it.frame_index();
+  return get_frames( from_track_id, from_frame_index, to_track_id );
+}
+
+pair<SwitchDBIterator, SwitchDBIterator>
+AlfalfaVideo::get_frames( const size_t from_track_id,
+                          const size_t from_frame_index,
+                          const size_t to_track_id ) const
+{
   size_t end_switch_frame_index = switch_db_.get_end_switch_frame_index( from_track_id,
                                                                          to_track_id,
                                                                          from_frame_index );

@@ -100,6 +100,9 @@ public:
   std::pair<TrackDBCollectionSequencedAccess::iterator, TrackDBCollectionSequencedAccess::iterator>
   get_track_data( void ) const;
 
+  /* Get number of frames in given track. */
+  size_t get_track_size( const size_t track_id ) const { return track_db_.get_end_frame_index( track_id ); }
+
   /* Gets an iterator over all switch data in the alf video's switch db. */
   std::pair<SwitchDBCollectionSequencedAccess::iterator, SwitchDBCollectionSequencedAccess::iterator>
   get_switch_data( void ) const;
@@ -120,16 +123,22 @@ public:
   get_track_ids_for_switch( const size_t from_track_id, const size_t from_frame_index ) const;
 
   /* Gets an iterator over all frames  by output hash. */
-  std::pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator>
+  std::pair<FrameDataSetCollectionByOutputHash::const_iterator, FrameDataSetCollectionByOutputHash::const_iterator>
   get_frames_by_output_hash( const size_t output_hash ) const;
+
+  /* Gets an iterator over all frames by decoder hash. */
+  std::pair<FrameDataSetSourceHashSearch::const_iterator, FrameDataSetSourceHashSearch::const_iterator>
+  get_frames_by_decoder_hash( const DecoderHash & decoder_hash ) const;
 
   /* Determines if alfalfa video has a frame with provided name. */
   bool
   has_frame_name( const FrameName & name ) const { return frame_db_.has_frame_name( name ); }
 
-  /* Returns FrameInfo associated with provided name. */
+  /* Returns FrameInfo associated with provided name / id. */
   const FrameInfo &
   get_frame( const FrameName & name ) const { return frame_db_.search_by_frame_name( name ); }
+  const FrameInfo &
+  get_frame( const size_t frame_id ) const { return frame_db_.search_by_frame_id( frame_id ); }
 
   /* Gets an iterator over all frames associated with the particular track. */
   std::pair<TrackDBIterator, TrackDBIterator> get_frames( const size_t track_id ) const;
@@ -145,6 +154,18 @@ public:
   /* Gets an iterator over all frames associated with the switch from the current
      track and frame_index position to the provided track. */
   std::pair<SwitchDBIterator, SwitchDBIterator> get_frames( const TrackDBIterator & it,
+                                                            const size_t to_track_id ) const;
+
+  /* Gets an iterator over all frames associated with a track, starting at
+     start_frame_index and ending at end_frame_index. */
+  std::pair<TrackDBIterator, TrackDBIterator> get_track_range( const size_t track_id,
+                                                               const size_t start_frame_index,
+                                                               const size_t end_frame_index ) const;
+
+  /* Gets an iterator over all frames associated with a switch, given from_track_id, to_track_id
+     and a frame_index position explicitly. */
+  std::pair<SwitchDBIterator, SwitchDBIterator> get_frames( const size_t from_track_id,
+                                                            const size_t from_frame_index,
                                                             const size_t to_track_id ) const;
 
   /* Get the quality of the frame associated with supplied frame_info, given
