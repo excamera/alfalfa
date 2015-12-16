@@ -9,7 +9,7 @@
 #include <tuple>
 #include <boost/variant.hpp>
 
-#include "alfalfa_video.hh"
+#include "alfalfa_video_proxy.hh"
 #include "player.hh"
 #include "display.hh"
 #include "2d.hh"
@@ -17,7 +17,7 @@
 using namespace std;
 using namespace std::chrono;
 
-Optional<TrackData> get_next_frame_data( PlayableAlfalfaVideo & video,
+Optional<TrackData> get_next_frame_data( AlfalfaVideoProxy & video,
                                          size_t frame_id )
 {
   auto result = video.get_track_data_by_frame_id( frame_id );
@@ -37,9 +37,9 @@ Optional<TrackData> get_next_frame_data( PlayableAlfalfaVideo & video,
   return Optional<TrackData>();
 }
 
-vector<pair<size_t, double> > find_target_frames( PlayableAlfalfaVideo & video, size_t raster_index )
+vector<pair<size_t, double> > find_target_frames( AlfalfaVideoProxy & video, size_t raster_index )
 {
-  size_t target_raster = video.get_raster( raster_index ).hash;
+  size_t target_raster = video.get_raster( raster_index );
   vector<pair<size_t, double> > target_frames;
 
   for ( auto its = video.get_quality_data_by_original_raster( target_raster );
@@ -146,7 +146,7 @@ public:
 class FrameSeek
 {
 private:
-  const PlayableAlfalfaVideo & video_;
+  const AlfalfaVideoProxy & video_;
   CacheManager cache_;
 
   class FrameDependencey
@@ -410,14 +410,14 @@ private:
   }
 
 public:
-  FrameSeek( const PlayableAlfalfaVideo & video )
+  FrameSeek( const AlfalfaVideoProxy & video )
     : video_( video ), cache_()
   {}
 
   Decoder get_decoder( const FrameInfo & frame )
   {
-    References refs( video_.get_info().width, video_.get_info().height );
-    DecoderState state( video_.get_info().width, video_.get_info().height );
+    References refs( video_.get_video_width(), video_.get_video_height() );
+    DecoderState state( video_.get_video_width(), video_.get_video_height() );
 
     if ( frame.source_hash().last_hash.initialized() ) {
       refs.last = cache_.get<RASTER, RasterHandle>( frame.source_hash().last_hash.get() );
@@ -441,10 +441,10 @@ public:
 
   FrameDependencey follow_track_path( TrackPath path, FrameDependencey dependencies )
   {
-    References refs( video_.get_info().width, video_.get_info().height );
-    DecoderState state( video_.get_info().width, video_.get_info().height );
+    References refs( video_.get_video_width(), video_.get_video_height() );
+    DecoderState state( video_.get_video_width(), video_.get_video_height() );
 
-    auto frames = video_.get_track_range( path.track_id, path.start_index, path.end_index );
+    auto frames = video_.get_frames( path.track_id, path.start_index, path.end_index );
 
     for ( auto frame = frames.first; frame != frames.second; frame++ ) {
       Decoder && decoder = get_decoder( *frame );
@@ -459,10 +459,10 @@ public:
 
   FrameDependencey follow_switch_path( SwitchPath path, FrameDependencey dependencies)
   {
-    References refs( video_.get_info().width, video_.get_info().height );
-    DecoderState state( video_.get_info().width, video_.get_info().height );
+    References refs( video_.get_video_width(), video_.get_video_height() );
+    DecoderState state( video_.get_video_width(), video_.get_video_height() );
 
-    auto frames = video_.get_switch_range( path.from_track_id, path.to_track_id,
+    auto frames = video_.get_frames( path.from_track_id, path.to_track_id,
       path.from_frame_index, path.switch_start_index, path.switch_end_index );
 
     for ( auto frame = frames.first; frame != frames.second; frame++ ) {
@@ -528,9 +528,9 @@ int main( int argc, char const *argv[] )
     }
 
     const string video_dir( argv[ 1 ] );
-    PlayableAlfalfaVideo video( video_dir );
+    AlfalfaVideoProxy video( video_dir );
     FrameSeek frame_seek( video );
-    FramePlayer player( video.get_info().width, video.get_info().height );
+    FramePlayer player( video.get_video_width(), video.get_video_height() );
     VideoDisplay display( player.example_raster() );
 
     size_t step = 0;
