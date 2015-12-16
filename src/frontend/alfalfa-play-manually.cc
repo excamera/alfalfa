@@ -237,20 +237,12 @@ private:
           if ( cache.has<RASTER>( hash[ i ].get() ) == 0 ) {
             decrease_count<RASTER>( hash[ i ].get() );
           }
-
-          // if ( get_count<RASTER>( hash[ i ].get() ) == 0 ) {
-          //   cache.remove<RASTER>( hash[ i ].get() );
-          // }
         }
       }
 
       if ( frame.source_hash().state_hash.initialized() ) {
         if ( cache.has<STATE>( frame.source_hash().state_hash.get() ) == 0 ) {
           decrease_count<STATE>( frame.source_hash().state_hash.get() );
-
-          // if ( get_count<STATE>( frame.source_hash().state_hash.get() ) == 0 ) {
-          //   cache.remove<STATE>( frame.source_hash().state_hash.get() );
-          // }
         }
       }
     }
@@ -339,8 +331,6 @@ private:
             min_switch_path.from_frame_index = sw->first.from_frame_index();
             min_switch_path.switch_start_index = 0;
             min_switch_path.switch_end_index = sw->first.switch_frame_index();
-
-            // min_track_path = TrackPath{ *track_id, get<0>( seek ).frame_index(), frame_index };
 
             min_track_path.clear();
             min_track_path.initialize( TrackPath{ sw->first.from_track_id(),
@@ -634,47 +624,6 @@ int main( int argc, char const *argv[] )
 
             RasterHandle raster = frame_seek.get_raster( jump_index, desired_output );
             display_frame( display, make_optional( true, raster ) );
-
-            /*
-            vector<pair<size_t, pair<vector<size_t>, size_t> > > paths_list;
-
-            auto paths = search_backward_dijkstra( video, adj_list,
-              cached_states, video.frame_db()[ target_frames[ target_frame_index ].first ] );
-
-            if ( paths.size() == 0 ) {
-              cout << "!! no path found to raster " << jump_index << "." << endl;
-              break;
-            }
-
-            size_t path_index = 0;
-            cout << endl;
-            for ( auto path = paths.begin(); path != paths.end(); path++ ) {
-              paths_list.push_back( *path );
-              cout << path_index++ << ") "
-                   << "Hops: " << path->second.first.size() << "\t"
-                   << "Cost: " << path->second.second / 1024.0 << " KB" << endl;
-            }
-
-            cout << "[0-" << paths_list.size() - 1 << "]? ";
-            cin >> path_index;
-            cin.ignore( std::numeric_limits<std::streamsize>::max(), '\n' );
-
-            if ( path_index >= paths_list.size() ) {
-              break;
-            }
-
-            auto path = paths_list[ path_index ].second;
-
-            for ( auto frame_id : path.first ) {
-              const FrameInfo & frm = video.frame_db().search_by_frame_id( frame_id );
-              Optional<RasterHandle> raster = player.decode( video.get_chunk( frm ) );
-
-              if ( not display_frame( display, raster ) ) {
-                cout << "!! unshown frame." << endl;
-              }
-
-              current_frame = make_optional( true, frm );
-            }*/
 
             succeeded = true;
           }
