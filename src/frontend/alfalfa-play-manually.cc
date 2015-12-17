@@ -63,19 +63,6 @@ int main( int argc, char const *argv[] )
 
     do {
       cout << "> j <n>\t" << "jump to frame <n>." << endl;
-
-      // Applicable frames to current state
-      /*auto search_it = video.get_frames_by_decoder_hash( DecoderHash( 0, 0, 0, 0 ) );
-      vector<FrameInfo> applicable_frames( search_it.first, search_it.second );
-
-      if ( applicable_frames.size() > 0 ) {
-        cout << "> a\t" << "list of all keyframes ("
-             << applicable_frames.size() << ")." << endl;
-      }
-      else {
-        cout << "!! no key frames found." << endl;
-      }*/
-
       cout << "> q\t" << "quit." << endl;
 
       bool succeeded = false;

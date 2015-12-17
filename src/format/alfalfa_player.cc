@@ -3,40 +3,65 @@
 using namespace std;
 
 template<DependencyType DepType, class ObjectType>
-void CacheManager::do_cache( ObjectType obj )
+void LRUCache::put( ObjectType obj )
 {
-  cache_.insert( make_pair( DependencyVertex{ DepType, obj.hash() }, obj ) );
+  DependencyVertex vertex{ DepType, obj.hash() };
+
+  if ( cache_.count( vertex ) > 0 ) {
+    auto & item = cache_.at( vertex );
+    cached_items_.erase( item.second );
+    cached_items_.push_front( vertex );
+    item.second = cached_items_.cbegin();
+  }
+  else {
+    cached_items_.push_front( vertex );
+
+    if ( cached_items_.size() > cache_size_ ) {
+      cache_.erase( cached_items_.back() );
+      cached_items_.pop_back();
+    }
+  }
+
+  cache_.insert( make_pair( vertex,
+                            make_pair( obj, cached_items_.cbegin() ) ) );
 }
 
-void CacheManager::do_cache( const Decoder & decoder )
+void LRUCache::put( const Decoder & decoder )
 {
-  do_cache<RASTER>( decoder.get_references().last );
-  do_cache<RASTER>( decoder.get_references().golden );
-  do_cache<RASTER>( decoder.get_references().alternative_reference );
-  do_cache<STATE>( decoder.get_state() );
+  put<RASTER>( decoder.get_references().last );
+  put<RASTER>( decoder.get_references().golden );
+  put<RASTER>( decoder.get_references().alternative_reference );
+  put<STATE>( decoder.get_state() );
 }
 
 template<DependencyType DepType>
-bool CacheManager::has( size_t hash ) const
+bool LRUCache::has( size_t hash ) const
 {
   return cache_.count( DependencyVertex{ DepType, hash } ) > 0;
 }
 
 template<DependencyType DepType>
-void CacheManager::remove( size_t hash )
+void LRUCache::remove( size_t hash )
 {
   DependencyVertex vertex{ DepType, hash };
+  cached_items_.erase( cache_.at( vertex ).second );
   cache_.erase( vertex );
 }
 
 template<DependencyType DepType, class ObjectType>
-ObjectType CacheManager::get( size_t hash )
+ObjectType LRUCache::get( size_t hash )
 {
   DependencyVertex vertex{ DepType, hash };
-  return boost::get<ObjectType>( cache_.at( vertex ) );
+
+  auto & item = cache_.at( vertex );
+  cached_items_.erase( item.second );
+  cached_items_.push_front( vertex );
+  item.second = cached_items_.cbegin();
+
+  return boost::get<ObjectType>( cache_.at( vertex ).first );
 }
 
-void CacheManager::print_cache()
+void LRUCache::print_cache()
 {
   for ( auto const & item : cache_ )
   {
@@ -93,7 +118,7 @@ size_t AlfalfaPlayer::FrameDependencey::get_count( const size_t hash )
 }
 
 void AlfalfaPlayer::FrameDependencey::update_dependencies( const FrameInfo & frame,
-                                                           CacheManager & cache )
+                                                           LRUCache & cache )
 {
   Optional<size_t> hash[] = {
     frame.source_hash().last_hash, frame.source_hash().golden_hash,
@@ -122,7 +147,7 @@ void AlfalfaPlayer::FrameDependencey::update_dependencies( const FrameInfo & fra
 }
 
 void AlfalfaPlayer::FrameDependencey::update_dependencies_forward( const FrameInfo & frame,
-                                                                   CacheManager & cache )
+                                                                   LRUCache & cache )
 {
   Optional<size_t> hash[] = {
     frame.source_hash().last_hash, frame.source_hash().golden_hash,
@@ -197,12 +222,12 @@ AlfalfaPlayer::get_min_switch_seek( const size_t output_hash )
           min_switch_path.from_frame_index = sw->first.from_frame_index();
           min_switch_path.to_frame_index = sw->first.to_frame_index();
           min_switch_path.switch_start_index = 0;
-          min_switch_path.switch_end_index = sw->first.switch_frame_index();
+          min_switch_path.switch_end_index = sw->first.switch_frame_index() + 1;
           min_switch_path.cost = min_cost;
 
           min_track_path.clear();
           min_track_path.initialize( TrackPath{ sw->first.from_track_id(),
-            get<0>( track_seek ).frame_index(), sw->first.from_frame_index(),
+            get<0>( track_seek ).frame_index(), sw->first.from_frame_index() + 1,
             get<2>( track_seek ) } );
           min_dependencies = get<1>( track_seek );
         }
@@ -216,7 +241,7 @@ AlfalfaPlayer::get_min_switch_seek( const size_t output_hash )
           min_switch_path.from_frame_index = sw->first.from_frame_index();
           min_switch_path.to_frame_index = sw->first.to_frame_index();
           min_switch_path.switch_start_index = 0;
-          min_switch_path.switch_end_index = sw->first.switch_frame_index();
+          min_switch_path.switch_end_index = sw->first.switch_frame_index() + 1;
           min_switch_path.cost = min_cost;
 
           min_dependencies = dependencies;
@@ -274,7 +299,7 @@ AlfalfaPlayer::get_min_track_seek( const size_t frame_index, const size_t output
 
       if ( get<2>( seek ) < min_cost ) {
         min_cost = get<2>( seek );
-        min_track_path = TrackPath{ *track_id, get<0>( seek ).frame_index(), frame_index,
+        min_track_path = TrackPath{ *track_id, get<0>( seek ).frame_index(), frame_index + 1,
                                     min_cost };
         min_frame_dependecy = get<1>( seek );
       }
@@ -324,8 +349,8 @@ AlfalfaPlayer::FrameDependencey AlfalfaPlayer::follow_track_path( TrackPath path
   for ( auto frame = frames.first; frame != frames.second; frame++ ) {
     Decoder && decoder = get_decoder( *frame );
     pair<bool, RasterHandle> output = decoder.get_frame_output( video_.get_chunk( *frame ) );
-    cache_.do_cache<RASTER>( output.second );
-    cache_.do_cache( decoder );
+    cache_.put<RASTER>( output.second );
+    cache_.put( decoder );
     dependencies.update_dependencies_forward( *frame, cache_ );
   }
 
@@ -344,8 +369,8 @@ AlfalfaPlayer::FrameDependencey AlfalfaPlayer::follow_switch_path( SwitchPath pa
   for ( auto frame = frames.first; frame != frames.second; frame++ ) {
     Decoder && decoder = get_decoder( *frame );
     pair<bool, RasterHandle> output = decoder.get_frame_output( video_.get_chunk( *frame ) );
-    cache_.do_cache<RASTER>( output.second );
-    cache_.do_cache( decoder );
+    cache_.put<RASTER>( output.second );
+    cache_.put( decoder );
     dependencies.update_dependencies_forward( *frame, cache_ );
   }
 
@@ -373,7 +398,7 @@ RasterHandle AlfalfaPlayer::get_raster( const size_t frame_index, const size_t o
   }
 
   if ( get<0>( track_seek ).cost <= get<0>( switch_seek ).cost and
-       get<0>( track_seek ).cost < SIZE_MAX and false ) {
+       get<0>( track_seek ).cost < SIZE_MAX ) {
     follow_track_path( get<0>( track_seek ), get<1>( track_seek ) );
   }
   else if ( get<0>( switch_seek ).cost < SIZE_MAX ) {
