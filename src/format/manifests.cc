@@ -266,7 +266,7 @@ SwitchDB::get_switches_by_frame_id( const size_t frame_id ) const
 {
   const SwtichDBCollectionHashedByFrameIds & index =
     collection_.get<SwitchDBHashedByFrameIdsTag>();
-    
+
   return index.equal_range( frame_id );
 }
 

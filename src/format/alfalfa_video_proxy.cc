@@ -49,7 +49,7 @@ AlfalfaVideoProxy::get_frames( const size_t from_track_id, const size_t to_track
 }
 
 pair<QualityDBCollectionByOriginalRaster::iterator, QualityDBCollectionByOriginalRaster::iterator>
-AlfalfaVideoProxy::get_quality_data_by_original_raster( const size_t original_raster) const
+AlfalfaVideoProxy::get_quality_data_by_original_raster( const size_t original_raster ) const
 {
   return video_.get_quality_data_by_original_raster( original_raster );
 }

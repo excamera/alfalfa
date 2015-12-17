@@ -278,7 +278,7 @@ AlfalfaVideo::get_track_range( const size_t track_id,
                                const size_t end_frame_index ) const
 {
   TrackDBIterator begin = TrackDBIterator( track_id, start_frame_index, track_db_, frame_db_ );
-  TrackDBIterator end = TrackDBIterator( track_id, end_frame_index, track_db_, frame_db_ );
+  TrackDBIterator end = TrackDBIterator( track_id, end_frame_index + 1, track_db_, frame_db_ );
 
   return make_pair( begin, end );
 }
@@ -292,7 +292,7 @@ AlfalfaVideo::get_switch_range( const size_t from_track_id,
 {
   SwitchDBIterator begin( from_track_id, to_track_id, from_frame_index, switch_start_index,
     switch_db_, frame_db_ );
-  SwitchDBIterator end( from_track_id, to_track_id, from_frame_index, switch_end_index,
+  SwitchDBIterator end( from_track_id, to_track_id, from_frame_index, switch_end_index + 1,
     switch_db_, frame_db_ );
 
   return make_pair( begin, end );
