@@ -131,9 +131,26 @@ struct TrackDataIterator
   AlfalfaProtobufs::TrackDataIterator to_protobuf() const;
 };
 
+struct SwitchInfo
+{
+  std::vector<FrameInfo> frames;
+  size_t from_track_id;
+  size_t to_track_id;
+  size_t from_frame_index;
+  size_t to_frame_index;
+  size_t switch_start_index;
+  size_t switch_end_index;
+
+  SwitchInfo( const size_t from_track_id, const size_t to_track_id, const size_t from_frame_index,
+              const size_t to_frame_index, const size_t switch_start_index, const size_t switch_end_index );
+  SwitchInfo( const AlfalfaProtobufs::SwitchInfo & message );
+
+  AlfalfaProtobufs::SwitchInfo to_protobuf() const;
+};
+
 struct Switches
 {
-  std::vector<FrameIterator> switches;
+  std::vector<SwitchInfo> switches;
 
   Switches();
   Switches( const AlfalfaProtobufs::Switches & message );

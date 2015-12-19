@@ -354,6 +354,53 @@ TrackDataIterator::to_protobuf() const
   return message;
 }
 
+SwitchInfo::SwitchInfo( const size_t from_track_id, const size_t to_track_id,
+                        const size_t from_frame_index, const size_t to_frame_index,
+                        const size_t switch_start_index, const size_t switch_end_index )
+  : frames(),
+    from_track_id( from_track_id ),
+    to_track_id( to_track_id ),
+    from_frame_index( from_frame_index ),
+    to_frame_index( to_frame_index ),
+    switch_start_index( switch_start_index ),
+    switch_end_index( switch_end_index )
+{}
+
+SwitchInfo::SwitchInfo( const AlfalfaProtobufs::SwitchInfo & message )
+  : frames(),
+    from_track_id( message.from_track_id() ),
+    to_track_id( message.to_track_id() ),
+    from_frame_index( message.from_frame_index() ),
+    to_frame_index( message.to_frame_index() ),
+    switch_start_index( message.switch_start_index() ),
+    switch_end_index( message.switch_end_index() )
+{
+  int i;
+  for ( i = 0; i < message.frame_size(); i++ ) {
+    frames.push_back( FrameInfo( message.frame( i ) ) );
+  }
+}
+
+AlfalfaProtobufs::SwitchInfo
+SwitchInfo::to_protobuf() const
+{
+  AlfalfaProtobufs::SwitchInfo message;
+
+  for ( FrameInfo frame : frames ) {
+    AlfalfaProtobufs::FrameInfo *fi = message.add_frame();
+    *fi = frame.to_protobuf();
+  }
+
+  message.set_from_track_id( from_track_id );
+  message.set_to_track_id( to_track_id );
+  message.set_from_frame_index( from_frame_index );
+  message.set_to_frame_index( to_frame_index );
+  message.set_switch_start_index( switch_start_index );
+  message.set_switch_end_index( switch_end_index );
+
+  return message;
+}
+
 Switches::Switches()
   : switches()
 {}
@@ -362,8 +409,8 @@ Switches::Switches( const AlfalfaProtobufs::Switches & message )
   : switches()
 {
   int i;
-  for ( i = 0; i < message.switch_frames_size(); i++ ) {
-    switches.push_back( FrameIterator( message.switch_frames( i ) ) );
+  for ( i = 0; i < message.switch_infos_size(); i++ ) {
+    switches.push_back( SwitchInfo( message.switch_infos( i ) ) );
   }
 }
 
@@ -372,9 +419,9 @@ Switches::to_protobuf() const
 {
   AlfalfaProtobufs::Switches message;
 
-  for ( FrameIterator switch_frames : switches ) {
-    AlfalfaProtobufs::FrameIterator *fi = message.add_switch_frames();
-    *fi = switch_frames.to_protobuf();
+  for ( SwitchInfo switch_info : switches ) {
+    AlfalfaProtobufs::SwitchInfo *si = message.add_switch_infos();
+    *si = switch_info.to_protobuf();
   }
 
   return message;

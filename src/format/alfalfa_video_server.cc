@@ -148,12 +148,15 @@ AlfalfaVideoServer::get_switches_ending_with_frame( const AlfalfaProtobufs::Size
   auto switches = video_.get_switches_ending_with_frame( frame_id_deserialized.sizet );
   Switches sw;
   for ( auto frames : switches ) {
-    FrameIterator frame_iterator;
+    SwitchInfo switch_info( frames.first.from_track_id(), frames.first.to_track_id(),
+                            frames.first.from_frame_index(), frames.first.to_frame_index(),
+                            frames.first.switch_frame_index(),
+                            frames.second.switch_frame_index() );
     while ( frames.first != frames.second ) {
-      frame_iterator.frames.push_back( *frames.first );
+      switch_info.frames.push_back( *frames.first );
       frames.first++;
     }
-    sw.switches.push_back( frame_iterator );
+    sw.switches.push_back( switch_info );
   }
   return sw.to_protobuf();
 }

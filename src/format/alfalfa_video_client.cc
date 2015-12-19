@@ -1,103 +1,127 @@
 #include "alfalfa_video_client.hh"
+#include "serialization.hh"
 
 using namespace std;
 
 size_t
 AlfalfaVideoClient::get_track_size( const size_t track_id ) const
 {
-  return video_.get_track_size( track_id );
+  AlfalfaProtobufs::SizeT track_id_serialized = SizeT( track_id ).to_protobuf();
+  return SizeT( server_.get_track_size( track_id_serialized ) ).sizet;
 }
 
-const FrameInfo &
+FrameInfo
 AlfalfaVideoClient::get_frame( const size_t frame_id ) const
 {
-  return video_.get_frame( frame_id );
+  AlfalfaProtobufs::SizeT frame_id_serialized = SizeT( frame_id ).to_protobuf();
+  return FrameInfo( server_.get_frame( frame_id_serialized ) );
 }
 
-const TrackData &
+TrackData
 AlfalfaVideoClient::get_frame( const size_t track_id, const size_t frame_index ) const
 {
-  return video_.get_frame( track_id, frame_index );
+  AlfalfaProtobufs::TrackPosition track_pos_serialized = TrackPosition( track_id,
+                                                                        frame_index
+                                                                      ).to_protobuf();
+  return TrackData( server_.get_frame( track_pos_serialized ) );
 }
 
 size_t
 AlfalfaVideoClient::get_raster( const size_t raster_index ) const
 {
-  return video_.get_raster( raster_index ).hash;
+  AlfalfaProtobufs::SizeT raster_index_serialized = SizeT( raster_index ).to_protobuf();
+  return SizeT( server_.get_raster( raster_index_serialized ) ).sizet;
 }
 
-pair<TrackDBIterator, TrackDBIterator>
+vector<FrameInfo>
 AlfalfaVideoClient::get_frames( const size_t track_id, const size_t start_frame_index,
-                               const size_t end_frame_index ) const
+                                const size_t end_frame_index ) const
 {
-  return video_.get_track_range( track_id, start_frame_index, end_frame_index );
+  AlfalfaProtobufs::TrackRangeArgs args_serialized = TrackRangeArgs( track_id,
+                                                                     start_frame_index,
+                                                                     end_frame_index
+                                                                   ).to_protobuf();
+  return FrameIterator( server_.get_frames( args_serialized ) ).frames;
 }
 
-pair<TrackDBIterator, TrackDBIterator>
+vector<FrameInfo>
 AlfalfaVideoClient::get_frames_reverse( const size_t track_id, const size_t frame_index ) const
 {
-  return video_.get_frames_reverse( track_id, frame_index );
+  AlfalfaProtobufs::TrackPosition track_pos_serialized = TrackPosition( track_id,
+                                                                        frame_index
+                                                                      ).to_protobuf();
+  return FrameIterator( server_.get_frames_reverse( track_pos_serialized ) ).frames;
 }
 
-pair<SwitchDBIterator, SwitchDBIterator>
+vector<FrameInfo>
 AlfalfaVideoClient::get_frames( const size_t from_track_id, const size_t to_track_id,
-                               const size_t from_frame_index, const size_t switch_start_index,
-                               const size_t switch_end_index ) const
+                                const size_t from_frame_index, const size_t switch_start_index,
+                                const size_t switch_end_index ) const
 {
-  return video_.get_switch_range( from_track_id, to_track_id, from_frame_index,
-                                  switch_start_index, switch_end_index );
+  AlfalfaProtobufs::SwitchRangeArgs args_serialized = SwitchRangeArgs( from_track_id,
+                                                                       to_track_id,
+                                                                       from_frame_index,
+                                                                       switch_start_index,
+                                                                       switch_end_index
+                                                                     ).to_protobuf();
+  return FrameIterator( server_.get_frames( args_serialized ) ).frames;
 }
 
-pair<QualityDBCollectionByOriginalRaster::iterator, QualityDBCollectionByOriginalRaster::iterator>
+vector<QualityData>
 AlfalfaVideoClient::get_quality_data_by_original_raster( const size_t original_raster ) const
 {
-  return video_.get_quality_data_by_original_raster( original_raster );
+  AlfalfaProtobufs::SizeT original_raster_serialized = SizeT( original_raster ).to_protobuf();
+  return QualityDataIterator( server_.get_quality_data_by_original_raster( original_raster_serialized ) ).quality_data_items;
 }
 
-pair<FrameDataSetCollectionByOutputHash::const_iterator, FrameDataSetCollectionByOutputHash::const_iterator>
+vector<FrameInfo>
 AlfalfaVideoClient::get_frames_by_output_hash( const size_t output_hash ) const
 {
-  return video_.get_frames_by_output_hash( output_hash );
+  AlfalfaProtobufs::SizeT output_hash_serialized = SizeT( output_hash ).to_protobuf();
+  return FrameIterator( server_.get_frames_by_output_hash( output_hash_serialized ) ).frames;
 }
 
-pair<FrameDataSetSourceHashSearch::const_iterator, FrameDataSetSourceHashSearch::const_iterator>
+vector<FrameInfo>
 AlfalfaVideoClient::get_frames_by_decoder_hash( const DecoderHash & decoder_hash ) const
 {
-  return video_.get_frames_by_decoder_hash( decoder_hash );
+  AlfalfaProtobufs::DecoderHash decoder_hash_serialized = decoder_hash.to_protobuf();
+  return FrameIterator( server_.get_frames_by_decoder_hash( decoder_hash_serialized ) ).frames;
 }
 
-pair<unordered_set<size_t>::const_iterator, unordered_set<size_t>::const_iterator>
+vector<size_t>
 AlfalfaVideoClient::get_track_ids() const
 {
-  return video_.get_track_ids();
+  return TrackIdsIterator( server_.get_track_ids() ).track_ids;
 }
 
-pair<TrackDBCollectionByFrameIdIndex::const_iterator, TrackDBCollectionByFrameIdIndex::const_iterator>
+vector<TrackData>
 AlfalfaVideoClient::get_track_data_by_frame_id( const size_t frame_id ) const
 {
-  return video_.get_track_data_by_frame_id( frame_id );
+  AlfalfaProtobufs::SizeT frame_id_serialized = SizeT( frame_id ).to_protobuf();
+  return TrackDataIterator( server_.get_track_data_by_frame_id( frame_id_serialized ) ).track_data_items;
 }
 
-vector<pair<SwitchDBIterator, SwitchDBIterator>>
+vector<SwitchInfo>
 AlfalfaVideoClient::get_switches_ending_with_frame( const size_t frame_id ) const
 {
-  return video_.get_switches_ending_with_frame( frame_id );
+  AlfalfaProtobufs::SizeT frame_id_serialized = SizeT( frame_id ).to_protobuf();
+  return Switches( server_.get_switches_ending_with_frame( frame_id_serialized ) ).switches;
 }
 
 const Chunk
 AlfalfaVideoClient::get_chunk( const FrameInfo & frame_info ) const
 {
-  return video_.get_chunk( frame_info );
+  return server_.get_chunk( frame_info );
 }
 
 size_t
 AlfalfaVideoClient::get_video_width() const
 {
-  return video_.get_info().width;
+  return SizeT( server_.get_video_width() ).sizet;
 }
 
 size_t
 AlfalfaVideoClient::get_video_height() const
 {
-  return video_.get_info().height;
+  return SizeT( server_.get_video_height() ).sizet;
 }

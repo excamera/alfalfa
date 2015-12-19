@@ -132,7 +132,7 @@ private:
   std::tuple<SwitchPath, Optional<TrackPath>, FrameDependencey>
   get_min_switch_seek( const size_t output_hash );
 
-  std::tuple<TrackDBIterator, FrameDependencey, size_t>
+  std::tuple<size_t, FrameDependencey, size_t>
   get_track_seek( const size_t track_id, const size_t frame_index,
                   FrameDependencey dependencies = {} );
 

@@ -23,13 +23,12 @@ vector<pair<size_t, double> > find_target_frames( AlfalfaVideoClient & video, si
   size_t target_raster = video.get_raster( raster_index );
   vector<pair<size_t, double> > target_frames;
 
-  for ( auto its = video.get_quality_data_by_original_raster( target_raster );
-        its.first != its.second; its.first++ ) {
+  for ( auto quality_data : video.get_quality_data_by_original_raster( target_raster ) ) {
 
-    auto frames = video.get_frames_by_output_hash( its.first->approximate_raster );
+    auto frames = video.get_frames_by_output_hash( quality_data.approximate_raster );
 
-    for( auto itf = frames.first; itf != frames.second; itf++ ) {
-      target_frames.push_back( make_pair( itf->frame_id(), its.first->quality ) );
+    for( auto frame : frames ) {
+      target_frames.push_back( make_pair( frame.frame_id(), quality_data.quality ) );
     }
   }
 
@@ -87,9 +86,7 @@ int main( int argc, char const *argv[] )
             ss >> jump_index;
 
             size_t target_raster = video.get_raster( jump_index );
-            auto approximations_search = video.get_quality_data_by_original_raster( target_raster );
-            vector<QualityData> approximations( approximations_search.first,
-              approximations_search.second );
+            vector<QualityData> approximations = video.get_quality_data_by_original_raster( target_raster );
 
             size_t index = 0;
             cout << endl;

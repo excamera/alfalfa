@@ -186,25 +186,27 @@ AlfalfaPlayer::get_min_switch_seek( const size_t output_hash )
   Optional<TrackPath> min_track_path;
   FrameDependencey min_dependencies;
 
-  for ( auto target_frame = frames.first; target_frame != frames.second; target_frame++ ) {
-    auto switches = video_.get_switches_ending_with_frame( target_frame->frame_id() );
+  for ( auto target_frame : frames ) {
+    auto switches = video_.get_switches_ending_with_frame( target_frame.frame_id() );
 
-    for ( auto sw = switches.begin(); sw != switches.end(); sw++ ) {
+    for ( auto sw : switches ) {
       size_t cost = 0;
       FrameDependencey dependencies;
 
-      for ( auto frame = sw->first; frame != sw->second; frame-- ) {
-        cost += frame->length();
+      size_t cur_switch_frame_index = sw.switch_start_index;
+      for ( auto frame : sw.frames ) {
+        cost += frame.length();
 
-        dependencies.update_dependencies( *frame, cache_ );
+        dependencies.update_dependencies( frame, cache_ );
 
         if ( dependencies.all_resolved() ) {
           break;
         }
+        cur_switch_frame_index++;
       }
 
       if ( not dependencies.all_resolved() ) {
-        auto track_seek = get_track_seek( sw->first.from_track_id(), sw->first.from_frame_index(),
+        auto track_seek = get_track_seek( sw.from_track_id, sw.from_frame_index,
           dependencies );
 
         if ( get<2>( track_seek ) == SIZE_MAX ) {
@@ -217,17 +219,17 @@ AlfalfaPlayer::get_min_switch_seek( const size_t output_hash )
         if ( cost < min_cost ) {
           min_cost = cost;
 
-          min_switch_path.from_track_id = sw->first.from_track_id();
-          min_switch_path.to_track_id = sw->first.to_track_id();
-          min_switch_path.from_frame_index = sw->first.from_frame_index();
-          min_switch_path.to_frame_index = sw->first.to_frame_index();
+          min_switch_path.from_track_id = sw.from_track_id;
+          min_switch_path.to_track_id = sw.to_track_id;
+          min_switch_path.from_frame_index = sw.from_frame_index;
+          min_switch_path.to_frame_index = sw.to_frame_index;
           min_switch_path.switch_start_index = 0;
-          min_switch_path.switch_end_index = sw->first.switch_frame_index() + 1;
+          min_switch_path.switch_end_index = cur_switch_frame_index + 1;
           min_switch_path.cost = min_cost;
 
           min_track_path.clear();
-          min_track_path.initialize( TrackPath{ sw->first.from_track_id(),
-            get<0>( track_seek ).frame_index(), sw->first.from_frame_index() + 1,
+          min_track_path.initialize( TrackPath{ sw.from_track_id,
+            get<0>( track_seek ), sw.from_frame_index + 1,
             get<2>( track_seek ) } );
           min_dependencies = get<1>( track_seek );
         }
@@ -236,12 +238,12 @@ AlfalfaPlayer::get_min_switch_seek( const size_t output_hash )
         if ( cost < min_cost ) {
           min_cost = cost;
 
-          min_switch_path.from_track_id = sw->first.from_track_id();
-          min_switch_path.to_track_id = sw->first.to_track_id();
-          min_switch_path.from_frame_index = sw->first.from_frame_index();
-          min_switch_path.to_frame_index = sw->first.to_frame_index();
+          min_switch_path.from_track_id = sw.from_track_id;
+          min_switch_path.to_track_id = sw.to_track_id;
+          min_switch_path.from_frame_index = sw.from_frame_index;
+          min_switch_path.to_frame_index = sw.to_frame_index;
           min_switch_path.switch_start_index = 0;
-          min_switch_path.switch_end_index = sw->first.switch_frame_index() + 1;
+          min_switch_path.switch_end_index = cur_switch_frame_index + 1;
           min_switch_path.cost = min_cost;
 
           min_dependencies = dependencies;
@@ -253,29 +255,31 @@ AlfalfaPlayer::get_min_switch_seek( const size_t output_hash )
   return make_tuple( min_switch_path, min_track_path, min_dependencies );
 }
 
-tuple<TrackDBIterator, AlfalfaPlayer::FrameDependencey, size_t>
+tuple<size_t, AlfalfaPlayer::FrameDependencey, size_t>
 AlfalfaPlayer::get_track_seek( const size_t track_id, const size_t frame_index,
                                FrameDependencey dependencies )
 {
   auto frames_backward = video_.get_frames_reverse( track_id, frame_index );
+  size_t cur_frame_index = frame_index;
 
-  if ( frames_backward.first == frames_backward.second ) {
-    return make_tuple( frames_backward.second, dependencies, SIZE_MAX );
+  if ( frames_backward.size() == 0 ) {
+    return make_tuple( -1, dependencies, SIZE_MAX );
   }
 
   size_t cost = 0;
 
-  for( auto frame = frames_backward.first; frame != frames_backward.second; frame-- ) {
-    cost += frame->length();
+  for( auto frame : frames_backward ) {
+    cost += frame.length();
 
-    dependencies.update_dependencies( *frame, cache_ );
+    dependencies.update_dependencies( frame, cache_ );
 
     if ( dependencies.all_resolved() ) {
-      return make_tuple( frame, dependencies, cost );
+      return make_tuple( cur_frame_index, dependencies, cost );
     }
+    cur_frame_index--;
   }
 
-  return make_tuple( frames_backward.second, dependencies, SIZE_MAX );
+  return make_tuple( frame_index, dependencies, SIZE_MAX );
 }
 
 tuple<AlfalfaPlayer::TrackPath, AlfalfaPlayer::FrameDependencey>
@@ -289,17 +293,17 @@ AlfalfaPlayer::get_min_track_seek( const size_t frame_index, const size_t output
 
   auto track_ids = video_.get_track_ids();
 
-  for ( auto track_id = track_ids.first; track_id != track_ids.second; track_id++ )
+  for ( auto track_id : track_ids )
   {
-    auto track_frame = video_.get_frame( *track_id, frame_index );
+    auto track_frame = video_.get_frame( track_id, frame_index );
     auto frame = video_.get_frame( track_frame.frame_id );
 
     if ( frame.target_hash().output_hash == output_hash ) {
-      tuple<TrackDBIterator, FrameDependencey, size_t> seek = get_track_seek( *track_id, frame_index );
+      tuple<size_t, FrameDependencey, size_t> seek = get_track_seek( track_id, frame_index );
 
       if ( get<2>( seek ) < min_cost ) {
         min_cost = get<2>( seek );
-        min_track_path = TrackPath{ *track_id, get<0>( seek ).frame_index(), frame_index + 1,
+        min_track_path = TrackPath{ track_id, get<0>( seek ), frame_index + 1,
                                     min_cost };
         min_frame_dependecy = get<1>( seek );
       }
@@ -346,12 +350,12 @@ AlfalfaPlayer::FrameDependencey AlfalfaPlayer::follow_track_path( TrackPath path
 
   auto frames = video_.get_frames( path.track_id, path.start_index, path.end_index );
 
-  for ( auto frame = frames.first; frame != frames.second; frame++ ) {
-    Decoder && decoder = get_decoder( *frame );
-    pair<bool, RasterHandle> output = decoder.get_frame_output( video_.get_chunk( *frame ) );
+  for ( auto frame : frames ) {
+    Decoder && decoder = get_decoder( frame );
+    pair<bool, RasterHandle> output = decoder.get_frame_output( video_.get_chunk( frame ) );
     cache_.put<RASTER>( output.second );
     cache_.put( decoder );
-    dependencies.update_dependencies_forward( *frame, cache_ );
+    dependencies.update_dependencies_forward( frame, cache_ );
   }
 
   return dependencies;
@@ -366,12 +370,12 @@ AlfalfaPlayer::FrameDependencey AlfalfaPlayer::follow_switch_path( SwitchPath pa
   auto frames = video_.get_frames( path.from_track_id, path.to_track_id,
     path.from_frame_index, path.switch_start_index, path.switch_end_index );
 
-  for ( auto frame = frames.first; frame != frames.second; frame++ ) {
-    Decoder && decoder = get_decoder( *frame );
-    pair<bool, RasterHandle> output = decoder.get_frame_output( video_.get_chunk( *frame ) );
+  for ( auto frame : frames ) {
+    Decoder && decoder = get_decoder( frame );
+    pair<bool, RasterHandle> output = decoder.get_frame_output( video_.get_chunk( frame ) );
     cache_.put<RASTER>( output.second );
     cache_.put( decoder );
-    dependencies.update_dependencies_forward( *frame, cache_ );
+    dependencies.update_dependencies_forward( frame, cache_ );
   }
 
   return dependencies;

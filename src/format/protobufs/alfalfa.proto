@@ -82,8 +82,18 @@ message TrackDataIterator {
   repeated TrackData track_data = 1;
 }
 
+message SwitchInfo {
+  repeated FrameInfo frame = 1;
+  required uint64 from_track_id = 2;
+  required uint64 to_track_id = 3;
+  required uint64 from_frame_index = 4;
+  required uint64 to_frame_index = 5;
+  required uint64 switch_start_index = 6;
+  required uint64 switch_end_index = 7;
+}
+
 message Switches {
-  repeated FrameIterator switch_frames = 1;
+  repeated SwitchInfo switch_infos = 1;
 }
 
 message TrackIdsIterator {
