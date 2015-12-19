@@ -7,7 +7,7 @@
 #include <vector>
 #include <boost/variant.hpp>
 
-#include "alfalfa_video_proxy.hh"
+#include "alfalfa_video_client.hh"
 
 enum DependencyType
 {
@@ -65,7 +65,7 @@ public:
 class AlfalfaPlayer
 {
 private:
-  AlfalfaVideoProxy video_;
+  AlfalfaVideoClient video_;
   LRUCache cache_;
 
   class FrameDependencey

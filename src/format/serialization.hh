@@ -91,6 +91,105 @@ struct SwitchData
   AlfalfaProtobufs::SwitchData to_protobuf() const;
 };
 
+struct SizeT
+{
+  size_t sizet;
+
+  SizeT( const size_t sizet );
+  SizeT( const AlfalfaProtobufs::SizeT & message );
+
+  AlfalfaProtobufs::SizeT to_protobuf() const;
+};
+
+struct FrameIterator
+{
+  std::vector<FrameInfo> frames;
+
+  FrameIterator();
+  FrameIterator( const AlfalfaProtobufs::FrameIterator & message );
+
+  AlfalfaProtobufs::FrameIterator to_protobuf() const;
+};
+
+struct QualityDataIterator
+{
+  std::vector<QualityData> quality_data_items;
+
+  QualityDataIterator();
+  QualityDataIterator( const AlfalfaProtobufs::QualityDataIterator & message );
+
+  AlfalfaProtobufs::QualityDataIterator to_protobuf() const;
+};
+
+struct TrackDataIterator
+{
+  std::vector<TrackData> track_data_items;
+
+  TrackDataIterator();
+  TrackDataIterator( const AlfalfaProtobufs::TrackDataIterator & message );
+
+  AlfalfaProtobufs::TrackDataIterator to_protobuf() const;
+};
+
+struct Switches
+{
+  std::vector<FrameIterator> switches;
+
+  Switches();
+  Switches( const AlfalfaProtobufs::Switches & message );
+
+  AlfalfaProtobufs::Switches to_protobuf() const;
+};
+
+struct TrackIdsIterator
+{
+  std::vector<size_t> track_ids;
+
+  TrackIdsIterator();
+  TrackIdsIterator( const AlfalfaProtobufs::TrackIdsIterator & message );
+
+  AlfalfaProtobufs::TrackIdsIterator to_protobuf() const;
+};
+
+struct TrackPosition
+{
+  size_t track_id;
+  size_t frame_index;
+
+  TrackPosition( const size_t track_id, const size_t frame_index );
+  TrackPosition( const AlfalfaProtobufs::TrackPosition & message );
+
+  AlfalfaProtobufs::TrackPosition to_protobuf() const;
+};
+
+struct TrackRangeArgs
+{
+  size_t track_id;
+  size_t start_frame_index;
+  size_t end_frame_index;
+
+  TrackRangeArgs( const size_t track_id, const size_t start_frame_index, const size_t end_frame_index );
+  TrackRangeArgs( const AlfalfaProtobufs::TrackRangeArgs & message );
+
+  AlfalfaProtobufs::TrackRangeArgs to_protobuf() const;
+};
+
+struct SwitchRangeArgs
+{
+  size_t from_track_id;
+  size_t to_track_id;
+  size_t from_frame_index;
+  size_t switch_start_index;
+  size_t switch_end_index;
+
+  SwitchRangeArgs( const size_t from_track_id, const size_t to_track_id,
+                   const size_t from_frame_index, const size_t switch_start_index,
+                   const size_t switch_end_index );
+  SwitchRangeArgs( const AlfalfaProtobufs::SwitchRangeArgs & message );
+
+  AlfalfaProtobufs::SwitchRangeArgs to_protobuf() const;
+};
+
 class ProtobufSerializer
 {
 protected:

@@ -141,6 +141,22 @@ SwitchData::to_protobuf() const
   return message;
 }
 
+SizeT::SizeT( const size_t sizet )
+  : sizet( sizet )
+{}
+
+SizeT::SizeT( const AlfalfaProtobufs::SizeT & message )
+  : sizet( message.sizet() )
+{}
+
+AlfalfaProtobufs::SizeT
+SizeT::to_protobuf() const
+{
+  AlfalfaProtobufs::SizeT message;
+  message.set_sizet( sizet );
+  return message;
+}
+
 SourceHash::SourceHash( const AlfalfaProtobufs::SourceHash & message )
   : state_hash( make_optional( message.has_state_hash(), message.state_hash() ) ),
     last_hash( make_optional( message.has_last_hash(), message.last_hash() ) ),
@@ -216,6 +232,26 @@ TargetHash::to_protobuf() const
   return message;
 }
 
+DecoderHash::DecoderHash( const AlfalfaProtobufs::DecoderHash & message )
+  : state_hash_( message.state_hash() ),
+    last_hash_( message.last_hash() ),
+    golden_hash_( message.golden_hash() ),
+    alt_hash_( message.alt_hash() )
+{}
+
+AlfalfaProtobufs::DecoderHash
+DecoderHash::to_protobuf() const
+{
+  AlfalfaProtobufs::DecoderHash message;
+
+  message.set_state_hash( state_hash_ );
+  message.set_last_hash( last_hash_ );
+  message.set_golden_hash( golden_hash_ );
+  message.set_alt_hash( alt_hash_ );
+
+  return message;
+}
+
 FrameInfo::FrameInfo( const AlfalfaProtobufs::FrameInfo & message )
   : offset_( message.offset() ),
     length_( message.length() ),
@@ -236,6 +272,213 @@ FrameInfo::to_protobuf() const
   *message.mutable_target_hash() = name_.target.to_protobuf();
 
   message.set_frame_id( frame_id_ );
+
+  return message;
+}
+
+FrameIterator::FrameIterator()
+  : frames()
+{}
+
+FrameIterator::FrameIterator( const AlfalfaProtobufs::FrameIterator & message )
+  : frames()
+{
+  int i;
+  for ( i = 0; i < message.frame_size(); i++ ) {
+    frames.push_back( FrameInfo( message.frame( i ) ) );
+  }
+}
+
+AlfalfaProtobufs::FrameIterator
+FrameIterator::to_protobuf() const
+{
+  AlfalfaProtobufs::FrameIterator message;
+
+  for ( FrameInfo frame : frames ) {
+    AlfalfaProtobufs::FrameInfo *fi = message.add_frame();
+    *fi = frame.to_protobuf();
+  }
+
+  return message;
+}
+
+QualityDataIterator::QualityDataIterator()
+  : quality_data_items()
+{}
+
+QualityDataIterator::QualityDataIterator( const AlfalfaProtobufs::QualityDataIterator & message )
+  : quality_data_items()
+{
+  int i;
+  for ( i = 0; i < message.quality_data_size(); i++ ) {
+    quality_data_items.push_back( QualityData( message.quality_data( i ) ) );
+  }
+}
+
+AlfalfaProtobufs::QualityDataIterator
+QualityDataIterator::to_protobuf() const
+{
+  AlfalfaProtobufs::QualityDataIterator message;
+
+  for ( QualityData quality_data_item : quality_data_items ) {
+    AlfalfaProtobufs::QualityData *qd = message.add_quality_data();
+    *qd = quality_data_item.to_protobuf();
+  }
+
+  return message;
+}
+
+TrackDataIterator::TrackDataIterator()
+  : track_data_items()
+{}
+
+TrackDataIterator::TrackDataIterator( const AlfalfaProtobufs::TrackDataIterator & message )
+  : track_data_items()
+{
+  int i;
+  for ( i = 0; i < message.track_data_size(); i++ ) {
+    track_data_items.push_back( TrackData( message.track_data( i ) ) );
+  }
+}
+
+AlfalfaProtobufs::TrackDataIterator
+TrackDataIterator::to_protobuf() const
+{
+  AlfalfaProtobufs::TrackDataIterator message;
+
+  for ( TrackData track_data_item : track_data_items ) {
+    AlfalfaProtobufs::TrackData *td = message.add_track_data();
+    *td = track_data_item.to_protobuf();
+  }
+
+  return message;
+}
+
+Switches::Switches()
+  : switches()
+{}
+
+Switches::Switches( const AlfalfaProtobufs::Switches & message )
+  : switches()
+{
+  int i;
+  for ( i = 0; i < message.switch_frames_size(); i++ ) {
+    switches.push_back( FrameIterator( message.switch_frames( i ) ) );
+  }
+}
+
+AlfalfaProtobufs::Switches
+Switches::to_protobuf() const
+{
+  AlfalfaProtobufs::Switches message;
+
+  for ( FrameIterator switch_frames : switches ) {
+    AlfalfaProtobufs::FrameIterator *fi = message.add_switch_frames();
+    *fi = switch_frames.to_protobuf();
+  }
+
+  return message;
+}
+
+TrackIdsIterator::TrackIdsIterator()
+  : track_ids()
+{}
+
+TrackIdsIterator::TrackIdsIterator( const AlfalfaProtobufs::TrackIdsIterator & message )
+  : track_ids()
+{
+  int i;
+  for ( i = 0; i < message.track_id_size(); i++ ) {
+    track_ids.push_back( message.track_id( i ) );
+  }
+}
+
+AlfalfaProtobufs::TrackIdsIterator
+TrackIdsIterator::to_protobuf() const
+{
+  AlfalfaProtobufs::TrackIdsIterator message;
+
+  for ( size_t track_id : track_ids ) {
+    message.add_track_id( track_id );
+  }
+
+  return message;
+}
+
+TrackPosition::TrackPosition( const size_t track_id, const size_t frame_index )
+  : track_id( track_id ),
+    frame_index( frame_index )
+{}
+
+TrackPosition::TrackPosition( const AlfalfaProtobufs::TrackPosition & message )
+  : track_id( message.track_id() ),
+    frame_index( message.frame_index() )
+{}
+
+AlfalfaProtobufs::TrackPosition
+TrackPosition::to_protobuf() const
+{
+  AlfalfaProtobufs::TrackPosition message;
+
+  message.set_track_id( track_id );
+  message.set_frame_index( frame_index );
+
+  return message;
+}
+
+TrackRangeArgs::TrackRangeArgs( const size_t track_id, const size_t start_frame_index,
+                                const size_t end_frame_index )
+  : track_id( track_id ),
+    start_frame_index( start_frame_index ),
+    end_frame_index( end_frame_index )
+{}
+
+TrackRangeArgs::TrackRangeArgs( const AlfalfaProtobufs::TrackRangeArgs & message )
+  : track_id( message.track_id() ),
+    start_frame_index( message.start_frame_index() ),
+    end_frame_index( message.end_frame_index() )
+{}
+
+AlfalfaProtobufs::TrackRangeArgs
+TrackRangeArgs::to_protobuf() const
+{
+  AlfalfaProtobufs::TrackRangeArgs message;
+
+  message.set_track_id( track_id );
+  message.set_start_frame_index( start_frame_index );
+  message.set_end_frame_index( end_frame_index );
+
+  return message;
+}
+
+SwitchRangeArgs::SwitchRangeArgs( const size_t from_track_id, const size_t to_track_id,
+                                  const size_t from_frame_index, const size_t switch_start_index,
+                                  const size_t switch_end_index )
+  : from_track_id( from_track_id ),
+    to_track_id( to_track_id ),
+    from_frame_index( from_frame_index ),
+    switch_start_index( switch_start_index ),
+    switch_end_index( switch_end_index )
+{}
+
+SwitchRangeArgs::SwitchRangeArgs( const AlfalfaProtobufs::SwitchRangeArgs & message )
+  : from_track_id( message.from_track_id() ),
+    to_track_id( message.to_track_id() ),
+    from_frame_index( message.from_frame_index() ),
+    switch_start_index( message.switch_start_index() ),
+    switch_end_index( message.switch_end_index() )
+{}
+
+AlfalfaProtobufs::SwitchRangeArgs
+SwitchRangeArgs::to_protobuf() const
+{
+  AlfalfaProtobufs::SwitchRangeArgs message;
+
+  message.set_from_track_id( message.from_track_id() );
+  message.set_to_track_id( message.to_track_id() );
+  message.set_from_frame_index( message.from_frame_index() );
+  message.set_switch_start_index( message.switch_start_index() );
+  message.set_switch_end_index( message.switch_end_index() );
 
   return message;
 }

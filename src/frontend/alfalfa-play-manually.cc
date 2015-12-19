@@ -18,7 +18,7 @@
 using namespace std;
 using namespace std::chrono;
 
-vector<pair<size_t, double> > find_target_frames( AlfalfaVideoProxy & video, size_t raster_index )
+vector<pair<size_t, double> > find_target_frames( AlfalfaVideoClient & video, size_t raster_index )
 {
   size_t target_raster = video.get_raster( raster_index );
   vector<pair<size_t, double> > target_frames;
@@ -57,7 +57,7 @@ int main( int argc, char const *argv[] )
 
     const string video_dir( argv[ 1 ] );
 
-    AlfalfaVideoProxy video( video_dir );
+    AlfalfaVideoClient video( video_dir );
     AlfalfaPlayer player( video_dir );
     VideoDisplay display( player.example_raster() );
 

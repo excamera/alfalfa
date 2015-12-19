@@ -26,6 +26,13 @@ message TargetHash {
   required bool shown = 11;
 }
 
+message DecoderHash {
+  required uint64 state_hash = 1;
+  required uint64 last_hash = 2;
+  required uint64 golden_hash = 3;
+  required uint64 alt_hash = 4;
+}
+
 message RasterData {
   required uint64 hash = 1;
 }
@@ -57,4 +64,47 @@ message SwitchData {
   required uint64 to_frame_index = 4;
   required uint64 frame_id = 5;
   required uint64 switch_frame_index = 6;
+}
+
+message SizeT {
+  required uint64 sizet = 1;
+}
+
+message FrameIterator {
+  repeated FrameInfo frame = 1;
+}
+
+message QualityDataIterator {
+  repeated QualityData quality_data = 1;
+}
+
+message TrackDataIterator {
+  repeated TrackData track_data = 1;
+}
+
+message Switches {
+  repeated FrameIterator switch_frames = 1;
+}
+
+message TrackIdsIterator {
+  repeated uint64 track_id = 1;
+}
+
+message TrackPosition {
+  required uint64 track_id = 1;
+  required uint64 frame_index = 2;
+}
+
+message TrackRangeArgs {
+  required uint64 track_id = 1;
+  required uint64 start_frame_index = 2;
+  required uint64 end_frame_index = 3;
+}
+
+message SwitchRangeArgs {
+  required uint64 from_track_id = 1;
+  required uint64 to_track_id = 2;
+  required uint64 from_frame_index = 3;
+  required uint64 switch_start_index = 4;
+  required uint64 switch_end_index = 5;
 }

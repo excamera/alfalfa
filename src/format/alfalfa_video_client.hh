@@ -1,17 +1,17 @@
-#ifndef ALFALFA_VIDEO_PROXY_HH
-#define ALFALFA_VIDEO_PROXY_HH
+#ifndef ALFALFA_VIDEO_CLIENT_HH
+#define ALFALFA_VIDEO_CLIENT_HH
 
 #include "protobufs/alfalfa.pb.h"
 
 #include "alfalfa_video.hh"
 
-class AlfalfaVideoProxy 
+class AlfalfaVideoClient
 {
 private:
   const PlayableAlfalfaVideo video_;
 
 public:
-  AlfalfaVideoProxy( const std::string & directory_name )
+  AlfalfaVideoClient( const std::string & directory_name )
     : video_( directory_name )
   {}
 
@@ -67,4 +67,4 @@ public:
   size_t get_video_height() const;
 };
 
-#endif /* ALFALFA_VIDEO_PROXY_HH */
+#endif /* ALFALFA_VIDEO_CLIENT_HH */

@@ -91,6 +91,9 @@ private:
 public:
   DecoderHash( size_t state_hash, size_t last_hash,
                size_t golden_hash, size_t alt_hash );
+  DecoderHash( const AlfalfaProtobufs::DecoderHash & message );
+
+  AlfalfaProtobufs::DecoderHash to_protobuf() const;
 
   bool can_decode( const SourceHash & source_hash ) const;
 
