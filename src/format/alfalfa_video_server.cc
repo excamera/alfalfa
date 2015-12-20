@@ -69,6 +69,7 @@ AlfalfaVideoServer::get_frames( const AlfalfaProtobufs::SwitchRangeArgs & args )
                                          args_deserialized.from_frame_index,
                                          args_deserialized.switch_start_index,
                                          args_deserialized.switch_end_index );
+
   FrameIterator frame_iterator;
   while ( frames.first != frames.second ) {
     frame_iterator.frames.push_back( *frames.first );
@@ -154,7 +155,7 @@ AlfalfaVideoServer::get_switches_ending_with_frame( const AlfalfaProtobufs::Size
                             frames.second.switch_frame_index() );
     while ( frames.first != frames.second ) {
       switch_info.frames.push_back( *frames.first );
-      frames.first++;
+      frames.first--;
     }
     sw.switches.push_back( switch_info );
   }

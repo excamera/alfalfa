@@ -61,8 +61,10 @@ int main( int argc, char const *argv[] )
     VideoDisplay display( player.example_raster() );
 
     do {
-      cout << "> j <n>\t" << "jump to frame <n>." << endl;
-      cout << "> q\t" << "quit." << endl;
+      cout << "> j <n>\t" << "jump to frame <n>" << endl;
+      cout << "> t <n>\t" << "jump to frame <n> (use a track path)" << endl;
+      cout << "> s <n>\t" << "jump to frame <n> (use a switch path)" << endl;
+      cout << "> q\t" << "quit" << endl;
 
       bool succeeded = false;
 
@@ -78,7 +80,9 @@ int main( int argc, char const *argv[] )
         ss >> arg0;
 
         switch ( arg0[ 0 ] ) {
-        case 'j': // jump to frame <n>
+        case 'j':
+        case 's':
+        case 't':
           {
             if ( command.size() < 2 ) break;
 
@@ -91,8 +95,10 @@ int main( int argc, char const *argv[] )
             size_t index = 0;
             cout << endl;
             for ( auto const & approximation : approximations ) {
-              cout << boost::format("%-d) %-X (Q: %-.2f)") % ( index++ ) % approximation.approximate_raster
-                      % approximation.quality << endl;
+              cout << boost::format("%-d) %-X (Q: %-.2f)") % ( index++ )
+                                                           % approximation.approximate_raster
+                                                           % approximation.quality
+                   << endl;
             }
 
             if ( approximations.size() == 0 ) {
@@ -100,9 +106,14 @@ int main( int argc, char const *argv[] )
               break;
             }
 
-            cout << "[0-" << approximations.size() - 1 << "]? ";
-            cin >> index;
-            cin.ignore( std::numeric_limits<std::streamsize>::max(), '\n' );
+            if ( approximations.size() == 1 ) {
+              index = 0;
+            }
+            else {
+              cout << "[0-" << approximations.size() - 1 << "]? ";
+              cin >> index;
+              cin.ignore( std::numeric_limits<std::streamsize>::max(), '\n' );
+            }
 
             if ( index >= approximations.size() ) {
               break;
@@ -110,18 +121,17 @@ int main( int argc, char const *argv[] )
 
             size_t desired_output = approximations[ index ].approximate_raster;
 
-            RasterHandle raster = player.get_raster( jump_index, desired_output );
-            display.draw( raster );
+            PathType path_type = MINIMUM_PATH;
+
+            if ( arg0[0] == 't' ) path_type = TRACK_PATH;
+            else if ( arg0[0] == 's' ) path_type = SWITCH_PATH;
+
+            Optional<RasterHandle> raster = player.get_raster( desired_output, path_type, true );
+            display_frame( display, raster );
 
             succeeded = true;
           }
 
-          break;
-
-        case 'n': // next raster in the current track
-          break;
-
-        case 'a': // list of all applicable frames
           break;
 
         case 'q':

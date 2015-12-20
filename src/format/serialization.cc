@@ -521,11 +521,11 @@ SwitchRangeArgs::to_protobuf() const
 {
   AlfalfaProtobufs::SwitchRangeArgs message;
 
-  message.set_from_track_id( message.from_track_id() );
-  message.set_to_track_id( message.to_track_id() );
-  message.set_from_frame_index( message.from_frame_index() );
-  message.set_switch_start_index( message.switch_start_index() );
-  message.set_switch_end_index( message.switch_end_index() );
+  message.set_from_track_id( from_track_id );
+  message.set_to_track_id( to_track_id );
+  message.set_from_frame_index( from_frame_index );
+  message.set_switch_start_index( switch_start_index );
+  message.set_switch_end_index( switch_end_index );
 
   return message;
 }

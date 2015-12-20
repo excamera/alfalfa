@@ -6,6 +6,7 @@
 #include <tuple>
 #include <vector>
 #include <boost/variant.hpp>
+#include <boost/format.hpp>
 
 #include "alfalfa_video_client.hh"
 
@@ -13,6 +14,13 @@ enum DependencyType
 {
   STATE,
   RASTER
+};
+
+enum PathType
+{
+  MINIMUM_PATH,
+  TRACK_PATH,
+  SWITCH_PATH
 };
 
 struct DependencyVertex
@@ -100,8 +108,10 @@ private:
 
     friend std::ostream & operator<<( std::ostream & os, const TrackPath & path )
     {
-      os << "Track " << path.track_id << ": " << path.start_index << " -> "
-         << path.end_index - 1;
+      os << boost::format( "Track %-d: %-d -> %-d (%-.2f KB)" ) % path.track_id
+                                                                   % path.start_index
+                                                                   % ( path.end_index - 1 )
+                                                                   % ( path.cost / 1024.0 );
 
       return os;
     }
@@ -120,10 +130,14 @@ private:
 
     friend std::ostream & operator<<( std::ostream & os, const SwitchPath & path )
     {
-      os << "Switch: Track " << path.from_track_id << " (" << path.from_frame_index
-         << ") -> Track " << path.to_track_id << " (" << path.to_frame_index
-         << ") [" << path.switch_start_index << ":"
-         << path.switch_end_index - 1 << "]";
+      os << boost::format( "Switch: Track %-d{%-d} -> Track %-d{%-d} [%-d:%-d] (%-.2f KB)" )
+            % path.from_track_id
+            % path.from_frame_index
+            % path.to_track_id
+            % path.to_frame_index
+            % path.switch_start_index
+            % ( path.switch_end_index - 1 )
+            % ( path.cost / 1024.0 );
 
       return os;
     }
@@ -137,16 +151,22 @@ private:
                   FrameDependencey dependencies = {} );
 
   std::tuple<TrackPath, FrameDependencey>
-  get_min_track_seek( const size_t frame_index, const size_t output_hash );
+  get_min_track_seek( const size_t output_hash );
 
   Decoder get_decoder( const FrameInfo & frame );
   FrameDependencey follow_track_path( TrackPath path, FrameDependencey dependencies );
   FrameDependencey follow_switch_path( SwitchPath path, FrameDependencey dependencies);
 
+  Optional<RasterHandle> get_raster_switch_path( const size_t output_hash );
+
+  Optional<RasterHandle> get_raster_track_path( const size_t output_hash );
+
 public:
   AlfalfaPlayer( const std::string & directory_name );
 
-  RasterHandle get_raster( const size_t frame_index, const size_t output_hash );
+  Optional<RasterHandle> get_raster( const size_t output_hash,
+                                     PathType path_type = MINIMUM_PATH, bool verbose = false );
+
   const VP8Raster & example_raster();
 
   void print_cache();

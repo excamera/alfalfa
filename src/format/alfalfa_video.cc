@@ -290,10 +290,10 @@ AlfalfaVideo::get_switch_range( const size_t from_track_id,
                                 const size_t switch_start_index,
                                 const size_t switch_end_index ) const
 {
-  SwitchDBIterator begin( from_track_id, to_track_id, from_frame_index, switch_start_index,
-    switch_db_, frame_db_ );
-  SwitchDBIterator end( from_track_id, to_track_id, from_frame_index, switch_end_index,
-    switch_db_, frame_db_ );
+  SwitchDBIterator begin( from_track_id, to_track_id, from_frame_index,
+    switch_start_index, switch_db_, frame_db_ );
+  SwitchDBIterator end( from_track_id, to_track_id, from_frame_index,
+    switch_end_index, switch_db_, frame_db_ );
 
   return make_pair( begin, end );
 }

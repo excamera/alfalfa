@@ -64,6 +64,7 @@ AlfalfaVideoClient::get_frames( const size_t from_track_id, const size_t to_trac
                                                                        switch_start_index,
                                                                        switch_end_index
                                                                      ).to_protobuf();
+
   return FrameIterator( server_.get_frames( args_serialized ) ).frames;
 }
 

@@ -120,6 +120,9 @@ size_t AlfalfaPlayer::FrameDependencey::get_count( const size_t hash )
 void AlfalfaPlayer::FrameDependencey::update_dependencies( const FrameInfo & frame,
                                                            LRUCache & cache )
 {
+  unresolved_.erase( DependencyVertex{ RASTER, frame.target_hash().output_hash } );
+  unresolved_.erase( DependencyVertex{ STATE, frame.target_hash().state_hash } );
+
   Optional<size_t> hash[] = {
     frame.source_hash().last_hash, frame.source_hash().golden_hash,
     frame.source_hash().alt_hash
@@ -141,9 +144,6 @@ void AlfalfaPlayer::FrameDependencey::update_dependencies( const FrameInfo & fra
         frame.source_hash().state_hash.get() } );
     }
   }
-
-  unresolved_.erase( DependencyVertex{ RASTER, frame.target_hash().output_hash } );
-  unresolved_.erase( DependencyVertex{ STATE, frame.target_hash().state_hash } );
 }
 
 void AlfalfaPlayer::FrameDependencey::update_dependencies_forward( const FrameInfo & frame,
@@ -283,34 +283,32 @@ AlfalfaPlayer::get_track_seek( const size_t track_id, const size_t frame_index,
 }
 
 tuple<AlfalfaPlayer::TrackPath, AlfalfaPlayer::FrameDependencey>
-AlfalfaPlayer::get_min_track_seek( const size_t frame_index, const size_t output_hash )
+AlfalfaPlayer::get_min_track_seek( const size_t output_hash )
 {
   size_t min_cost = SIZE_MAX;
   TrackPath min_track_path;
   min_track_path.cost = SIZE_MAX;
 
-  FrameDependencey min_frame_dependecy;
+  FrameDependencey min_frame_dependency;
 
   auto track_ids = video_.get_track_ids();
 
-  for ( auto track_id : track_ids )
-  {
-    auto track_frame = video_.get_frame( track_id, frame_index );
-    auto frame = video_.get_frame( track_frame.frame_id );
-
-    if ( frame.target_hash().output_hash == output_hash ) {
-      tuple<size_t, FrameDependencey, size_t> seek = get_track_seek( track_id, frame_index );
+  for ( auto frame : video_.get_frames_by_output_hash( output_hash ) ) {
+    for ( auto track_data : video_.get_track_data_by_frame_id( frame.frame_id() ) ) {
+      tuple<size_t, FrameDependencey, size_t> seek =
+        get_track_seek( track_data.track_id, track_data.frame_index );
 
       if ( get<2>( seek ) < min_cost ) {
         min_cost = get<2>( seek );
-        min_track_path = TrackPath{ track_id, get<0>( seek ), frame_index + 1,
+        min_track_path = TrackPath{ track_data.track_id, get<0>( seek ),
+                                    track_data.frame_index + 1,
                                     min_cost };
-        min_frame_dependecy = get<1>( seek );
+        min_frame_dependency = get<1>( seek );
       }
     }
   }
 
-  return make_tuple( min_track_path, min_frame_dependecy );
+  return make_tuple( min_track_path, min_frame_dependency );
 }
 
 AlfalfaPlayer::AlfalfaPlayer( const std::string & directory_name )
@@ -353,8 +351,8 @@ AlfalfaPlayer::FrameDependencey AlfalfaPlayer::follow_track_path( TrackPath path
   for ( auto frame : frames ) {
     Decoder && decoder = get_decoder( frame );
     pair<bool, RasterHandle> output = decoder.get_frame_output( video_.get_chunk( frame ) );
-    cache_.put<RASTER>( output.second );
     cache_.put( decoder );
+    cache_.put<RASTER>( output.second );
     dependencies.update_dependencies_forward( frame, cache_ );
   }
 
@@ -373,53 +371,102 @@ AlfalfaPlayer::FrameDependencey AlfalfaPlayer::follow_switch_path( SwitchPath pa
   for ( auto frame : frames ) {
     Decoder && decoder = get_decoder( frame );
     pair<bool, RasterHandle> output = decoder.get_frame_output( video_.get_chunk( frame ) );
-    cache_.put<RASTER>( output.second );
     cache_.put( decoder );
+    cache_.put<RASTER>( output.second );
     dependencies.update_dependencies_forward( frame, cache_ );
   }
 
   return dependencies;
 }
 
-RasterHandle AlfalfaPlayer::get_raster( const size_t frame_index, const size_t output_hash )
+Optional<RasterHandle> AlfalfaPlayer::get_raster_track_path( const size_t output_hash )
 {
-  auto track_seek = get_min_track_seek( frame_index, output_hash );
+  auto track_seek = get_min_track_seek( output_hash );
+
+  if ( get<0>( track_seek ).cost == SIZE_MAX) {
+    return Optional<RasterHandle>();
+  }
+
+  follow_track_path( get<0>( track_seek ), get<1>( track_seek ) );
+  return make_optional<RasterHandle>( true, cache_.get<RASTER, RasterHandle>( output_hash ) );
+}
+
+Optional<RasterHandle> AlfalfaPlayer::get_raster_switch_path( const size_t output_hash )
+{
   auto switch_seek = get_min_switch_seek( output_hash );
 
-  if( get<0>( track_seek ).cost < SIZE_MAX ) {
-    cout << "> Track cost:  " << get<0>( track_seek ).cost / 1024.0 << " KB" << endl;
-    cout << "  " << get<0>( track_seek ) << endl;
+  if ( get<0>( switch_seek ).cost == SIZE_MAX ) {
+    return Optional<RasterHandle>();
   }
 
-  if ( get<0>( switch_seek ).cost < SIZE_MAX ) {
-    cout << "> Switch cost: " << get<0>( switch_seek ).cost / 1024.0 << " KB" << endl;
-    if ( get<1>( switch_seek ).initialized() ) {
-      cout << "  " << get<1>( switch_seek ).get() << " (cost: "
-           << get<1>( switch_seek ).get().cost / 1024.0 << " KB)"
-           << endl;
+  Optional<TrackPath> & extra_track_seek = get<1>( switch_seek );
+  FrameDependencey & dependencies = get<2>( switch_seek );
+
+  if ( extra_track_seek.initialized() ) {
+    dependencies = follow_track_path( extra_track_seek.get(), dependencies );
+  }
+
+  follow_switch_path( get<0>( switch_seek ), dependencies );
+
+  return make_optional<RasterHandle>( true, cache_.get<RASTER, RasterHandle>( output_hash ) );
+}
+
+Optional<RasterHandle> AlfalfaPlayer::get_raster( const size_t output_hash,
+                                                  PathType path_type, bool verbose )
+{
+  if ( verbose ) {
+    auto track_seek = get_min_track_seek( output_hash );
+    auto switch_seek = get_min_switch_seek( output_hash );
+
+    if ( get<0>( track_seek ).cost < SIZE_MAX ) {
+      cout << "> Track seek:" << endl << get<0>( track_seek ) << endl;
     }
-    cout << "  " << get<0>( switch_seek ) << endl;
+
+    if ( get<0>( switch_seek ).cost < SIZE_MAX ) {
+      cout << "> Switch seek:" << endl;
+
+      if ( get<1>( switch_seek ).initialized() ) {
+        cout << get<1>( switch_seek ).get() << endl;
+      }
+
+      cout << get<0>( switch_seek ) << endl;
+    }
   }
 
-  if ( get<0>( track_seek ).cost <= get<0>( switch_seek ).cost and
-       get<0>( track_seek ).cost < SIZE_MAX ) {
-    follow_track_path( get<0>( track_seek ), get<1>( track_seek ) );
-  }
-  else if ( get<0>( switch_seek ).cost < SIZE_MAX ) {
-    Optional<TrackPath> & extra_track_seek = get<1>( switch_seek );
-    FrameDependencey & dependencies = get<2>( switch_seek );
+  switch( path_type ) {
+  case TRACK_PATH:
+  {
+    Optional<RasterHandle> result = get_raster_track_path( output_hash );
 
-    if ( extra_track_seek.initialized() ) {
-      dependencies = follow_track_path( extra_track_seek.get(), dependencies );
+    if ( not result.initialized() and verbose ) {
+      cout << "No track paths found." << endl;
     }
 
-    follow_switch_path( get<0>( switch_seek ), dependencies );
+    return result;
   }
-  else {
-    throw runtime_error( "No path found." );
+  case SWITCH_PATH:
+  {
+    Optional<RasterHandle> result = get_raster_switch_path( output_hash );
+
+    if ( not result.initialized() and verbose ) {
+      cout << "No switch paths found." << endl;
+    }
+
+    return result;
   }
 
-  return cache_.get<RASTER, RasterHandle>( output_hash );
+  case MINIMUM_PATH:
+  default:
+    auto track_seek = get_min_track_seek( output_hash );
+    auto switch_seek = get_min_switch_seek( output_hash );
+
+    if ( get<0>( track_seek ).cost <= get<0>( switch_seek ).cost ) {
+      return get_raster( output_hash, TRACK_PATH, false );
+    }
+    else {
+      return get_raster( output_hash, SWITCH_PATH, false );
+    }
+  }
 }
 
 const VP8Raster & AlfalfaPlayer::example_raster()
