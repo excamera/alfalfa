@@ -61,9 +61,11 @@ int main( int argc, char const *argv[] )
     VideoDisplay display( player.example_raster() );
 
     do {
+      cout << "[ cached items: " << player.cache_size() << " ]" << endl;
       cout << "> j <n>\t" << "jump to frame <n>" << endl;
       cout << "> t <n>\t" << "jump to frame <n> (use a track path)" << endl;
       cout << "> s <n>\t" << "jump to frame <n> (use a switch path)" << endl;
+      cout << "> c\t"     << "clear cache" << endl;
       cout << "> q\t" << "quit" << endl;
 
       bool succeeded = false;
@@ -136,6 +138,11 @@ int main( int argc, char const *argv[] )
 
         case 'q':
           return EXIT_SUCCESS;
+
+        case 'c':
+          player.clear_cache();
+          succeeded = true;
+          break;
 
         default:
           break;

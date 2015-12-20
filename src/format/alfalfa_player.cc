@@ -61,6 +61,17 @@ ObjectType LRUCache::get( size_t hash )
   return boost::get<ObjectType>( cache_.at( vertex ).first );
 }
 
+void LRUCache::clear()
+{
+  cache_.clear();
+  cached_items_.clear();
+}
+
+size_t LRUCache::size()
+{
+  return cache_.size();
+}
+
 void LRUCache::print_cache()
 {
   for ( auto const & item : cache_ )
@@ -473,6 +484,11 @@ const VP8Raster & AlfalfaPlayer::example_raster()
 {
   Decoder temp( video_.get_video_width(), video_.get_video_height() );
   return temp.example_raster();
+}
+
+void AlfalfaPlayer::clear_cache()
+{
+  cache_.clear();
 }
 
 void AlfalfaPlayer::print_cache()

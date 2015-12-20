@@ -67,6 +67,9 @@ public:
   template<DependencyType DepType, class ObjectType>
   ObjectType get( size_t hash );
 
+  void clear();
+  size_t size();
+
   void print_cache();
 };
 
@@ -158,7 +161,6 @@ private:
   FrameDependencey follow_switch_path( SwitchPath path, FrameDependencey dependencies);
 
   Optional<RasterHandle> get_raster_switch_path( const size_t output_hash );
-
   Optional<RasterHandle> get_raster_track_path( const size_t output_hash );
 
 public:
@@ -168,6 +170,9 @@ public:
                                      PathType path_type = MINIMUM_PATH, bool verbose = false );
 
   const VP8Raster & example_raster();
+
+  size_t cache_size() { return cache_.size(); }
+  void clear_cache();
 
   void print_cache();
 };
