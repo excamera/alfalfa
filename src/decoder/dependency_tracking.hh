@@ -5,7 +5,7 @@
 #include "safe_array.hh"
 #include "modemv_data.hh"
 #include "raster_handle.hh"
-#include "protobufs/alfalfa.pb.h"
+#include "alfalfa.pb.h"
 
 #include <string>
 #include <initializer_list>

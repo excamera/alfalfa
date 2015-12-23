@@ -1,7 +1,7 @@
 #ifndef ALFALFA_VIDEO_PROXY_HH
 #define ALFALFA_VIDEO_PROXY_HH
 
-#include "protobufs/alfalfa.pb.h"
+#include "alfalfa.pb.h"
 
 #include "alfalfa_video.hh"
 

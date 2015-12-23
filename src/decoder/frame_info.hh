@@ -7,7 +7,7 @@
 
 #include "decoder.hh"
 #include "dependency_tracking.hh"
-#include "protobufs/alfalfa.pb.h"
+#include "alfalfa.pb.h"
 
 struct FrameName
 {

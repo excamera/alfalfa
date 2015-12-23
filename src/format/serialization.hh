@@ -8,7 +8,7 @@
 #include "optional.hh"
 #include "frame_info.hh"
 #include "dependency_tracking.hh"
-#include "protobufs/alfalfa.pb.h"
+#include "alfalfa.pb.h"
 #include "file_descriptor.hh"
 
 struct VideoInfo

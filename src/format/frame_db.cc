@@ -3,7 +3,6 @@
 #include <algorithm>
 
 #include "serialization.hh"
-#include "protobufs/alfalfa.pb.h"
 
 using namespace std;
 

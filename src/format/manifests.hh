@@ -13,7 +13,7 @@
 #include "frame_db.hh"
 #include "dependency_tracking.hh"
 #include "serialization.hh"
-#include "protobufs/alfalfa.pb.h"
+#include "alfalfa.pb.h"
 
 /*
  * VideoManifest

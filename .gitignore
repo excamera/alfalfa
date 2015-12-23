@@ -23,8 +23,8 @@ Makefile.in
 /stamp-h1
 /test-driver
 
-/src/format/protobufs/alfalfa.pb.cc
-/src/format/protobufs/alfalfa.pb.h
+/src/protobufs/alfalfa.pb.cc
+/src/protobufs/alfalfa.pb.h
 /src/frontend/diff-sizes
 /src/frontend/alfalfa-weave
 /src/frontend/frameify

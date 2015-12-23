@@ -84,14 +84,14 @@ AC_LANG_POP(C++)
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
+                 src/protobufs/Makefile
                  src/util/Makefile
                  src/decoder/Makefile
                  src/format/Makefile
-                 src/format/protobufs/Makefile
                  src/display/Makefile
+                 src/encoder/Makefile
                  src/frontend/Makefile
                  src/tests/Makefile
-                 src/encoder/Makefile
                  man/Makefile])
 
 AC_OUTPUT

@@ -20,7 +20,7 @@
 #include "optional.hh"
 #include "frame_info.hh"
 #include "dependency_tracking.hh"
-#include "protobufs/alfalfa.pb.h"
+#include "alfalfa.pb.h"
 #include "ivf_writer.hh"
 #include "filesystem.hh"
 
