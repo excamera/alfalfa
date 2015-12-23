@@ -9,10 +9,12 @@ class AlfalfaVideoClient
 {
 private:
   const AlfalfaVideoServer server_;
+  AlfalfaProtobufs::Chunk buffered_chunk_;
 
 public:
   AlfalfaVideoClient( const std::string & directory_name )
-    : server_( directory_name )
+    : server_( directory_name ),
+      buffered_chunk_()
   {}
 
   /* Get size of a track. */
@@ -60,7 +62,7 @@ public:
   get_switches_ending_with_frame( const size_t frame_id ) const;
 
   /* Get chunk given a frame_info object. */
-  const Chunk get_chunk( const FrameInfo & frame_info ) const;
+  const Chunk get_chunk( const FrameInfo & frame_info );
 
   /* Getters for width and height. */
   size_t get_video_width() const;

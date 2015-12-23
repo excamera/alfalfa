@@ -10,6 +10,7 @@
 #include "dependency_tracking.hh"
 #include "alfalfa.pb.h"
 #include "file_descriptor.hh"
+#include "chunk.hh"
 
 struct VideoInfo
 {

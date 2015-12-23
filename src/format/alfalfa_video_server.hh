@@ -49,8 +49,7 @@ public:
 
   AlfalfaProtobufs::Switches get_switches_ending_with_frame( const AlfalfaProtobufs::SizeT & frame_id ) const;
 
-  // TODO: Fix this
-  const Chunk get_chunk( const FrameInfo & frame_info ) const;
+  AlfalfaProtobufs::Chunk get_chunk( const AlfalfaProtobufs::FrameInfo & frame_info ) const;
 
   /* Getters for width and height. */
   AlfalfaProtobufs::SizeT get_video_width() const;

@@ -530,6 +530,18 @@ SwitchRangeArgs::to_protobuf() const
   return message;
 }
 
+Chunk::Chunk( const AlfalfaProtobufs::Chunk & message )
+  : Chunk( message.buffer() )
+{}
+
+AlfalfaProtobufs::Chunk
+Chunk::to_protobuf() const
+{
+  AlfalfaProtobufs::Chunk message;
+  message.set_buffer( to_string() );
+  return message;
+}
+
 ProtobufSerializer::ProtobufSerializer( const string & filename )
   : fout_( SystemCall( filename,
 		       open( filename.c_str(),

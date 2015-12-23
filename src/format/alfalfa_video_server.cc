@@ -162,10 +162,11 @@ AlfalfaVideoServer::get_switches_ending_with_frame( const AlfalfaProtobufs::Size
   return sw.to_protobuf();
 }
 
-const Chunk
-AlfalfaVideoServer::get_chunk( const FrameInfo & frame_info ) const
+AlfalfaProtobufs::Chunk
+AlfalfaVideoServer::get_chunk( const AlfalfaProtobufs::FrameInfo & frame_info ) const
 {
-  return video_.get_chunk( frame_info );
+  FrameInfo frame_info_deserialized( frame_info );
+  return video_.get_chunk( frame_info_deserialized ).to_protobuf();
 }
 
 AlfalfaProtobufs::SizeT

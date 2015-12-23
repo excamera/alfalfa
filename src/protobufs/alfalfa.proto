@@ -118,3 +118,7 @@ message SwitchRangeArgs {
   required uint64 switch_start_index = 4;
   required uint64 switch_end_index = 5;
 }
+
+message Chunk {
+  required bytes buffer = 1;
+}

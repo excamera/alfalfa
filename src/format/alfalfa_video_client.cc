@@ -110,9 +110,11 @@ AlfalfaVideoClient::get_switches_ending_with_frame( const size_t frame_id ) cons
 }
 
 const Chunk
-AlfalfaVideoClient::get_chunk( const FrameInfo & frame_info ) const
+AlfalfaVideoClient::get_chunk( const FrameInfo & frame_info )
 {
-  return server_.get_chunk( frame_info );
+  AlfalfaProtobufs::FrameInfo frame_info_serialized = frame_info.to_protobuf();
+  buffered_chunk_ = server_.get_chunk( frame_info_serialized );
+  return Chunk( buffered_chunk_ );
 }
 
 size_t
