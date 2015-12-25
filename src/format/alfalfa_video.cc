@@ -474,10 +474,7 @@ void PlayableAlfalfaVideo::encode( const size_t track_id, vector<string> vpxenc_
   // Newer libvpx versions default to vp9 so explicitly state that we want vp8
   vpxenc_args.push_back( "--codec=vp8" );
 
-  // adding necessary output switches
-  vpxenc_args.push_back( "-o" );
-  vpxenc_args.push_back( destination );
-  vpxenc_args.push_back( "-" );
+  // Adding fpf filename -- required for multiple passes
   vpxenc_args.push_back( "--fpf=" + fpf_file.name() );
 
   ostringstream vpxenc_command;
@@ -487,18 +484,21 @@ void PlayableAlfalfaVideo::encode( const size_t track_id, vector<string> vpxenc_
     vpxenc_command << s <<  " ";
   }
 
+  vpxenc_command << "--passes=" << total_passes << " ";
+
   for ( int pass = 1; pass <= total_passes; pass++ ) {
     ostringstream stage_command( vpxenc_command.str(), ios_base::app | ios_base::out );
-    stage_command << "--passes=" << total_passes
-                  << " --pass=" << pass;
+    stage_command << "--pass=" << pass;
+    // According to vpxenc spec, -o argument should be at the end
+    stage_command << " -o " << destination << " -";
 
     Subprocess proc( stage_command.str(), "w" );
 
     FramePlayer player( get_info().width, get_info().height );
 
     /* yuv4mpeg header */
-    proc.write( "YUV4MPEG2 W" + to_string( get_info().width ) + " "
-		+ "F1:1 H" + to_string( get_info().height ) + " "
+    proc.write( "YUV4MPEG2 W" + to_string( get_info().width )
+                + " H" + to_string( get_info().height ) + " F24:1 " +
 		+ "Ip A0:0 C420 C420jpeg XYSCSS=420JPEG\n" );
 
     for ( auto track_frames = get_frames( track_id ); track_frames.first != track_frames.second; track_frames.first++ ) {
