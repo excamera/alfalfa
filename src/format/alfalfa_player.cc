@@ -88,7 +88,7 @@ void LRUCache::print_cache()
 }
 
 template<DependencyType DepType>
-size_t AlfalfaPlayer::FrameDependencey::increase_count( const size_t hash )
+size_t AlfalfaPlayer::FrameDependency::increase_count( const size_t hash )
 {
   DependencyVertex vertex{ DepType, hash };
 
@@ -103,7 +103,7 @@ size_t AlfalfaPlayer::FrameDependencey::increase_count( const size_t hash )
 }
 
 template<DependencyType DepType>
-size_t AlfalfaPlayer::FrameDependencey::decrease_count( const size_t hash )
+size_t AlfalfaPlayer::FrameDependency::decrease_count( const size_t hash )
 {
   DependencyVertex vertex{ DepType, hash };
 
@@ -117,7 +117,7 @@ size_t AlfalfaPlayer::FrameDependencey::decrease_count( const size_t hash )
 }
 
 template<DependencyType DepType>
-size_t AlfalfaPlayer::FrameDependencey::get_count( const size_t hash )
+size_t AlfalfaPlayer::FrameDependency::get_count( const size_t hash )
 {
   DependencyVertex vertex{ DepType, hash };
 
@@ -128,7 +128,7 @@ size_t AlfalfaPlayer::FrameDependencey::get_count( const size_t hash )
   return 0;
 }
 
-void AlfalfaPlayer::FrameDependencey::update_dependencies( const FrameInfo & frame,
+void AlfalfaPlayer::FrameDependency::update_dependencies( const FrameInfo & frame,
                                                            LRUCache & cache )
 {
   unresolved_.erase( DependencyVertex{ RASTER, frame.target_hash().output_hash } );
@@ -157,7 +157,7 @@ void AlfalfaPlayer::FrameDependencey::update_dependencies( const FrameInfo & fra
   }
 }
 
-void AlfalfaPlayer::FrameDependencey::update_dependencies_forward( const FrameInfo & frame,
+void AlfalfaPlayer::FrameDependency::update_dependencies_forward( const FrameInfo & frame,
                                                                    LRUCache & cache )
 {
   Optional<size_t> hash[] = {
@@ -180,13 +180,13 @@ void AlfalfaPlayer::FrameDependencey::update_dependencies_forward( const FrameIn
   }
 }
 
-bool AlfalfaPlayer::FrameDependencey::all_resolved()
+bool AlfalfaPlayer::FrameDependency::all_resolved()
 {
   return unresolved_.size() == 0;
 }
 
 tuple<AlfalfaPlayer::SwitchPath, Optional<AlfalfaPlayer::TrackPath>,
-AlfalfaPlayer::FrameDependencey>
+AlfalfaPlayer::FrameDependency>
 AlfalfaPlayer::get_min_switch_seek( const size_t output_hash )
 {
   auto frames = video_.get_frames_by_output_hash( output_hash );
@@ -195,14 +195,14 @@ AlfalfaPlayer::get_min_switch_seek( const size_t output_hash )
   SwitchPath min_switch_path;
   min_switch_path.cost = SIZE_MAX;
   Optional<TrackPath> min_track_path;
-  FrameDependencey min_dependencies;
+  FrameDependency min_dependencies;
 
   for ( auto target_frame : frames ) {
     auto switches = video_.get_switches_ending_with_frame( target_frame.frame_id() );
 
     for ( auto sw : switches ) {
       size_t cost = 0;
-      FrameDependencey dependencies;
+      FrameDependency dependencies;
 
       size_t cur_switch_frame_index = sw.switch_start_index;
       for ( auto frame : sw.frames ) {
@@ -266,9 +266,9 @@ AlfalfaPlayer::get_min_switch_seek( const size_t output_hash )
   return make_tuple( min_switch_path, min_track_path, min_dependencies );
 }
 
-tuple<size_t, AlfalfaPlayer::FrameDependencey, size_t>
+tuple<size_t, AlfalfaPlayer::FrameDependency, size_t>
 AlfalfaPlayer::get_track_seek( const size_t track_id, const size_t frame_index,
-                               FrameDependencey dependencies )
+                               FrameDependency dependencies )
 {
   auto frames_backward = video_.get_frames_reverse( track_id, frame_index );
   size_t cur_frame_index = frame_index;
@@ -293,20 +293,20 @@ AlfalfaPlayer::get_track_seek( const size_t track_id, const size_t frame_index,
   return make_tuple( frame_index, dependencies, SIZE_MAX );
 }
 
-tuple<AlfalfaPlayer::TrackPath, AlfalfaPlayer::FrameDependencey>
+tuple<AlfalfaPlayer::TrackPath, AlfalfaPlayer::FrameDependency>
 AlfalfaPlayer::get_min_track_seek( const size_t output_hash )
 {
   size_t min_cost = SIZE_MAX;
   TrackPath min_track_path;
   min_track_path.cost = SIZE_MAX;
 
-  FrameDependencey min_frame_dependency;
+  FrameDependency min_frame_dependency;
 
   auto track_ids = video_.get_track_ids();
 
   for ( auto frame : video_.get_frames_by_output_hash( output_hash ) ) {
     for ( auto track_data : video_.get_track_data_by_frame_id( frame.frame_id() ) ) {
-      tuple<size_t, FrameDependencey, size_t> seek =
+      tuple<size_t, FrameDependency, size_t> seek =
         get_track_seek( track_data.track_id, track_data.frame_index );
 
       if ( get<2>( seek ) < min_cost ) {
@@ -351,8 +351,8 @@ Decoder AlfalfaPlayer::get_decoder( const FrameInfo & frame )
   return Decoder( state, refs );
 }
 
-AlfalfaPlayer::FrameDependencey AlfalfaPlayer::follow_track_path( TrackPath path,
-                                                                  FrameDependencey dependencies )
+AlfalfaPlayer::FrameDependency AlfalfaPlayer::follow_track_path( TrackPath path,
+                                                                  FrameDependency dependencies )
 {
   References refs( video_.get_video_width(), video_.get_video_height() );
   DecoderState state( video_.get_video_width(), video_.get_video_height() );
@@ -370,8 +370,8 @@ AlfalfaPlayer::FrameDependencey AlfalfaPlayer::follow_track_path( TrackPath path
   return dependencies;
 }
 
-AlfalfaPlayer::FrameDependencey AlfalfaPlayer::follow_switch_path( SwitchPath path,
-                                                                   FrameDependencey dependencies)
+AlfalfaPlayer::FrameDependency AlfalfaPlayer::follow_switch_path( SwitchPath path,
+                                                                   FrameDependency dependencies)
 {
   References refs( video_.get_video_width(), video_.get_video_height() );
   DecoderState state( video_.get_video_width(), video_.get_video_height() );
@@ -411,7 +411,7 @@ Optional<RasterHandle> AlfalfaPlayer::get_raster_switch_path( const size_t outpu
   }
 
   Optional<TrackPath> & extra_track_seek = get<1>( switch_seek );
-  FrameDependencey & dependencies = get<2>( switch_seek );
+  FrameDependency & dependencies = get<2>( switch_seek );
 
   if ( extra_track_seek.initialized() ) {
     dependencies = follow_track_path( extra_track_seek.get(), dependencies );

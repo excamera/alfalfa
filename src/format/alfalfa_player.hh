@@ -79,7 +79,7 @@ private:
   AlfalfaVideoClient video_;
   LRUCache cache_;
 
-  class FrameDependencey
+  class FrameDependency
   {
   private:
     std::map<DependencyVertex, size_t> ref_counter_ = {};
@@ -100,7 +100,7 @@ private:
 
     bool all_resolved();
 
-    FrameDependencey() {}
+    FrameDependency() {}
   };
 
   struct TrackPath
@@ -148,19 +148,19 @@ private:
     }
   };
 
-  std::tuple<SwitchPath, Optional<TrackPath>, FrameDependencey>
+  std::tuple<SwitchPath, Optional<TrackPath>, FrameDependency>
   get_min_switch_seek( const size_t output_hash );
 
-  std::tuple<size_t, FrameDependencey, size_t>
+  std::tuple<size_t, FrameDependency, size_t>
   get_track_seek( const size_t track_id, const size_t frame_index,
-                  FrameDependencey dependencies = {} );
+                  FrameDependency dependencies = {} );
 
-  std::tuple<TrackPath, FrameDependencey>
+  std::tuple<TrackPath, FrameDependency>
   get_min_track_seek( const size_t output_hash );
 
   Decoder get_decoder( const FrameInfo & frame );
-  FrameDependencey follow_track_path( TrackPath path, FrameDependencey dependencies );
-  FrameDependencey follow_switch_path( SwitchPath path, FrameDependencey dependencies);
+  FrameDependency follow_track_path( TrackPath path, FrameDependency dependencies );
+  FrameDependency follow_switch_path( SwitchPath path, FrameDependency dependencies);
 
   Optional<RasterHandle> get_raster_switch_path( const size_t output_hash );
   Optional<RasterHandle> get_raster_track_path( const size_t output_hash );
