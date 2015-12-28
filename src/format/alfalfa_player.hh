@@ -99,6 +99,8 @@ private:
     void update_dependencies_forward( const FrameInfo & frame, LRUCache & cache );
 
     bool all_resolved();
+
+    FrameDependencey() {}
   };
 
   struct TrackPath
