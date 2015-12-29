@@ -33,7 +33,7 @@ public:
 
   /* Gets frames in a track in reverse order, starting from the provided frame_index. */
   std::vector<FrameInfo>
-  get_frames_reverse( const size_t track_id, const size_t frame_index ) const;
+  get_frames_reverse( const size_t track_id, const size_t start_frame_index, const size_t end_frame_index ) const;
 
   /* Gets switch frames between the provided indices. */
   std::vector<FrameInfo>

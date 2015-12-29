@@ -2,6 +2,11 @@
 
 using namespace std;
 
+// Used to control the maximum number of FrameInfos batched into a single
+// AlfalfaProtobufs::FrameIterator object -- this is to ensure protobufs
+// sent over the network aren't too large.
+const size_t MAX_NUM_FRAMES = 1000;
+
 template<DependencyType DepType, class ObjectType>
 void LRUCache::put( ObjectType obj )
 {
@@ -267,30 +272,40 @@ AlfalfaPlayer::get_min_switch_seek( const size_t output_hash )
 }
 
 tuple<size_t, AlfalfaPlayer::FrameDependency, size_t>
-AlfalfaPlayer::get_track_seek( const size_t track_id, const size_t frame_index,
+AlfalfaPlayer::get_track_seek( const size_t track_id, const size_t from_frame_index,
                                FrameDependency dependencies )
 {
-  auto frames_backward = video_.get_frames_reverse( track_id, frame_index );
-  size_t cur_frame_index = frame_index;
+  int cur_frame_index = (int) from_frame_index;
+  // Since range specified in get_frames_reverse is inclusive on both sides, add 1 to
+  // to_frame_index.
+  size_t to_frame_index = ( cur_frame_index - (int) MAX_NUM_FRAMES + 1 ) >= 0 ?
+    ( from_frame_index - MAX_NUM_FRAMES + 1 ) : 0;
+  auto frames_backward = video_.get_frames_reverse( track_id, from_frame_index, to_frame_index );
 
   if ( frames_backward.size() == 0 ) {
     return make_tuple( -1, dependencies, SIZE_MAX );
   }
 
   size_t cost = 0;
+  while ( cur_frame_index >= 0 ) {
+    for ( auto frame : frames_backward ) {
+      cost += frame.length();
 
-  for( auto frame : frames_backward ) {
-    cost += frame.length();
+      dependencies.update_dependencies( frame, cache_ );
 
-    dependencies.update_dependencies( frame, cache_ );
-
-    if ( dependencies.all_resolved() ) {
-      return make_tuple( cur_frame_index, dependencies, cost );
+      if ( dependencies.all_resolved() ) {
+        return make_tuple( (size_t) cur_frame_index, dependencies, cost );
+      }
+      cur_frame_index--;
     }
-    cur_frame_index--;
+    if ( cur_frame_index >= 0 ) {
+      to_frame_index = ( cur_frame_index - (int) MAX_NUM_FRAMES + 1 ) >= 0 ?
+        ( from_frame_index - MAX_NUM_FRAMES + 1 ) : 0;
+      frames_backward = video_.get_frames_reverse( track_id, (size_t) cur_frame_index, to_frame_index );
+    }
   }
 
-  return make_tuple( frame_index, dependencies, SIZE_MAX );
+  return make_tuple( from_frame_index, dependencies, SIZE_MAX );
 }
 
 tuple<AlfalfaPlayer::TrackPath, AlfalfaPlayer::FrameDependency>
@@ -357,14 +372,25 @@ AlfalfaPlayer::FrameDependency AlfalfaPlayer::follow_track_path( TrackPath path,
   References refs( video_.get_video_width(), video_.get_video_height() );
   DecoderState state( video_.get_video_width(), video_.get_video_height() );
 
-  auto frames = video_.get_frames( path.track_id, path.start_index, path.end_index );
+  size_t from_frame_index = path.start_index;
+  size_t to_frame_index = ( from_frame_index + MAX_NUM_FRAMES ) >= path.end_index ?
+    path.end_index : ( from_frame_index + MAX_NUM_FRAMES );
+  auto frames = video_.get_frames( path.track_id, from_frame_index, to_frame_index );
 
-  for ( auto frame : frames ) {
-    Decoder && decoder = get_decoder( frame );
-    pair<bool, RasterHandle> output = decoder.get_frame_output( video_.get_chunk( frame ) );
-    cache_.put( decoder );
-    cache_.put<RASTER>( output.second );
-    dependencies.update_dependencies_forward( frame, cache_ );
+  while ( from_frame_index < path.end_index ) {
+    for ( auto frame : frames ) {
+      Decoder && decoder = get_decoder( frame );
+      pair<bool, RasterHandle> output = decoder.get_frame_output( video_.get_chunk( frame ) );
+      cache_.put( decoder );
+      cache_.put<RASTER>( output.second );
+      dependencies.update_dependencies_forward( frame, cache_ );
+    }
+    from_frame_index += MAX_NUM_FRAMES;
+    if ( from_frame_index < path.end_index ) {
+      to_frame_index = ( from_frame_index + MAX_NUM_FRAMES ) >= path.end_index ?
+        path.end_index : ( from_frame_index + MAX_NUM_FRAMES );
+      frames = video_.get_frames( path.track_id, from_frame_index, to_frame_index );
+    }
   }
 
   return dependencies;

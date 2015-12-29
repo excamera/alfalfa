@@ -29,7 +29,7 @@ public:
   AlfalfaProtobufs::FrameIterator get_frames( const AlfalfaProtobufs::TrackRangeArgs & args ) const;
 
   /* Gets frames in a track in reverse order, starting from the provided frame index. */
-  AlfalfaProtobufs::FrameIterator get_frames_reverse( const AlfalfaProtobufs::TrackPosition & track_pos ) const;
+  AlfalfaProtobufs::FrameIterator get_frames_reverse( const AlfalfaProtobufs::TrackRangeArgs & args ) const;
 
   /* Gets switch frames between the provided indices. */
   AlfalfaProtobufs::FrameIterator get_frames( const AlfalfaProtobufs::SwitchRangeArgs & args ) const;

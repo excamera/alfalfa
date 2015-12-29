@@ -171,6 +171,10 @@ public:
   std::pair<TrackDBIterator, TrackDBIterator> get_frames_reverse( const size_t track_id,
                                                                   const size_t frame_index ) const;
 
+  std::pair<TrackDBIterator, TrackDBIterator> get_frames_reverse( const size_t track_id,
+                                                                  const size_t from_frame_index,
+                                                                  const size_t to_frame_index ) const;
+
   std::vector<std::pair<SwitchDBIterator, SwitchDBIterator> >
   get_switches_ending_with_frame( const size_t frame_id ) const;
 

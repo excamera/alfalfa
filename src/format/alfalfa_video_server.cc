@@ -47,11 +47,12 @@ AlfalfaVideoServer::get_frames( const AlfalfaProtobufs::TrackRangeArgs & args ) 
 }
 
 AlfalfaProtobufs::FrameIterator
-AlfalfaVideoServer::get_frames_reverse( const AlfalfaProtobufs::TrackPosition & track_pos ) const
+AlfalfaVideoServer::get_frames_reverse( const AlfalfaProtobufs::TrackRangeArgs & args ) const
 {
-  TrackPosition track_pos_deserialized( track_pos );
-  auto frames = video_.get_frames_reverse( track_pos_deserialized.track_id,
-                                           track_pos_deserialized.frame_index );
+  TrackRangeArgs args_deserialized( args );
+  auto frames = video_.get_frames_reverse( args_deserialized.track_id,
+                                           args_deserialized.start_frame_index,
+                                           args_deserialized.end_frame_index );
   FrameIterator frame_iterator;
   while ( frames.first != frames.second ) {
     frame_iterator.frames.push_back( *frames.first );

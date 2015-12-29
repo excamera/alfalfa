@@ -45,12 +45,14 @@ AlfalfaVideoClient::get_frames( const size_t track_id, const size_t start_frame_
 }
 
 vector<FrameInfo>
-AlfalfaVideoClient::get_frames_reverse( const size_t track_id, const size_t frame_index ) const
+AlfalfaVideoClient::get_frames_reverse( const size_t track_id, const size_t start_frame_index, const size_t end_frame_index ) const
 {
-  AlfalfaProtobufs::TrackPosition track_pos_serialized = TrackPosition( track_id,
-                                                                        frame_index
-                                                                      ).to_protobuf();
-  return FrameIterator( server_.get_frames_reverse( track_pos_serialized ) ).frames;
+  AlfalfaProtobufs::TrackRangeArgs args_serialized =
+    TrackRangeArgs( track_id,
+                    start_frame_index,
+                    end_frame_index
+                  ).to_protobuf();
+  return FrameIterator( server_.get_frames_reverse( args_serialized ) ).frames;
 }
 
 vector<FrameInfo>

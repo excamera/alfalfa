@@ -244,8 +244,16 @@ AlfalfaVideo::get_frames_reverse( const size_t track_id, const size_t frame_inde
   assert( frame_index < end_frame_index );
   // To avoid build error when building with debug flag.
   (void) end_frame_index;
-  TrackDBIterator begin( track_id, frame_index, track_db_, frame_db_);
-  TrackDBIterator end( track_id, -1, track_db_, frame_db_ );
+  return get_frames_reverse( track_id, frame_index, 0 );
+}
+
+pair<TrackDBIterator, TrackDBIterator>
+AlfalfaVideo::get_frames_reverse( const size_t track_id, const size_t from_frame_index,
+                                  const size_t to_frame_index ) const
+{
+  assert( to_frame_index <= from_frame_index );
+  TrackDBIterator begin( track_id, (size_t) from_frame_index, track_db_, frame_db_ );
+  TrackDBIterator end( track_id, to_frame_index - 1, track_db_, frame_db_ );
   return make_pair( begin, end );
 }
 
