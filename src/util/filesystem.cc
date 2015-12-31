@@ -22,16 +22,6 @@ string FileSystem::append( const string & path1, const string & path2 )
   return path1 + "/" + path2;
 }
 
-void FileSystem::change_directory( const string & path )
-{
-  SystemCall( "chdir " + path, chdir( path.c_str() ) );
-}
-
-string FileSystem::get_basename( const string & path )
-{
-  return basename( path.c_str() );
-}
-
 string FileSystem::get_realpath( const string & path )
 {
   char resolved_path[ PATH_MAX ];
@@ -41,9 +31,4 @@ string FileSystem::get_realpath( const string & path )
   }
 
   return resolved_path;
-}
-
-void FileSystem::create_symbolic_link( const string & path1, const string & path2 )
-{
-  SystemCall( "symlink", symlink( path1.c_str(), path2.c_str() ) );
 }
