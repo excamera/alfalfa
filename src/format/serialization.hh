@@ -220,7 +220,7 @@ public:
   void write_string( const std::string & str );
 
   template<class EntryProtobufType>
-  bool write_protobuf( const EntryProtobufType & entry );
+  void write_protobuf( const EntryProtobufType & entry );
 };
 
 class ProtobufDeserializer
@@ -260,10 +260,12 @@ bool ProtobufDeserializer::read_protobuf( EntryProtobufType & message )
 }
 
 template<class EntryProtobufType>
-bool ProtobufSerializer::write_protobuf( const EntryProtobufType & protobuf )
+void ProtobufSerializer::write_protobuf( const EntryProtobufType & protobuf )
 {
   coded_output_.WriteLittleEndian32( protobuf.ByteSize() );
-  return protobuf.SerializeToCodedStream( &coded_output_ );
+  if ( not protobuf.SerializeToCodedStream( &coded_output_ ) ) {
+    throw std::runtime_error( "write_protobuf: write error" );
+  }
 }
 
 #endif /* SERIALIZATION_HH */

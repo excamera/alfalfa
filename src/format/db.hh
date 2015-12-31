@@ -33,15 +33,16 @@ class SerializableData
 protected:
   std::string filename_;
   OpenMode mode_;
-  bool good_;
 
 public:
   const std::string magic_number;
 
   SerializableData( const std::string & filename, const std::string & magic_number,
-    OpenMode mode = OpenMode::READ );
-
-  bool good() const { return good_; }
+		    const OpenMode mode = OpenMode::READ )
+    : filename_( filename ),
+      mode_( mode ),
+      magic_number( magic_number )
+  {}
 };
 
 template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag>
@@ -66,8 +67,8 @@ public:
   typename SequencedAccess::iterator end() { return this->collection_.get<SequencedTag>().end(); }
   typename SequencedAccess::iterator end() const { return this->collection_.get<SequencedTag>().end(); }
 
-  bool serialize() const;
-  bool deserialize();
+  void serialize() const;
+  void deserialize();
 };
 
 template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag>
@@ -76,8 +77,8 @@ BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
   OpenMode mode )
   : SerializableData( filename, magic_number, mode ), collection_()
 {
-  if ( good_ == true and ( mode == OpenMode::READ ) ) {
-    good_ = deserialize();
+  if ( mode == OpenMode::READ ) {
+    deserialize();
   }
 }
 
@@ -96,11 +97,11 @@ void BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
 }
 
 template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag>
-bool BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
+void BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
   ::serialize() const
 {
   if ( mode_ == OpenMode::READ ) {
-    return false;
+    throw std::runtime_error( "can't write to read-only database" );
   }
 
   ProtobufSerializer serializer( filename_ );
@@ -110,18 +111,12 @@ bool BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
 
   // Writing entries
   for ( const RecordType & it : collection_.get<SequencedTag>() ) {
-    RecordProtobufType message = it.to_protobuf();
-
-    if ( not serializer.write_protobuf( message ) ) {
-      return false;
-    }
+    serializer.write_protobuf( it.to_protobuf() );
   }
-
-  return true;
 }
 
 template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag>
-bool BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
+void BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
   ::deserialize()
 {
   this->collection_.clear();
@@ -130,18 +125,15 @@ bool BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
 
   // Reading the header
   if ( magic_number != deserializer.read_string( magic_number.length() ) ) {
-    return false;
+    throw std::runtime_error( "magic number mismatch: expecting " + magic_number );
   }
 
   // Reading entries
   RecordProtobufType message;
 
   while ( deserializer.read_protobuf( message ) ) {
-    RecordType record = RecordType( message );
-    insert( record );
+    insert( message );
   }
-
-  return true;
 }
 
 #endif

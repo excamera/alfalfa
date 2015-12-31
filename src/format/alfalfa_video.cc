@@ -73,11 +73,7 @@ AlfalfaVideo::AlfalfaVideo( const string & directory_name, OpenMode mode )
     track_db_( directory_.track_db_filename(), "ALFATRDB", mode ),
     switch_db_( directory_.switch_db_filename(), "ALFASWDB", mode ),
     switch_mappings_()
-{
-  if ( not good() ) {
-    throw invalid_argument( "invalid alfalfa video." );
-  }
-}
+{}
 
 AlfalfaVideo::AlfalfaVideo( AlfalfaVideo && other )
   : directory_( move( other.directory_ ) ),
@@ -89,12 +85,6 @@ AlfalfaVideo::AlfalfaVideo( AlfalfaVideo && other )
     switch_db_( move( other.switch_db_ ) ),
     switch_mappings_( move( other.switch_mappings_ ) )
 {}
-
-bool AlfalfaVideo::good() const
-{
-  return video_manifest_.good() and raster_list_.good() and quality_db_.good()
-    and frame_db_.good() and track_db_.good();
-}
 
 size_t AlfalfaVideo::get_raster_list_size() const
 {
@@ -458,14 +448,14 @@ WritableAlfalfaVideo::insert_frame_data( FrameInfo frame_info,
   return frame_db_.insert( frame_info );
 }
 
-bool WritableAlfalfaVideo::save()
+void WritableAlfalfaVideo::save()
 {
-  return video_manifest_.serialize() and
-    raster_list_.serialize() and
-    quality_db_.serialize() and
-    track_db_.serialize() and
-    frame_db_.serialize() and
-    switch_db_.serialize();
+  video_manifest_.serialize();
+  raster_list_.serialize();
+  quality_db_.serialize();
+  track_db_.serialize();
+  frame_db_.serialize();
+  switch_db_.serialize();
 }
 
 /* PlayableAlfalfaVideo */

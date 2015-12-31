@@ -35,10 +35,8 @@ public:
   const VideoInfo & info() const { return info_; }
   void set_info( const VideoInfo & info );
 
-  bool serialize() const;
-  bool deserialize();
-
-  bool good() const { return good_; }
+  void serialize() const;
+  void deserialize();
 };
 
 /*

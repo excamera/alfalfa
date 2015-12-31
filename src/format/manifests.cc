@@ -6,8 +6,8 @@ VideoManifest::VideoManifest( const string & filename, const string & magic_numb
   OpenMode mode )
     : SerializableData( filename, magic_number, mode ), info_()
 {
-  if ( good_ == true and ( mode == OpenMode::READ ) ) {
-    good_ = deserialize();
+  if ( mode == OpenMode::READ ) {
+    deserialize();
   }
 }
 
@@ -18,24 +18,23 @@ void VideoManifest::set_info( const VideoInfo & info )
   info_.height = info.height;
 }
 
-bool VideoManifest::deserialize()
+void VideoManifest::deserialize()
 {
   ProtobufDeserializer deserializer( filename_ );
 
   if ( magic_number != deserializer.read_string( magic_number.length() ) ) {
-    return false;
+    throw std::runtime_error( "magic number mismatch: expecting " + magic_number );
   }
 
   AlfalfaProtobufs::VideoInfo message;
   deserializer.read_protobuf( message );
   info_ = VideoInfo( message );
-  return true;
 }
 
-bool VideoManifest::serialize() const
+void VideoManifest::serialize() const
 {
   if ( mode_ == OpenMode::READ ) {
-    return false;
+    throw runtime_error( "can't write to read-only VideoManifest" );
   }
 
   ProtobufSerializer serializer( filename_ );
@@ -44,7 +43,7 @@ bool VideoManifest::serialize() const
   serializer.write_string( magic_number );
 
   AlfalfaProtobufs::VideoInfo message = info_.to_protobuf();
-  return serializer.write_protobuf( message );
+  serializer.write_protobuf( message );
 }
 
 bool RasterList::has( const size_t raster_hash ) const

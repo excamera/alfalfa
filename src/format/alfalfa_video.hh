@@ -189,8 +189,6 @@ public:
 
   std::vector<std::set<size_t> > build_frames_graph( bool dependency_graph = true );
 
-  bool good() const;
-
   AlfalfaVideo( const AlfalfaVideo & other ) = delete;
   AlfalfaVideo & operator=( const AlfalfaVideo & other ) = delete;
 
@@ -235,7 +233,7 @@ public:
                              const TrackDBIterator & dest_iterator );
   FrameInfo import_serialized_frame( const SerializedFrame & frame );
 
-  bool save();
+  void save();
 };
 
 void combine( WritableAlfalfaVideo& combined_video,
