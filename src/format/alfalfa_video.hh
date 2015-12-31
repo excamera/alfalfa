@@ -18,14 +18,6 @@
 
 */
 
-#define FRAME_DB_FILENAME "frame.db"
-#define RASTER_LIST_FILENAME "raster.db"
-#define QUALITY_DB_FILENAME "quality.db"
-#define TRACK_DB_FILENAME "track.db"
-#define SWITCH_DB_FILENAME "switch.db"
-#define VIDEO_MANIFEST_FILENAME "video.manifest"
-#define IVF_FILENAME "v"
-
 #include <string>
 #include <set>
 #include <unordered_map>

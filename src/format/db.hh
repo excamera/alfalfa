@@ -22,8 +22,6 @@
 using namespace boost::multi_index;
 using boost::multi_index_container;
 
-#define MAX_MAGIC_NUMBER_LENGTH 20
-
 enum class OpenMode
 {
   READ,

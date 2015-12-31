@@ -14,9 +14,16 @@
 #include "subprocess.hh"
 #include "temp_file.hh"
 
-#define VPXENC_EXECUTABLE "vpxenc"
-
 using namespace std;
+
+const string FRAME_DB_FILENAME = "frame.db";
+const string RASTER_LIST_FILENAME = "raster.db";
+const string QUALITY_DB_FILENAME = "quality.db";
+const string TRACK_DB_FILENAME = "track.db";
+const string SWITCH_DB_FILENAME = "switch.db";
+const string VIDEO_MANIFEST_FILENAME = "video.manifest";
+const string IVF_FILENAME = "v";
+const string VPXENC_EXECUTABLE = "vpxenc";
 
 AlfalfaVideo::VideoDirectory::VideoDirectory( const string & path )
   : directory_path_( path )
