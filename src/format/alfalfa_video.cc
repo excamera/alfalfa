@@ -66,12 +66,12 @@ string AlfalfaVideo::VideoDirectory::ivf_filename() const
 
 AlfalfaVideo::AlfalfaVideo( const string & directory_name, OpenMode mode )
   : directory_( FileSystem::get_realpath( directory_name ) ),
-    video_manifest_( directory_.video_manifest_filename(), "ALFAVDMF", mode ),
-    raster_list_( directory_.raster_list_filename(), "ALFARSLS", mode ),
-    quality_db_( directory_.quality_db_filename(), "ALFAQLDB", mode ),
-    frame_db_( directory_.frame_db_filename(), "ALFAFRDB", mode ),
-    track_db_( directory_.track_db_filename(), "ALFATRDB", mode ),
-    switch_db_( directory_.switch_db_filename(), "ALFASWDB", mode ),
+    video_manifest_( directory_.video_manifest_filename(), mode ),
+    raster_list_( directory_.raster_list_filename(), mode ),
+    quality_db_( directory_.quality_db_filename(), mode ),
+    frame_db_( directory_.frame_db_filename(), mode ),
+    track_db_( directory_.track_db_filename(), mode ),
+    switch_db_( directory_.switch_db_filename(), mode ),
     switch_mappings_()
 {}
 

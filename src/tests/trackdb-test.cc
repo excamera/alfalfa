@@ -10,7 +10,7 @@ int main()
 {
   std::string db = "test-track-db";
 
-  TrackDB tdb( db, "ALFATRDB", OpenMode::TRUNCATE );
+  TrackDB tdb( db, OpenMode::TRUNCATE );
 
   for (size_t i = 0; i < NUM_ELEMENTS; i++) {
     size_t track_id = i / 10;

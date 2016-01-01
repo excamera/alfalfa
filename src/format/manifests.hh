@@ -25,8 +25,7 @@ private:
   VideoInfo info_;
 
 public:
-  VideoManifest( const std::string & filename, const std::string & magic_number,
-    OpenMode mode = OpenMode::READ );
+  VideoManifest( const std::string & filename, OpenMode mode = OpenMode::READ );
 
   const std::string & fourcc( void ) const { return info_.fourcc; }
   uint16_t width( void ) const { return info_.width; }
@@ -79,9 +78,9 @@ class RasterList : public BasicDatabase<RasterData, AlfalfaProtobufs::RasterData
   RasterListCollection, RasterListSequencedTag>
 {
 public:
-  RasterList( const std::string & filename, const std::string & magic_number, OpenMode mode = OpenMode::READ )
+  RasterList( const std::string & filename, OpenMode mode = OpenMode::READ )
   : BasicDatabase<RasterData, AlfalfaProtobufs::RasterData,
-    RasterListCollection, RasterListSequencedTag>( filename, magic_number, mode )
+    RasterListCollection, RasterListSequencedTag>( filename, "ALFARSLS", mode )
   {}
 
   bool has( const size_t raster_hash ) const;
@@ -146,9 +145,9 @@ class QualityDB : public BasicDatabase<QualityData, AlfalfaProtobufs::QualityDat
   QualityDBCollection, QualityDBSequencedTag>
 {
 public:
-  QualityDB( const std::string & filename, const std::string & magic_number, OpenMode mode = OpenMode::READ )
+  QualityDB( const std::string & filename, OpenMode mode = OpenMode::READ )
   : BasicDatabase<QualityData, AlfalfaProtobufs::QualityData,
-    QualityDBCollection, QualityDBSequencedTag>( filename, magic_number, mode )
+    QualityDBCollection, QualityDBSequencedTag>( filename, "ALFAQLDB", mode )
   {}
 
   QualityData
@@ -210,9 +209,9 @@ private:
   std::unordered_map<size_t, size_t> track_frame_indices_;
 
 public:
-  TrackDB( const std::string filename, const std::string magic_number, OpenMode mode = OpenMode::READ )
+  TrackDB( const std::string filename, OpenMode mode = OpenMode::READ )
   : BasicDatabase<TrackData, AlfalfaProtobufs::TrackData,
-    TrackDBCollection, TrackDBSequencedTag>( filename, magic_number, mode ),
+    TrackDBCollection, TrackDBSequencedTag>( filename, "ALFATRDB", mode ),
     track_ids_(), track_frame_indices_()
   {
     for ( auto it = begin(); it != end(); it++ ) {
@@ -337,9 +336,9 @@ class SwitchDB : public BasicDatabase<SwitchData, AlfalfaProtobufs::SwitchData,
   SwitchDBCollection, SwitchDBSequencedTag>
 {
 public:
-  SwitchDB( const std::string & filename, const std::string & magic_number, OpenMode mode = OpenMode::READ )
+  SwitchDB( const std::string & filename, OpenMode mode = OpenMode::READ )
   : BasicDatabase<SwitchData, AlfalfaProtobufs::SwitchData,
-    SwitchDBCollection, SwitchDBSequencedTag>( filename, magic_number, mode )
+    SwitchDBCollection, SwitchDBSequencedTag>( filename, "ALFASWDB", mode )
   {}
 
   size_t get_end_switch_frame_index( const size_t from_track_id,

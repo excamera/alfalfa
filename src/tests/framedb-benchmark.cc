@@ -19,7 +19,7 @@ int main()//( int argc, char const *argv[] )
   vector<double> fdb_linear_search_times;
   vector<double> fdb_hashed_search_times;
 
-  FrameDB fdb( "fake.db", "ALFAFRDB" );
+  FrameDB fdb( "fake.db" );
 
   string line;
   string frame_name;

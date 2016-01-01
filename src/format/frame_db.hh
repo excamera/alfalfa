@@ -199,9 +199,9 @@ private:
   size_t frame_id_;
 
 public:
-  FrameDB( const std::string & filename, const std::string & magic_number, OpenMode mode = OpenMode::READ )
+  FrameDB( const std::string & filename, OpenMode mode = OpenMode::READ )
     : BasicDatabase<FrameInfo, AlfalfaProtobufs::FrameInfo,
-      FrameDataSetCollection, FrameDataSetSequencedTag>( filename, magic_number, mode ),
+      FrameDataSetCollection, FrameDataSetSequencedTag>( filename, "ALFAFRDB", mode ),
       frame_id_( 0 )
   {
     while (has_frame_id( frame_id_ ))

@@ -2,9 +2,8 @@
 
 using namespace std;
 
-VideoManifest::VideoManifest( const string & filename, const string & magic_number,
-  OpenMode mode )
-    : SerializableData( filename, magic_number, mode ), info_()
+VideoManifest::VideoManifest( const string & filename, OpenMode mode )
+    : SerializableData( filename, "ALFAVDMF", mode ), info_()
 {
   if ( mode == OpenMode::READ ) {
     deserialize();
