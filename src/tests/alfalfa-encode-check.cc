@@ -1,10 +1,9 @@
 #include <string>
+#include <functional>
 #include <sysexits.h>
 
 #include "alfalfa_video.hh"
-#include "filesystem.hh"
 #include "player.hh"
-#include <functional>
 
 using namespace std;
 

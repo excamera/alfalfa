@@ -11,7 +11,6 @@
 #include "manifests.hh"
 #include "frame_db.hh"
 #include "tracking_player.hh"
-#include "filesystem.hh"
 #include "ivf_writer.hh"
 
 using namespace std;
@@ -28,8 +27,6 @@ int main( int argc, char const *argv[] )
     string alf1_path( argv[ 1 ] );
     string alf2_path( argv[ 2 ] );
     string destination_dir( argv[ 3 ] );
-
-    FileSystem::create_directory( destination_dir );
 
     PlayableAlfalfaVideo alf1( alf1_path );
     PlayableAlfalfaVideo alf2( alf2_path );

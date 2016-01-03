@@ -258,8 +258,6 @@ int main( int argc, const char * const argv[] )
     return EXIT_FAILURE;
   }
 
-  FileSystem::create_directory( argv[ 2 ] );
-
   vector<size_t> track_ids;
   for ( int i = 3; i < argc; i++ ) {
     track_ids.push_back( stoul( argv[ i ] ) );

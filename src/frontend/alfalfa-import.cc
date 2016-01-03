@@ -6,7 +6,6 @@
 #include "manifests.hh"
 #include "frame_db.hh"
 #include "tracking_player.hh"
-#include "filesystem.hh"
 #include "ivf_writer.hh"
 
 using namespace std;
@@ -48,7 +47,6 @@ int main( int argc, char const *argv[] )
     const IVF ivf( ivf_file );
     const string destination_dir( argv[ 2 ] );
 
-    FileSystem::create_directory( destination_dir );
     WritableAlfalfaVideo alfalfa_video( destination_dir, ivf.width(), ivf.height() );
 
     import( alfalfa_video, ivf_file );

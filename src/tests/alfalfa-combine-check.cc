@@ -1,7 +1,6 @@
 #include "sysexits.h"
 
 #include "alfalfa_video.hh"
-#include "filesystem.hh"
 #include "tracking_player.hh"
 
 using namespace std;

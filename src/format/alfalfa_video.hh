@@ -238,7 +238,7 @@ public:
                              const TrackDBIterator & dest_iterator );
   FrameInfo import_serialized_frame( const SerializedFrame & frame );
 
-  void save();
+  void save() const;
 };
 
 void combine( WritableAlfalfaVideo& combined_video,

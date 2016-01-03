@@ -10,7 +10,6 @@
 #include "exception.hh"
 #include "alfalfa_video.hh"
 #include "tracking_player.hh"
-#include "filesystem.hh"
 #include "subprocess.hh"
 #include "temp_file.hh"
 
@@ -25,12 +24,31 @@ const string VIDEO_MANIFEST_FILENAME = "video.manifest";
 const string IVF_FILENAME = "v";
 const string VPXENC_EXECUTABLE = "vpxenc";
 
+FileDescriptor open_and_possibly_make( const string & name, const OpenMode mode )
+{
+  if ( mode == OpenMode::Create ) {
+    /* try to make the directory if it doesn't already exist */
+    try {
+      SystemCall( "mkdir " + name,
+		  mkdir( name.c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH ) );
+    } catch ( const unix_error & e ) {
+      if ( e.code().category() == system_category()
+	   and e.code().value() == EEXIST ) {
+	/* ignore */
+      } else {
+	throw;
+      }
+    }
+  }
+
+  return SystemCall( "open", open( name.c_str(),
+				   O_DIRECTORY | O_PATH ) );
+}
+
 AlfalfaVideo::VideoDirectory::VideoDirectory( const string & name, const OpenMode mode )
   : mode_( mode ),
-    directory_( SystemCall( "open",
-			    open( name.c_str(),
-				  O_DIRECTORY | O_PATH ) ) )
-{ /* XXX ignore mode for now */ }
+    directory_( open_and_possibly_make( name, mode ) )
+{}
 
 FileDescriptor AlfalfaVideo::VideoDirectory::subfile( const string & filename ) const
 {
@@ -469,7 +487,7 @@ WritableAlfalfaVideo::insert_frame_data( FrameInfo frame_info,
   return frame_db_.insert( frame_info );
 }
 
-void WritableAlfalfaVideo::save()
+void WritableAlfalfaVideo::save() const
 {
   video_manifest_.serialize( directory_.video_manifest() );
   raster_list_.serialize( directory_.raster_list() );

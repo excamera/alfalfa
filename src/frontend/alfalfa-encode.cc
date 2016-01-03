@@ -9,7 +9,6 @@
 #include "manifests.hh"
 #include "frame_db.hh"
 #include "tracking_player.hh"
-#include "filesystem.hh"
 #include "ivf_writer.hh"
 #include "temp_file.hh"
 
@@ -84,8 +83,6 @@ int main( int argc, char const *argv[] )
     const string destination_dir( argv[ 3 ] );
 
     PlayableAlfalfaVideo source_video( source_path );
-
-    FileSystem::create_directory( destination_dir );
 
     vector<string> vpxenc_args;
     for_each( argv + 4, argv + argc, [ & vpxenc_args ]( const char * arg ) {

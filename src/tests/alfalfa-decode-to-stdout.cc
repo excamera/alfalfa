@@ -6,7 +6,6 @@
 #include "alfalfa_video_client.hh"
 #include "manifests.hh"
 #include "frame_db.hh"
-#include "filesystem.hh"
 #include "frame_db.hh"
 
 using namespace std;

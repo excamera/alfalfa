@@ -22,7 +22,6 @@
 #include "dependency_tracking.hh"
 #include "alfalfa.pb.h"
 #include "ivf_writer.hh"
-#include "filesystem.hh"
 
 using namespace boost::multi_index;
 using boost::multi_index_container;

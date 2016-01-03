@@ -9,7 +9,6 @@
 #include "alfalfa_video.hh"
 #include "manifests.hh"
 #include "frame_db.hh"
-#include "filesystem.hh"
 
 using namespace std;
 
