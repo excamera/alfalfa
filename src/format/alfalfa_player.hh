@@ -23,24 +23,7 @@ enum PathType
   SWITCH_PATH
 };
 
-struct DependencyVertex
-{
-  DependencyType type;
-  size_t hash;
-
-  bool operator<( const DependencyVertex & other ) const
-  {
-    if ( type < other.type )
-      return true;
-    else if ( type > other.type )
-      return false;
-
-    if ( hash < other.hash )
-      return true;
-
-    return false;
-  }
-};
+using DependencyVertex = std::pair<DependencyType, size_t /* hash */>;
 
 class LRUCache
 {

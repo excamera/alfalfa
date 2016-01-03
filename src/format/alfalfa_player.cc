@@ -81,14 +81,14 @@ void LRUCache::print_cache()
 {
   for ( auto const & item : cache_ )
   {
-    if ( item.first.type == RASTER ) {
+    if ( item.first.first == RASTER ) {
       cout << "R ";
     }
     else {
       cout << "S ";
     }
 
-    cout << hex << uppercase << item.first.hash << dec << nouppercase << endl;
+    cout << hex << uppercase << item.first.second << dec << nouppercase << endl;
   }
 }
 
