@@ -401,7 +401,7 @@ WritableAlfalfaVideo::WritableAlfalfaVideo( const string & directory_name,
   : AlfalfaVideo( directory_name, OpenMode::Create ),
     ivf_writer_( directory_.ivf_filename(), fourcc, width, height, 24, 1 )
 {
-  video_manifest_.set_info( VideoInfo( fourcc, width, height ) );
+  video_manifest_.mutable_info() = VideoInfo( fourcc, width, height );
 }
 
 void WritableAlfalfaVideo::insert_frame( FrameInfo next_frame,

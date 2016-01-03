@@ -19,24 +19,19 @@
  * VideoManifest
  */
 
-class VideoManifest : public SerializableData
+class VideoManifest
 {
 private:
   VideoInfo info_;
+  static VideoInfo deserialize( const std::string & filename, const OpenMode mode );
 
 public:
   VideoManifest( const std::string & filename, OpenMode mode = OpenMode::READ );
 
-  const std::string & fourcc( void ) const { return info_.fourcc; }
-  uint16_t width( void ) const { return info_.width; }
-  uint16_t height( void ) const { return info_.height; }
-
   const VideoInfo & info() const { return info_; }
-  void set_info( const VideoInfo & info );
+  VideoInfo & mutable_info() { return info_; }
 
-  void serialize() const;
   void serialize( FileDescriptor && fd ) const;
-  void deserialize();
 };
 
 /*

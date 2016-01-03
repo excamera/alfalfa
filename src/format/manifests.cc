@@ -3,46 +3,26 @@
 using namespace std;
 
 VideoManifest::VideoManifest( const string & filename, OpenMode mode )
-    : SerializableData( filename, "ALFAVDMF", mode ), info_()
-{
-  if ( mode == OpenMode::READ ) {
-    deserialize();
-  }
-}
+  : info_( deserialize( filename, mode ) )
+{}
 
-void VideoManifest::set_info( const VideoInfo & info )
-{
-  info_.fourcc = info.fourcc;
-  info_.width = info.width;
-  info_.height = info.height;
-}
+static const string video_manifest_magic = "ALFAVDMF";
 
-void VideoManifest::deserialize()
+VideoInfo VideoManifest::deserialize( const std::string & filename, const OpenMode mode )
 {
-  ProtobufDeserializer deserializer( filename_ );
-
-  if ( magic_number != deserializer.read_string( magic_number.length() ) ) {
-    throw std::runtime_error( "magic number mismatch: expecting " + magic_number );
+  if ( mode == OpenMode::Create ) {
+    return {}; /* default VideoInfo */
   }
 
+  ProtobufDeserializer deserializer( filename );
+
+  if ( video_manifest_magic != deserializer.read_string( video_manifest_magic.length() ) ) {
+    throw std::runtime_error( "magic number mismatch: expecting " + video_manifest_magic );
+  }
+    
   AlfalfaProtobufs::VideoInfo message;
   deserializer.read_protobuf( message );
-  info_ = VideoInfo( message );
-}
-
-void VideoManifest::serialize() const
-{
-  if ( mode_ == OpenMode::READ ) {
-    throw runtime_error( "can't write to read-only VideoManifest" );
-  }
-
-  ProtobufSerializer serializer( filename_ );
-
-  // Writing the header
-  serializer.write_string( magic_number );
-
-  AlfalfaProtobufs::VideoInfo message = info_.to_protobuf();
-  serializer.write_protobuf( message );
+  return message;
 }
 
 void VideoManifest::serialize( FileDescriptor && fd ) const
@@ -50,7 +30,7 @@ void VideoManifest::serialize( FileDescriptor && fd ) const
   ProtobufSerializer serializer( move( fd ) );
 
   // Writing the header
-  serializer.write_string( magic_number );
+  serializer.write_string( video_manifest_magic );
 
   serializer.write_protobuf( info_.to_protobuf() );
 }
