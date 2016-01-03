@@ -44,7 +44,7 @@ FileDescriptor AlfalfaVideo::VideoDirectory::subfile( const OpenMode mode,
     raw_mode = 0;
     break;
   case OpenMode::Create:
-    flags = O_WRONLY | O_CREAT | O_EXCL;
+    flags = O_WRONLY | O_CREAT;
     raw_mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
   }
 

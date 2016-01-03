@@ -30,7 +30,7 @@ IVFWriter::IVFWriter( const string & filename,
 		      const uint16_t height,
 		      const uint32_t frame_rate,
 		      const uint32_t time_scale )
-  : fd_( SystemCall( filename, open( filename.c_str(), O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH ) ) ),
+  : fd_( SystemCall( filename, open( filename.c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH ) ) ),
     file_size_( 0 ),
     frame_count_( 0 )
 {

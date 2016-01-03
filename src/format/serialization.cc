@@ -545,7 +545,7 @@ Chunk::to_protobuf() const
 ProtobufSerializer::ProtobufSerializer( const string & filename )
   : fout_( SystemCall( filename,
 		       open( filename.c_str(),
-			     O_WRONLY | O_CREAT | O_EXCL,
+			     O_WRONLY | O_CREAT,
 			     S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH ) ) )
 {}
 
