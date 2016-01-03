@@ -53,11 +53,6 @@ public:
     FileDescriptor track_db( const OpenMode mode ) const;
     FileDescriptor switch_db( const OpenMode mode ) const;
 
-    std::string raster_list_filename() const;
-    std::string quality_db_filename() const;
-    std::string frame_db_filename() const;
-    std::string track_db_filename() const;
-    std::string switch_db_filename() const;
     std::string ivf_filename() const;
   };
 
@@ -71,7 +66,7 @@ protected:
   SwitchDB switch_db_;
   std::map<std::pair<size_t, size_t>, std::unordered_set<size_t>> switch_mappings_;
 
-  AlfalfaVideo( const std::string & directory_name, OpenMode mode = OpenMode::READ );
+  AlfalfaVideo( const std::string & directory_name, const OpenMode mode );
 
 public:
   /* Getter for video info. */

@@ -28,38 +28,20 @@ enum class OpenMode
   Create
 };
 
-class SerializableData
-{
-protected:
-  std::string filename_;
-  OpenMode mode_;
-
-public:
-  const std::string magic_number;
-
-  SerializableData( const std::string & filename, const std::string & magic_number,
-		    const OpenMode mode = OpenMode::READ )
-    : filename_( filename ),
-      mode_( mode ),
-      magic_number( magic_number )
-  {}
-};
-
 template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag,
 	 class MagicNumber>
-class BasicDatabase : public SerializableData
+class BasicDatabase
 {
 protected:
   Collection collection_;
   static std::string magic_number() { return MagicNumber::magic; }
-
+  
 public:
-
   typedef typename Collection::template index<SequencedTag>::type SequencedAccess;
 
   size_t size() const;
 
-  BasicDatabase( const std::string & filename, OpenMode mode = OpenMode::READ );
+  BasicDatabase( FileDescriptor && fd, const OpenMode mode );
   void insert( RecordType record );
 
   typename SequencedAccess::iterator begin() { return this->collection_.get<SequencedTag>().begin(); }
@@ -69,17 +51,28 @@ public:
   typename SequencedAccess::iterator end() const { return this->collection_.get<SequencedTag>().end(); }
 
   void serialize( FileDescriptor && fd ) const;
-  void deserialize();
 };
 
 template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag,
 	 class MagicNumber>
 BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag, MagicNumber>
-::BasicDatabase( const std::string & filename, OpenMode mode )
-  : SerializableData( filename, magic_number(), mode ), collection_()
+::BasicDatabase( FileDescriptor && fd, const OpenMode mode )
+  : collection_()
 {
   if ( mode == OpenMode::READ ) {
-    deserialize();
+    /* deserialize from disk */
+    ProtobufDeserializer deserializer( std::move( fd ) );
+
+    // Reading the header
+    if ( magic_number() != deserializer.read_string( magic_number().length() ) ) {
+      throw std::runtime_error( "magic number mismatch: expecting " + magic_number() );
+    }
+
+    // Reading entries
+    RecordProtobufType message;
+    while ( deserializer.read_protobuf( message ) ) {
+      insert( message );
+    }
   }
 }
 
@@ -115,26 +108,4 @@ void BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag, Mag
   }
 }
 
-template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag,
-	 class MagicNumber>
-void BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag, MagicNumber>
-  ::deserialize()
-{
-  this->collection_.clear();
-
-  ProtobufDeserializer deserializer( filename_ );
-
-  // Reading the header
-  if ( magic_number() != deserializer.read_string( magic_number().length() ) ) {
-    throw std::runtime_error( "magic number mismatch: expecting " + magic_number() );
-  }
-
-  // Reading entries
-  RecordProtobufType message;
-
-  while ( deserializer.read_protobuf( message ) ) {
-    insert( message );
-  }
-}
-
-#endif
+#endif /* DB_HH */

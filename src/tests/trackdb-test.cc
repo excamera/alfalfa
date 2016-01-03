@@ -1,5 +1,9 @@
 #include "manifests.hh"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 using namespace std;
 
 #define NUM_ELEMENTS 1000
@@ -10,7 +14,11 @@ int main()
 {
   std::string db = "test-track-db";
 
-  TrackDB tdb( db, OpenMode::Create );
+  TrackDB tdb( SystemCall( "open",
+			   open( db.c_str(),
+				 O_WRONLY | O_CREAT,
+				 S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH ) ),
+	       OpenMode::Create );
 
   for (size_t i = 0; i < NUM_ELEMENTS; i++) {
     size_t track_id = i / 10;

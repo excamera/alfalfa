@@ -8,6 +8,10 @@
 #include <numeric>
 #include <iomanip>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include "frame_db.hh"
 #include "dependency_tracking.hh"
 
@@ -19,7 +23,10 @@ int main()//( int argc, char const *argv[] )
   vector<double> fdb_linear_search_times;
   vector<double> fdb_hashed_search_times;
 
-  FrameDB fdb( "fake.db" );
+  FrameDB fdb( SystemCall( "open", open( "fake.db", O_RDONLY, 0 ) ),
+	       OpenMode::READ ); /* trying to preserve prior functionality,
+				    although this program doesn't seem to be run
+				    as part of test suite -- KJW 3 Jan. 2015 */
 
   string line;
   string frame_name;

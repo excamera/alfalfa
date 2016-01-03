@@ -21,14 +21,3 @@ string FileSystem::append( const string & path1, const string & path2 )
 {
   return path1 + "/" + path2;
 }
-
-string FileSystem::get_realpath( const string & path )
-{
-  char resolved_path[ PATH_MAX ];
-
-  if ( realpath( path.c_str(), resolved_path ) == nullptr ) {
-    throw unix_error( "realpath (" + path + ")" );
-  }
-
-  return resolved_path;
-}

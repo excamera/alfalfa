@@ -18,7 +18,11 @@ int main()
 {
   string db1 = "test-frame-db";
 
-  FrameDB fdb1( db1, OpenMode::Create );
+  FrameDB fdb1( SystemCall( "open",
+			    open( db1.c_str(),
+				  O_WRONLY | O_CREAT,
+				  S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH ) ),
+		OpenMode::Create );
   set<size_t> frame_ids;
 
   for( size_t i = 0; i < 3048; i++ ) {
@@ -49,7 +53,9 @@ int main()
 				    O_WRONLY | O_CREAT,
 				    S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH ) ) );
 
-  FrameDB fdb2( db1, OpenMode::READ );
+  FrameDB fdb2( SystemCall( "open",
+			    open( db1.c_str(), O_RDONLY, 0 ) ),
+		OpenMode::READ );
 
   size_t state_hash, last_hash, golden_hash, alt_hash;
   set<string> hashed_search_results, linear_search_results;

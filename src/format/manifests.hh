@@ -26,7 +26,7 @@ private:
   static VideoInfo deserialize( FileDescriptor && fd, const OpenMode mode );
 
 public:
-  VideoManifest( FileDescriptor && fd, OpenMode mode = OpenMode::READ );
+  VideoManifest( FileDescriptor && fd, const OpenMode mode );
 
   const VideoInfo & info() const { return info_; }
   VideoInfo & mutable_info() { return info_; }
@@ -76,8 +76,8 @@ class RasterList : public BasicDatabase<RasterData, AlfalfaProtobufs::RasterData
 					RasterMagic>
 {
 public:
-  RasterList( const std::string & filename, OpenMode mode = OpenMode::READ )
-  : BasicDatabase( filename, mode )
+  RasterList( FileDescriptor && fd, const OpenMode mode )
+    : BasicDatabase( std::move( fd ), mode )
   {}
 
   bool has( const size_t raster_hash ) const;
@@ -144,8 +144,8 @@ class QualityDB : public BasicDatabase<QualityData, AlfalfaProtobufs::QualityDat
 				       QualityMagic>
 {
 public:
-  QualityDB( const std::string & filename, OpenMode mode = OpenMode::READ )
-  : BasicDatabase( filename, mode )
+  QualityDB( FileDescriptor && fd, const OpenMode mode )
+    : BasicDatabase( std::move( fd ), mode )
   {}
 
   QualityData
@@ -210,9 +210,9 @@ private:
   std::unordered_map<size_t, size_t> track_frame_indices_;
 
 public:
-  TrackDB( const std::string filename, OpenMode mode = OpenMode::READ )
-  : BasicDatabase( filename, mode ),
-    track_ids_(), track_frame_indices_()
+  TrackDB( FileDescriptor && fd, const OpenMode mode )
+    : BasicDatabase( std::move( fd ), mode ),
+      track_ids_(), track_frame_indices_()
   {
     for ( auto it = begin(); it != end(); it++ ) {
       track_ids_.insert( it->track_id );
@@ -338,8 +338,8 @@ class SwitchDB : public BasicDatabase<SwitchData, AlfalfaProtobufs::SwitchData,
 				      SwitchMagic>
 {
 public:
-  SwitchDB( const std::string & filename, OpenMode mode = OpenMode::READ )
-  : BasicDatabase( filename, mode )
+  SwitchDB( FileDescriptor && fd, const OpenMode mode )
+    : BasicDatabase( std::move( fd ), mode )
   {}
 
   size_t get_end_switch_frame_index( const size_t from_track_id,

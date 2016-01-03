@@ -85,44 +85,19 @@ FileDescriptor AlfalfaVideo::VideoDirectory::switch_db( const OpenMode mode ) co
   return subfile( mode, SWITCH_DB_FILENAME );
 }
 
-string AlfalfaVideo::VideoDirectory::raster_list_filename() const
-{
-  return FileSystem::append( directory_path_, RASTER_LIST_FILENAME );
-}
-
-string AlfalfaVideo::VideoDirectory::quality_db_filename() const
-{
-  return FileSystem::append( directory_path_, QUALITY_DB_FILENAME );
-}
-
-string AlfalfaVideo::VideoDirectory::frame_db_filename() const
-{
-  return FileSystem::append( directory_path_, FRAME_DB_FILENAME );
-}
-
-string AlfalfaVideo::VideoDirectory::track_db_filename() const
-{
-  return FileSystem::append( directory_path_, TRACK_DB_FILENAME );
-}
-
-string AlfalfaVideo::VideoDirectory::switch_db_filename() const
-{
-  return FileSystem::append( directory_path_, SWITCH_DB_FILENAME );
-}
-
 string AlfalfaVideo::VideoDirectory::ivf_filename() const
 {
   return FileSystem::append( directory_path_, IVF_FILENAME );
 }
 
-AlfalfaVideo::AlfalfaVideo( const string & directory_name, OpenMode mode )
-  : directory_( FileSystem::get_realpath( directory_name ) ),
+AlfalfaVideo::AlfalfaVideo( const string & directory_name, const OpenMode mode )
+  : directory_( directory_name ),
     video_manifest_( directory_.video_manifest( mode ), mode ),
-    raster_list_( directory_.raster_list_filename(), mode ),
-    quality_db_( directory_.quality_db_filename(), mode ),
-    frame_db_( directory_.frame_db_filename(), mode ),
-    track_db_( directory_.track_db_filename(), mode ),
-    switch_db_( directory_.switch_db_filename(), mode ),
+    raster_list_( directory_.raster_list( mode ), mode ),
+    quality_db_( directory_.quality_db( mode ), mode ),
+    frame_db_( directory_.frame_db( mode ), mode ),
+    track_db_( directory_.track_db( mode ), mode ),
+    switch_db_( directory_.switch_db( mode ), mode ),
     switch_mappings_()
 {}
 

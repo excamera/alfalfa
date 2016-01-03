@@ -202,8 +202,8 @@ private:
   size_t frame_id_;
 
 public:
-  FrameDB( const std::string & filename, OpenMode mode = OpenMode::READ )
-    : BasicDatabase( filename, mode ),
+  FrameDB( FileDescriptor && fd, const OpenMode mode )
+    : BasicDatabase( std::move( fd ), mode ),
       frame_id_( 0 )
   {
     while (has_frame_id( frame_id_ ))
