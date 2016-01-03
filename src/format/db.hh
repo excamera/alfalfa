@@ -22,18 +22,12 @@
 using namespace boost::multi_index;
 using boost::multi_index_container;
 
-enum class OpenMode
-{
-  READ,
-  Create,
-};
-
 template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag,
 	 class MagicNumber>
 class BasicDatabase
 {
 protected:
-  Collection collection_;
+  Collection collection_ {};
   static std::string magic_number() { return MagicNumber::magic; }
   
 public:
@@ -41,7 +35,8 @@ public:
 
   size_t size() const;
 
-  BasicDatabase( FileDescriptor && fd, const OpenMode mode );
+  BasicDatabase() {}; /* blank database */
+  BasicDatabase( FileDescriptor && fd ); /* read from existing database */
   void insert( RecordType record );
 
   typename SequencedAccess::iterator begin() { return this->collection_.get<SequencedTag>().begin(); }
@@ -56,23 +51,20 @@ public:
 template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag,
 	 class MagicNumber>
 BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag, MagicNumber>
-::BasicDatabase( FileDescriptor && fd, const OpenMode mode )
-  : collection_()
+::BasicDatabase( FileDescriptor && fd )
 {
-  if ( mode == OpenMode::READ ) {
-    /* deserialize from disk */
-    ProtobufDeserializer deserializer( std::move( fd ) );
+  /* deserialize from disk */
+  ProtobufDeserializer deserializer( std::move( fd ) );
 
-    // Reading the header
-    if ( magic_number() != deserializer.read_string( magic_number().length() ) ) {
-      throw std::runtime_error( "magic number mismatch: expecting " + magic_number() );
-    }
+  // Reading the header
+  if ( magic_number() != deserializer.read_string( magic_number().length() ) ) {
+    throw std::runtime_error( "magic number mismatch: expecting " + magic_number() );
+  }
 
-    // Reading entries
-    RecordProtobufType message;
-    while ( deserializer.read_protobuf( message ) ) {
-      insert( message );
-    }
+  // Reading entries
+  RecordProtobufType message;
+  while ( deserializer.read_protobuf( message ) ) {
+    insert( message );
   }
 }
 

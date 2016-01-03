@@ -23,11 +23,12 @@ class VideoManifest
 {
 private:
   VideoInfo info_;
-  static VideoInfo deserialize( FileDescriptor && fd, const OpenMode mode );
+  static VideoInfo deserialize( FileDescriptor && fd );
 
 public:
-  VideoManifest( FileDescriptor && fd, const OpenMode mode );
-
+  VideoManifest( FileDescriptor && fd );
+  VideoManifest( const uint16_t width, const uint16_t height );
+  
   const VideoInfo & info() const { return info_; }
   VideoInfo & mutable_info() { return info_; }
 
@@ -76,9 +77,7 @@ class RasterList : public BasicDatabase<RasterData, AlfalfaProtobufs::RasterData
 					RasterMagic>
 {
 public:
-  RasterList( FileDescriptor && fd, const OpenMode mode )
-    : BasicDatabase( std::move( fd ), mode )
-  {}
+  using BasicDatabase::BasicDatabase;
 
   bool has( const size_t raster_hash ) const;
   RasterData raster( const size_t raster_index ) const;
@@ -144,9 +143,7 @@ class QualityDB : public BasicDatabase<QualityData, AlfalfaProtobufs::QualityDat
 				       QualityMagic>
 {
 public:
-  QualityDB( FileDescriptor && fd, const OpenMode mode )
-    : BasicDatabase( std::move( fd ), mode )
-  {}
+  using BasicDatabase::BasicDatabase;
 
   QualityData
   search_by_original_and_approximate_raster( const size_t original_raster, const size_t approximate_raster ) const;
@@ -206,13 +203,14 @@ class TrackDB : public BasicDatabase<TrackData, AlfalfaProtobufs::TrackData,
 				     TrackMagic>
 {
 private:
-  std::unordered_set<size_t> track_ids_;
-  std::unordered_map<size_t, size_t> track_frame_indices_;
+  std::unordered_set<size_t> track_ids_ {};
+  std::unordered_map<size_t, size_t> track_frame_indices_ {};
 
 public:
-  TrackDB( FileDescriptor && fd, const OpenMode mode )
-    : BasicDatabase( std::move( fd ), mode ),
-      track_ids_(), track_frame_indices_()
+  TrackDB() {}
+  
+  TrackDB( FileDescriptor && fd )
+    : BasicDatabase( std::move( fd ) )
   {
     for ( auto it = begin(); it != end(); it++ ) {
       track_ids_.insert( it->track_id );
@@ -338,9 +336,7 @@ class SwitchDB : public BasicDatabase<SwitchData, AlfalfaProtobufs::SwitchData,
 				      SwitchMagic>
 {
 public:
-  SwitchDB( FileDescriptor && fd, const OpenMode mode )
-    : BasicDatabase( std::move( fd ), mode )
-  {}
+  using BasicDatabase::BasicDatabase;
 
   size_t get_end_switch_frame_index( const size_t from_track_id,
                                      const size_t to_track_id,

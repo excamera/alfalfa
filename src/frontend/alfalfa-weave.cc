@@ -206,7 +206,7 @@ private:
 public:
   ContinuationGenerator( const string & source_alf_path, const string & new_alf_path,
                          vector<size_t> track_ids )
-    : orig_alf_( source_alf_path ), new_alf_( new_alf_path, orig_alf_.get_info().fourcc, orig_alf_.get_info().width, orig_alf_.get_info().height )
+    : orig_alf_( source_alf_path ), new_alf_( new_alf_path, orig_alf_.get_info().width, orig_alf_.get_info().height )
   {
     /* Copy in the source video */
     combine( new_alf_, orig_alf_ );

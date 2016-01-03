@@ -97,7 +97,7 @@ int main( int argc, char const *argv[] )
     source_video.encode( track_id, vpxenc_args, encoded_file.name() );
 
     IVF encoded = IVF( encoded_file.name() );
-    WritableAlfalfaVideo alfalfa_video( destination_dir, encoded.fourcc(), encoded.width(), encoded.height() );
+    WritableAlfalfaVideo alfalfa_video( destination_dir, encoded.width(), encoded.height() );
     import( alfalfa_video, encoded_file.name(), source_video, track_id );
 
     alfalfa_video.save();

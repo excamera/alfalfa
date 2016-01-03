@@ -1,7 +1,6 @@
 package AlfalfaProtobufs;
 
 message VideoInfo {
-  required string fourcc = 1;
   required uint32 width = 2;
   required uint32 height = 3;
 }

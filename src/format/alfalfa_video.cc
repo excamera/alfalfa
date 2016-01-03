@@ -25,20 +25,19 @@ const string VIDEO_MANIFEST_FILENAME = "video.manifest";
 const string IVF_FILENAME = "v";
 const string VPXENC_EXECUTABLE = "vpxenc";
 
-AlfalfaVideo::VideoDirectory::VideoDirectory( const string & path )
-  : directory_path_( path ),
+AlfalfaVideo::VideoDirectory::VideoDirectory( const string & name, const OpenMode mode )
+  : mode_( mode ),
     directory_( SystemCall( "open",
-			    open( path.c_str(),
+			    open( name.c_str(),
 				  O_DIRECTORY | O_PATH ) ) )
-{}
+{ /* XXX ignore mode for now */ }
 
-FileDescriptor AlfalfaVideo::VideoDirectory::subfile( const OpenMode mode,
-						      const string & filename ) const
+FileDescriptor AlfalfaVideo::VideoDirectory::subfile( const string & filename ) const
 {
   int flags;
   mode_t raw_mode;
 
-  switch ( mode ) {
+  switch ( mode_ ) {
   case OpenMode::READ:
     flags = O_RDONLY;
     raw_mode = 0;
@@ -56,50 +55,57 @@ FileDescriptor AlfalfaVideo::VideoDirectory::subfile( const OpenMode mode,
 			     raw_mode ) );
 }
 
-FileDescriptor AlfalfaVideo::VideoDirectory::video_manifest( const OpenMode mode ) const
+FileDescriptor AlfalfaVideo::VideoDirectory::video_manifest() const
 {
-  return subfile( mode, VIDEO_MANIFEST_FILENAME );
+  return subfile( VIDEO_MANIFEST_FILENAME );
 }
 
-FileDescriptor AlfalfaVideo::VideoDirectory::raster_list( const OpenMode mode ) const
+FileDescriptor AlfalfaVideo::VideoDirectory::raster_list() const
 {
-  return subfile( mode, RASTER_LIST_FILENAME );
+  return subfile( RASTER_LIST_FILENAME );
 }
 
-FileDescriptor AlfalfaVideo::VideoDirectory::quality_db( const OpenMode mode ) const
+FileDescriptor AlfalfaVideo::VideoDirectory::quality_db() const
 {
-  return subfile( mode, QUALITY_DB_FILENAME );
+  return subfile( QUALITY_DB_FILENAME );
 }
 
-FileDescriptor AlfalfaVideo::VideoDirectory::frame_db( const OpenMode mode ) const
+FileDescriptor AlfalfaVideo::VideoDirectory::frame_db() const
 {
-  return subfile( mode, FRAME_DB_FILENAME );
+  return subfile( FRAME_DB_FILENAME );
 }
 
-FileDescriptor AlfalfaVideo::VideoDirectory::track_db( const OpenMode mode ) const
+FileDescriptor AlfalfaVideo::VideoDirectory::track_db() const
 {
-  return subfile( mode, TRACK_DB_FILENAME );
+  return subfile( TRACK_DB_FILENAME );
 }
 
-FileDescriptor AlfalfaVideo::VideoDirectory::switch_db( const OpenMode mode ) const
+FileDescriptor AlfalfaVideo::VideoDirectory::switch_db() const
 {
-  return subfile( mode, SWITCH_DB_FILENAME );
+  return subfile( SWITCH_DB_FILENAME );
 }
 
-FileDescriptor AlfalfaVideo::VideoDirectory::ivf_file( const OpenMode mode ) const
+FileDescriptor AlfalfaVideo::VideoDirectory::ivf_file() const
 {
-  return subfile( mode, IVF_FILENAME );
+  return subfile( IVF_FILENAME );
 }
 
-AlfalfaVideo::AlfalfaVideo( const string & directory_name, const OpenMode mode )
-  : directory_( directory_name ),
-    video_manifest_( directory_.video_manifest( mode ), mode ),
-    raster_list_( directory_.raster_list( mode ), mode ),
-    quality_db_( directory_.quality_db( mode ), mode ),
-    frame_db_( directory_.frame_db( mode ), mode ),
-    track_db_( directory_.track_db( mode ), mode ),
-    switch_db_( directory_.switch_db( mode ), mode ),
-    switch_mappings_()
+/* new blank video */
+AlfalfaVideo::AlfalfaVideo( const uint16_t width, const uint16_t height,
+			    const std::string & name )
+  : directory_( name, OpenMode::Create ),
+    video_manifest_( width, height )
+{}
+
+/* open existing video for reading */
+AlfalfaVideo::AlfalfaVideo( const std::string & name )
+  : directory_( name, OpenMode::READ ),
+    video_manifest_( directory_.video_manifest() ),
+    raster_list_( directory_.raster_list() ),
+    quality_db_( directory_.quality_db() ),
+    frame_db_( directory_.frame_db() ),
+    track_db_( directory_.track_db() ),
+    switch_db_( directory_.switch_db() )
 {}
 
 AlfalfaVideo::AlfalfaVideo( AlfalfaVideo && other )
@@ -109,8 +115,7 @@ AlfalfaVideo::AlfalfaVideo( AlfalfaVideo && other )
     quality_db_( move( other.quality_db_ ) ),
     frame_db_( move( other.frame_db_ ) ),
     track_db_( move( other.track_db_ ) ),
-    switch_db_( move( other.switch_db_ ) ),
-    switch_mappings_( move( other.switch_mappings_ ) )
+    switch_db_( move( other.switch_db_ ) )
 {}
 
 size_t AlfalfaVideo::get_raster_list_size() const
@@ -203,14 +208,6 @@ pair<unordered_set<size_t>::const_iterator, unordered_set<size_t>::const_iterato
 AlfalfaVideo::get_track_ids() const
 {
   return track_db_.get_track_ids();
-}
-
-pair<unordered_set<size_t>::iterator, unordered_set<size_t>::iterator>
-AlfalfaVideo::get_track_ids_for_switch(const size_t from_track_id, const size_t from_frame_index) const
-{
-  unordered_set<size_t> to_track_ids = switch_mappings_.at(
-    make_pair( from_track_id, from_frame_index ) );
-  return make_pair( to_track_ids.begin(), to_track_ids.end() );
 }
 
 pair<TrackDBIterator, TrackDBIterator>
@@ -392,13 +389,10 @@ vector<set<size_t> > AlfalfaVideo::build_frames_graph( bool dependency_graph )
 /* WritableAlfalfaVideo */
 
 WritableAlfalfaVideo::WritableAlfalfaVideo( const string & directory_name,
-                                            const string & fourcc,
                                             const uint16_t width, const uint16_t height )
-  : AlfalfaVideo( directory_name, OpenMode::Create ),
-    ivf_writer_( directory_.ivf_file( OpenMode::Create ), fourcc, width, height, 24, 1 )
-{
-  video_manifest_.mutable_info() = VideoInfo( fourcc, width, height );
-}
+  : AlfalfaVideo( width, height, directory_name ),
+    ivf_writer_( directory_.ivf_file(), "VP80", width, height, 24, 1 )
+{}
 
 void WritableAlfalfaVideo::insert_frame( FrameInfo next_frame,
                                          const size_t original_raster,
@@ -477,19 +471,19 @@ WritableAlfalfaVideo::insert_frame_data( FrameInfo frame_info,
 
 void WritableAlfalfaVideo::save()
 {
-  video_manifest_.serialize( directory_.video_manifest( OpenMode::Create ) );
-  raster_list_.serialize( directory_.raster_list( OpenMode::Create ) );
-  quality_db_.serialize( directory_.quality_db( OpenMode::Create ) );
-  track_db_.serialize( directory_.track_db( OpenMode::Create ) );
-  frame_db_.serialize( directory_.frame_db( OpenMode::Create ) );
-  switch_db_.serialize( directory_.switch_db( OpenMode::Create ) );
+  video_manifest_.serialize( directory_.video_manifest() );
+  raster_list_.serialize( directory_.raster_list() );
+  quality_db_.serialize( directory_.quality_db() );
+  track_db_.serialize( directory_.track_db() );
+  frame_db_.serialize( directory_.frame_db() );
+  switch_db_.serialize( directory_.switch_db() );
 }
 
 /* PlayableAlfalfaVideo */
 
 PlayableAlfalfaVideo::PlayableAlfalfaVideo( const string & directory_name )
-  : AlfalfaVideo( directory_name, OpenMode::READ ),
-    ivf_file_( directory_.ivf_file( OpenMode::READ ) )
+  : AlfalfaVideo( directory_name ),
+    ivf_file_( directory_.ivf_file() )
 {}
 
 const Chunk PlayableAlfalfaVideo::get_chunk( const FrameInfo & frame_info ) const

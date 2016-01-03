@@ -5,20 +5,17 @@
 using namespace std;
 
 VideoInfo::VideoInfo()
-  : fourcc( "VP80" ),
-    width( 0 ),
+  : width( 0 ),
     height( 0 )
 {}
 
-VideoInfo::VideoInfo( string fourcc, uint16_t width, uint16_t height )
-  : fourcc( fourcc ),
-    width( width ),
+VideoInfo::VideoInfo( uint16_t width, uint16_t height )
+  : width( width ),
     height( height )
 {}
 
 VideoInfo::VideoInfo( const AlfalfaProtobufs::VideoInfo & message )
-  : fourcc( message.fourcc() ),
-    width( message.width() ),
+  : width( message.width() ),
     height( message.height() )
 {}
 
@@ -27,7 +24,6 @@ VideoInfo::to_protobuf() const
 {
   AlfalfaProtobufs::VideoInfo message;
 
-  message.set_fourcc( fourcc );
   message.set_width( width );
   message.set_height( height );
 

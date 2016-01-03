@@ -2,18 +2,18 @@
 
 using namespace std;
 
-VideoManifest::VideoManifest( FileDescriptor && fd, OpenMode mode )
-  : info_( deserialize( move( fd ), mode ) )
+VideoManifest::VideoManifest( FileDescriptor && fd )
+  : info_( deserialize( move( fd ) ) )
+{}
+
+VideoManifest::VideoManifest( const uint16_t width, const uint16_t height )
+  : info_( width, height )
 {}
 
 static const string video_manifest_magic = "ALFAVDMF";
 
-VideoInfo VideoManifest::deserialize( FileDescriptor && fd, const OpenMode mode )
+VideoInfo VideoManifest::deserialize( FileDescriptor && fd )
 {
-  if ( mode == OpenMode::Create ) {
-    return {}; /* default VideoInfo */
-  }
-
   ProtobufDeserializer deserializer( move( fd ) );
 
   if ( video_manifest_magic != deserializer.read_string( video_manifest_magic.length() ) ) {

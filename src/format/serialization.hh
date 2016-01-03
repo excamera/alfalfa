@@ -14,21 +14,19 @@
 
 struct VideoInfo
 {
-  std::string fourcc;
   uint16_t width;
   uint16_t height;
 
   VideoInfo();
-  VideoInfo( std::string fourcc, uint16_t width, uint16_t height );
+  VideoInfo( uint16_t width, uint16_t height );
   VideoInfo( const AlfalfaProtobufs::VideoInfo & message );
 
   AlfalfaProtobufs::VideoInfo to_protobuf() const;
 
   bool operator==( const VideoInfo & other ) const
   {
-    return ( fourcc == other.fourcc and
-      width == other.width and
-      height == other.height
+    return ( width == other.width and
+	     height == other.height
     );
   }
 

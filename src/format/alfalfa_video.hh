@@ -30,42 +30,48 @@
 #include "manifests.hh"
 #include "ivf_writer.hh"
 
+enum class OpenMode
+{
+  READ,
+  Create,
+};
+
 class AlfalfaVideo
 {
 public:
   class VideoDirectory
   {
   private:
-    std::string directory_path_;
+    OpenMode mode_;
+    
     FileDescriptor directory_;
 
-    FileDescriptor subfile( const OpenMode mode,
-			    const std::string & filename ) const;
+    FileDescriptor subfile( const std::string & filename ) const;
 
   public:
-    VideoDirectory( const std::string & name );
+    VideoDirectory( const std::string & name, const OpenMode mode );
 
-    const std::string & path() const { return directory_path_; }
-    FileDescriptor video_manifest( const OpenMode mode ) const;
-    FileDescriptor raster_list( const OpenMode mode ) const;
-    FileDescriptor quality_db( const OpenMode mode ) const;
-    FileDescriptor frame_db( const OpenMode mode ) const;
-    FileDescriptor track_db( const OpenMode mode ) const;
-    FileDescriptor switch_db( const OpenMode mode ) const;
-    FileDescriptor ivf_file( const OpenMode mode ) const;
+    FileDescriptor video_manifest() const;
+    FileDescriptor raster_list() const;
+    FileDescriptor quality_db() const;
+    FileDescriptor frame_db() const;
+    FileDescriptor track_db() const;
+    FileDescriptor switch_db() const;
+    FileDescriptor ivf_file() const;
   };
 
 protected:
   VideoDirectory directory_;
   VideoManifest video_manifest_;
-  RasterList raster_list_;
-  QualityDB quality_db_;
-  FrameDB frame_db_;
-  TrackDB track_db_;
-  SwitchDB switch_db_;
-  std::map<std::pair<size_t, size_t>, std::unordered_set<size_t>> switch_mappings_;
+  RasterList raster_list_ {};
+  QualityDB quality_db_ {};
+  FrameDB frame_db_ {};
+  TrackDB track_db_ {};
+  SwitchDB switch_db_ {};
 
-  AlfalfaVideo( const std::string & directory_name, const OpenMode mode );
+  AlfalfaVideo( const uint16_t width, const uint16_t height,
+		const std::string & name ); /* new blank video */
+  AlfalfaVideo( const std::string & name ); /* open existing video for reading */
 
 public:
   /* Getter for video info. */
@@ -116,11 +122,6 @@ public:
 
   std::pair<TrackDBCollectionByFrameIdIndex::const_iterator, TrackDBCollectionByFrameIdIndex::const_iterator>
   get_track_data_by_frame_id( const size_t frame_id ) const { return track_db_.search_by_frame_id( frame_id ); }
-
-  /* Gets an iterator over all available track ids that we can switch to from
-     the provided track and frame_index. */
-  std::pair<std::unordered_set<size_t>::iterator, std::unordered_set<size_t>::iterator>
-  get_track_ids_for_switch( const size_t from_track_id, const size_t from_frame_index ) const;
 
   /* Gets an iterator over all frames  by output hash / decoder hash. */
   std::pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator>
@@ -219,7 +220,7 @@ private:
 
 public:
   WritableAlfalfaVideo( const std::string & directory_name,
-                        const std::string & fourcc, const uint16_t width, const uint16_t height );
+                        const uint16_t width, const uint16_t height );
 
   /* Insert helper methods. Each of these methods preserve the alf video's invariants. */
   void insert_frame( FrameInfo next_frame,

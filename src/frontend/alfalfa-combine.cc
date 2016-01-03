@@ -33,7 +33,7 @@ int main( int argc, char const *argv[] )
 
     PlayableAlfalfaVideo alf1( alf1_path );
     PlayableAlfalfaVideo alf2( alf2_path );
-    WritableAlfalfaVideo res_video( destination_dir, alf1.get_info().fourcc, alf1.get_info().width, alf1.get_info().height );
+    WritableAlfalfaVideo res_video( destination_dir, alf1.get_info().width, alf1.get_info().height );
 
     combine ( res_video, alf1 );
     combine ( res_video, alf2 );

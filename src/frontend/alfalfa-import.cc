@@ -49,7 +49,7 @@ int main( int argc, char const *argv[] )
     const string destination_dir( argv[ 2 ] );
 
     FileSystem::create_directory( destination_dir );
-    WritableAlfalfaVideo alfalfa_video( destination_dir, ivf.fourcc(), ivf.width(), ivf.height() );
+    WritableAlfalfaVideo alfalfa_video( destination_dir, ivf.width(), ivf.height() );
 
     import( alfalfa_video, ivf_file );
 

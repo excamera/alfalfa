@@ -199,12 +199,13 @@ class FrameDB : public BasicDatabase<FrameInfo, AlfalfaProtobufs::FrameInfo,
 				     FrameMagic>
 {
 private:
-  size_t frame_id_;
+  size_t frame_id_ {};
 
 public:
-  FrameDB( FileDescriptor && fd, const OpenMode mode )
-    : BasicDatabase( std::move( fd ), mode ),
-      frame_id_( 0 )
+  FrameDB() {}
+  
+  FrameDB( FileDescriptor && fd )
+    : BasicDatabase( std::move( fd ) )
   {
     while (has_frame_id( frame_id_ ))
       frame_id_++;
