@@ -72,12 +72,12 @@ void LRUCache::clear()
   cached_items_.clear();
 }
 
-size_t LRUCache::size()
+size_t LRUCache::size() const
 {
   return cache_.size();
 }
 
-void LRUCache::print_cache()
+void LRUCache::print_cache() const
 {
   for ( auto const & item : cache_ )
   {

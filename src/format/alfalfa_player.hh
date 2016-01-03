@@ -51,9 +51,9 @@ public:
   ObjectType get( size_t hash );
 
   void clear();
-  size_t size();
+  size_t size() const;
 
-  void print_cache();
+  void print_cache() const;
 };
 
 class AlfalfaPlayer
