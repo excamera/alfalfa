@@ -64,6 +64,8 @@ FileDescriptor AlfalfaVideo::VideoDirectory::subfile( const string & filename ) 
     flags = O_RDWR | O_CREAT;
     raw_mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
     break;
+  default:
+    throw invalid_argument( "invalid mode_" );  // For make without debug flag
   }
 
   return SystemCall( "openat",
