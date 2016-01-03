@@ -45,11 +45,13 @@ public:
   {}
 };
 
-template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag>
+template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag,
+	 class MagicNumber>
 class BasicDatabase : public SerializableData
 {
 protected:
   Collection collection_;
+  static std::string magic_number() { return MagicNumber::magic; }
 
 public:
 
@@ -57,8 +59,7 @@ public:
 
   size_t size() const;
 
-  BasicDatabase( const std::string & filename, const std::string & magic_number,
-    OpenMode mode = OpenMode::READ );
+  BasicDatabase( const std::string & filename, OpenMode mode = OpenMode::READ );
   void insert( RecordType record );
 
   typename SequencedAccess::iterator begin() { return this->collection_.get<SequencedTag>().begin(); }
@@ -71,33 +72,36 @@ public:
   void deserialize();
 };
 
-template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag>
-BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
-  ::BasicDatabase( const std::string & filename, const std::string & magic_number,
-  OpenMode mode )
-  : SerializableData( filename, magic_number, mode ), collection_()
+template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag,
+	 class MagicNumber>
+BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag, MagicNumber>
+::BasicDatabase( const std::string & filename, OpenMode mode )
+  : SerializableData( filename, magic_number(), mode ), collection_()
 {
   if ( mode == OpenMode::READ ) {
     deserialize();
   }
 }
 
-template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag>
-size_t BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
+template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag,
+	 class MagicNumber>
+size_t BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag, MagicNumber>
   ::size() const
 {
   return collection_.get<SequencedTag>().size();
 }
 
-template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag>
-void BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
+template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag,
+	 class MagicNumber>
+void BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag, MagicNumber>
   ::insert( RecordType record )
 {
   this->collection_.insert( record );
 }
 
-template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag>
-void BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
+template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag,
+	 class MagicNumber>
+void BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag, MagicNumber>
   ::serialize() const
 {
   if ( mode_ == OpenMode::READ ) {
@@ -107,7 +111,7 @@ void BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
   ProtobufSerializer serializer( filename_ );
 
   // Writing the header
-  serializer.write_string( magic_number );
+  serializer.write_string( magic_number() );
 
   // Writing entries
   for ( const RecordType & it : collection_.get<SequencedTag>() ) {
@@ -115,8 +119,9 @@ void BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
   }
 }
 
-template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag>
-void BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
+template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag,
+	 class MagicNumber>
+void BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag, MagicNumber>
   ::deserialize()
 {
   this->collection_.clear();
@@ -124,8 +129,8 @@ void BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag>
   ProtobufDeserializer deserializer( filename_ );
 
   // Reading the header
-  if ( magic_number != deserializer.read_string( magic_number.length() ) ) {
-    throw std::runtime_error( "magic number mismatch: expecting " + magic_number );
+  if ( magic_number() != deserializer.read_string( magic_number().length() ) ) {
+    throw std::runtime_error( "magic number mismatch: expecting " + magic_number() );
   }
 
   // Reading entries

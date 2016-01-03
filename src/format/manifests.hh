@@ -69,14 +69,15 @@ RasterListCollectionByHash;
 typedef RasterListCollection::index<RasterListRandomAccessTag>::type
 RasterListCollectionRandomAccess;
 
+struct RasterMagic { static constexpr auto magic { "ALFARSLS" }; };
 
 class RasterList : public BasicDatabase<RasterData, AlfalfaProtobufs::RasterData,
-  RasterListCollection, RasterListSequencedTag>
+					RasterListCollection, RasterListSequencedTag,
+					RasterMagic>
 {
 public:
   RasterList( const std::string & filename, OpenMode mode = OpenMode::READ )
-  : BasicDatabase<RasterData, AlfalfaProtobufs::RasterData,
-    RasterListCollection, RasterListSequencedTag>( filename, "ALFARSLS", mode )
+  : BasicDatabase( filename, mode )
   {}
 
   bool has( const size_t raster_hash ) const;
@@ -136,14 +137,15 @@ QualityDBCollectionByApproximateRaster;
 typedef QualityDBCollection::index<QualityDBSequencedTag>::type
 QualityDBCollectionSequencedAccess;
 
+struct QualityMagic { static constexpr auto magic { "ALFAQLDB" }; };
 
 class QualityDB : public BasicDatabase<QualityData, AlfalfaProtobufs::QualityData,
-  QualityDBCollection, QualityDBSequencedTag>
+				       QualityDBCollection, QualityDBSequencedTag,
+				       QualityMagic>
 {
 public:
   QualityDB( const std::string & filename, OpenMode mode = OpenMode::READ )
-  : BasicDatabase<QualityData, AlfalfaProtobufs::QualityData,
-    QualityDBCollection, QualityDBSequencedTag>( filename, "ALFAQLDB", mode )
+  : BasicDatabase( filename, mode )
   {}
 
   QualityData
@@ -197,8 +199,11 @@ TrackDBCollectionByFrameIdIndex;
 typedef TrackDBCollection::index<TrackDBSequencedTag>::type
 TrackDBCollectionSequencedAccess;
 
+struct TrackMagic { static constexpr auto magic { "ALFATRDB" }; };
+
 class TrackDB : public BasicDatabase<TrackData, AlfalfaProtobufs::TrackData,
-  TrackDBCollection, TrackDBSequencedTag>
+				     TrackDBCollection, TrackDBSequencedTag,
+				     TrackMagic>
 {
 private:
   std::unordered_set<size_t> track_ids_;
@@ -206,8 +211,7 @@ private:
 
 public:
   TrackDB( const std::string filename, OpenMode mode = OpenMode::READ )
-  : BasicDatabase<TrackData, AlfalfaProtobufs::TrackData,
-    TrackDBCollection, TrackDBSequencedTag>( filename, "ALFATRDB", mode ),
+  : BasicDatabase( filename, mode ),
     track_ids_(), track_frame_indices_()
   {
     for ( auto it = begin(); it != end(); it++ ) {
@@ -327,14 +331,15 @@ SwtichDBCollectionHashedByFrameIds;
 typedef SwitchDBCollection::index<SwitchDBSequencedTag>::type
 SwitchDBCollectionSequencedAccess;
 
+struct SwitchMagic { static constexpr auto magic { "ALFASWDB" }; };
 
 class SwitchDB : public BasicDatabase<SwitchData, AlfalfaProtobufs::SwitchData,
-  SwitchDBCollection, SwitchDBSequencedTag>
+				      SwitchDBCollection, SwitchDBSequencedTag,
+				      SwitchMagic>
 {
 public:
   SwitchDB( const std::string & filename, OpenMode mode = OpenMode::READ )
-  : BasicDatabase<SwitchData, AlfalfaProtobufs::SwitchData,
-    SwitchDBCollection, SwitchDBSequencedTag>( filename, "ALFASWDB", mode )
+  : BasicDatabase( filename, mode )
   {}
 
   size_t get_end_switch_frame_index( const size_t from_track_id,

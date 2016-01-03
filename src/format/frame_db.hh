@@ -192,16 +192,18 @@ public:
   iterator end() { return end_iterator_; }
 };
 
+struct FrameMagic { static constexpr auto magic { "ALFAFRDB" }; };
+
 class FrameDB : public BasicDatabase<FrameInfo, AlfalfaProtobufs::FrameInfo,
-  FrameDataSetCollection, FrameDataSetSequencedTag>
+				     FrameDataSetCollection, FrameDataSetSequencedTag,
+				     FrameMagic>
 {
 private:
   size_t frame_id_;
 
 public:
   FrameDB( const std::string & filename, OpenMode mode = OpenMode::READ )
-    : BasicDatabase<FrameInfo, AlfalfaProtobufs::FrameInfo,
-      FrameDataSetCollection, FrameDataSetSequencedTag>( filename, "ALFAFRDB", mode ),
+    : BasicDatabase( filename, mode ),
       frame_id_( 0 )
   {
     while (has_frame_id( frame_id_ ))
