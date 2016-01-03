@@ -32,11 +32,6 @@ AlfalfaVideo::VideoDirectory::VideoDirectory( const string & path )
 				  O_DIRECTORY | O_PATH ) ) )
 {}
 
-string AlfalfaVideo::VideoDirectory::video_manifest_filename() const
-{
-  return FileSystem::append( directory_path_, VIDEO_MANIFEST_FILENAME );
-}
-
 FileDescriptor AlfalfaVideo::VideoDirectory::subfile( const OpenMode mode,
 						      const string & filename ) const
 {
@@ -97,7 +92,7 @@ string AlfalfaVideo::VideoDirectory::ivf_filename() const
 
 AlfalfaVideo::AlfalfaVideo( const string & directory_name, OpenMode mode )
   : directory_( FileSystem::get_realpath( directory_name ) ),
-    video_manifest_( directory_.video_manifest_filename(), mode ),
+    video_manifest_( directory_.video_manifest( mode ), mode ),
     raster_list_( directory_.raster_list_filename(), mode ),
     quality_db_( directory_.quality_db_filename(), mode ),
     frame_db_( directory_.frame_db_filename(), mode ),

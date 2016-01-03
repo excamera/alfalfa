@@ -2,19 +2,19 @@
 
 using namespace std;
 
-VideoManifest::VideoManifest( const string & filename, OpenMode mode )
-  : info_( deserialize( filename, mode ) )
+VideoManifest::VideoManifest( FileDescriptor && fd, OpenMode mode )
+  : info_( deserialize( move( fd ), mode ) )
 {}
 
 static const string video_manifest_magic = "ALFAVDMF";
 
-VideoInfo VideoManifest::deserialize( const std::string & filename, const OpenMode mode )
+VideoInfo VideoManifest::deserialize( FileDescriptor && fd, const OpenMode mode )
 {
   if ( mode == OpenMode::Create ) {
     return {}; /* default VideoInfo */
   }
 
-  ProtobufDeserializer deserializer( filename );
+  ProtobufDeserializer deserializer( move( fd ) );
 
   if ( video_manifest_magic != deserializer.read_string( video_manifest_magic.length() ) ) {
     throw std::runtime_error( "magic number mismatch: expecting " + video_manifest_magic );

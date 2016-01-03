@@ -233,6 +233,7 @@ protected:
 
 public:
   ProtobufDeserializer( const std::string & filename );
+  ProtobufDeserializer( FileDescriptor && fd );
   std::string read_string( const size_t size );
 
   template<class EntryProtobufType>

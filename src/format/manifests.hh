@@ -23,10 +23,10 @@ class VideoManifest
 {
 private:
   VideoInfo info_;
-  static VideoInfo deserialize( const std::string & filename, const OpenMode mode );
+  static VideoInfo deserialize( FileDescriptor && fd, const OpenMode mode );
 
 public:
-  VideoManifest( const std::string & filename, OpenMode mode = OpenMode::READ );
+  VideoManifest( FileDescriptor && fd, OpenMode mode = OpenMode::READ );
 
   const VideoInfo & info() const { return info_; }
   VideoInfo & mutable_info() { return info_; }

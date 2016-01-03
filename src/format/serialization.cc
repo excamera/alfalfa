@@ -563,6 +563,10 @@ ProtobufDeserializer::ProtobufDeserializer( const string & filename )
 		      open( filename.c_str(), O_RDONLY, 0 ) ) )
 {}
 
+ProtobufDeserializer::ProtobufDeserializer( FileDescriptor && fd )
+  : fin_( move( fd ) )
+{}
+
 string ProtobufDeserializer::read_string( const size_t size )
 {
   string ret;
