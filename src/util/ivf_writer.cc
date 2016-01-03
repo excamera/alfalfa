@@ -24,13 +24,13 @@ static void memcpy_le32( uint8_t * dest, const uint32_t val )
   memcpy( dest, &swizzled, sizeof( swizzled ) );
 }
 
-IVFWriter::IVFWriter( const string & filename,
+IVFWriter::IVFWriter( FileDescriptor && fd,
 		      const string & fourcc,
 		      const uint16_t width,
 		      const uint16_t height,
 		      const uint32_t frame_rate,
 		      const uint32_t time_scale )
-  : fd_( SystemCall( filename, open( filename.c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH ) ) ),
+  : fd_( move( fd ) ),
     file_size_( 0 ),
     frame_count_( 0 )
 {
@@ -101,3 +101,16 @@ size_t IVFWriter::append_frame( const Chunk & chunk )
 
   return written_offset;
 }
+
+IVFWriter::IVFWriter( const string & filename,
+		      const string & fourcc,
+		      const uint16_t width,
+		      const uint16_t height,
+		      const uint32_t frame_rate,
+		      const uint32_t time_scale )
+  : IVFWriter( SystemCall( filename,
+			   open( filename.c_str(),
+				 O_RDWR | O_CREAT,
+				 S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH ) ),
+	       fourcc, width, height, frame_rate, time_scale )
+{}

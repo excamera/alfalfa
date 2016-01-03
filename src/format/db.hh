@@ -25,7 +25,7 @@ using boost::multi_index_container;
 enum class OpenMode
 {
   READ,
-  Create
+  Create,
 };
 
 template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag,

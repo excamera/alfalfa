@@ -19,6 +19,7 @@ private:
 
 public:
   File( const std::string & filename );
+  File( FileDescriptor && fd );
 
   const Chunk & chunk( void ) const { return chunk_; }
   const Chunk operator() ( const uint64_t & offset, const uint64_t & length ) const

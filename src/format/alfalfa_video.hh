@@ -52,8 +52,7 @@ public:
     FileDescriptor frame_db( const OpenMode mode ) const;
     FileDescriptor track_db( const OpenMode mode ) const;
     FileDescriptor switch_db( const OpenMode mode ) const;
-
-    std::string ivf_filename() const;
+    FileDescriptor ivf_file( const OpenMode mode ) const;
   };
 
 protected:

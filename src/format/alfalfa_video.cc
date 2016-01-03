@@ -44,8 +44,9 @@ FileDescriptor AlfalfaVideo::VideoDirectory::subfile( const OpenMode mode,
     raw_mode = 0;
     break;
   case OpenMode::Create:
-    flags = O_WRONLY | O_CREAT;
+    flags = O_RDWR | O_CREAT;
     raw_mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
+    break;
   }
 
   return SystemCall( "openat",
@@ -85,9 +86,9 @@ FileDescriptor AlfalfaVideo::VideoDirectory::switch_db( const OpenMode mode ) co
   return subfile( mode, SWITCH_DB_FILENAME );
 }
 
-string AlfalfaVideo::VideoDirectory::ivf_filename() const
+FileDescriptor AlfalfaVideo::VideoDirectory::ivf_file( const OpenMode mode ) const
 {
-  return FileSystem::append( directory_path_, IVF_FILENAME );
+  return subfile( mode, IVF_FILENAME );
 }
 
 AlfalfaVideo::AlfalfaVideo( const string & directory_name, const OpenMode mode )
@@ -394,7 +395,7 @@ WritableAlfalfaVideo::WritableAlfalfaVideo( const string & directory_name,
                                             const string & fourcc,
                                             const uint16_t width, const uint16_t height )
   : AlfalfaVideo( directory_name, OpenMode::Create ),
-    ivf_writer_( directory_.ivf_filename(), fourcc, width, height, 24, 1 )
+    ivf_writer_( directory_.ivf_file( OpenMode::Create ), fourcc, width, height, 24, 1 )
 {
   video_manifest_.mutable_info() = VideoInfo( fourcc, width, height );
 }
@@ -488,7 +489,7 @@ void WritableAlfalfaVideo::save()
 
 PlayableAlfalfaVideo::PlayableAlfalfaVideo( const string & directory_name )
   : AlfalfaVideo( directory_name, OpenMode::READ ),
-    ivf_file_( directory_.ivf_filename() )
+    ivf_file_( directory_.ivf_file( OpenMode::READ ) )
 {}
 
 const Chunk PlayableAlfalfaVideo::get_chunk( const FrameInfo & frame_info ) const

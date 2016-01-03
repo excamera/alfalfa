@@ -7,7 +7,11 @@
 using namespace std;
 
 File::File( const string & filename )
-  : fd_( SystemCall( filename, open( filename.c_str(), O_RDONLY ) ) ),
+  : File( SystemCall( filename, open( filename.c_str(), O_RDONLY ) ) )
+{ }
+
+File::File( FileDescriptor && fd )
+  : fd_( move( fd ) ),
     size_( fd_.size() ),
     mmap_region_( MMap_Region( size_, PROT_READ, MAP_SHARED, fd_.num() ) ),
     chunk_( mmap_region_.addr(), size_ )

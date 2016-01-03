@@ -18,6 +18,13 @@ public:
 	     const uint32_t frame_rate,
 	     const uint32_t time_scale );
 
+  IVFWriter( FileDescriptor && fd,
+	     const std::string & fourcc,
+	     const uint16_t width,
+	     const uint16_t height,
+	     const uint32_t frame_rate,
+	     const uint32_t time_scale );
+
   size_t append_frame( const Chunk & chunk );
 };
 

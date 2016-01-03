@@ -16,8 +16,3 @@ void FileSystem::create_directory( const string & path )
   SystemCall( "mkdir " + path,
 	      mkdir( path.c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH ) );
 }
-
-string FileSystem::append( const string & path1, const string & path2 )
-{
-  return path1 + "/" + path2;
-}
