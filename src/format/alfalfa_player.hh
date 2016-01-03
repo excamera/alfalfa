@@ -93,7 +93,7 @@ private:
     size_t decrease_count( const size_t hash );
 
     template<DependencyType DepType>
-    size_t get_count( const size_t hash );
+    size_t get_count( const size_t hash ) const;
 
     void update_dependencies( const FrameInfo & frame, LRUCache & cache );
     void update_dependencies_forward( const FrameInfo & frame, LRUCache & cache );

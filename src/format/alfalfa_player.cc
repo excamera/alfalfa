@@ -122,15 +122,16 @@ size_t AlfalfaPlayer::FrameDependency::decrease_count( const size_t hash )
 }
 
 template<DependencyType DepType>
-size_t AlfalfaPlayer::FrameDependency::get_count( const size_t hash )
+size_t AlfalfaPlayer::FrameDependency::get_count( const size_t hash ) const
 {
   DependencyVertex vertex{ DepType, hash };
 
-  if ( ref_counter_.count( vertex ) ) {
-    return ref_counter_[ vertex ];
+  const auto & ref_count = ref_counter_.find( vertex );
+  if ( ref_count == ref_counter_.end() ) {
+    return 0;
+  } else {
+    return ref_count->second;
   }
-
-  return 0;
 }
 
 void AlfalfaPlayer::FrameDependency::update_dependencies( const FrameInfo & frame,
