@@ -68,7 +68,7 @@ public:
   typename SequencedAccess::iterator end() { return this->collection_.get<SequencedTag>().end(); }
   typename SequencedAccess::iterator end() const { return this->collection_.get<SequencedTag>().end(); }
 
-  void serialize() const;
+  void serialize( FileDescriptor && fd ) const;
   void deserialize();
 };
 
@@ -102,13 +102,9 @@ void BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag, Mag
 template<class RecordType, class RecordProtobufType, class Collection, class SequencedTag,
 	 class MagicNumber>
 void BasicDatabase<RecordType, RecordProtobufType, Collection, SequencedTag, MagicNumber>
-  ::serialize() const
+  ::serialize( FileDescriptor && fd ) const
 {
-  if ( mode_ == OpenMode::READ ) {
-    throw std::runtime_error( "can't write to read-only database" );
-  }
-
-  ProtobufSerializer serializer( filename_ );
+  ProtobufSerializer serializer( std::move( fd ) );
 
   // Writing the header
   serializer.write_string( magic_number() );

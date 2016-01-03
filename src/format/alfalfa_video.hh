@@ -42,11 +42,17 @@ public:
     FileDescriptor subfile( const OpenMode mode,
 			    const std::string & filename ) const;
 
-    public:
+  public:
     VideoDirectory( const std::string & name );
 
     const std::string & path() const { return directory_path_; }
     FileDescriptor video_manifest( const OpenMode mode ) const;
+    FileDescriptor raster_list( const OpenMode mode ) const;
+    FileDescriptor quality_db( const OpenMode mode ) const;
+    FileDescriptor frame_db( const OpenMode mode ) const;
+    FileDescriptor track_db( const OpenMode mode ) const;
+    FileDescriptor switch_db( const OpenMode mode ) const;
+
     std::string raster_list_filename() const;
     std::string quality_db_filename() const;
     std::string frame_db_filename() const;

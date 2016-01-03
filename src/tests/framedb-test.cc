@@ -4,6 +4,10 @@
 #include <string>
 #include <cstdlib>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include "frame_db.hh"
 
 using namespace std;
@@ -40,7 +44,10 @@ int main()
     frame_ids.insert( frame_id );
   }
 
-  fdb1.serialize();
+  fdb1.serialize( SystemCall( "open",
+			      open( db1.c_str(),
+				    O_WRONLY | O_CREAT,
+				    S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH ) ) );
 
   FrameDB fdb2( db1, OpenMode::READ );
 

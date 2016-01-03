@@ -60,6 +60,31 @@ FileDescriptor AlfalfaVideo::VideoDirectory::video_manifest( const OpenMode mode
   return subfile( mode, VIDEO_MANIFEST_FILENAME );
 }
 
+FileDescriptor AlfalfaVideo::VideoDirectory::raster_list( const OpenMode mode ) const
+{
+  return subfile( mode, RASTER_LIST_FILENAME );
+}
+
+FileDescriptor AlfalfaVideo::VideoDirectory::quality_db( const OpenMode mode ) const
+{
+  return subfile( mode, QUALITY_DB_FILENAME );
+}
+
+FileDescriptor AlfalfaVideo::VideoDirectory::frame_db( const OpenMode mode ) const
+{
+  return subfile( mode, FRAME_DB_FILENAME );
+}
+
+FileDescriptor AlfalfaVideo::VideoDirectory::track_db( const OpenMode mode ) const
+{
+  return subfile( mode, TRACK_DB_FILENAME );
+}
+
+FileDescriptor AlfalfaVideo::VideoDirectory::switch_db( const OpenMode mode ) const
+{
+  return subfile( mode, SWITCH_DB_FILENAME );
+}
+
 string AlfalfaVideo::VideoDirectory::raster_list_filename() const
 {
   return FileSystem::append( directory_path_, RASTER_LIST_FILENAME );
@@ -477,11 +502,11 @@ WritableAlfalfaVideo::insert_frame_data( FrameInfo frame_info,
 void WritableAlfalfaVideo::save()
 {
   video_manifest_.serialize( directory_.video_manifest( OpenMode::Create ) );
-  raster_list_.serialize();
-  quality_db_.serialize();
-  track_db_.serialize();
-  frame_db_.serialize();
-  switch_db_.serialize();
+  raster_list_.serialize( directory_.raster_list( OpenMode::Create ) );
+  quality_db_.serialize( directory_.quality_db( OpenMode::Create ) );
+  track_db_.serialize( directory_.track_db( OpenMode::Create ) );
+  frame_db_.serialize( directory_.frame_db( OpenMode::Create ) );
+  switch_db_.serialize( directory_.switch_db( OpenMode::Create ) );
 }
 
 /* PlayableAlfalfaVideo */
