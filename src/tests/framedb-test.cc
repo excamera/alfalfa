@@ -82,7 +82,7 @@ int main()
     }
   }
 
-  remove( db1.c_str() );
+  SystemCall( "unlink " + db1, unlink( db1.c_str() ) ); /* should use RAII wrapper instead! */
 
   return 0;
 }
