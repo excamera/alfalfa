@@ -37,12 +37,17 @@ public:
   {
   private:
     std::string directory_path_;
+    FileDescriptor directory_;
 
-  public:
+    FileDescriptor subfile( const OpenMode mode,
+			    const std::string & filename ) const;
+
+    public:
     VideoDirectory( const std::string & name );
 
     const std::string & path() const { return directory_path_; }
     std::string video_manifest_filename() const;
+    FileDescriptor video_manifest( const OpenMode mode ) const;
     std::string raster_list_filename() const;
     std::string quality_db_filename() const;
     std::string frame_db_filename() const;

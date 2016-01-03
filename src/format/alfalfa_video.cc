@@ -26,12 +26,43 @@ const string IVF_FILENAME = "v";
 const string VPXENC_EXECUTABLE = "vpxenc";
 
 AlfalfaVideo::VideoDirectory::VideoDirectory( const string & path )
-  : directory_path_( path )
+  : directory_path_( path ),
+    directory_( SystemCall( "open",
+			    open( path.c_str(),
+				  O_DIRECTORY | O_PATH ) ) )
 {}
 
 string AlfalfaVideo::VideoDirectory::video_manifest_filename() const
 {
   return FileSystem::append( directory_path_, VIDEO_MANIFEST_FILENAME );
+}
+
+FileDescriptor AlfalfaVideo::VideoDirectory::subfile( const OpenMode mode,
+						      const string & filename ) const
+{
+  int flags;
+  mode_t raw_mode;
+
+  switch ( mode ) {
+  case OpenMode::READ:
+    flags = O_RDONLY;
+    raw_mode = 0;
+    break;
+  case OpenMode::Create:
+    flags = O_WRONLY | O_CREAT | O_EXCL;
+    raw_mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
+  }
+
+  return SystemCall( "openat",
+		     openat( directory_.num(),
+			     filename.c_str(),
+			     flags,
+			     raw_mode ) );
+}
+
+FileDescriptor AlfalfaVideo::VideoDirectory::video_manifest( const OpenMode mode ) const
+{
+  return subfile( mode, VIDEO_MANIFEST_FILENAME );
 }
 
 string AlfalfaVideo::VideoDirectory::raster_list_filename() const
@@ -367,7 +398,7 @@ vector<set<size_t> > AlfalfaVideo::build_frames_graph( bool dependency_graph )
 WritableAlfalfaVideo::WritableAlfalfaVideo( const string & directory_name,
                                             const string & fourcc,
                                             const uint16_t width, const uint16_t height )
-  : AlfalfaVideo( directory_name, OpenMode::TRUNCATE ),
+  : AlfalfaVideo( directory_name, OpenMode::Create ),
     ivf_writer_( directory_.ivf_filename(), fourcc, width, height, 24, 1 )
 {
   video_manifest_.set_info( VideoInfo( fourcc, width, height ) );
@@ -450,7 +481,7 @@ WritableAlfalfaVideo::insert_frame_data( FrameInfo frame_info,
 
 void WritableAlfalfaVideo::save()
 {
-  video_manifest_.serialize();
+  video_manifest_.serialize( directory_.video_manifest( OpenMode::Create ) );
   raster_list_.serialize();
   quality_db_.serialize();
   track_db_.serialize();

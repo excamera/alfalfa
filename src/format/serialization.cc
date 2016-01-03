@@ -549,6 +549,10 @@ ProtobufSerializer::ProtobufSerializer( const string & filename )
 			     S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH ) ) )
 {}
 
+ProtobufSerializer::ProtobufSerializer( FileDescriptor && fd )
+  : fout_( move( fd ) )
+{}
+
 void ProtobufSerializer::write_string( const string & str )
 {
   coded_output_.WriteRaw( str.data(), str.size() );

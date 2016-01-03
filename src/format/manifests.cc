@@ -45,6 +45,16 @@ void VideoManifest::serialize() const
   serializer.write_protobuf( message );
 }
 
+void VideoManifest::serialize( FileDescriptor && fd ) const
+{
+  ProtobufSerializer serializer( move( fd ) );
+
+  // Writing the header
+  serializer.write_string( magic_number );
+
+  serializer.write_protobuf( info_.to_protobuf() );
+}
+
 bool RasterList::has( const size_t raster_hash ) const
 {
   const RasterListCollectionByHash & data_by_hash = collection_.get<RasterListByHashTag>();

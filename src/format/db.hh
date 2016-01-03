@@ -25,7 +25,7 @@ using boost::multi_index_container;
 enum class OpenMode
 {
   READ,
-  TRUNCATE
+  Create
 };
 
 class SerializableData

@@ -217,6 +217,7 @@ protected:
 
 public:
   ProtobufSerializer( const std::string & filename );
+  ProtobufSerializer( FileDescriptor && fd );
   void write_string( const std::string & str );
 
   template<class EntryProtobufType>

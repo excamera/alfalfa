@@ -14,7 +14,7 @@ int main()
 {
   string db1 = "test-frame-db";
 
-  FrameDB fdb1( db1, OpenMode::TRUNCATE );
+  FrameDB fdb1( db1, OpenMode::Create );
   set<size_t> frame_ids;
 
   for( size_t i = 0; i < 3048; i++ ) {

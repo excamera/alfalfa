@@ -35,6 +35,7 @@ public:
   void set_info( const VideoInfo & info );
 
   void serialize() const;
+  void serialize( FileDescriptor && fd ) const;
   void deserialize();
 };
 
