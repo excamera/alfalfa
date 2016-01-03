@@ -18,23 +18,6 @@
 using namespace std;
 using namespace std::chrono;
 
-vector<pair<size_t, double> > find_target_frames( AlfalfaVideoClient & video, size_t raster_index )
-{
-  size_t target_raster = video.get_raster( raster_index );
-  vector<pair<size_t, double> > target_frames;
-
-  for ( auto quality_data : video.get_quality_data_by_original_raster( target_raster ) ) {
-
-    auto frames = video.get_frames_by_output_hash( quality_data.approximate_raster );
-
-    for( auto frame : frames ) {
-      target_frames.push_back( make_pair( frame.frame_id(), quality_data.quality ) );
-    }
-  }
-
-  return target_frames;
-}
-
 bool display_frame( VideoDisplay & display,
                     const Optional<RasterHandle> & raster )
 {
