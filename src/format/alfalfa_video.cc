@@ -64,6 +64,8 @@ FileDescriptor AlfalfaVideo::VideoDirectory::subfile( const string & filename ) 
     flags = O_RDWR | O_CREAT;
     raw_mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
     break;
+  default:
+    throw LogicError(); /* needed by g++ 4.9.2 on Debian 8.2 */
   }
 
   return SystemCall( "openat",
