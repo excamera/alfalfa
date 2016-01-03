@@ -192,7 +192,7 @@ public:
   iterator end() { return end_iterator_; }
 };
 
-struct FrameMagic { static constexpr auto magic { "ALFAFRDB" }; };
+struct FrameMagic { static constexpr auto magic = "ALFAFRDB"; };
 
 class FrameDB : public BasicDatabase<FrameInfo, AlfalfaProtobufs::FrameInfo,
 				     FrameDataSetCollection, FrameDataSetSequencedTag,

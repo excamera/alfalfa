@@ -69,7 +69,7 @@ RasterListCollectionByHash;
 typedef RasterListCollection::index<RasterListRandomAccessTag>::type
 RasterListCollectionRandomAccess;
 
-struct RasterMagic { static constexpr auto magic { "ALFARSLS" }; };
+struct RasterMagic { static constexpr auto magic = "ALFARSLS"; };
 
 class RasterList : public BasicDatabase<RasterData, AlfalfaProtobufs::RasterData,
 					RasterListCollection, RasterListSequencedTag,
@@ -137,7 +137,7 @@ QualityDBCollectionByApproximateRaster;
 typedef QualityDBCollection::index<QualityDBSequencedTag>::type
 QualityDBCollectionSequencedAccess;
 
-struct QualityMagic { static constexpr auto magic { "ALFAQLDB" }; };
+struct QualityMagic { static constexpr auto magic = "ALFAQLDB"; };
 
 class QualityDB : public BasicDatabase<QualityData, AlfalfaProtobufs::QualityData,
 				       QualityDBCollection, QualityDBSequencedTag,
@@ -199,7 +199,7 @@ TrackDBCollectionByFrameIdIndex;
 typedef TrackDBCollection::index<TrackDBSequencedTag>::type
 TrackDBCollectionSequencedAccess;
 
-struct TrackMagic { static constexpr auto magic { "ALFATRDB" }; };
+struct TrackMagic { static constexpr auto magic = "ALFATRDB"; };
 
 class TrackDB : public BasicDatabase<TrackData, AlfalfaProtobufs::TrackData,
 				     TrackDBCollection, TrackDBSequencedTag,
@@ -331,7 +331,7 @@ SwtichDBCollectionHashedByFrameIds;
 typedef SwitchDBCollection::index<SwitchDBSequencedTag>::type
 SwitchDBCollectionSequencedAccess;
 
-struct SwitchMagic { static constexpr auto magic { "ALFASWDB" }; };
+struct SwitchMagic { static constexpr auto magic = "ALFASWDB"; };
 
 class SwitchDB : public BasicDatabase<SwitchData, AlfalfaProtobufs::SwitchData,
 				      SwitchDBCollection, SwitchDBSequencedTag,
