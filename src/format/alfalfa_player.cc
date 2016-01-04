@@ -45,14 +45,6 @@ bool LRUCache::has( size_t hash ) const
   return cache_.count( DependencyVertex{ DepType, hash } ) > 0;
 }
 
-template<DependencyType DepType>
-void LRUCache::remove( size_t hash )
-{
-  DependencyVertex vertex{ DepType, hash };
-  cached_items_.erase( cache_.at( vertex ).second );
-  cache_.erase( vertex );
-}
-
 template<DependencyType DepType, class ObjectType>
 ObjectType LRUCache::get( size_t hash )
 {

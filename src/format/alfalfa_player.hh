@@ -44,9 +44,6 @@ public:
   template<DependencyType DepType>
   bool has( size_t hash ) const;
 
-  template<DependencyType DepType>
-  void remove( size_t hash );
-
   template<DependencyType DepType, class ObjectType>
   ObjectType get( size_t hash );
 
