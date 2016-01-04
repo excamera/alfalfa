@@ -24,7 +24,7 @@ const string VIDEO_MANIFEST_FILENAME = "video.manifest";
 const string IVF_FILENAME = "v";
 const string VPXENC_EXECUTABLE = "vpxenc";
 
-FileDescriptor open_and_possibly_make( const string & name, const OpenMode mode )
+FileDescriptor open_and_possibly_make( const string & name, OpenMode & mode )
 {
   if ( mode == OpenMode::Create ) {
     /* try to make the directory if it doesn't already exist */
@@ -34,7 +34,8 @@ FileDescriptor open_and_possibly_make( const string & name, const OpenMode mode 
     } catch ( const unix_error & e ) {
       if ( e.code().category() == system_category()
 	   and e.code().value() == EEXIST ) {
-	/* ignore */
+	/* if directory exists, open the directory in read-write mode */
+        mode = OpenMode::RW;
       } else {
 	throw;
       }
@@ -47,7 +48,7 @@ FileDescriptor open_and_possibly_make( const string & name, const OpenMode mode 
 
 AlfalfaVideo::VideoDirectory::VideoDirectory( const string & name, const OpenMode mode )
   : mode_( mode ),
-    directory_( open_and_possibly_make( name, mode ) )
+    directory_( open_and_possibly_make( name, mode_ ) )
 {}
 
 FileDescriptor AlfalfaVideo::VideoDirectory::subfile( const string & filename ) const
@@ -58,6 +59,10 @@ FileDescriptor AlfalfaVideo::VideoDirectory::subfile( const string & filename ) 
   switch ( mode_ ) {
   case OpenMode::READ:
     flags = O_RDONLY;
+    raw_mode = 0;
+    break;
+  case OpenMode::RW:
+    flags = O_RDWR;
     raw_mode = 0;
     break;
   case OpenMode::Create:
@@ -73,6 +78,11 @@ FileDescriptor AlfalfaVideo::VideoDirectory::subfile( const string & filename ) 
 			     filename.c_str(),
 			     flags,
 			     raw_mode ) );
+}
+
+OpenMode AlfalfaVideo::VideoDirectory::mode() const
+{
+  return mode_;
 }
 
 FileDescriptor AlfalfaVideo::VideoDirectory::video_manifest() const
@@ -110,12 +120,22 @@ FileDescriptor AlfalfaVideo::VideoDirectory::ivf_file() const
   return subfile( IVF_FILENAME );
 }
 
-/* new blank video */
+/* video for writing, if directory already exists, opens existing directory
+   in read-write mode, otherwise creates a new directory */
 AlfalfaVideo::AlfalfaVideo( const uint16_t width, const uint16_t height,
 			    const std::string & name )
   : directory_( name, OpenMode::Create ),
     video_manifest_( width, height )
-{}
+{
+  if ( directory_.mode() == OpenMode::RW )
+  {
+    raster_list_ = RasterList( directory_.raster_list() );
+    quality_db_ = QualityDB( directory_.quality_db() );
+    frame_db_ = FrameDB( directory_.frame_db() );
+    track_db_ = TrackDB( directory_.track_db() );
+    switch_db_ = SwitchDB( directory_.switch_db() );
+  }
+}
 
 /* open existing video for reading */
 AlfalfaVideo::AlfalfaVideo( const std::string & name )
