@@ -33,6 +33,7 @@
 enum class OpenMode
 {
   READ,
+  RW,
   Create,
 };
 
@@ -51,6 +52,7 @@ public:
   public:
     VideoDirectory( const std::string & name, const OpenMode mode );
 
+    OpenMode mode() const;
     FileDescriptor video_manifest() const;
     FileDescriptor raster_list() const;
     FileDescriptor quality_db() const;
