@@ -5,7 +5,6 @@
 #include <set>
 #include <tuple>
 #include <vector>
-#include <boost/variant.hpp>
 #include <boost/format.hpp>
 
 #include "alfalfa_video_client.hh"
@@ -25,27 +24,20 @@ enum PathType
 
 using DependencyVertex = std::pair<DependencyType, size_t /* hash */>;
 
+template <class ObjectType>
 class LRUCache
 {
 private:
-  size_t cache_size_ = { 32 };
+  static constexpr const size_t cache_capacity = 32;
 
-  std::list<DependencyVertex> cached_items_ = {};
-  std::map<DependencyVertex, std::pair<boost::variant<DecoderState, RasterHandle>,
-                                       std::list<DependencyVertex>::const_iterator> > cache_ = {};
-
+  std::list<size_t> cached_items_ {};
+  std::map<size_t, std::pair<ObjectType,
+			     std::list<size_t>::const_iterator> > cache_ {};
 
 public:
-  template<DependencyType DepType, class ObjectType>
-  void put( ObjectType obj );
-
-  void put( const Decoder & decoder );
-
-  template<DependencyType DepType>
-  bool has( size_t hash ) const;
-
-  template<DependencyType DepType, class ObjectType>
-  ObjectType get( size_t hash );
+  void put( const ObjectType & obj );
+  bool has( const size_t hash ) const;
+  ObjectType get( const size_t hash );
 
   void clear();
   size_t size() const;
@@ -53,11 +45,32 @@ public:
   void print_cache() const;
 };
 
+class RasterAndStateCache
+{
+private:
+  LRUCache<RasterHandle> raster_cache_ {};
+  LRUCache<DecoderState> state_cache_ {};
+
+public:
+  void put( const Decoder & decoder );
+  
+  LRUCache<RasterHandle> & raster_cache() { return raster_cache_; }
+  const LRUCache<RasterHandle> & raster_cache() const { return raster_cache_; }
+
+  LRUCache<DecoderState> & state_cache() { return state_cache_; }
+  const LRUCache<DecoderState> & state_cache() const { return state_cache_; }
+
+  size_t size() const;
+
+  void clear();
+  void print_cache() const;
+};
+
 class AlfalfaPlayer
 {
 private:
   AlfalfaVideoClient video_;
-  LRUCache cache_;
+  RasterAndStateCache cache_;
 
   class FrameDependency
   {
@@ -75,10 +88,10 @@ private:
     template<DependencyType DepType>
     size_t get_count( const size_t hash ) const;
 
-    void update_dependencies( const FrameInfo & frame, LRUCache & cache );
-    void update_dependencies_forward( const FrameInfo & frame, LRUCache & cache );
+    void update_dependencies( const FrameInfo & frame, RasterAndStateCache & cache );
+    void update_dependencies_forward( const FrameInfo & frame, RasterAndStateCache & cache );
 
-    bool all_resolved();
+    bool all_resolved() const;
 
     FrameDependency() {}
   };
@@ -156,7 +169,7 @@ public:
   size_t cache_size() { return cache_.size(); }
   void clear_cache();
 
-  void print_cache();
+  void print_cache() const;
 };
 
 #endif /* ALFALFA_PLAYER_HH */

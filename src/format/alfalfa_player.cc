@@ -7,80 +7,76 @@ using namespace std;
 // sent over the network aren't too large.
 const size_t MAX_NUM_FRAMES = 1000;
 
-template<DependencyType DepType, class ObjectType>
-void LRUCache::put( ObjectType obj )
+template<class ObjectType>
+void LRUCache<ObjectType>::put( const ObjectType & obj )
 {
-  DependencyVertex vertex{ DepType, obj.hash() };
+  const size_t hashval = obj.hash();
 
-  if ( cache_.count( vertex ) > 0 ) {
-    auto & item = cache_.at( vertex );
+  if ( cache_.count( hashval ) > 0 ) {
+    auto & item = cache_.at( hashval );
     cached_items_.erase( item.second );
-    cached_items_.push_front( vertex );
+    cached_items_.push_front( hashval );
     item.second = cached_items_.cbegin();
   }
   else {
-    cached_items_.push_front( vertex );
+    cached_items_.push_front( hashval );
 
-    if ( cached_items_.size() > cache_size_ ) {
+    if ( cached_items_.size() > cache_capacity ) {
       cache_.erase( cached_items_.back() );
       cached_items_.pop_back();
     }
   }
 
-  cache_.insert( make_pair( vertex,
+  cache_.insert( make_pair( hashval,
                             make_pair( obj, cached_items_.cbegin() ) ) );
 }
 
-void LRUCache::put( const Decoder & decoder )
+void RasterAndStateCache::put( const Decoder & decoder )
 {
-  put<RASTER>( decoder.get_references().last );
-  put<RASTER>( decoder.get_references().golden );
-  put<RASTER>( decoder.get_references().alternative_reference );
-  put<STATE>( decoder.get_state() );
+  raster_cache_.put( decoder.get_references().last );
+  raster_cache_.put( decoder.get_references().golden );
+  raster_cache_.put( decoder.get_references().alternative_reference );
+  state_cache_.put( decoder.get_state() );
 }
 
-template<DependencyType DepType>
-bool LRUCache::has( size_t hash ) const
+template<class ObjectType>
+bool LRUCache<ObjectType>::has( const size_t hash ) const
 {
-  return cache_.count( DependencyVertex{ DepType, hash } ) > 0;
+  return cache_.count( hash ) > 0;
 }
 
-template<DependencyType DepType, class ObjectType>
-ObjectType LRUCache::get( size_t hash )
+template<class ObjectType>
+ObjectType LRUCache<ObjectType>::get( const size_t hash )
 {
-  DependencyVertex vertex{ DepType, hash };
-
-  auto & item = cache_.at( vertex );
+  /* bump entry to the front of the LRU list */
+  auto & item = cache_.at( hash );
   cached_items_.erase( item.second );
-  cached_items_.push_front( vertex );
+  cached_items_.push_front( hash );
   item.second = cached_items_.cbegin();
 
-  return boost::get<ObjectType>( cache_.at( vertex ).first );
+  /* return the entry */
+  return item.first;
 }
 
-void LRUCache::clear()
+template <class ObjectType>
+void LRUCache<ObjectType>::clear()
 {
   cache_.clear();
   cached_items_.clear();
 }
 
-size_t LRUCache::size() const
+template <class ObjectType>
+size_t LRUCache<ObjectType>::size() const
 {
   return cache_.size();
 }
 
-void LRUCache::print_cache() const
+template <class ObjectType>
+void LRUCache<ObjectType>::print_cache() const
 {
   for ( auto const & item : cache_ )
   {
-    if ( item.first.first == RASTER ) {
-      cout << "R ";
-    }
-    else {
-      cout << "S ";
-    }
-
-    cout << hex << uppercase << item.first.second << dec << nouppercase << endl;
+    cout << hex << uppercase << item.first << dec << nouppercase << endl;
   }
 }
 
@@ -127,7 +123,7 @@ size_t AlfalfaPlayer::FrameDependency::get_count( const size_t hash ) const
 }
 
 void AlfalfaPlayer::FrameDependency::update_dependencies( const FrameInfo & frame,
-                                                           LRUCache & cache )
+							  RasterAndStateCache & cache )
 {
   unresolved_.erase( DependencyVertex{ RASTER, frame.target_hash().output_hash } );
   unresolved_.erase( DependencyVertex{ STATE, frame.target_hash().state_hash } );
@@ -139,7 +135,7 @@ void AlfalfaPlayer::FrameDependency::update_dependencies( const FrameInfo & fram
 
   for ( int i = 0; i < 3; i++ ) {
     if ( hash[ i ].initialized() ) {
-      if ( not cache.has<RASTER>( hash[ i ].get() ) ) {
+      if ( not cache.raster_cache().has( hash[ i ].get() ) ) {
         increase_count<RASTER>( hash[ i ].get() );
         unresolved_.insert( DependencyVertex{ RASTER, hash[ i ].get() } );
       }
@@ -147,7 +143,7 @@ void AlfalfaPlayer::FrameDependency::update_dependencies( const FrameInfo & fram
   }
 
   if ( frame.source_hash().state_hash.initialized() ) {
-    if ( not cache.has<STATE>( frame.source_hash().state_hash.get() ) ) {
+    if ( not cache.state_cache().has( frame.source_hash().state_hash.get() ) ) {
       increase_count<STATE>( frame.source_hash().state_hash.get() );
       unresolved_.insert( DependencyVertex{ STATE,
         frame.source_hash().state_hash.get() } );
@@ -156,7 +152,7 @@ void AlfalfaPlayer::FrameDependency::update_dependencies( const FrameInfo & fram
 }
 
 void AlfalfaPlayer::FrameDependency::update_dependencies_forward( const FrameInfo & frame,
-                                                                   LRUCache & cache )
+								  RasterAndStateCache & cache )
 {
   Optional<size_t> hash[] = {
     frame.source_hash().last_hash, frame.source_hash().golden_hash,
@@ -165,20 +161,20 @@ void AlfalfaPlayer::FrameDependency::update_dependencies_forward( const FrameInf
 
   for ( int i = 0; i < 3; i++ ) {
     if ( hash[ i ].initialized() ) {
-      if ( not cache.has<RASTER>( hash[ i ].get() ) ) {
+      if ( not cache.raster_cache().has( hash[ i ].get() ) ) {
         decrease_count<RASTER>( hash[ i ].get() );
       }
     }
   }
 
   if ( frame.source_hash().state_hash.initialized() ) {
-    if ( not cache.has<STATE>( frame.source_hash().state_hash.get() ) ) {
+    if ( not cache.state_cache().has( frame.source_hash().state_hash.get() ) ) {
       decrease_count<STATE>( frame.source_hash().state_hash.get() );
     }
   }
 }
 
-bool AlfalfaPlayer::FrameDependency::all_resolved()
+bool AlfalfaPlayer::FrameDependency::all_resolved() const
 {
   return unresolved_.size() == 0;
 }
@@ -340,20 +336,20 @@ Decoder AlfalfaPlayer::get_decoder( const FrameInfo & frame )
   DecoderState state( video_.get_video_width(), video_.get_video_height() );
 
   if ( frame.source_hash().last_hash.initialized() ) {
-    refs.last = cache_.get<RASTER, RasterHandle>( frame.source_hash().last_hash.get() );
+    refs.last = cache_.raster_cache().get( frame.source_hash().last_hash.get() );
   }
 
   if ( frame.source_hash().golden_hash.initialized() ) {
-    refs.golden = cache_.get<RASTER, RasterHandle>( frame.source_hash().golden_hash.get() );
+    refs.golden = cache_.raster_cache().get( frame.source_hash().golden_hash.get() );
   }
 
   if ( frame.source_hash().alt_hash.initialized() ) {
     refs.alternative_reference =
-      cache_.get<RASTER, RasterHandle>( frame.source_hash().alt_hash.get() );
+      cache_.raster_cache().get( frame.source_hash().alt_hash.get() );
   }
 
   if ( frame.source_hash().state_hash.initialized() ) {
-    state = cache_.get<STATE, DecoderState>( frame.source_hash().state_hash.get() );
+    state = cache_.state_cache().get( frame.source_hash().state_hash.get() );
   }
 
   return Decoder( state, refs );
@@ -375,7 +371,7 @@ AlfalfaPlayer::FrameDependency AlfalfaPlayer::follow_track_path( TrackPath path,
       Decoder && decoder = get_decoder( frame );
       pair<bool, RasterHandle> output = decoder.get_frame_output( video_.get_chunk( frame ) );
       cache_.put( decoder );
-      cache_.put<RASTER>( output.second );
+      cache_.raster_cache().put( output.second );
       dependencies.update_dependencies_forward( frame, cache_ );
     }
     from_frame_index += MAX_NUM_FRAMES;
@@ -402,7 +398,7 @@ AlfalfaPlayer::FrameDependency AlfalfaPlayer::follow_switch_path( SwitchPath pat
     Decoder && decoder = get_decoder( frame );
     pair<bool, RasterHandle> output = decoder.get_frame_output( video_.get_chunk( frame ) );
     cache_.put( decoder );
-    cache_.put<RASTER>( output.second );
+    cache_.raster_cache().put( output.second );
     dependencies.update_dependencies_forward( frame, cache_ );
   }
 
@@ -414,11 +410,11 @@ Optional<RasterHandle> AlfalfaPlayer::get_raster_track_path( const size_t output
   auto track_seek = get_min_track_seek( output_hash );
 
   if ( get<0>( track_seek ).cost == SIZE_MAX) {
-    return Optional<RasterHandle>();
+    return {};
   }
 
   follow_track_path( get<0>( track_seek ), get<1>( track_seek ) );
-  return make_optional<RasterHandle>( true, cache_.get<RASTER, RasterHandle>( output_hash ) );
+  return cache_.raster_cache().get( output_hash );
 }
 
 Optional<RasterHandle> AlfalfaPlayer::get_raster_switch_path( const size_t output_hash )
@@ -426,7 +422,7 @@ Optional<RasterHandle> AlfalfaPlayer::get_raster_switch_path( const size_t outpu
   auto switch_seek = get_min_switch_seek( output_hash );
 
   if ( get<0>( switch_seek ).cost == SIZE_MAX ) {
-    return Optional<RasterHandle>();
+    return {};
   }
 
   Optional<TrackPath> & extra_track_seek = get<1>( switch_seek );
@@ -438,7 +434,7 @@ Optional<RasterHandle> AlfalfaPlayer::get_raster_switch_path( const size_t outpu
 
   follow_switch_path( get<0>( switch_seek ), dependencies );
 
-  return make_optional<RasterHandle>( true, cache_.get<RASTER, RasterHandle>( output_hash ) );
+  return cache_.raster_cache().get( output_hash );
 }
 
 Optional<RasterHandle> AlfalfaPlayer::get_raster( const size_t output_hash,
@@ -510,7 +506,28 @@ void AlfalfaPlayer::clear_cache()
   cache_.clear();
 }
 
-void AlfalfaPlayer::print_cache()
+void AlfalfaPlayer::print_cache() const
 {
   cache_.print_cache();
+}
+
+void RasterAndStateCache::print_cache() const
+{
+  cout << "Raster in cache:" << endl;
+  raster_cache_.print_cache();
+
+  cout << "###" << endl << endl << "States in cache:" << endl;
+  state_cache_.print_cache();
+  cout << "###" << endl;
+}
+
+size_t RasterAndStateCache::size() const
+{
+  return raster_cache().size() + state_cache().size();
+}
+
+void RasterAndStateCache::clear()
+{
+  raster_cache_.clear();
+  state_cache_.clear();
 }
