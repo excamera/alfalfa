@@ -538,6 +538,41 @@ Chunk::to_protobuf() const
   return message;
 }
 
+AlfalfaProtobufs::AlfalfaRequest
+get_alfalfa_request_protobuf( const AlfalfaRequestType request_type )
+{
+  AlfalfaProtobufs::AlfalfaRequest message;
+
+  message.set_request_type( (int) request_type );
+
+  message.clear_sizet();
+  message.clear_track_position();
+  message.clear_track_range_args();
+  message.clear_switch_range_args();
+  message.clear_decoder_hash();
+  message.clear_frame_info();
+
+  return message;
+}
+
+AlfalfaProtobufs::AlfalfaResponse
+get_alfalfa_response_protobuf()
+{
+  AlfalfaProtobufs::AlfalfaResponse message;
+
+  message.clear_sizet();
+  message.clear_frame_info();
+  message.clear_track_data();
+  message.clear_frame_iterator();
+  message.clear_quality_data_iterator();
+  message.clear_track_ids();
+  message.clear_track_data_iterator();
+  message.clear_switches();
+  message.clear_chunk();
+
+  return message;
+}
+
 ProtobufSerializer::ProtobufSerializer( const string & filename )
   : fout_( SystemCall( filename,
 		       open( filename.c_str(),
