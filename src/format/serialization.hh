@@ -8,6 +8,7 @@
 #include "optional.hh"
 #include "frame_info.hh"
 #include "dependency_tracking.hh"
+#include "alfalfa_request_type.hh"
 #include "alfalfa.pb.h"
 #include "file_descriptor.hh"
 #include "chunk.hh"
@@ -205,6 +206,9 @@ struct SwitchRangeArgs
 
   AlfalfaProtobufs::SwitchRangeArgs to_protobuf() const;
 };
+
+AlfalfaProtobufs::AlfalfaRequest get_alfalfa_request_protobuf( const AlfalfaRequestType request_type );
+AlfalfaProtobufs::AlfalfaResponse get_alfalfa_response_protobuf();
 
 class ProtobufSerializer
 {

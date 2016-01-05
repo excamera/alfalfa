@@ -121,3 +121,25 @@ message SwitchRangeArgs {
 message Chunk {
   required bytes buffer = 1;
 }
+
+message AlfalfaRequest {
+  required uint64 request_type = 1;
+  optional SizeT sizet = 2;
+  optional TrackPosition track_position = 3;
+  optional TrackRangeArgs track_range_args = 4;
+  optional SwitchRangeArgs switch_range_args = 5;
+  optional DecoderHash decoder_hash = 6;
+  optional FrameInfo frame_info = 7;
+}
+
+message AlfalfaResponse {
+  optional SizeT sizet = 1;
+  optional FrameInfo frame_info = 2;
+  optional TrackData track_data = 3;
+  optional FrameIterator frame_iterator = 4;
+  optional QualityDataIterator quality_data_iterator = 5;
+  optional TrackIdsIterator track_ids = 6;
+  optional TrackDataIterator track_data_iterator = 7;
+  optional Switches switches = 8;
+  optional Chunk chunk = 9;
+}
