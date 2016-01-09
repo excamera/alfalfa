@@ -29,6 +29,9 @@ int main( int argc, char const *argv[] )
       return EX_USAGE;
     }
 
+    // Get rid of exponents
+    cout << fixed;
+
     string alf_path( argv[ 1 ] );
     PlayableAlfalfaVideo alf( alf_path );
 
@@ -96,7 +99,7 @@ int main( int argc, char const *argv[] )
 
       cout << "\n\nTrack ID: " << track_id << endl;
       cout << "\t Total Coded Size: " << total_coded_size << " bytes" << endl;
-      cout << "\t Bitrate: " << track_bitrate << " bits/sec" << endl;
+      cout << "\t Bitrate: " << track_bitrate / 1000 << " kilobits/sec" << endl;
       cout << "\t Average SSIM Quality: " << average_quality << endl;
       cout << "\t Minimum SSIM Quality: " << minimum_quality << endl;
 
