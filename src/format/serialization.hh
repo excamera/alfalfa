@@ -65,8 +65,6 @@ struct TrackData
   size_t frame_index;
   size_t frame_id;
 
-  TrackData ( const size_t track_id, const size_t frame_index,
-              const size_t frame_id );
   TrackData( const size_t track_id, const size_t frame_id );
   TrackData( const AlfalfaProtobufs::TrackData & message );
 

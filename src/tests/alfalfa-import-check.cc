@@ -8,13 +8,13 @@ using namespace std;
 /* Simple import test. Imports a given ivf file, and checks if the metadata
    in the generated alfalfa video's dbs is consistent with what's directly
    read from the raw ivf input file. */
-int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
+int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir, size_t track_id ) {
   bool found;
 
   PlayableAlfalfaVideo alfalfa_video( alfalfa_video_dir );
 
   TrackingPlayer player( ivf_file_path );
-  size_t frame_index = 0;
+  size_t frame_index = 0, displayed_raster_index = 0;
 
   while ( not player.eof() ) {
     FrameInfo next_frame( player.serialize_next().first );
@@ -81,7 +81,7 @@ int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
     // Check track db
     found = false;
     auto it_ids =
-      alfalfa_video.get_frames( 0 );
+      alfalfa_video.get_frames( track_id );
     TrackDBIterator it_begin_ids = it_ids.first;
     TrackDBIterator it_end_ids = it_ids.second;
     size_t local_frame_index = 0;
@@ -97,20 +97,34 @@ int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
     if ( !found ) {
       return 1;
     }
+
+    vector<size_t> frame_indices = alfalfa_video.get_dri_to_frame_index_mapping( track_id, displayed_raster_index );
+    size_t start = frame_indices.front();
+    size_t end = frame_indices.back();
+    if ( not ( start <= frame_index and frame_index <= end ) )
+      return 1;
+
     frame_index++;
+    if ( next_frame.shown() )
+      displayed_raster_index++;
   }
 
   return 0;
 }
 
 int main(int argc, char const *argv[]) {
-  if ( argc != 3 ) {
-    cerr << "usage: import-test <ivf-file> <alfalfa-video-dir>" << endl;
+  if ( argc != 4 ) {
+    cerr << "usage: import-test <ivf-file> <alfalfa-video-dir> <track-id>" << endl;
     return 1;
   }
 
   string ivf_file_path( argv[ 1 ] );
   string alfalfa_video_dir( argv[ 2 ] );
 
-  return alfalfa_import_test( ivf_file_path, alfalfa_video_dir );
+  stringstream type_converter( argv[ 3 ] );
+  size_t track_id;
+  type_converter >> track_id;
+
+
+  return alfalfa_import_test( ivf_file_path, alfalfa_video_dir, track_id );
 }

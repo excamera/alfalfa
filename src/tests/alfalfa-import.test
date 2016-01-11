@@ -12,7 +12,7 @@ def check(file_id):
     if os.system("../frontend/alfalfa-import %s %s" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR)):
       raise Exception("alfalfa-import failed.")
 
-    if os.system("./alfalfa-import-check %s %s" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR)):
+    if os.system("./alfalfa-import-check %s %s 0" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR)):
       raise Exception("alfalfa-import-check failed.")
 
   except Exception as ex:

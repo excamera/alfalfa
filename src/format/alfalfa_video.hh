@@ -60,6 +60,9 @@ public:
     FileDescriptor ivf_file() const;
   };
 
+private:
+  void initialize_dri_to_frame_index_mapping();
+
 protected:
   VideoDirectory directory_;
   VideoManifest video_manifest_;
@@ -68,6 +71,12 @@ protected:
   FrameDB frame_db_ {};
   TrackDB track_db_ {};
   SwitchDB switch_db_ {};
+
+   /* Required since different tracks can have different number of frames;
+     this is to ensure that we can easily line up different tracks according to
+     displayed raster. (here dri stands for displayed_raster_index).
+     This is a map from track_id to (map from dri to vector of all frame_indies) */
+  std::unordered_map<size_t, std::unordered_map<size_t, std::vector<size_t>>> dri_to_frame_index_mapping_ {};
 
   AlfalfaVideo( const uint16_t width, const uint16_t height,
 		const std::string & name ); /* new blank video */
@@ -82,6 +91,9 @@ public:
   RasterData get_raster( const size_t raster_index ) const;
   bool has_raster( const size_t raster ) const;
   bool equal_raster_lists( const AlfalfaVideo & video ) const;
+
+  /* Access dri_to_frame_index_mapping. */
+  std::vector<size_t> get_dri_to_frame_index_mapping( const size_t track_id, const size_t dri ) const;
 
   /* Gets an iterator over all quality data in the alf video's quality db, in no particular
      order. */
@@ -228,6 +240,8 @@ class WritableAlfalfaVideo : public AlfalfaVideo
 {
 private:
   IVFWriter ivf_writer_;
+  /* Keeps track of the last allocated displayed_raster_index for each track. */
+  std::unordered_map<size_t, size_t> track_displayed_raster_indices_ {};
 
 public:
   WritableAlfalfaVideo( const std::string & directory_name,

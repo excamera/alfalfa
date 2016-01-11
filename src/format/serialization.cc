@@ -71,13 +71,6 @@ QualityData::to_protobuf() const
   return message;
 }
 
-TrackData::TrackData( const size_t track_id, const size_t frame_index,
-                      const size_t frame_id )
-  : track_id( track_id ),
-    frame_index( frame_index ),
-    frame_id( frame_id )
-{}
-
 TrackData::TrackData( const size_t track_id, const size_t frame_id )
   : track_id( track_id ),
     frame_index( 0 ),

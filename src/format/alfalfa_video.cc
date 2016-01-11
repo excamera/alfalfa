@@ -126,7 +126,9 @@ AlfalfaVideo::AlfalfaVideo( const std::string & name )
     frame_db_( directory_.frame_db() ),
     track_db_( directory_.track_db() ),
     switch_db_( directory_.switch_db() )
-{}
+{
+  initialize_dri_to_frame_index_mapping();
+}
 
 AlfalfaVideo::AlfalfaVideo( AlfalfaVideo && other )
   : directory_( move( other.directory_ ) ),
@@ -136,7 +138,25 @@ AlfalfaVideo::AlfalfaVideo( AlfalfaVideo && other )
     frame_db_( move( other.frame_db_ ) ),
     track_db_( move( other.track_db_ ) ),
     switch_db_( move( other.switch_db_ ) )
-{}
+{
+  initialize_dri_to_frame_index_mapping();
+}
+
+void AlfalfaVideo::initialize_dri_to_frame_index_mapping()
+{
+   for ( auto track_ids = get_track_ids(); track_ids.first != track_ids.second; track_ids.first++ ) {
+    size_t track_id = *track_ids.first;
+    size_t frame_index = 0, displayed_raster_index = 0;
+    for ( auto frames = get_frames( track_id ); frames.first != frames.second; frames.first++ ) {
+      FrameInfo frame = *frames.first;
+      dri_to_frame_index_mapping_[ track_id ][ displayed_raster_index ].push_back( frame_index );
+      if ( frame.shown() ) {
+        displayed_raster_index++;
+      }
+      frame_index++;
+    }
+  }
+}
 
 size_t AlfalfaVideo::get_raster_list_size() const
 {
@@ -222,6 +242,11 @@ bool AlfalfaVideo::can_combine( const AlfalfaVideo & video ) const
       equal_raster_lists( video )
     )
   );
+}
+
+vector<size_t> AlfalfaVideo::get_dri_to_frame_index_mapping( const size_t track_id, const size_t dri ) const
+{
+  return dri_to_frame_index_mapping_.at( track_id ).at( dri );
 }
 
 pair<unordered_set<size_t>::const_iterator, unordered_set<size_t>::const_iterator>
@@ -437,12 +462,26 @@ void WritableAlfalfaVideo::insert_frame( FrameInfo next_frame,
 
   size_t frame_id = frame_db_.insert( next_frame );
 
-  track_db_.insert(
+  size_t frame_index = track_db_.insert(
     TrackData{
       track_id,
       frame_id
     }
   );
+
+  size_t displayed_raster_index;
+  if ( track_displayed_raster_indices_.count( track_id ) == 0 ) {
+    displayed_raster_index = 0;
+  } else {
+    displayed_raster_index = track_displayed_raster_indices_[ track_id ];
+  }
+
+  if ( next_frame.shown() ) {
+    track_displayed_raster_indices_[ track_id ] = displayed_raster_index + 1;
+  } else {
+    track_displayed_raster_indices_[ track_id ] = displayed_raster_index;
+  }
+  dri_to_frame_index_mapping_[ track_id ][ displayed_raster_index ].push_back( frame_index );
 }
 
 FrameInfo WritableAlfalfaVideo::import_serialized_frame( const SerializedFrame & frame )
