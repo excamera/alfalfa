@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.61])
 AC_INIT([alfalfa], [0.1], [alfalfa@mit.edu])
-AM_INIT_AUTOMAKE([foreign])
+AM_INIT_AUTOMAKE([foreign tar-ustar])
 AC_CONFIG_SRCDIR([src/decoder/prediction.cc])
 AC_CONFIG_HEADERS([config.h])
 
