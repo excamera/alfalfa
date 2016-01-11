@@ -32,7 +32,7 @@ before_script:
 script:
   - ./autogen.sh
   - ./configure
-  - make distcheck || (cat alfalfa-0.1/_build/src/tests/test-suite.log && exit 1)
+  - make -j3 distcheck || (cat alfalfa-0.1/_build/src/tests/test-suite.log && exit 1)
 
 notifications:
   slack: keithw:2nINWkhRQ60BzeTDNYXgpLkU
