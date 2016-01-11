@@ -205,6 +205,7 @@ class TrackDB : public BasicDatabase<TrackData, AlfalfaProtobufs::TrackData,
 private:
   std::unordered_set<size_t> track_ids_ {};
   std::unordered_map<size_t, size_t> track_frame_indices_ {};
+  std::unordered_map<size_t, size_t> track_displayed_raster_indices_ {};
 
 public:
   TrackDB() {}
@@ -219,6 +220,7 @@ public:
   }
 
   size_t insert( TrackData td );
+  size_t insert( TrackData td, bool shown );
 
   std::pair<std::unordered_set<size_t>::const_iterator, std::unordered_set<size_t>::const_iterator>
   get_track_ids() const;

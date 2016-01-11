@@ -441,7 +441,8 @@ void WritableAlfalfaVideo::insert_frame( FrameInfo next_frame,
     TrackData{
       track_id,
       frame_id
-    }
+    },
+    next_frame.shown()
   );
 }
 

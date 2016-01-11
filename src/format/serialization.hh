@@ -63,10 +63,12 @@ struct TrackData
 {
   size_t track_id;
   size_t frame_index;
+  size_t displayed_raster_index;  // required since different tracks can have
+                                // different number of frames; this is to ensure that
+                                // we can easily line up different tracks according to
+                                // displayed raster.
   size_t frame_id;
 
-  TrackData ( const size_t track_id, const size_t frame_index,
-              const size_t frame_id );
   TrackData( const size_t track_id, const size_t frame_id );
   TrackData( const AlfalfaProtobufs::TrackData & message );
 

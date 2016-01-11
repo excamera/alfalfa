@@ -26,7 +26,7 @@ int main()
 
     // Insert track data into track_db
     TrackData track_data( track_id, frame_id );
-    tdb.insert( track_data );
+    tdb.insert( track_data, true );
 
     // Make sure new track_data is reflected in the indices
     if ( tdb.get_end_frame_index( track_id) != (frame_index + 1) ) {
