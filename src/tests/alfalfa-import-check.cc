@@ -14,7 +14,7 @@ int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
   PlayableAlfalfaVideo alfalfa_video( alfalfa_video_dir );
 
   TrackingPlayer player( ivf_file_path );
-  size_t frame_index = 0;
+  size_t frame_index = 0, displayed_raster_index = 0;
 
   while ( not player.eof() ) {
     FrameInfo next_frame( player.serialize_next().first );
@@ -85,19 +85,25 @@ int alfalfa_import_test( string ivf_file_path, string alfalfa_video_dir ) {
     TrackDBIterator it_begin_ids = it_ids.first;
     TrackDBIterator it_end_ids = it_ids.second;
     size_t local_frame_index = 0;
+    size_t local_displayed_raster_index = 0;
     while ( it_begin_ids != it_end_ids ) {
       FrameInfo frame_info = *it_begin_ids;
       if ( local_frame_index == frame_index and
+           local_displayed_raster_index == displayed_raster_index and
            frame_info.source_hash() == next_frame.source_hash() and
            frame_info.target_hash() == next_frame.target_hash() )
         found = true;
       local_frame_index++;
+      if ( frame_info.shown() )
+        local_displayed_raster_index++;
       it_begin_ids++;
     }
     if ( !found ) {
       return 1;
     }
     frame_index++;
+    if ( next_frame.shown() )
+      displayed_raster_index++;
   }
 
   return 0;

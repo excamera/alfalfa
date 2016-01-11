@@ -102,14 +102,52 @@ QualityDB::search_by_approximate_raster( const size_t approximate_raster ) const
 size_t TrackDB::insert( TrackData td )
 {
   track_ids_.insert( td.track_id );
-  size_t frame_index;
+
+  size_t cur_max_frame_index = 0, cur_max_displayed_raster_index = 0;
+  if ( track_frame_indices_.count( td.track_id ) > 0 ) {
+    cur_max_frame_index = track_frame_indices_[ td.track_id ];
+  }
+  if ( td.frame_index > cur_max_frame_index ) {
+    track_frame_indices_[ td.track_id ] = td.frame_index;
+  }
+
+  if ( track_displayed_raster_indices_.count( td.track_id ) > 0 ) {
+    cur_max_displayed_raster_index = track_displayed_raster_indices_[ td.track_id ];
+  }
+  if ( td.displayed_raster_index > cur_max_displayed_raster_index ) {
+    track_displayed_raster_indices_[ td.track_id ] = td.displayed_raster_index;
+  }
+
+  collection_.insert( td );
+  return td.frame_index;
+}
+
+size_t TrackDB::insert( TrackData td, bool shown )
+{
+  track_ids_.insert( td.track_id );
+  size_t frame_index, displayed_raster_index;
+
   if ( track_frame_indices_.count( td.track_id ) == 0 ) {
     frame_index = 0;
   } else {
     frame_index = track_frame_indices_[ td.track_id ];
   }
+
+  if ( track_displayed_raster_indices_.count( td.track_id ) == 0 ) {
+    displayed_raster_index = 0;
+  } else {
+    displayed_raster_index = track_displayed_raster_indices_[ td.track_id ];
+  }
+
   track_frame_indices_[ td.track_id ] = frame_index + 1;
+  if ( shown ) {
+    track_displayed_raster_indices_[ td.track_id ] = displayed_raster_index + 1;
+  } else {
+    track_displayed_raster_indices_[ td.track_id ] = displayed_raster_index;
+  }
+
   td.frame_index = frame_index;
+  td.displayed_raster_index = displayed_raster_index;
   collection_.insert( td );
   return frame_index;
 }

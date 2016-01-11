@@ -55,7 +55,8 @@ message QualityData {
 message TrackData {
   required uint64 track_id = 1;
   required uint64 frame_index = 2;
-  required uint64 frame_id = 3;
+  required uint64 displayed_raster_index = 3;
+  required uint64 frame_id = 4;
 }
 
 message SwitchData {

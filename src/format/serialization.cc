@@ -71,22 +71,17 @@ QualityData::to_protobuf() const
   return message;
 }
 
-TrackData::TrackData( const size_t track_id, const size_t frame_index,
-                      const size_t frame_id )
-  : track_id( track_id ),
-    frame_index( frame_index ),
-    frame_id( frame_id )
-{}
-
 TrackData::TrackData( const size_t track_id, const size_t frame_id )
   : track_id( track_id ),
     frame_index( 0 ),
+    displayed_raster_index( 0 ),
     frame_id( frame_id )
 {}
 
 TrackData::TrackData( const AlfalfaProtobufs::TrackData & message )
   : track_id( message.track_id() ),
     frame_index( message.frame_index() ),
+    displayed_raster_index( message.displayed_raster_index() ),
     frame_id( message.frame_id() )
 {}
 
@@ -97,6 +92,7 @@ TrackData::to_protobuf() const
 
   message.set_track_id( track_id );
   message.set_frame_index( frame_index );
+  message.set_displayed_raster_index( displayed_raster_index );
   message.set_frame_id( frame_id );
 
   return message;
