@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I../protobufs -I$(srcdir)/../util $(GLU_CFLAGS) $(GLFW3_CFLAGS) $(GLEW_CFLAGS) $(CXX11_FLAGS)
+AM_CPPFLAGS = -I../protobufs -I$(srcdir)/../util $(GLU_CFLAGS) $(GLFW3_CFLAGS) $(GLEW_CFLAGS) $(CXX11_FLAGS) $(PROTOBUF_CFLAGS)
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(NODEBUG_CXXFLAGS)
 
 noinst_LIBRARIES = libalfalfadisplay.a

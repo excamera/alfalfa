@@ -7,6 +7,8 @@ AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_SRCDIR([src/decoder/prediction.cc])
 AC_CONFIG_HEADERS([config.h])
 
+BLANK=''; AC_SUBST(BLANK)
+
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_RANLIB
@@ -45,11 +47,17 @@ AC_SUBST([ASFLAGS])
 
 # Checks for libraries.
 PKG_CHECK_MODULES([GL], [gl])
-PKG_CHECK_MODULES([PROTOBUF], [protobuf])
 PKG_CHECK_MODULES([GLU], [glu])
 PKG_CHECK_MODULES([X264], [x264])
 PKG_CHECK_MODULES([GLFW3], [glfw3])
 PKG_CHECK_MODULES([GLEW], [glew])
+PKG_CHECK_MODULES([ZLIB], [zlib])
+
+PROTOBUF_CFLAGS='-isystem ../../third_party/grpc/third_party/protobuf/src -isystem ../../third_party/grpc/include $(ZLIB_CFLAGS)'
+AC_SUBST([PROTOBUF_CFLAGS])
+
+PROTOBUF_LIBS='../../third_party/grpc/libs/opt/protobuf/libprotobuf.a ../../third_party/grpc/libs/opt/libgrpc++_unsecure.a ../../third_party/grpc/libs/opt/libgrpc_unsecure.a ../../third_party/grpc/libs/opt/libgpr.a $(ZLIB_LIBS) -lpthread'
+AC_SUBST([PROTOBUF_LIBS])
 
 # Checks for header files.
 AC_PATH_X
@@ -60,10 +68,6 @@ AC_CHECK_HEADERS([boost/functional/hash.hpp], [], [AC_MSG_ERROR[Missing boost ha
 AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp boost/graph/graph_traits.hpp], [], [AC_MSG_ERROR[Missing boost graph]])
 
 AC_CHECK_HEADERS([boost/multi_index_container.hpp boost/multi_index/member.hpp boost/multi_index/hashed_index.hpp boost/multi_index/sequenced_index.hpp], [], [AC_MSG_ERROR[Missing boost multi-index]])
-
-AC_PATH_PROG([PROTOC], [protoc], [])
-AS_IF([test x"$PROTOC" = x],
-  [AC_MSG_ERROR([cannot find protoc, the Protocol Buffers compiler])])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_INLINE
@@ -78,12 +82,12 @@ AC_TYPE_UINT8_T
 
 # Checks for library functions.
 AC_FUNC_MMAP
-AC_CHECK_FUNCS([munmap strerror], [], [AC_MSG_ERROR([Missing required library function])])
 
 AC_LANG_POP(C++)
 
 AC_CONFIG_FILES([Makefile
-                 src/Makefile
+		 third_party/Makefile
+		 src/Makefile
                  src/protobufs/Makefile
                  src/util/Makefile
                  src/decoder/Makefile

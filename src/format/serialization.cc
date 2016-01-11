@@ -154,10 +154,10 @@ SizeT::to_protobuf() const
 }
 
 SourceHash::SourceHash( const AlfalfaProtobufs::SourceHash & message )
-  : state_hash( make_optional( message.has_state_hash(), message.state_hash() ) ),
-    last_hash( make_optional( message.has_last_hash(), message.last_hash() ) ),
-    golden_hash( make_optional( message.has_golden_hash(), message.golden_hash() ) ),
-    alt_hash( make_optional( message.has_alt_hash(), message.alt_hash() ) )
+  : state_hash( message.has_state_hash(), message.state_hash() ),
+    last_hash( message.has_last_hash(), message.last_hash() ),
+    golden_hash( message.has_golden_hash(), message.golden_hash() ),
+    alt_hash( message.has_alt_hash(), message.alt_hash() )
 {}
 
 AlfalfaProtobufs::SourceHash

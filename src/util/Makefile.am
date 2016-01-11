@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I../protobufs $(CXX11_FLAGS)
+AM_CPPFLAGS = -I../protobufs $(CXX11_FLAGS) $(PROTOBUF_CFLAGS)
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(NODEBUG_CXXFLAGS)
 
 noinst_LIBRARIES = libalfalfautil.a

@@ -25,6 +25,8 @@ Makefile.in
 
 /src/protobufs/alfalfa.pb.cc
 /src/protobufs/alfalfa.pb.h
+/src/protobufs/alfalfa.grpc.pb.cc
+/src/protobufs/alfalfa.grpc.pb.h
 /src/frontend/diff-sizes
 /src/frontend/alfalfa-weave
 /src/frontend/frameify
