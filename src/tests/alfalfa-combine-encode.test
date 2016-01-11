@@ -24,7 +24,7 @@ def check(file_id):
       raise Exception("alfalfa-combine-check failed.")
 
   except Exception as ex:
-    print ex
+    print(ex)
     sys.exit(1)
 
   finally:

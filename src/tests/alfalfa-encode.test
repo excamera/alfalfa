@@ -7,7 +7,7 @@ ALFALFA_ORG_VIDEO = "alfalfa_video_dir1_encode/"
 ALFALFA_ENC_VIDEO = "alfalfa_video_dir_encoded_encode/"
 
 def check(file_id):
-  print file_id
+  print(file_id)
   try:
     alfalfa_test_vector = ("test_vectors/" + file_id)
 
@@ -20,7 +20,7 @@ def check(file_id):
       raise Exception("alfalfa-encode-check failed.")
 
   except Exception as ex:
-    print ex
+    print(ex)
     sys.exit(1)
 
   finally:
