@@ -8,18 +8,16 @@ using namespace std;
 const size_t MAX_NUM_FRAMES = 1000;
 
 template<class ObjectType>
-void LRUCache<ObjectType>::put( const ObjectType & obj )
+void LRUCache<ObjectType>::put( const size_t key, const ObjectType & obj )
 {
-  const size_t hashval = obj.hash();
-
-  if ( cache_.count( hashval ) > 0 ) {
-    auto & item = cache_.at( hashval );
+  if ( cache_.count( key ) > 0 ) {
+    auto & item = cache_.at( key );
     cached_items_.erase( item.second );
-    cached_items_.push_front( hashval );
+    cached_items_.push_front( key );
     item.second = cached_items_.cbegin();
   }
   else {
-    cached_items_.push_front( hashval );
+    cached_items_.push_front( key );
 
     if ( cached_items_.size() > cache_capacity ) {
       cache_.erase( cached_items_.back() );
@@ -27,31 +25,32 @@ void LRUCache<ObjectType>::put( const ObjectType & obj )
     }
   }
 
-  cache_.insert( make_pair( hashval,
+  cache_.insert( make_pair( key,
                             make_pair( obj, cached_items_.cbegin() ) ) );
 }
 
 void RasterAndStateCache::put( const Decoder & decoder )
 {
-  raster_cache_.put( decoder.get_references().last );
-  raster_cache_.put( decoder.get_references().golden );
-  raster_cache_.put( decoder.get_references().alternative_reference );
-  state_cache_.put( decoder.get_state() );
+  raster_cache_.put( decoder.get_references().last.hash(), decoder.get_references().last );
+  raster_cache_.put( decoder.get_references().golden.hash(), decoder.get_references().golden );
+  raster_cache_.put( decoder.get_references().alternative_reference.hash(),
+                     decoder.get_references().alternative_reference );
+  state_cache_.put( decoder.get_state().hash(), decoder.get_state() );
 }
 
 template<class ObjectType>
-bool LRUCache<ObjectType>::has( const size_t hash ) const
+bool LRUCache<ObjectType>::has( const size_t key ) const
 {
-  return cache_.count( hash ) > 0;
+  return cache_.count( key ) > 0;
 }
 
 template<class ObjectType>
-ObjectType LRUCache<ObjectType>::get( const size_t hash )
+ObjectType LRUCache<ObjectType>::get( const size_t key )
 {
   /* bump entry to the front of the LRU list */
-  auto & item = cache_.at( hash );
+  auto & item = cache_.at( key );
   cached_items_.erase( item.second );
-  cached_items_.push_front( hash );
+  cached_items_.push_front( key );
   item.second = cached_items_.cbegin();
 
   /* return the entry */
@@ -327,7 +326,11 @@ AlfalfaPlayer::get_min_track_seek( const size_t output_hash )
 }
 
 AlfalfaPlayer::AlfalfaPlayer( const std::string & server_address )
-  : video_( server_address ), cache_()
+  : video_( server_address ),
+    cache_(),
+    downloaded_frame_bytes_( 0 ),
+    current_track_(),
+    current_track_index_( 0 )
 {}
 
 Decoder AlfalfaPlayer::get_decoder( const FrameInfo & frame )
@@ -371,7 +374,7 @@ AlfalfaPlayer::FrameDependency AlfalfaPlayer::follow_track_path( TrackPath path,
       Decoder decoder = get_decoder( frame );
       pair<bool, RasterHandle> output = decoder.get_frame_output( video_.get_chunk( frame ) );
       cache_.put( decoder );
-      cache_.raster_cache().put( output.second );
+      cache_.raster_cache().put( output.second.hash(), output.second );
       dependencies.update_dependencies_forward( frame, cache_ );
     }
     from_frame_index += MAX_NUM_FRAMES;
@@ -398,7 +401,7 @@ AlfalfaPlayer::FrameDependency AlfalfaPlayer::follow_switch_path( SwitchPath pat
     Decoder decoder = get_decoder( frame );
     pair<bool, RasterHandle> output = decoder.get_frame_output( video_.get_chunk( frame ) );
     cache_.put( decoder );
-    cache_.raster_cache().put( output.second );
+    cache_.raster_cache().put( output.second.hash(), output.second );
     dependencies.update_dependencies_forward( frame, cache_ );
   }
 
@@ -499,6 +502,71 @@ const VP8Raster & AlfalfaPlayer::example_raster()
 {
   Decoder temp( video_.get_video_width(), video_.get_video_height() );
   return temp.example_raster();
+}
+
+void
+AlfalfaPlayer::set_current_track( const size_t track_id, const size_t frame_index )
+{
+  size_t track_size = video_.get_track_size( track_id );
+  current_track_ = video_.get_frames( track_id, frame_index, track_size );
+  downloaded_frame_bytes_ = 0;
+  current_track_index_ = 0;
+}
+
+Chunk
+AlfalfaPlayer::get_next_chunk()
+{
+  if ( current_track_index_ >= current_track_.size() )
+    throw runtime_error( "No chunks remaining to get" );
+
+  FrameInfo frame = current_track_.at( current_track_index_ );
+  Chunk chunk = video_.get_chunk( frame );
+
+  frame_cache_.put( frame.frame_id(), chunk );
+  downloaded_frame_bytes_ += frame.length();
+  current_track_index_++;
+
+  return chunk;
+}
+
+bool
+AlfalfaPlayer::determine_feasibility( const vector<FrameInfo> prospective_track,
+                                      const size_t throughput_estimate,
+                                      const size_t switching_track_index )
+{
+  long buffer_size = (long) downloaded_frame_bytes_;
+  size_t track_index = current_track_index_;
+  size_t prospective_track_index = 0;
+
+  /* Currently assuming that the switch is made just before the frame at the index
+     switching_track_index in the current_track_; frames in prospective_track_ are
+     subsequently played. */
+  while( track_index < switching_track_index or
+         prospective_track_index < prospective_track.size() )
+  {
+    size_t frame_id;
+    size_t frame_length;
+    if ( track_index < switching_track_index ) {
+      FrameInfo frame = current_track_.at( track_index );
+      frame_id = frame.frame_id();
+      frame_length = frame.length();
+      track_index++;
+    } else {
+      FrameInfo frame = prospective_track.at( prospective_track_index );
+      frame_id = frame.frame_id();
+      frame_length = frame.length();
+      prospective_track_index++;
+    }
+    buffer_size += throughput_estimate;
+    if ( not frame_cache_.has( frame_id ) ) {
+      buffer_size -= ( frame_length );
+    }
+
+    // If buffer size is ever negative, proposed switch is infeasible
+    if ( buffer_size < 0 )
+      return false;
+  }
+  return true;
 }
 
 void AlfalfaPlayer::clear_cache()
