@@ -62,3 +62,4 @@ Makefile.in
 /src/tests/alfalfa-fake-switch
 
 /src/tests/test_vectors/
+/third_party/grpc/

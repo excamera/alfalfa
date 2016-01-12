@@ -1,6 +1,6 @@
 [submodule "alfalfa_test_vectors"]
 	path = alfalfa_test_vectors
 	url = https://github.com/alfalfa/alfalfa_test_vectors
-[submodule "third_party/grpc"]
-	path = third_party/grpc
+[submodule "third_party/grpc.upstream"]
+	path = third_party/grpc.upstream
 	url = https://github.com/grpc/grpc
