@@ -15,6 +15,7 @@ public:
     : video_( directory_name )
   {}
 
+  /* NOTE: For better specifications, look at alfalfa_video_client.hh. */
   /* Get size of a track. */
   AlfalfaProtobufs::SizeT get_track_size( const AlfalfaProtobufs::SizeT & track_id ) const;
 

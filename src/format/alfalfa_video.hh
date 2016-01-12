@@ -83,7 +83,8 @@ public:
   bool has_raster( const size_t raster ) const;
   bool equal_raster_lists( const AlfalfaVideo & video ) const;
 
-  /* Gets an iterator over all quality data in the alf video's quality db. */
+  /* Gets an iterator over all quality data in the alf video's quality db, in no particular
+     order. */
   std::pair<QualityDBCollectionSequencedAccess::iterator, QualityDBCollectionSequencedAccess::iterator>
   get_quality_data( void ) const;
 
@@ -106,7 +107,8 @@ public:
   /* Get number of frames in given track. */
   size_t get_track_size( const size_t track_id ) const { return track_db_.get_end_frame_index( track_id ); }
 
-  /* Gets an iterator over all switch data in the alf video's switch db. */
+  /* Gets an iterator over all switch data in the alf video's switch db, again in no
+     particular order. */
   std::pair<SwitchDBCollectionSequencedAccess::iterator, SwitchDBCollectionSequencedAccess::iterator>
   get_switch_data( void ) const;
 
@@ -116,7 +118,7 @@ public:
   /* Checks if alfalfa video has the given track. */
   bool has_track( const size_t track_id ) const { return track_db_.has_track( track_id ); }
 
-  /* Gets an iterator over all available track ids. */
+  /* Gets an iterator over all available track ids, in no particular order. */
   std::pair<std::unordered_set<size_t>::const_iterator, std::unordered_set<size_t>::const_iterator>
   get_track_ids() const;
 
@@ -144,12 +146,14 @@ public:
   /* Gets an iterator over all frames associated with the particular track. */
   std::pair<TrackDBIterator, TrackDBIterator> get_frames( const size_t track_id ) const;
 
-  /* Gets an iterator over all remaining frames in the track associated with
-     the passed in TrackDBIterator. */
+  /* Gets an iterator over all frames in the track associated with
+     the passed-in TrackDBIterator, starting at the position represented
+     by the passed-in TrackDBIterator. */
   std::pair<TrackDBIterator, TrackDBIterator> get_frames( const TrackDBIterator & it ) const;
 
   /* Gets an iterator over all remaining frames in the new track once the switch
-     implied by the passed-in iterator is applied. */
+     implied by the passed-in iterator is applied; starts at the position represented
+     by the passed-in SwitchDBIterator. */
   std::pair<TrackDBIterator, TrackDBIterator> get_frames( const SwitchDBIterator & it ) const;
 
   /* Gets an iterator over all frames associated with the switch from the current
@@ -164,24 +168,31 @@ public:
                                                                    const size_t to_track_id ) const;
 
   /* Gets an iterator in the track starting from the given frame, backwards
-     to the beginning. */
+     to the beginning; here the frame with index frame_index (includes unshown frames)
+     is _included_. */
   std::pair<TrackDBIterator, TrackDBIterator> get_frames_reverse( const size_t track_id,
                                                                   const size_t frame_index ) const;
-
+  /* Here, from_frame_index and to_frame_index (index includes unshown frames)
+     are both _included_. */
   std::pair<TrackDBIterator, TrackDBIterator> get_frames_reverse( const size_t track_id,
                                                                   const size_t from_frame_index,
                                                                   const size_t to_frame_index ) const;
 
+  /* Gets all switches ending with given frame. */
   std::vector<std::pair<SwitchDBIterator, SwitchDBIterator> >
   get_switches_ending_with_frame( const size_t frame_id ) const;
 
   /* Gets an iterator over all frames associated with a track, starting at
-     start_frame_index and ending at end_frame_index. */
+     start_frame_index and ending at end_frame_index (both indices here include
+     unshown frames) -- frame at end_frame_index is NOT included. */
   std::pair<TrackDBIterator, TrackDBIterator> get_track_range( const size_t track_id,
                                                                const size_t start_frame_index,
                                                                const size_t end_frame_index ) const;
 
-  /* Gets an iterator over all frames associated with a switch. */
+  /* Gets an iterator over all frames associated with a switch -- including the frame
+     at index switch_start_index within the switch and NOT including the frame at index
+     switch_end_index within the switch. From_frame_index is the index of the frame
+     on the starting track where the switch starts. */
   std::pair<SwitchDBIterator, SwitchDBIterator> get_switch_range( const size_t from_track_id,
                                                                   const size_t to_track_id,
                                                                   const size_t from_frame_index,
@@ -189,7 +200,7 @@ public:
                                                                   const size_t switch_end_index ) const;
 
   /* Get the quality of the frame associated with supplied frame_info, given
-     position in the original raster list. */
+     the index of the corresponding original raster in the raster_list. */
   double get_quality( int raster_index, const FrameInfo & frame_info ) const;
 
   std::vector<std::set<size_t> > build_frames_graph( bool dependency_graph = true );

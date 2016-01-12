@@ -27,15 +27,19 @@ public:
   /* Get a raster hash given raster_index. */
   size_t get_raster( const size_t raster_index ) const;
 
-  /* Gets frames in the given track, between the provided indices. */
+  /* Gets frames in the given track, between the provided indices --
+     here, start_frame_index is included and end_frame_index is
+     excluded. */
   std::vector<FrameInfo>
   get_frames( const size_t track_id, const size_t start_frame_index, const size_t end_frame_index ) const;
 
-  /* Gets frames in a track in reverse order, starting from the provided frame_index. */
+  /* Gets frames in a track in reverse order -- here, both the start and end
+     frame indices are excluded. */
   std::vector<FrameInfo>
   get_frames_reverse( const size_t track_id, const size_t start_frame_index, const size_t end_frame_index ) const;
 
-  /* Gets switch frames between the provided indices. */
+  /* Gets switch frames between the provided indices -- switch_start_index is included
+     and switch_end_index is excluded. */
   std::vector<FrameInfo>
   get_frames( const size_t from_track_id, const size_t to_track_id, const size_t from_frame_index,
               const size_t switch_start_index, const size_t switch_end_index ) const;
@@ -54,10 +58,12 @@ public:
   std::vector<size_t>
   get_track_ids() const;
 
-  /* Gets an iterator over track data for a given frame_id. */
+  /* Gets an iterator over track data for a given frame_id -- TrackData's
+     are returned in no particular order. */
   std::vector<TrackData>
   get_track_data_by_frame_id( const size_t frame_id ) const;
 
+  /* Gets ALL switches ending with the given frame. */
   std::vector<SwitchInfo>
   get_switches_ending_with_frame( const size_t frame_id ) const;
 
