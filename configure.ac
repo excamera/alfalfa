@@ -7,8 +7,6 @@ AM_INIT_AUTOMAKE([foreign tar-ustar])
 AC_CONFIG_SRCDIR([src/decoder/prediction.cc])
 AC_CONFIG_HEADERS([config.h])
 
-BLANK=''; AC_SUBST(BLANK)
-
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_RANLIB

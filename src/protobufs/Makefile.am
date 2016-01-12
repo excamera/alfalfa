@@ -2,7 +2,7 @@ source = alfalfa.proto
 
 SUFFIXES = .proto .grpc.pb.cc .pb.cc
 
-AM_CPPFLAGS = $(CXX11_FLAGS) -I$(srcdir)/../../third_party/grpc/third_party/protobuf/src -I$(srcdir)/../../third_party/grpc/include
+AM_CPPFLAGS = $(CXX11_FLAGS) $(PROTOBUF_CFLAGS)
 PROTOC = ../../third_party/grpc/bins/opt/protobuf/protoc
 PLUGIN = ../../third_party/grpc/bins/opt/grpc_cpp_plugin
 
