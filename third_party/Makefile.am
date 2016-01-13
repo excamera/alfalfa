@@ -1,5 +1,5 @@
 all-local:
-	cp -dR --no-preserve=mode --preserve=timestamps $(srcdir)/grpc.upstream ./grpc && cd grpc && $(MAKE) $(AM_MAKEFLAGS) static_c static_cxx plugins
+	cp -dR --no-preserve=mode --preserve=timestamps --no-target-directory --update --reflink=auto $(srcdir)/grpc.upstream ./grpc && cd grpc && $(MAKE) $(AM_MAKEFLAGS) static_c static_cxx plugins
 
 check-local:
 
