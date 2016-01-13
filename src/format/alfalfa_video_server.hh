@@ -45,8 +45,10 @@ public:
   /* Gets an iterator over all available track ids. */
   AlfalfaProtobufs::TrackIdsIterator get_track_ids() const;
 
-  /* Gets an iterator over track data for a given frame_id. */
+  /* Gets an iterator over track data for a given frame_id / track_id + displayed_raster_index. */
   AlfalfaProtobufs::TrackDataIterator get_track_data_by_frame_id( const AlfalfaProtobufs::SizeT & frame_id ) const;
+  AlfalfaProtobufs::SizeT
+  get_frame_index_by_displayed_raster_index( const AlfalfaProtobufs::TrackPositionDisplayedRasterIndex & track_pos_dri ) const;
 
   AlfalfaProtobufs::Switches get_switches_ending_with_frame( const AlfalfaProtobufs::SizeT & frame_id ) const;
 

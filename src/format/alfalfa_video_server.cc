@@ -143,6 +143,15 @@ AlfalfaVideoServer::get_track_data_by_frame_id( const AlfalfaProtobufs::SizeT & 
   return track_data_iterator.to_protobuf();
 }
 
+AlfalfaProtobufs::SizeT
+AlfalfaVideoServer::get_frame_index_by_displayed_raster_index( const AlfalfaProtobufs::TrackPositionDisplayedRasterIndex & track_pos_dri ) const
+{
+  TrackPositionDisplayedRasterIndex track_pos_dri_deserialized( track_pos_dri );
+  size_t frame_index = video_.get_dri_to_frame_index_mapping( track_pos_dri_deserialized.track_id,
+                                                              track_pos_dri_deserialized.displayed_raster_index ).front();
+  return SizeT( frame_index ).to_protobuf();
+}
+
 AlfalfaProtobufs::Switches
 AlfalfaVideoServer::get_switches_ending_with_frame( const AlfalfaProtobufs::SizeT & frame_id ) const
 {

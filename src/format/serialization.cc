@@ -462,6 +462,29 @@ TrackPosition::to_protobuf() const
   return message;
 }
 
+TrackPositionDisplayedRasterIndex::TrackPositionDisplayedRasterIndex(
+  const size_t track_id, const size_t displayed_raster_index )
+  : track_id( track_id ),
+    displayed_raster_index( displayed_raster_index )
+{}
+
+TrackPositionDisplayedRasterIndex::TrackPositionDisplayedRasterIndex(
+  const AlfalfaProtobufs::TrackPositionDisplayedRasterIndex & message )
+  : track_id( message.track_id() ),
+    displayed_raster_index( message.displayed_raster_index() )
+{}
+
+AlfalfaProtobufs::TrackPositionDisplayedRasterIndex
+TrackPositionDisplayedRasterIndex::to_protobuf() const
+{
+  AlfalfaProtobufs::TrackPositionDisplayedRasterIndex message;
+
+  message.set_track_id( track_id );
+  message.set_displayed_raster_index( displayed_raster_index );
+
+  return message;
+}
+
 TrackRangeArgs::TrackRangeArgs( const size_t track_id, const size_t start_frame_index,
                                 const size_t end_frame_index )
   : track_id( track_id ),
