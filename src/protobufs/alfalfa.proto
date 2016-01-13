@@ -133,7 +133,7 @@ message Empty {
 
 }
 
-service AlfalfaVideoServer {
+service AlfalfaVideo {
   rpc get_track_size( SizeT ) returns ( SizeT ) {}
   rpc get_frame_by_id( SizeT ) returns ( FrameInfo ) {}
   rpc get_frame_by_track_pos( TrackPosition ) returns ( TrackData ) {}
