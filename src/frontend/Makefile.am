@@ -1,7 +1,7 @@
 AM_CPPFLAGS = -I../protobufs -I$(srcdir)/../util -I$(srcdir)/../decoder -I$(srcdir)/../format -I$(srcdir)/../display -I$(srcdir)/../encoder $(GLU_CFLAGS) $(GLEW_CFLAGS) $(GLFW3_CFLAGS) $(X264_CFLAGS) $(CXX11_FLAGS) $(PROTOBUF_CFLAGS)
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(NODEBUG_CXXFLAGS)
 
-bin_PROGRAMS = vp8decode vp8play collisions alfalfa-import alfalfa-combine alfalfa-describe alfalfa-encode alfalfa-play-manually alfalfa-play-super-manually alfalfa-weave alfalfa-verify switch-describe frameinfo
+bin_PROGRAMS = vp8decode vp8play collisions alfalfa-import alfalfa-combine alfalfa-describe alfalfa-encode alfalfa-server alfalfa-play-manually alfalfa-play-super-manually alfalfa-weave alfalfa-verify switch-describe frameinfo
 
 vp8decode_SOURCES = vp8decode.cc
 vp8decode_LDADD = ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../display/libalfalfadisplay.a ../util/libalfalfautil.a $(X264_LIBS)
@@ -32,6 +32,9 @@ alfalfa_describe_LDADD = ../format/libalfalfavideo.a ../protobufs/libalfalfaprot
 
 alfalfa_encode_SOURCES = alfalfa-encode.cc
 alfalfa_encode_LDADD = ../format/libalfalfavideo.a ../protobufs/libalfalfaprotobufs.a ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../util/libalfalfautil.a $(X264_LIBS) $(PROTOBUF_LIBS)
+
+alfalfa_server_SOURCES = alfalfa-server.cc
+alfalfa_server_LDADD = ../format/libalfalfavideo.a ../protobufs/libalfalfaprotobufs.a ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../util/libalfalfautil.a $(X264_LIBS) $(PROTOBUF_LIBS)
 
 alfalfa_play_manually_SOURCES = alfalfa-play-manually.cc
 alfalfa_play_manually_LDADD = ../format/libalfalfavideo.a ../protobufs/libalfalfaprotobufs.a ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../display/libalfalfadisplay.a ../util/libalfalfautil.a $(GLU_LIBS) $(X264_LIBS) $(GLEW_LIBS) $(GLFW3_LIBS) $(PROTOBUF_LIBS)
