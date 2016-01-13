@@ -63,6 +63,15 @@ public:
   std::vector<TrackData>
   get_track_data_by_frame_id( const size_t frame_id ) const;
 
+  /* Gets an iterator over track data for a given displayed_raster_index and
+     track_id -- this could return one or more TrackData's depending on the
+     number of unshown frames required to produce the particular raster. TrackData's
+     are returned in order of increasing frame_index (that is, in the order they
+     occur in the track). */
+  std::vector<TrackData>
+  get_track_data_by_displayed_raster_index( const size_t track_id,
+                                            const size_t displayed_raster_index ) const;
+
   /* Gets ALL switches ending with the given frame. */
   std::vector<SwitchInfo>
   get_switches_ending_with_frame( const size_t frame_id ) const;

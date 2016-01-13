@@ -107,6 +107,11 @@ message TrackPosition {
   required uint64 frame_index = 2;
 }
 
+message TrackPositionDisplayedRasterIndex {
+  required uint64 track_id = 1;
+  required uint64 displayed_raster_index = 2;
+}
+
 message TrackRangeArgs {
   required uint64 track_id = 1;
   required uint64 start_frame_index = 2;

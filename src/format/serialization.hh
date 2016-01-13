@@ -180,6 +180,17 @@ struct TrackPosition
   AlfalfaProtobufs::TrackPosition to_protobuf() const;
 };
 
+struct TrackPositionDisplayedRasterIndex
+{
+  size_t track_id;
+  size_t displayed_raster_index;
+
+  TrackPositionDisplayedRasterIndex( const size_t track_id, const size_t displayed_raster_index );
+  TrackPositionDisplayedRasterIndex( const AlfalfaProtobufs::TrackPositionDisplayedRasterIndex & message );
+
+  AlfalfaProtobufs::TrackPositionDisplayedRasterIndex to_protobuf() const;
+};
+
 struct TrackRangeArgs
 {
   size_t track_id;
