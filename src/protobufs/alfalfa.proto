@@ -129,3 +129,26 @@ message SwitchRangeArgs {
 message Chunk {
   required bytes buffer = 1;
 }
+
+message Empty {
+
+}
+
+service AlfalfaVideoServer {
+  rpc get_track_size( SizeT ) returns ( SizeT ) {}
+  rpc get_frame_by_id( SizeT ) returns ( FrameInfo ) {}
+  rpc get_frame_by_track_pos( TrackPosition ) returns ( TrackData ) {}
+  rpc get_raster( SizeT ) returns ( SizeT ) {}
+  rpc get_frames( TrackRangeArgs ) returns ( FrameIterator ) {}
+  rpc get_frames_reverse( TrackRangeArgs ) returns ( FrameIterator ) {}
+  rpc get_frames_in_switch( SwitchRangeArgs ) returns ( FrameIterator ) {}
+  rpc get_quality_data_by_original_raster( SizeT ) returns ( QualityDataIterator ) {}
+  rpc get_frames_by_output_hash( SizeT ) returns ( FrameIterator ) {}
+  rpc get_frames_by_decoder_hash( DecoderHash ) returns ( FrameIterator ) {}
+  rpc get_track_ids( Empty ) returns ( TrackIdsIterator ) {}
+  rpc get_track_data_by_frame_id( SizeT ) returns ( TrackDataIterator ) {}
+  rpc get_switches_ending_with_frame( SizeT ) returns ( Switches ) {}
+  rpc get_chunk( FrameInfo ) returns ( Chunk ) {}
+  rpc get_video_width( Empty ) returns ( SizeT ) {}
+  rpc get_video_height( Empty ) returns ( SizeT ) {}
+}
