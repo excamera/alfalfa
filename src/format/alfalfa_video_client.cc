@@ -104,6 +104,15 @@ AlfalfaVideoClient::get_track_data_by_frame_id( const size_t frame_id ) const
   return TrackDataIterator( server_.get_track_data_by_frame_id( frame_id_serialized ) ).track_data_items;
 }
 
+vector<TrackData>
+AlfalfaVideoClient::get_track_data_by_displayed_raster_index( const size_t track_id,
+                                                              const size_t displayed_raster_index ) const
+{
+  AlfalfaProtobufs::TrackPositionDisplayedRasterIndex track_pos_dri_serialized =
+    TrackPositionDisplayedRasterIndex( track_id, displayed_raster_index ).to_protobuf();
+  return TrackDataIterator( server_.get_track_data_by_displayed_raster_index( track_pos_dri_serialized ) ).track_data_items;
+}
+
 vector<SwitchInfo>
 AlfalfaVideoClient::get_switches_ending_with_frame( const size_t frame_id ) const
 {
