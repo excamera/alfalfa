@@ -124,6 +124,9 @@ public:
 
   std::pair<TrackDBCollectionByFrameIdIndex::const_iterator, TrackDBCollectionByFrameIdIndex::const_iterator>
   get_track_data_by_frame_id( const size_t frame_id ) const { return track_db_.search_by_frame_id( frame_id ); }
+  std::pair<TrackDBCollectionByDisplayedRasterIndex::const_iterator, TrackDBCollectionByDisplayedRasterIndex::const_iterator>
+  get_track_data_by_displayed_raster_index( const size_t track_id, const size_t displayed_raster_index ) const
+  { return track_db_.search_by_displayed_raster_index( track_id, displayed_raster_index ); }
 
   /* Gets an iterator over all frames  by output hash / decoder hash. */
   std::pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator>

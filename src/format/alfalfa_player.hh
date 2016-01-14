@@ -32,7 +32,7 @@ private:
 
   std::list<size_t> cached_items_ {};
   std::map<size_t, std::pair<ObjectType,
-			     std::list<size_t>::const_iterator> > cache_ {};
+                             std::list<size_t>::const_iterator> > cache_ {};
 
 public:
   void put( const ObjectType & obj );
@@ -53,7 +53,7 @@ private:
 
 public:
   void put( const Decoder & decoder );
-  
+
   LRUCache<RasterHandle> & raster_cache() { return raster_cache_; }
   const LRUCache<RasterHandle> & raster_cache() const { return raster_cache_; }
 
@@ -107,9 +107,9 @@ private:
     friend std::ostream & operator<<( std::ostream & os, const TrackPath & path )
     {
       os << boost::format( "Track %-d: %-d -> %-d (%-.2f KB)" ) % path.track_id
-                                                                   % path.start_index
-                                                                   % ( path.end_index - 1 )
-                                                                   % ( path.cost / 1024.0 );
+                                                                % path.start_index
+                                                                % ( path.end_index - 1 )
+                                                                % ( path.cost / 1024.0 );
 
       return os;
     }
@@ -159,7 +159,7 @@ private:
   Optional<RasterHandle> get_raster_track_path( const size_t output_hash );
 
 public:
-  AlfalfaPlayer( const std::string & directory_name );
+  AlfalfaPlayer( const std::string & server_address );
 
   Optional<RasterHandle> get_raster( const size_t output_hash,
                                      PathType path_type = MINIMUM_PATH, bool verbose = false );

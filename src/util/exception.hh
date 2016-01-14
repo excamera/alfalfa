@@ -3,6 +3,7 @@
 
 #include <system_error>
 #include <iostream>
+#include <grpc++/support/status.h>
 
 class tagged_error : public std::system_error
 {
@@ -69,18 +70,33 @@ public:
   {}
 };
 
+class RPCError : public std::runtime_error
+{
+public:
+  RPCError( const char * what )
+    : std::runtime_error( what )
+  {}
+};
+
 inline int SystemCall( const char * s_attempt, const int return_value )
 {
   if ( return_value >= 0 ) {
     return return_value;
   }
-  
+
   throw unix_error( s_attempt );
 }
 
 inline int SystemCall( const std::string & s_attempt, const int return_value )
 {
   return SystemCall( s_attempt.c_str(), return_value );
+}
+
+inline void RPC( const char * s_attempt, const grpc::Status status )
+{
+  if ( not status.ok() ) {
+    throw RPCError( s_attempt );
+  }
 }
 
 #endif

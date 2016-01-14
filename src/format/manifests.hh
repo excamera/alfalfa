@@ -160,6 +160,7 @@ public:
 
 struct TrackDBByTrackIdAndFrameIndexTag;
 struct TrackDBByFrameIdTag;
+struct TrackDBByDisplayedRasterIndexTag;
 struct TrackDBSequencedTag;
 
 typedef multi_index_container
@@ -182,6 +183,17 @@ typedef multi_index_container
       tag<TrackDBByFrameIdTag>,
       member<TrackData, size_t, &TrackData::frame_id>
     >,
+    ordered_unique
+    <
+      tag<TrackDBByDisplayedRasterIndexTag>,
+      composite_key
+      <
+        TrackData,
+        member<TrackData, size_t, &TrackData::track_id>,
+        member<TrackData, size_t, &TrackData::displayed_raster_index>,
+        member<TrackData, size_t, &TrackData::frame_index>
+      >
+    >,
     sequenced
     <
       tag<TrackDBSequencedTag>
@@ -193,6 +205,8 @@ typedef TrackDBCollection::index<TrackDBByTrackIdAndFrameIndexTag>::type
 TrackDBCollectionByTrackIdAndFrameIndex;
 typedef TrackDBCollection::index<TrackDBByFrameIdTag>::type
 TrackDBCollectionByFrameIdIndex;
+typedef TrackDBCollection::index<TrackDBByDisplayedRasterIndexTag>::type
+TrackDBCollectionByDisplayedRasterIndex;
 typedef TrackDBCollection::index<TrackDBSequencedTag>::type
 TrackDBCollectionSequencedAccess;
 
@@ -205,6 +219,7 @@ class TrackDB : public BasicDatabase<TrackData, AlfalfaProtobufs::TrackData,
 private:
   std::unordered_set<size_t> track_ids_ {};
   std::unordered_map<size_t, size_t> track_frame_indices_ {};
+  std::unordered_map<size_t, size_t> track_displayed_raster_indices_ {};
 
 public:
   TrackDB() {}
@@ -219,6 +234,7 @@ public:
   }
 
   size_t insert( TrackData td );
+  size_t insert( TrackData td, bool shown );
 
   std::pair<std::unordered_set<size_t>::const_iterator, std::unordered_set<size_t>::const_iterator>
   get_track_ids() const;
@@ -229,6 +245,9 @@ public:
   std::pair<TrackDBCollectionByFrameIdIndex::const_iterator,
     TrackDBCollectionByFrameIdIndex::const_iterator>
   search_by_frame_id( const size_t frame_id ) const;
+  std::pair<TrackDBCollectionByDisplayedRasterIndex::const_iterator,
+    TrackDBCollectionByDisplayedRasterIndex::const_iterator>
+  search_by_displayed_raster_index( const size_t track_id, const size_t displayed_raster_index ) const;
   size_t get_end_frame_index( const size_t track_id ) const;
   bool has_track( const size_t track_id ) const;
 };
