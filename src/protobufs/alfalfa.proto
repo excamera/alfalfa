@@ -146,6 +146,7 @@ service AlfalfaVideo {
   rpc get_frames_by_decoder_hash( DecoderHash ) returns ( FrameIterator ) {}
   rpc get_track_ids( Empty ) returns ( TrackIdsIterator ) {}
   rpc get_track_data_by_frame_id( SizeT ) returns ( TrackDataIterator ) {}
+  rpc get_frame_index_by_displayed_raster_index( TrackPositionDisplayedRasterIndex ) returns ( SizeT ) {}
   rpc get_switches_ending_with_frame( SizeT ) returns ( Switches ) {}
   rpc get_chunk( FrameInfo ) returns ( Chunk ) {}
   rpc get_video_width( Empty ) returns ( SizeT ) {}

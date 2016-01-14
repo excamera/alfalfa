@@ -75,9 +75,9 @@ public:
                                            const AlfalfaProtobufs::SizeT * frame_id,
                                            AlfalfaProtobufs::TrackDataIterator * track_data_iterator ) override;
 
-  grpc::Status get_track_data_by_displayed_raster_index( grpc::ServerContext * context,
-                                                         const AlfalfaProtobufs::TrackPositionDisplayedRasterIndex * track_pos_dri,
-                                                         AlfalfaProtobufs::TrackDataIterator * response ) override;
+  grpc::Status get_frame_index_by_displayed_raster_index( grpc::ServerContext * context,
+                                                          const AlfalfaProtobufs::TrackPositionDisplayedRasterIndex * track_pos_dri,
+                                                          AlfalfaProtobufs::SizeT * response ) override;
 
   grpc::Status get_switches_ending_with_frame( grpc::ServerContext * context,
                                                const AlfalfaProtobufs::SizeT * frame_id,

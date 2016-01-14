@@ -33,14 +33,14 @@ int main( int argc, char const *argv[] )
 {
   try {
     if ( argc != 2 ) {
-      cerr << "Usage: " << argv[ 0 ] << " <alf-video>" << endl;
+      cerr << "Usage: " << argv[ 0 ] << " <server-address>" << endl;
       return EX_USAGE;
     }
 
-    const string video_dir( argv[ 1 ] );
+    const string server_address( argv[ 1 ] );
 
-    AlfalfaVideoClient video( video_dir );
-    AlfalfaPlayer player( video_dir );
+    AlfalfaVideoClient video( server_address );
+    AlfalfaPlayer player( server_address );
     VideoDisplay display( player.example_raster() );
 
     do {
