@@ -12,8 +12,8 @@ def check(file_id):
     if os.system("../frontend/alfalfa-import %s %s" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR)):
       raise Exception("alfalfa-import failed.")
 
-    if os.system("./alfalfa-import-check %s %s 0" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR)):
-      raise Exception("alfalfa-import-check failed.")
+    if os.system("./alfalfa-track-check %s %s 0" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR)):
+      raise Exception("alfalfa-track-check failed.")
 
   except Exception as ex:
     print(ex)

@@ -20,11 +20,11 @@ def check(file_id):
     if os.system("../frontend/alfalfa-combine %s %s %s" % (ALFALFA_VIDEO_DIR1, ALFALFA_VIDEO_DIR2, ALFALFA_VIDEO_DIR_COMBINED)):
       raise Exception("alfalfa-combine failed.")
 
-    if os.system("./alfalfa-import-check %s %s 0" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR_COMBINED)):
-      raise Exception("alfalfa-import-check (1) failed.")
+    if os.system("./alfalfa-track-check %s %s 0" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR_COMBINED)):
+      raise Exception("alfalfa-track-check (1) failed.")
 
-    if os.system("./alfalfa-import-check %s %s 1" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR_COMBINED)):
-      raise Exception("alfalfa-import-check (2) failed.")
+    if os.system("./alfalfa-track-check %s %s 1" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR_COMBINED)):
+      raise Exception("alfalfa-track-check (2) failed.")
 
     if os.system("./alfalfa-combine-check %s %s %s" % (ALFALFA_VIDEO_DIR1, ALFALFA_VIDEO_DIR2, ALFALFA_VIDEO_DIR_COMBINED)):
       raise Exception("alfalfa-combine-check failed.")

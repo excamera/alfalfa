@@ -4,7 +4,7 @@ AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(NODEBUG_CXXFLAGS)
 LDADD = ../format/libalfalfavideo.a ../protobufs/libalfalfaprotobufs.a ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../util/libalfalfautil.a $(X264_LIBS) $(PROTOBUF_LIBS)
 check_PROGRAMS = extract-key-frames decode-to-stdout encode-loopback roundtrip \
                  state-collisions ivfcopy framedb-test trackdb-test \
-                 framedb-benchmark ivfcompare alfalfa-import-check alfalfa-combine-check \
+                 framedb-benchmark ivfcompare alfalfa-track-check alfalfa-combine-check \
 		 alfalfa-encode-check alfalfa-decode-to-stdout alfalfa-continuation-switch alfalfa-fake-switch
 
 extract_key_frames_SOURCES = extract-key-frames.cc
@@ -16,7 +16,7 @@ state_collisions_SOURCES = state-collisions.cc
 ivfcopy_SOURCES = ivfcopy.cc
 framedb_test_SOURCES = framedb-test.cc
 trackdb_test_SOURCES = trackdb-test.cc
-alfalfa_import_check_SOURCES = alfalfa-import-check.cc
+alfalfa_track_check_SOURCES = alfalfa-track-check.cc
 alfalfa_combine_check_SOURCES = alfalfa-combine-check.cc
 alfalfa_encode_check_SOURCES = alfalfa-encode-check.cc
 framedb_benchmark_SOURCES = framedb-benchmark.cc

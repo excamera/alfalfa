@@ -56,7 +56,7 @@ Makefile.in
 /src/tests/trackdb-test
 /src/tests/alfalfa-combine-check
 /src/tests/alfalfa-encode-check
-/src/tests/alfalfa-import-check
+/src/tests/alfalfa-track-check
 /src/tests/alfalfa-decode-to-stdout
 /src/tests/alfalfa-continuation-switch
 /src/tests/alfalfa-fake-switch
