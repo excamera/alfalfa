@@ -2,12 +2,16 @@
 
 import os
 import sys
+import random
 
 ALFALFA_VIDEO_DIR1 = "alfalfa_video_dir1_decoding/"
 ALFALFA_VIDEO_DIR2 = "alfalfa_video_dir2_decoding/"
 ALFALFA_VIDEO_DIR_COMBINED = "alfalfa_video_dir_combined_decoding/"
 
+port = random.randint(60000, 61000)
+
 def check(file_id):
+  global port
   alfalfa_test_vector = ("test_vectors/" + file_id)
 
   if not os.path.isfile( alfalfa_test_vector ):
@@ -22,8 +26,9 @@ def check(file_id):
     os.system("rm -rf %s" % ALFALFA_VIDEO_DIR2)
     os.system("rm -rf %s" % ALFALFA_VIDEO_DIR_COMBINED)
     sys.exit(1)
-  output1 = os.popen("./alfalfa-decode-to-stdout %s 0 2>&1 | sha1sum" % (ALFALFA_VIDEO_DIR_COMBINED)).read().split(" ")[0]
-  output2 = os.popen("./alfalfa-decode-to-stdout %s 1 2>&1 | sha1sum" % (ALFALFA_VIDEO_DIR_COMBINED)).read().split(" ")[0]
+  output1 = os.popen("./alfalfa-decode-to-stdout %s 127.0.0.1:%d 0 2>&1 | sha1sum" % (ALFALFA_VIDEO_DIR_COMBINED, port)).read().split(" ")[0]
+  output2 = os.popen("./alfalfa-decode-to-stdout %s 127.0.0.1:%d 1 2>&1 | sha1sum" % (ALFALFA_VIDEO_DIR_COMBINED, port)).read().split(" ")[0]
+  port += 1
   os.system("rm -rf %s" % ALFALFA_VIDEO_DIR1)
   os.system("rm -rf %s" % ALFALFA_VIDEO_DIR2)
   os.system("rm -rf %s" % ALFALFA_VIDEO_DIR_COMBINED)

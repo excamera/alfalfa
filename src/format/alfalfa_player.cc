@@ -326,8 +326,8 @@ AlfalfaPlayer::get_min_track_seek( const size_t output_hash )
   return make_tuple( min_track_path, min_frame_dependency );
 }
 
-AlfalfaPlayer::AlfalfaPlayer( const std::string & directory_name )
-  : video_( directory_name ), cache_()
+AlfalfaPlayer::AlfalfaPlayer( const std::string & server_address )
+  : video_( server_address ), cache_()
 {}
 
 Decoder AlfalfaPlayer::get_decoder( const FrameInfo & frame )

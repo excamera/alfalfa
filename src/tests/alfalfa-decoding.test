@@ -1,8 +1,13 @@
 #!/usr/bin/env perl
-
+package DecodingTest;
 use strict;
 
+$DecodingTest::server_port = int(rand(1000) + 60000);
+
 sub check {
+  our $server_port;
+  $server_port++;
+
   my ( $sha1 ) = @_;
   my $filename = 'test_vectors/' . ${sha1};
   unless ( -e $filename ) {
@@ -12,9 +17,10 @@ sub check {
 
   print STDERR "Checking $sha1... ";
   my $alfalfa_video_directory = "./$sha1";
+  my $alfalfa_video_server = "127.0.0.1:$server_port";
   my $alfalfa_import_command = "../frontend/alfalfa-import $filename $alfalfa_video_directory";
   system( $alfalfa_import_command );
-  my $decoded_sha1 = (split ' ', `./alfalfa-decode-to-stdout $alfalfa_video_directory 0 2>&1 | sha1sum` )[ 0 ];
+  my $decoded_sha1 = (split ' ', `./alfalfa-decode-to-stdout $alfalfa_video_directory $alfalfa_video_server 0 2>&1 | sha1sum` )[ 0 ];
   my $remove_alfalfa_directory_command = "rm -r $alfalfa_video_directory";
   system( $remove_alfalfa_directory_command );
   if ( $decoded_sha1 ne $sha1 ) {

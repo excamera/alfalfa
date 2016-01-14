@@ -13,7 +13,7 @@
 #include <grpc++/security/server_credentials.h>
 
 #include "exception.hh"
-#include "alfalfa_video_server.hh"
+#include "alfalfa_video_service.hh"
 
 using namespace std;
 using namespace grpc;
@@ -30,12 +30,12 @@ int main( int argc, char const *argv[] )
     string alf_path( argv[ 1 ] );
     string server_address( argv[ 2 ] );
 
-    AlfalfaVideoServer service( alf_path );
+    AlfalfaVideoServiceImpl service( alf_path );
     ServerBuilder builder;
     builder.AddListeningPort( server_address, grpc::InsecureServerCredentials() );
-    builder.AddService( &server );
+    builder.RegisterService( &service );
 
-    unique_ptr<Server> server(builder.BuildAndStart());
+    unique_ptr<Server> server( builder.BuildAndStart() );
     cout << "Alfalfa server listening on " << server_address << endl;
     server->Wait();
   } catch (const exception &e ) {
