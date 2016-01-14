@@ -61,6 +61,7 @@ Makefile.in
 /src/tests/alfalfa-decode-to-stdout
 /src/tests/alfalfa-continuation-switch
 /src/tests/alfalfa-fake-switch
+/src/tests/alfalfa-server-check
 
 /src/tests/test_vectors/
 /third_party/grpc/
