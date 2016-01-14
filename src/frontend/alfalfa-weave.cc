@@ -65,34 +65,6 @@ private:
   
   const PlayableAlfalfaVideo & source_alf_;
 
-  // Remove any players that have converged onto stream_player
-  // and any duplicates
-  void cleanup_switch_players( WritableAlfalfaVideo & new_alf )
-  {
-    vector<SwitchPlayer> new_players;
-    new_players.reserve( switch_players_.size() );
-
-    for ( SwitchPlayer & player : switch_players_ ) {
-      if ( player == stream_player_ ) {
-        // If this player has converged onto the track, we no longer
-        // need to track it, so add its info to the SwitchDB
-        player.write_switches( new_alf, ++TrackDBIterator( track_frame_ ) );
-      } else {
-        auto iter = find( new_players.begin(), new_players.end(), player ); 
-        if ( iter != new_players.end() ) {
-          // If two players are equal but have yet to converge
-          // we only need to track one copy, but merge together their switch
-          // information
-          iter->merge( player );
-        } else {
-          new_players.emplace_back( move( player ) );
-        }
-      }
-    }
-
-    switch_players_ = move( new_players );
-  }
-
 public:
   StreamState( const pair<TrackDBIterator, TrackDBIterator> & track_pair,
                const PlayableAlfalfaVideo & source_alf )
@@ -104,18 +76,39 @@ public:
 
   void update_switch_players( WritableAlfalfaVideo & alf )
   {
+    vector<SwitchPlayer> new_players;
+    new_players.reserve( switch_players_.size() );
+
     for ( SwitchPlayer & player : switch_players_ ) {
       for ( const FrameInfo & frame : cur_frames_ ) {
-        if ( not player.need_continuation() and player.can_decode( frame ) ) {
+        if ( player.can_decode( frame ) ) {
           player.safe_decode( frame, source_alf_.get_chunk( frame ) );
           player.add_switch_frame( frame );
         } else {
           player.set_need_continuation( true );
+          break;
+        }
+      }
+
+      if ( player == stream_player_ ) {
+        assert( not player.need_continuation() );
+        /* Check if we're converged on the track after decoding the current frames */
+        player.write_switches( alf, ++TrackDBIterator( track_frame_ ) );
+      } else {
+        /* Remove duplicate converging players */
+        auto iter = find( new_players.begin(), new_players.end(), player ); 
+        if ( iter != new_players.end() ) {
+          /* If two players are equal but have yet to converge
+           * we only need to track one copy, but merge together their switch
+           * information */
+          iter->merge( player );
+        } else {
+          new_players.emplace_back( move( player ) );
         }
       }
     }
 
-    cleanup_switch_players( alf );
+    switch_players_ = move( new_players );
   }
 
 
