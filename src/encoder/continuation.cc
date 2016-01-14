@@ -341,7 +341,7 @@ static RasterHandle make_new_reference( const reference_frame & frame, const VP8
   assert( VP8Raster::macroblock_dimension( current.display_height() ) == deps.num_macroblocks_vert() );
   assert( VP8Raster::macroblock_dimension( current.display_width() ) == deps.num_macroblocks_horiz() );
 
-  MutableRasterHandle mutable_raster( current.width(), current.height() );
+  MutableRasterHandle mutable_raster( current.display_width(), current.display_height() );
 
   for ( unsigned row = 0; row < deps.num_macroblocks_vert(); row++ ) {
     for ( unsigned col = 0; col < deps.num_macroblocks_horiz(); col++ ) {
