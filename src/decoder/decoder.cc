@@ -66,19 +66,15 @@ pair<bool, RasterHandle> Decoder::get_frame_output( const Chunk & compressed_fra
 {
   UncompressedChunk decompressed_frame = decompress_frame( compressed_frame );
   if ( decompressed_frame.key_frame() ) {
-    auto output = decode_frame( parse_frame<KeyFrame>( decompressed_frame ) );
-    return make_pair( output.first, output.second );
+    return decode_frame( parse_frame<KeyFrame>( decompressed_frame ) );
   } else if ( decompressed_frame.experimental() ) {
     if ( decompressed_frame.reference_update() ) {
-      auto output = decode_frame( parse_frame<RefUpdateFrame>( decompressed_frame ) );
-      return make_pair( output.first, output.second );
+      return decode_frame( parse_frame<RefUpdateFrame>( decompressed_frame ) );
     } else {
-      auto output = decode_frame( parse_frame<StateUpdateFrame>( decompressed_frame ) );
-      return make_pair( output.first, output.second );
+      return decode_frame( parse_frame<StateUpdateFrame>( decompressed_frame ) );
     }
   } else {
-    auto output = decode_frame( parse_frame<InterFrame>( decompressed_frame ) );
-    return make_pair( output.first, output.second );
+    return decode_frame( parse_frame<InterFrame>( decompressed_frame ) );
   }
 }
 
