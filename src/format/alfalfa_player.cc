@@ -368,7 +368,7 @@ AlfalfaPlayer::FrameDependency AlfalfaPlayer::follow_track_path( TrackPath path,
 
   while ( from_frame_index < path.end_index ) {
     for ( auto frame : frames ) {
-      Decoder && decoder = get_decoder( frame );
+      Decoder decoder = get_decoder( frame );
       pair<bool, RasterHandle> output = decoder.get_frame_output( video_.get_chunk( frame ) );
       cache_.put( decoder );
       cache_.raster_cache().put( output.second );
@@ -395,7 +395,7 @@ AlfalfaPlayer::FrameDependency AlfalfaPlayer::follow_switch_path( SwitchPath pat
     path.from_frame_index, path.switch_start_index, path.switch_end_index );
 
   for ( auto frame : frames ) {
-    Decoder && decoder = get_decoder( frame );
+    Decoder decoder = get_decoder( frame );
     pair<bool, RasterHandle> output = decoder.get_frame_output( video_.get_chunk( frame ) );
     cache_.put( decoder );
     cache_.raster_cache().put( output.second );
