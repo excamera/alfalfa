@@ -35,7 +35,7 @@ int main( int argc, char *argv[] )
 
     for ( FrameInfo fi : track_db_iterator ) {
       // Get the raw frame data from alfalfa video directory
-      Chunk chunk = Chunk( alf_client.get_chunk( fi ) );
+      const string chunk = alf_client.get_chunk( fi );
       // Decode the frame
       Optional<RasterHandle> raster_optional = player.decode( chunk );
       // If the raster is decoded successfully, dump the raster to stdout

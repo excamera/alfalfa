@@ -60,7 +60,7 @@ template pair<bool, RasterHandle> Decoder::decode_frame<RefUpdateFrame>( const R
 template pair<bool, RasterHandle> Decoder::decode_frame<StateUpdateFrame>( const StateUpdateFrame & frame );
 
 /* This function takes care of the full decoding process from decompressing the Chunk
- * to returning an Optional<RasterHandle> as the output
+ * to returning a pair with the display status and the decoded raster.
  */
 pair<bool, RasterHandle> Decoder::get_frame_output( const Chunk & compressed_frame )
 {

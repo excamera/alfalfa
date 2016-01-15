@@ -178,14 +178,13 @@ AlfalfaVideoClient::get_switches_ending_with_frame( const size_t frame_id ) cons
   return Switches( response ).switches;
 }
 
-const Chunk
-AlfalfaVideoClient::get_chunk( const FrameInfo & frame_info )
+string AlfalfaVideoClient::get_chunk( const FrameInfo & frame_info )
 {
   ClientContext context;
-  AlfalfaProtobufs::FrameInfo frame_info_serialized = frame_info.to_protobuf();
+  AlfalfaProtobufs::Chunk response;
   RPC( "get_chunk",
-    stub_->get_chunk( &context, frame_info_serialized, &buffered_chunk_ ) );
-  return Chunk( buffered_chunk_ );
+       stub_->get_chunk( &context, frame_info.to_protobuf(), &response ) );
+  return response.buffer();
 }
 
 size_t

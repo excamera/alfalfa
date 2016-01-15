@@ -216,8 +216,8 @@ Status AlfalfaVideoServiceImpl::get_chunk( ServerContext *,
                                            const AlfalfaProtobufs::FrameInfo * frame_info,
                                            AlfalfaProtobufs::Chunk * response )
 {
-  FrameInfo frame_info_deserialized( *frame_info );
-  response->CopyFrom( video_.get_chunk( frame_info_deserialized ).to_protobuf() );
+  const Chunk ret = video_.get_chunk( *frame_info );
+  response->set_buffer( ret.buffer(), ret.size() );
   return Status::OK;
 }
 

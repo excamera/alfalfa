@@ -15,13 +15,11 @@ class AlfalfaVideoClient
 {
 private:
   std::unique_ptr<AlfalfaProtobufs::AlfalfaVideo::Stub> stub_;
-  AlfalfaProtobufs::Chunk buffered_chunk_;
 
 public:
   AlfalfaVideoClient( const std::string & server_address )
     : stub_( AlfalfaProtobufs::AlfalfaVideo::NewStub( grpc::CreateChannel(
-        server_address, grpc::InsecureChannelCredentials() ) ) ),
-      buffered_chunk_()
+        server_address, grpc::InsecureChannelCredentials() ) ) )
   {}
 
   /* Get size of a track. */
@@ -81,7 +79,7 @@ public:
   get_switches_ending_with_frame( const size_t frame_id ) const;
 
   /* Get chunk given a frame_info object. */
-  const Chunk get_chunk( const FrameInfo & frame_info );
+  std::string get_chunk( const FrameInfo & frame_info );
 
   /* Getters for width and height. */
   size_t get_video_width() const;

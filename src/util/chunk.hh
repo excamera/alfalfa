@@ -5,8 +5,6 @@
 #include <stdexcept>
 #include <cstring>
 
-#include "alfalfa.pb.h"
-
 class Chunk
 {
 private:
@@ -49,8 +47,6 @@ public:
       size_( str.size() )
   {}
 
-  Chunk( const AlfalfaProtobufs::Chunk & message );
-
   const uint8_t * buffer( void ) const { return buffer_; }
   const uint64_t & size( void ) const { return size_; }
 
@@ -65,8 +61,6 @@ public:
     bounds_check( offset + length );
     return Chunk( buffer_ + offset, length );
   }
-
-  AlfalfaProtobufs::Chunk to_protobuf() const;
 
   std::string to_string( void ) const
   {
