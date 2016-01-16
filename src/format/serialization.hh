@@ -236,7 +236,6 @@ class ProtobufDeserializer
 protected:
   FileDescriptor fin_;
   google::protobuf::io::FileInputStream raw_input_ { fin_.num() };
-  google::protobuf::io::CodedInputStream coded_input_ { &raw_input_ };
 
 public:
   ProtobufDeserializer( const std::string & filename );
@@ -251,17 +250,19 @@ template<class EntryProtobufType>
 bool ProtobufDeserializer::read_protobuf( EntryProtobufType & message )
 {
   google::protobuf::uint32 size;
-  bool has_next = coded_input_.ReadLittleEndian32( &size );
+  google::protobuf::io::CodedInputStream coded_input { &raw_input_ };
+
+  bool has_next = coded_input.ReadLittleEndian32( &size );
 
   if ( not has_next ) {
     return false;
   }
 
   google::protobuf::io::CodedInputStream::Limit message_limit =
-    coded_input_.PushLimit( size );
+    coded_input.PushLimit( size );
 
-  if ( message.ParseFromCodedStream( &coded_input_ ) ) {
-    coded_input_.PopLimit( message_limit );
+  if ( message.ParseFromCodedStream( &coded_input ) ) {
+    coded_input.PopLimit( message_limit );
     return true;
   }
 
