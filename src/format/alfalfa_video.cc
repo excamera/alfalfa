@@ -324,7 +324,7 @@ AlfalfaVideo::get_frames_reverse( const size_t track_id, const size_t from_frame
 }
 
 vector<pair<SwitchDBIterator, SwitchDBIterator> >
-AlfalfaVideo::get_switches_ending_with_frame( const size_t frame_id ) const
+AlfalfaVideo::get_switches_with_frame( const size_t frame_id ) const
 {
   auto switches = switch_db_.get_switches_by_frame_id( frame_id );
   vector<pair<SwitchDBIterator, SwitchDBIterator> > results;

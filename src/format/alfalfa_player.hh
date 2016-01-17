@@ -187,6 +187,11 @@ public:
                               const size_t throughput_estimate,
                               const size_t switching_track_index );
 
+  std::vector<FrameInfo> seek_track_at_dri( const size_t track_id, const size_t dri );
+  std::vector<SwitchInfo> seek_track_through_switch_at_dri( const size_t track_id,
+                                                            const size_t dri,
+                                                            const size_t to_track_id );
+
   size_t cache_size() { return cache_.size(); }
   void clear_cache();
 

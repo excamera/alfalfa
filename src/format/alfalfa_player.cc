@@ -191,7 +191,7 @@ AlfalfaPlayer::get_min_switch_seek( const size_t output_hash )
   FrameDependency min_dependencies;
 
   for ( auto target_frame : frames ) {
-    auto switches = video_.get_switches_ending_with_frame( target_frame.frame_id() );
+    auto switches = video_.get_switches_with_frame( target_frame.frame_id() );
 
     for ( auto sw : switches ) {
       size_t cost = 0;
@@ -389,7 +389,7 @@ AlfalfaPlayer::FrameDependency AlfalfaPlayer::follow_track_path( TrackPath path,
 }
 
 AlfalfaPlayer::FrameDependency AlfalfaPlayer::follow_switch_path( SwitchPath path,
-                                                                   FrameDependency dependencies)
+                                                                  FrameDependency dependencies )
 {
   References refs( video_.get_video_width(), video_.get_video_height() );
   DecoderState state( video_.get_video_width(), video_.get_video_height() );
@@ -567,6 +567,38 @@ AlfalfaPlayer::determine_feasibility( const vector<FrameInfo> prospective_track,
       return false;
   }
   return true;
+}
+
+vector<FrameInfo>
+AlfalfaPlayer::seek_track_at_dri( const size_t track_id, const size_t dri )
+{
+  size_t frame_index = video_.get_frame_index_by_displayed_raster_index( track_id, dri );
+  auto track_seek = get_track_seek( track_id, frame_index );
+  size_t from_frame_index = get<0>( track_seek );
+  return video_.get_frames( track_id, from_frame_index, frame_index );
+}
+
+vector<SwitchInfo>
+AlfalfaPlayer::seek_track_through_switch_at_dri( const size_t track_id, const size_t dri, const size_t to_track_id )
+{
+  vector<SwitchInfo> all_switch_paths;
+  size_t frame_index = video_.get_frame_index_by_displayed_raster_index( track_id, dri );
+
+  // Switch can start at any index in the track
+  for ( size_t switch_start_index = frame_index; switch_start_index < video_.get_track_size( track_id ); switch_start_index++ ) {
+    // Get all switches that contain this frame
+    auto switch_infos = video_.get_switches_with_frame( video_.get_frame( track_id, switch_start_index ).frame_id );
+    for ( auto switch_info : switch_infos ) {
+      // First, verify that the switch starts from where we want it to start
+      if ( switch_info.from_track_id != track_id or
+           switch_info.to_track_id != to_track_id or
+           switch_info.from_frame_index != switch_start_index )
+        continue;
+
+      all_switch_paths.push_back( switch_info );
+    }
+  }
+  return all_switch_paths;
 }
 
 void AlfalfaPlayer::clear_cache()

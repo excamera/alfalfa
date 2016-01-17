@@ -189,12 +189,12 @@ Status AlfalfaVideoServiceImpl::get_frame_index_by_displayed_raster_index( Serve
   return Status::OK;
 }
 
-Status AlfalfaVideoServiceImpl::get_switches_ending_with_frame( ServerContext *,
-                                                                const AlfalfaProtobufs::SizeT * frame_id,
-                                                                AlfalfaProtobufs::Switches * response )
+Status AlfalfaVideoServiceImpl::get_switches_with_frame( ServerContext *,
+                                                         const AlfalfaProtobufs::SizeT * frame_id,
+                                                         AlfalfaProtobufs::Switches * response )
 {
   SizeT frame_id_deserialized( *frame_id );
-  auto switches = video_.get_switches_ending_with_frame( frame_id_deserialized.sizet );
+  auto switches = video_.get_switches_with_frame( frame_id_deserialized.sizet );
   Switches sw;
   for ( auto frames : switches ) {
     SwitchInfo switch_info( frames.first.from_track_id(), frames.first.to_track_id(),
