@@ -279,4 +279,8 @@ public:
 void combine( WritableAlfalfaVideo& combined_video,
               const PlayableAlfalfaVideo & video );
 
+void squash( WritableAlfalfaVideo& combined_video,
+             const PlayableAlfalfaVideo & video,
+             const std::map<size_t, size_t> & apriori_track_id_mapping={} );
+
 #endif /* ALFALFA_VIDEO_HH */

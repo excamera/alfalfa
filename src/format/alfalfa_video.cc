@@ -619,3 +619,72 @@ combine( WritableAlfalfaVideo & combined_video, const PlayableAlfalfaVideo & vid
     combined_video.insert_switch_data( item );
   }
 }
+
+void squash( WritableAlfalfaVideo & squashed_video, const PlayableAlfalfaVideo & video,
+             const map<size_t, size_t> & apriori_track_id_mapping )
+{
+  if ( not squashed_video.can_combine( video ) ) {
+    throw invalid_argument( "cannot combine: raster lists are not the same." );
+  }
+  else if ( squashed_video.get_raster_list_size() == 0 ) {
+    size_t i;
+    for ( i = 0; i < video.get_raster_list_size(); i++ ) {
+      squashed_video.insert_raster( video.get_raster( i ) );
+    }
+  }
+
+  for ( auto quality_data = video.get_quality_data();
+        quality_data.first != quality_data.second; quality_data.first++ ) {
+    squashed_video.insert_quality_data( *quality_data.first );
+  }
+
+  map<size_t, size_t> frame_id_mapping;
+  map<size_t, size_t> track_id_mapping;
+
+  for ( auto frame_data = video.get_frames();
+        frame_data.first != frame_data.second; frame_data.first++ ) {
+    FrameInfo frame_info = *frame_data.first;
+    frame_id_mapping[ frame_info.frame_id() ] = squashed_video.insert_frame_data(
+      frame_info, video.get_chunk( frame_info ) );
+  }
+
+  // Now, create new track id mapping similar to combine, at the same time respecting
+  // the apriori track id mapping
+
+  for ( auto track_data = video.get_track_data();
+        track_data.first != track_data.second; track_data.first++ ) {
+    TrackData item = *track_data.first;
+    bool insert_into_track_db = true;
+    if ( apriori_track_id_mapping.count( item.track_id ) > 0 ) {
+      track_id_mapping[ item.track_id ] = apriori_track_id_mapping.at( item.track_id );
+      item.track_id = track_id_mapping[ item.track_id ];
+      insert_into_track_db = false;
+    }
+    else if ( track_id_mapping.count( item.track_id ) > 0 ) {
+      item.track_id = track_id_mapping[ item.track_id ];
+    }
+    else if ( squashed_video.has_track( item.track_id ) ) {
+      size_t new_track_id = item.track_id;
+      while ( squashed_video.has_track( new_track_id ) ) {
+        new_track_id++;
+      }
+      track_id_mapping[ item.track_id ] = new_track_id;
+      item.track_id = new_track_id;
+    } else {
+      track_id_mapping[ item.track_id ] = item.track_id;
+    }
+    item.frame_id = frame_id_mapping[ item.frame_id ];
+    if ( insert_into_track_db ) {
+      squashed_video.insert_track_data( item );
+    }
+  }
+
+  for ( auto switch_data = video.get_switch_data();
+        switch_data.first != switch_data.second; switch_data.first++ ) {
+    SwitchData item = *switch_data.first;
+    item.from_track_id = track_id_mapping[ item.from_track_id ];
+    item.to_track_id = track_id_mapping[ item.to_track_id ];
+    item.frame_id = frame_id_mapping[ item.frame_id ];
+    squashed_video.insert_switch_data( item );
+  }
+}
