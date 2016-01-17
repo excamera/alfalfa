@@ -380,57 +380,6 @@ double AlfalfaVideo::get_quality( int raster_index, const FrameInfo & frame_info
     original_raster, approximate_raster ).quality;
 }
 
-vector<set<size_t> > AlfalfaVideo::build_frames_graph( bool dependency_graph )
-{
-  size_t N = frame_db_.size();
-  vector<set<size_t> > A( N );
-  auto keyframe_search = frame_db_.search_for_keyframes();
-
-  for ( auto keyframe = keyframe_search.first; keyframe != keyframe_search.second; keyframe++ ) {
-    DecoderHash decoder_state( 0, 0, 0, 0 );
-    decoder_state.update( keyframe->target_hash() );
-
-    forward_list<pair<size_t, DecoderHash> > Q;
-    set<size_t> visited;
-
-    Q.push_front( make_pair( keyframe->frame_id(), decoder_state ) );
-
-    while ( not Q.empty() ) {
-      pair<size_t, DecoderHash> current = Q.front();
-      Q.pop_front();
-
-      visited.insert( current.first );
-
-      const FrameInfo & frame_info = frame_db_[ current.first ];
-      bool is_keyframe = frame_info.is_keyframe();
-
-      DecoderHash current_state = current.second;
-      auto next_frames = frame_db_.search_by_decoder_hash( current_state );
-
-      for ( auto it = next_frames.first; it != next_frames.second; it++ ) {
-        if ( is_keyframe and it->is_keyframe() ) {
-          continue;
-        }
-
-        if ( dependency_graph ) {
-          A[ it->frame_id() ].insert( frame_info.frame_id() );
-        }
-        else {
-          A[ frame_info.frame_id() ].insert( it->frame_id() );
-        }
-
-        if ( not it->is_keyframe() and visited.count( it->frame_id() ) == 0 ) {
-          DecoderHash new_state = current_state;
-          new_state.update( it->target_hash() );
-          Q.push_front( make_pair( it->frame_id(), new_state ) );
-        }
-      }
-    }
-  }
-
-  return A;
-}
-
 /* WritableAlfalfaVideo */
 
 WritableAlfalfaVideo::WritableAlfalfaVideo( const string & directory_name,

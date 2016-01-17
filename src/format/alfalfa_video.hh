@@ -215,8 +215,6 @@ public:
      the index of the corresponding original raster in the raster_list. */
   double get_quality( int raster_index, const FrameInfo & frame_info ) const;
 
-  std::vector<std::set<size_t> > build_frames_graph( bool dependency_graph = true );
-
   AlfalfaVideo( const AlfalfaVideo & other ) = delete;
   AlfalfaVideo & operator=( const AlfalfaVideo & other ) = delete;
 
