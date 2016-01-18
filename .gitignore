@@ -42,6 +42,7 @@ Makefile.in
 /src/frontend/alfalfa-describe
 /src/frontend/alfalfa-encode
 /src/frontend/alfalfa-server
+/src/frontend/alfalfa-play-semiauto
 /src/frontend/alfalfa-play-manually
 /src/frontend/alfalfa-play-super-manually
 /src/frontend/alfalfa-verify
