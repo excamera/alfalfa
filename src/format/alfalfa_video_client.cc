@@ -178,7 +178,7 @@ AlfalfaVideoClient::get_switches_ending_with_frame( const size_t frame_id ) cons
   return Switches( response ).switches;
 }
 
-string AlfalfaVideoClient::get_chunk( const FrameInfo & frame_info )
+string AlfalfaVideoClient::get_chunk( const FrameInfo & frame_info ) const
 {
   ClientContext context;
   AlfalfaProtobufs::Chunk response;
