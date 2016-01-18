@@ -168,13 +168,13 @@ AlfalfaVideoClient::get_frame_index_by_displayed_raster_index( const size_t trac
 }
 
 vector<SwitchInfo>
-AlfalfaVideoClient::get_switches_ending_with_frame( const size_t frame_id ) const
+AlfalfaVideoClient::get_switches_with_frame( const size_t frame_id ) const
 {
   ClientContext context;
   AlfalfaProtobufs::SizeT frame_id_serialized = SizeT( frame_id ).to_protobuf();
   AlfalfaProtobufs::Switches response;
-  RPC( "get_switches_ending_with_frame",
-    stub_->get_switches_ending_with_frame( &context, frame_id_serialized, &response ) );
+  RPC( "get_switches_with_frame",
+    stub_->get_switches_with_frame( &context, frame_id_serialized, &response ) );
   return Switches( response ).switches;
 }
 

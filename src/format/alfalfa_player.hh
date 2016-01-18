@@ -35,9 +35,9 @@ private:
                              std::list<size_t>::const_iterator> > cache_ {};
 
 public:
-  void put( const ObjectType & obj );
-  bool has( const size_t hash ) const;
-  ObjectType get( const size_t hash );
+  void put( const size_t key, const ObjectType & obj );
+  bool has( const size_t key ) const;
+  ObjectType get( const size_t key );
 
   void clear();
   size_t size() const;
@@ -71,6 +71,16 @@ class AlfalfaPlayer
 private:
   AlfalfaVideoClient video_;
   RasterAndStateCache cache_;
+
+  /* Current number of bytes in frame buffer -- used for optimal track determination. */
+  size_t downloaded_frame_bytes_;
+  /* Sequence of frames currently being played by the player -- could be frames
+     on a track, frames on a switch, or both. */
+  std::vector<FrameInfo> current_track_;
+  /* Index of next frame in current_track_ that needs to be downloaded. */
+  size_t current_track_index_;
+
+  LRUCache<Chunk> frame_cache_ {};
 
   class FrameDependency
   {
@@ -165,6 +175,22 @@ public:
                                      PathType path_type = MINIMUM_PATH, bool verbose = false );
 
   const VP8Raster & example_raster();
+
+  /* Helper method to easily set current_track. */
+  void set_current_track( const size_t track_id, const size_t frame_index );
+  /* Move current pointer position up by 1, and retrieve chunk from server.
+     Also store chunk in local client-side cache, evicting element if needed. */
+  Chunk get_next_chunk();
+  /* Determine if it's possible to play the provided sequence of frames, given the
+     provided throughput estimate. */
+  bool determine_feasibility( const std::vector<FrameInfo> prospective_track,
+                              const size_t throughput_estimate,
+                              const size_t switching_track_index );
+
+  std::vector<FrameInfo> seek_track_at_dri( const size_t track_id, const size_t dri );
+  std::vector<SwitchInfo> seek_track_through_switch_at_dri( const size_t track_id,
+                                                            const size_t dri,
+                                                            const size_t to_track_id );
 
   size_t cache_size() { return cache_.size(); }
   void clear_cache();
