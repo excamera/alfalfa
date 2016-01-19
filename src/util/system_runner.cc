@@ -6,6 +6,7 @@
 #include <thread>
 #include <exception>
 
+#include "child_process.hh"
 #include "exception.hh"
 
 using namespace std;
@@ -48,4 +49,19 @@ int ezexec( const vector< string > & command, const bool path_search )
     SystemCall( path_search ? "execvpe" : "execve",
                 (path_search ? execvpe : execve )( &argv[ 0 ][ 0 ], &argv[ 0 ], environ ) );
     throw runtime_error( "execve: failed" );
+}
+
+void run( const vector< string > & command )
+{
+    ChildProcess command_process( join( command ), [&] () {
+            return ezexec( command );
+        } );
+
+    while ( !command_process.terminated() ) {
+        command_process.wait();
+    }
+
+    if ( command_process.exit_status() != 0 ) {
+        command_process.throw_exception();
+    }
 }

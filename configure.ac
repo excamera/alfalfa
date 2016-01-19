@@ -81,6 +81,28 @@ AC_TYPE_UINT8_T
 # Checks for library functions.
 AC_FUNC_MMAP
 
+# Checks for Apache and Apache modules
+AC_ARG_VAR([APACHE2], [path to apache2])
+AC_PATH_PROGS([APACHE2], [apache2 httpd], [no], [$PATH$PATH_SEPARATOR/sbin$PATH_SEPARATOR/usr/sbin$PATH_SEPARATOR/bin$PATH_SEPARATOR/usr/bin])
+if test "$APACHE2" = "no"; then
+  AC_MSG_ERROR([apache2 is required])
+fi
+AC_DEFINE_UNQUOTED([APACHE2], ["$APACHE2"], [path to apache2])
+
+AC_PATH_PROG([APXS], [apxs], [])
+AS_IF([test x"$APXS" = x],
+  [AC_MSG_ERROR([cannot find apxs, the Apache extension tool])])
+
+AC_SUBST([APACHE2_MODULE_DIR], [$(apxs -q exp_libexecdir)])
+
+AC_CHECK_FILE([$APACHE2_MODULE_DIR/mod_mpm_prefork.so],
+	      [AC_DEFINE_UNQUOTED([MOD_MPM_PREFORK], ["$APACHE2_MODULE_DIR/mod_mpm_prefork.so"], [mod_prefork.so])],
+              [AC_MSG_ERROR([apache2 mod_mpm_prefork.so is required])])
+
+AC_CHECK_FILE([$APACHE2_MODULE_DIR/mod_rewrite.so],
+	      [AC_DEFINE_UNQUOTED([MOD_REWRITE], ["$APACHE2_MODULE_DIR/mod_rewrite.so"], [mod_rewrite.so])],
+              [AC_MSG_ERROR([apache2 mod_rewrite.so is required])])
+
 AC_LANG_POP(C++)
 
 AC_CONFIG_FILES([Makefile
@@ -93,7 +115,8 @@ AC_CONFIG_FILES([Makefile
                  src/display/Makefile
                  src/encoder/Makefile
                  src/frontend/Makefile
-                 src/tests/Makefile
+		 src/webserver/Makefile
+		 src/tests/Makefile
                  man/Makefile])
 
 AC_OUTPUT
