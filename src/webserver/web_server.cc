@@ -1,5 +1,6 @@
 #include <string>
 #include <iostream>
+#include <climits>
 
 #include "web_server.hh"
 #include "temp_file.hh"
@@ -13,31 +14,35 @@
 using namespace std;
 
 WebServer::WebServer( const string & listen_address,
-		      const string & video_filename )
+		      const string & video_directory )
   : config_file_( "/tmp/alfalfa_apache_config" ),
     moved_away_( false )
 {
+  config_file_.write( string( "LoadModule authz_core_module " ) + MOD_AUTHZ_CORE + "\n" );
   config_file_.write( string( "LoadModule mpm_prefork_module " ) + MOD_MPM_PREFORK + "\n" );
   config_file_.write( "Mutex pthread\n" );
 
-  config_file_.write( string( "LoadModule rewrite_module " ) + MOD_REWRITE + "\n" );
-  config_file_.write( "RewriteEngine On\n" );
-  
-  config_file_.write( "RewriteRule ^(.*)$ " );
-  config_file_.write( video_filename + "\n" );
-;
+  /* sanity-check directory name */
+  for ( const char & c : video_directory ) {
+    if ( c == '"' or c == 0 ) {
+      throw runtime_error( "invalid character in video directory path" );
+    }
+  }
+
+  /* get rooted path to directory */
+  char resolved_path[ PATH_MAX ];
+
+  if ( realpath( video_directory.c_str(), resolved_path ) == nullptr ) {
+    throw unix_error( "realpath (" + video_directory + ")" );
+  }
+
+  config_file_.write( string( "DocumentRoot \"" ) + resolved_path + "\"\n" );
 
   config_file_.write( "PidFile /tmp/alfalfa_apache_pid." + to_string( getpid() ) + "." + to_string( random() ) + "\n" );
 
-  config_file_.write( "ServerName alfalfa.\n" );
-
   config_file_.write( "ErrorLog /dev/null\n" );
 
-  config_file_.write( "CustomLog /dev/null common\n" );
-
-  config_file_.write( "User #" + to_string( getuid() ) + "\n" );
-
-  config_file_.write( "Group #" + to_string( getgid() ) + "\n" );
+  config_file_.write( "ServerName alfalfa\n" );
 
   config_file_.write( "Listen " + listen_address );
 

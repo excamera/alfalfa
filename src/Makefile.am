@@ -1,1 +1,1 @@
-SUBDIRS = protobufs util decoder format display encoder frontend webserver tests
+SUBDIRS = protobufs util decoder format display encoder webserver frontend tests

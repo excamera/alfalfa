@@ -5,9 +5,11 @@
 #include <unistd.h>
 #include <thread>
 #include <exception>
+#include <algorithm>
 
 #include "child_process.hh"
 #include "exception.hh"
+#include "system_runner.hh"
 
 using namespace std;
 
@@ -49,6 +51,14 @@ int ezexec( const vector< string > & command, const bool path_search )
     SystemCall( path_search ? "execvpe" : "execve",
                 (path_search ? execvpe : execve )( &argv[ 0 ][ 0 ], &argv[ 0 ], environ ) );
     throw runtime_error( "execve: failed" );
+}
+
+string join( const vector< string > & command )
+{
+    return accumulate( command.begin() + 1, command.end(),
+                       command.front(),
+                       []( const string & a, const string & b )
+                       { return a + " " + b; } );
 }
 
 void run( const vector< string > & command )

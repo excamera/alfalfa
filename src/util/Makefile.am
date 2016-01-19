@@ -10,4 +10,5 @@ libalfalfautil_a_SOURCES = 2d.hh chunk.hh exception.hh file.cc \
   subprocess.hh subprocess.cc \
   temp_file.hh temp_file.cc \
   child_process.hh child_process.cc \
-  signalmask.hh signalmask.cc
+  signalmask.hh signalmask.cc \
+  system_runner.hh system_runner.cc

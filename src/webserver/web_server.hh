@@ -17,7 +17,7 @@ private:
 
 public:
   WebServer( const std::string & listen_address,
-	     const std::string & video_filename );
+	     const std::string & video_directory );
   ~WebServer();
 
   /* ban copying */

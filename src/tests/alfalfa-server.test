@@ -7,10 +7,11 @@ import random
 import subprocess as sub
 
 ALFALFA_VIDEO_DIR = "alfalfa_video_dir_server/"
-port = random.randint(60000, 61000)
 
 def check(file_id):
-  global port
+  port = random.randint(60000, 61000)
+  httpport = random.randint(61000, 62000)
+
   proc = None
 
   try:
@@ -19,9 +20,9 @@ def check(file_id):
     if os.system("../frontend/alfalfa-import %s %s" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR)):
       raise Exception("alfalfa-import failed.")
 
-    server_command = "../frontend/alfalfa-server %s 0.0.0.0:%d >/dev/null 2>/dev/null" % (ALFALFA_VIDEO_DIR, port)
-    proc = sub.Popen(server_command, shell=True)
-    time.sleep(5)
+    server_command = "../frontend/alfalfa-server %s 0.0.0.0:%d 0.0.0.0:%d" % (ALFALFA_VIDEO_DIR, port, httpport)
+    proc = sub.Popen(server_command, shell=True, stdin=sub.PIPE)
+    time.sleep(2)
 
     output = sub.check_output("./alfalfa-server-check 0.0.0.0:%d 0 | sha1sum" % port, shell=True).split(" ")[0]
 
@@ -33,11 +34,10 @@ def check(file_id):
     sys.exit(1)
 
   finally:
-    port += 1
-
     if proc:
-      proc.terminate()
-
+      proc.stdin.write( "x\n" )
+      time.sleep(1)
+      
     os.system("rm -rf %s" % ALFALFA_VIDEO_DIR)
 
 check('04b68b0a642d8285303d2b8884fc374e09d28ae9')
