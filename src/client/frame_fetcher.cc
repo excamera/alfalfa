@@ -5,9 +5,11 @@
 using namespace std;
 using namespace boost::network::http;
 
+typedef basic_client<tags::http_keepalive_8bit_udp_resolve, 1, 1> alfalfa_http_client;
+
 struct HTTPClientWrapper
 {
-  client c {};
+  alfalfa_http_client c {};
 };
 
 FrameFetcher::FrameFetcher( const string & framestore_url )
@@ -18,7 +20,7 @@ FrameFetcher::FrameFetcher( const string & framestore_url )
 string FrameFetcher::get_chunk( const FrameInfo & frame_info )
 {
   /* make request to video URL */
-  client::request the_request { framestore_url_ };
+  alfalfa_http_client::request the_request { framestore_url_ };
 
   /* add range header */
   const string range_beginning = to_string( frame_info.offset() );
@@ -26,16 +28,10 @@ string FrameFetcher::get_chunk( const FrameInfo & frame_info )
   const string range = "bytes=" + range_beginning + "-" + range_end;
   add_header( the_request, "Range", range );
 
-  cerr << "Fetching " << range << "\n";
-  
   /* make the query */
-  client::response the_response = http_client_->c.get( the_request );
+  auto the_response = http_client_->c.get( the_request );
 
-  const string body_of_response = body( the_response );
-  
-  cerr << "returning response\n";
-
-  return body_of_response;
+  return body( the_response );
 }
 
 FrameFetcher::~FrameFetcher() {}
