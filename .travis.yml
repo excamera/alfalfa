@@ -20,10 +20,9 @@ addons:
     - libxi-dev
     - libglew-dev
     - vpx-tools
-    - libcppnetlib-dev
 
 before_script:
-  - sudo apt-get install -y -qq apache2-bin apache2-dev
+  - sudo apt-get install -y -qq apache2-bin apache2-dev libcppnetlib-dev
   - sudo -E add-apt-repository -y 'deb http://ftp.us.debian.org/debian unstable main contrib non-free'
   - sudo apt-get update -qq
   - sudo apt-get install -y -qq --force-yes libglfw3-dev
