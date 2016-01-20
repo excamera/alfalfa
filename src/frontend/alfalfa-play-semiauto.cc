@@ -41,7 +41,7 @@ int main( const int argc, char const *argv[] )
   const vector<FrameInfo> frames = video.get_frames( track_to_play, 0, track_size );
 
   for ( const auto & frame : frames ) {
-    const string coded_frame = video.get_chunk( frame );
+    const string coded_frame = fetcher.get_chunk( frame );
     const Optional<RasterHandle> raster = decoder.parse_and_decode_frame( coded_frame );
     if ( raster.initialized() ) {
       display.draw( raster.get() );
