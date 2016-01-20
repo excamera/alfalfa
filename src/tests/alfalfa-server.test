@@ -20,7 +20,7 @@ def check(file_id):
     if os.system("../frontend/alfalfa-import %s %s" % (alfalfa_test_vector, ALFALFA_VIDEO_DIR)):
       raise Exception("alfalfa-import failed.")
 
-    server_command = "../frontend/alfalfa-server %s 0.0.0.0:%d 0.0.0.0:%d" % (ALFALFA_VIDEO_DIR, port, httpport)
+    server_command = "../frontend/alfalfa-server %s 0.0.0.0:%d 0.0.0.0:%d http://localhost:%d" % (ALFALFA_VIDEO_DIR, port, httpport, httpport)
     proc = sub.Popen(server_command, shell=True, stdin=sub.PIPE)
     time.sleep(2)
 

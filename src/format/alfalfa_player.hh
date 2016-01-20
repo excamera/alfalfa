@@ -8,6 +8,7 @@
 #include <boost/format.hpp>
 
 #include "alfalfa_video_client.hh"
+#include "frame_fetcher.hh"
 
 enum DependencyType
 {
@@ -70,6 +71,7 @@ class AlfalfaPlayer
 {
 private:
   AlfalfaVideoClient video_;
+  FrameFetcher web_;
   RasterAndStateCache cache_;
 
   class FrameDependency

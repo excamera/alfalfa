@@ -1,7 +1,9 @@
-AM_CPPFLAGS = -I../protobufs -I$(srcdir)/../util -I$(srcdir)/../decoder -I$(srcdir)/../format -I$(srcdir)/../encoder $(X264_CFLAGS) $(CXX11_FLAGS) $(PROTOBUF_CFLAGS)
+AM_CPPFLAGS = -I../protobufs -I$(srcdir)/../util -I$(srcdir)/../decoder -I$(srcdir)/../format -I$(srcdir)/../encoder -I$(srcdir)/../client $(X264_CFLAGS) $(CXX11_FLAGS) $(PROTOBUF_CFLAGS)
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(NODEBUG_CXXFLAGS)
 
-LDADD = ../format/libalfalfavideo.a ../protobufs/libalfalfaprotobufs.a ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../util/libalfalfautil.a $(X264_LIBS) $(PROTOBUF_LIBS)
+CLIENT_WEB_LIBS = ../client/libalfalfaclient.a -lboost_system -lboost_thread -lcppnetlib-client-connections -lcppnetlib-uri
+
+LDADD = ../format/libalfalfavideo.a ../protobufs/libalfalfaprotobufs.a ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../util/libalfalfautil.a $(X264_LIBS) $(PROTOBUF_LIBS) $(CLIENT_WEB_LIBS)
 check_PROGRAMS = extract-key-frames decode-to-stdout encode-loopback roundtrip \
                  state-collisions ivfcopy framedb-test trackdb-test \
                  framedb-benchmark ivfcompare alfalfa-track-check alfalfa-combine-check \

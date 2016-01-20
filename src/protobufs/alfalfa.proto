@@ -125,8 +125,8 @@ message SwitchRangeArgs {
   required uint64 switch_end_index = 5;
 }
 
-message Chunk {
-  required bytes buffer = 1;
+message URL {
+  required bytes url = 1;
 }
 
 message Empty {
@@ -134,6 +134,7 @@ message Empty {
 }
 
 service AlfalfaVideo {
+  rpc get_url( Empty ) returns ( URL ) {}
   rpc get_track_size( SizeT ) returns ( SizeT ) {}
   rpc get_frame_by_id( SizeT ) returns ( FrameInfo ) {}
   rpc get_frame_by_track_pos( TrackPosition ) returns ( TrackData ) {}
@@ -148,7 +149,6 @@ service AlfalfaVideo {
   rpc get_track_data_by_frame_id( SizeT ) returns ( TrackDataIterator ) {}
   rpc get_frame_index_by_displayed_raster_index( TrackPositionDisplayedRasterIndex ) returns ( SizeT ) {}
   rpc get_switches_ending_with_frame( SizeT ) returns ( Switches ) {}
-  rpc get_chunk( FrameInfo ) returns ( Chunk ) {}
   rpc get_video_width( Empty ) returns ( SizeT ) {}
   rpc get_video_height( Empty ) returns ( SizeT ) {}
 }

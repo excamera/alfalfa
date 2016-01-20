@@ -178,15 +178,6 @@ AlfalfaVideoClient::get_switches_ending_with_frame( const size_t frame_id ) cons
   return Switches( response ).switches;
 }
 
-string AlfalfaVideoClient::get_chunk( const FrameInfo & frame_info ) const
-{
-  ClientContext context;
-  AlfalfaProtobufs::Chunk response;
-  RPC( "get_chunk",
-       stub_->get_chunk( &context, frame_info.to_protobuf(), &response ) );
-  return response.buffer();
-}
-
 size_t
 AlfalfaVideoClient::get_video_width() const
 {
@@ -207,4 +198,14 @@ AlfalfaVideoClient::get_video_height() const
   RPC( "get_video_height",
     stub_->get_video_height( &context, empty, &response ) );
   return SizeT( response ).sizet;
+}
+
+string AlfalfaVideoClient::get_url() const
+{
+  ClientContext context;
+  AlfalfaProtobufs::Empty empty;
+  AlfalfaProtobufs::URL response;
+  RPC( "get_url",
+       stub_->get_url( &context, empty, &response ) );
+  return response.url();
 }

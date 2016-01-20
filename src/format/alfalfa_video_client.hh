@@ -78,12 +78,12 @@ public:
   std::vector<SwitchInfo>
   get_switches_ending_with_frame( const size_t frame_id ) const;
 
-  /* Get chunk given a frame_info object. */
-  std::string get_chunk( const FrameInfo & frame_info ) const;
-
   /* Getters for width and height. */
   size_t get_video_width() const;
   size_t get_video_height() const;
+
+  /* Get URL to retrieve frames via HTTP */
+  std::string get_url() const;
 };
 
 #endif /* ALFALFA_VIDEO_CLIENT_HH */

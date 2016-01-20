@@ -25,16 +25,17 @@ int main( int argc, char const *argv[] )
 {
   try
   {
-    if ( argc != 4 ) {
-      cerr << "Usage: " << argv[ 0 ] << " <alf> <server-address> <webserver-address>" << endl;
+    if ( argc != 5 ) {
+      cerr << "Usage: " << argv[ 0 ] << " <alf> <server-address> <webserver-address> <url>" << endl;
       return EX_USAGE;
     }
 
     string alf_path( argv[ 1 ] );
     string server_address( argv[ 2 ] );
     string webserver_address( argv[ 3 ] );
+    string url( argv[ 4 ] );
 
-    AlfalfaVideoServiceImpl service( alf_path );
+    AlfalfaVideoServiceImpl service( alf_path, url );
     ServerBuilder builder;
 
     cout << "Starting Apache... ";

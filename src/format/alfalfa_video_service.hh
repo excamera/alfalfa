@@ -10,10 +10,13 @@ class AlfalfaVideoServiceImpl : public AlfalfaProtobufs::AlfalfaVideo::Service
 {
 private:
   const PlayableAlfalfaVideo video_;
-
+  std::string url_;
+  
 public:
-  AlfalfaVideoServiceImpl( const std::string & directory_name )
-    : video_( directory_name )
+  AlfalfaVideoServiceImpl( const std::string & directory_name,
+			   const std::string & url )
+    : video_( directory_name ),
+      url_( url )
   {}
 
   const std::string & ivf_filename() const
@@ -88,10 +91,6 @@ public:
                                                const AlfalfaProtobufs::SizeT * frame_id,
                                                AlfalfaProtobufs::Switches * switches ) override;
 
-  grpc::Status get_chunk( grpc::ServerContext * context,
-                          const AlfalfaProtobufs::FrameInfo * frame_info,
-                          AlfalfaProtobufs::Chunk * chunk ) override;
-
   /* Getters for width and height. */
   grpc::Status get_video_width( grpc::ServerContext * context,
                                 const AlfalfaProtobufs::Empty * empty,
@@ -100,6 +99,11 @@ public:
   grpc::Status get_video_height( grpc::ServerContext * context,
                                  const AlfalfaProtobufs::Empty * empty,
                                  AlfalfaProtobufs::SizeT * height ) override;
+
+  /* Get URL to retrieve frames via HTTP */
+  grpc::Status get_url( grpc::ServerContext * context,
+			const AlfalfaProtobufs::Empty * empty,
+			AlfalfaProtobufs::URL * url ) override;
 };
 
 #endif /* ALFALFA_VIDEO_SERVER_HH */

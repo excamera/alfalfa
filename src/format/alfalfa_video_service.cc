@@ -260,17 +260,6 @@ Status AlfalfaVideoServiceImpl::get_switches_ending_with_frame( ServerContext *,
   return Status::OK;
 }
 
-Status AlfalfaVideoServiceImpl::get_chunk( ServerContext *,
-                                           const AlfalfaProtobufs::FrameInfo * frame_info,
-                                           AlfalfaProtobufs::Chunk * response )
-{
-  Log( "get_chunk" );
-
-  const Chunk ret = video_.get_chunk( *frame_info );
-  response->set_buffer( ret.buffer(), ret.size() );
-  return Status::OK;
-}
-
 Status AlfalfaVideoServiceImpl::get_video_width( ServerContext *,
                                                  const AlfalfaProtobufs::Empty *,
                                                  AlfalfaProtobufs::SizeT * response )
@@ -288,5 +277,15 @@ Status AlfalfaVideoServiceImpl::get_video_height( ServerContext *,
   Log( "get_video_height" );
 
   response->CopyFrom( SizeT( video_.get_info().height ).to_protobuf() );
+  return Status::OK;
+}
+
+Status AlfalfaVideoServiceImpl::get_url( ServerContext *,
+					 const AlfalfaProtobufs::Empty *,
+					 AlfalfaProtobufs::URL * response )
+{
+  Log( "get_url" );
+
+  response->set_url( url_ );
   return Status::OK;
 }

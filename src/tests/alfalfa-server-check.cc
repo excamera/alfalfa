@@ -6,6 +6,7 @@
 #include "alfalfa_video_client.hh"
 #include "manifests.hh"
 #include "frame_db.hh"
+#include "frame_fetcher.hh"
 
 using namespace std;
 
@@ -19,6 +20,7 @@ int main( int argc, char *argv[] )
 
     string server_address( argv[ 1 ] );
     AlfalfaVideoClient alf_client( server_address );
+    FrameFetcher web( alf_client.get_url() );
 
     // Use string stream to convert track_id string to a size_t
     stringstream type_converter( argv[ 2 ] );
@@ -35,7 +37,7 @@ int main( int argc, char *argv[] )
 
     for ( FrameInfo fi : track_db_iterator ) {
       // Get the raw frame data from alfalfa video directory
-      const string chunk = alf_client.get_chunk( fi );
+      const string chunk = web.get_chunk( fi );
       // Decode the frame
       Optional<RasterHandle> raster_optional = player.decode( chunk );
       // If the raster is decoded successfully, dump the raster to stdout

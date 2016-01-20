@@ -327,7 +327,7 @@ AlfalfaPlayer::get_min_track_seek( const size_t output_hash )
 }
 
 AlfalfaPlayer::AlfalfaPlayer( const std::string & server_address )
-  : video_( server_address ), cache_()
+  : video_( server_address ), web_( video_.get_url() ), cache_()
 {}
 
 Decoder AlfalfaPlayer::get_decoder( const FrameInfo & frame )
@@ -369,7 +369,7 @@ AlfalfaPlayer::FrameDependency AlfalfaPlayer::follow_track_path( TrackPath path,
   while ( from_frame_index < path.end_index ) {
     for ( auto frame : frames ) {
       Decoder decoder = get_decoder( frame );
-      pair<bool, RasterHandle> output = decoder.get_frame_output( video_.get_chunk( frame ) );
+      pair<bool, RasterHandle> output = decoder.get_frame_output( web_.get_chunk( frame ) );
       cache_.put( decoder );
       cache_.raster_cache().put( output.second );
       dependencies.update_dependencies_forward( frame, cache_ );
@@ -396,7 +396,7 @@ AlfalfaPlayer::FrameDependency AlfalfaPlayer::follow_switch_path( SwitchPath pat
 
   for ( auto frame : frames ) {
     Decoder decoder = get_decoder( frame );
-    pair<bool, RasterHandle> output = decoder.get_frame_output( video_.get_chunk( frame ) );
+    pair<bool, RasterHandle> output = decoder.get_frame_output( web_.get_chunk( frame ) );
     cache_.put( decoder );
     cache_.raster_cache().put( output.second );
     dependencies.update_dependencies_forward( frame, cache_ );
