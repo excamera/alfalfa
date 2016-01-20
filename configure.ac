@@ -116,6 +116,7 @@ AC_CONFIG_FILES([Makefile
                  src/encoder/Makefile
                  src/frontend/Makefile
 		 src/webserver/Makefile
+		 src/client/Makefile
 		 src/tests/Makefile
                  man/Makefile])
 
