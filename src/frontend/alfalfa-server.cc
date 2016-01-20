@@ -38,7 +38,7 @@ int main( int argc, char const *argv[] )
     ServerBuilder builder;
 
     cout << "Starting Apache... ";
-    WebServer apache( webserver_address, alf_path );
+    WebServer apache( webserver_address, alf_path, service.ivf_filename() );
     cout << "done.\n";
     
     builder.AddListeningPort( server_address, grpc::InsecureServerCredentials() );

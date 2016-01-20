@@ -103,6 +103,10 @@ AC_CHECK_FILE([$APACHE2_MODULE_DIR/mod_authz_core.so],
               [AC_DEFINE_UNQUOTED([MOD_AUTHZ_CORE], ["$APACHE2_MODULE_DIR/mod_authz_core.so"], [mod_authz_core.so])],
               [AC_MSG_ERROR([apache2 mod_authz_core.so is required])])
 
+AC_CHECK_FILE([$APACHE2_MODULE_DIR/mod_rewrite.so],
+              [AC_DEFINE_UNQUOTED([MOD_REWRITE], ["$APACHE2_MODULE_DIR/mod_rewrite.so"], [mod_rewrite.so])],
+              [AC_MSG_ERROR([apache2 mod_rewrite.so is required])])
+
 AC_LANG_POP(C++)
 
 AC_CONFIG_FILES([Makefile

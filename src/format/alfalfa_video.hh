@@ -58,6 +58,8 @@ public:
     FileDescriptor track_db() const;
     FileDescriptor switch_db() const;
     FileDescriptor ivf_file() const;
+
+    const std::string & ivf_filename() const;
   };
 
 private:
@@ -215,6 +217,9 @@ public:
      the index of the corresponding original raster in the raster_list. */
   double get_quality( int raster_index, const FrameInfo & frame_info ) const;
 
+  /* the Web server wants to redirect incoming requests to this file */
+  const std::string & ivf_filename() const;
+  
   AlfalfaVideo( const AlfalfaVideo & other ) = delete;
   AlfalfaVideo & operator=( const AlfalfaVideo & other ) = delete;
 

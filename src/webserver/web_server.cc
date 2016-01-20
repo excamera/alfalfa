@@ -14,17 +14,21 @@
 using namespace std;
 
 WebServer::WebServer( const string & listen_address,
-		      const string & video_directory )
+		      const string & video_directory,
+		      const string & redirect_filename )
   : config_file_( "/tmp/alfalfa_apache_config" ),
     moved_away_( false )
 {
   config_file_.write( string( "LoadModule authz_core_module " ) + MOD_AUTHZ_CORE + "\n" );
   config_file_.write( string( "LoadModule mpm_prefork_module " ) + MOD_MPM_PREFORK + "\n" );
   config_file_.write( "Mutex pthread\n" );
-
+  config_file_.write( string( "LoadModule rewrite_module " ) + MOD_REWRITE + "\n" );
+  config_file_.write( "RewriteEngine On\n" );
+  config_file_.write( "RewriteRule ^(.*)$ /" + redirect_filename + "\n" );
+  
   /* sanity-check directory name */
   for ( const char & c : video_directory ) {
-    if ( c == '"' or c == 0 ) {
+    if ( (c == '"') or (c == 0) or (c == '\\') ) {
       throw runtime_error( "invalid character in video directory path" );
     }
   }

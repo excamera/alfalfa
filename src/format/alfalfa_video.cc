@@ -24,6 +24,16 @@ const string VIDEO_MANIFEST_FILENAME = "video.manifest";
 const string IVF_FILENAME = "v";
 const string VPXENC_EXECUTABLE = "vpxenc";
 
+const string & AlfalfaVideo::VideoDirectory::ivf_filename() const
+{
+  return IVF_FILENAME;
+}
+
+const string & AlfalfaVideo::ivf_filename() const
+{
+  return directory_.ivf_filename();
+}
+
 FileDescriptor open_and_possibly_make( const string & name, const OpenMode mode )
 {
   if ( mode == OpenMode::Create ) {

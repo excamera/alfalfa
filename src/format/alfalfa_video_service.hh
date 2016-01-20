@@ -16,6 +16,11 @@ public:
     : video_( directory_name )
   {}
 
+  const std::string & ivf_filename() const
+  {
+    return video_.ivf_filename();
+  }
+  
   /* NOTE: For better specifications, look at alfalfa_video_client.hh. */
   /* Get size of a track. */
   grpc::Status get_track_size( grpc::ServerContext * context,
