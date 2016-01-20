@@ -5,13 +5,14 @@
 
 #include "alfalfa_video_client.hh"
 #include "display.hh"
+#include "frame_fetcher.hh"
 
 using namespace std;
 
 int main( const int argc, char const *argv[] )
 {
-  if ( argc != 2 ) {
-    cerr << "Usage: " << argv[ 0 ] << " <server-address>" << "\n";
+  if ( argc != 3 ) {
+    cerr << "Usage: " << argv[ 0 ] << " <server-address> <framestore-url>" << "\n";
     return EX_USAGE;
   }
 
@@ -19,6 +20,8 @@ int main( const int argc, char const *argv[] )
   Decoder decoder( video.get_video_width(), video.get_video_height() );
   VideoDisplay display { decoder.example_raster() };
 
+  FrameFetcher fetcher { argv[ 2 ] };
+  
   /* print out the available tracks in the video */
   const vector<size_t> track_ids = video.get_track_ids();
 

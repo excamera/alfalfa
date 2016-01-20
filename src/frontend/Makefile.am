@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I../protobufs -I$(srcdir)/../util -I$(srcdir)/../decoder -I$(srcdir)/../format -I$(srcdir)/../display -I$(srcdir)/../encoder -I$(srcdir)/../webserver $(GLU_CFLAGS) $(GLEW_CFLAGS) $(GLFW3_CFLAGS) $(X264_CFLAGS) $(CXX11_FLAGS) $(PROTOBUF_CFLAGS)
+AM_CPPFLAGS = -I../protobufs -I$(srcdir)/../util -I$(srcdir)/../decoder -I$(srcdir)/../format -I$(srcdir)/../display -I$(srcdir)/../encoder -I$(srcdir)/../webserver -I$(srcdir)/../client $(GLU_CFLAGS) $(GLEW_CFLAGS) $(GLFW3_CFLAGS) $(X264_CFLAGS) $(CXX11_FLAGS) $(PROTOBUF_CFLAGS)
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(NODEBUG_CXXFLAGS)
 
 bin_PROGRAMS = vp8decode vp8play collisions alfalfa-import alfalfa-combine alfalfa-describe alfalfa-encode alfalfa-server alfalfa-play-manually alfalfa-play-super-manually alfalfa-weave alfalfa-verify switch-describe frameinfo alfalfa-play-semiauto
@@ -46,4 +46,4 @@ alfalfa_verify_SOURCES = alfalfa-verify.cc
 alfalfa_verify_LDADD = ../format/libalfalfavideo.a ../protobufs/libalfalfaprotobufs.a ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../util/libalfalfautil.a $(X264_LIBS) $(PROTOBUF_LIBS)
 
 alfalfa_play_semiauto_SOURCES = alfalfa-play-semiauto.cc
-alfalfa_play_semiauto_LDADD = ../client/libalfalfaclient.a ../format/libalfalfavideo.a ../protobufs/libalfalfaprotobufs.a ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../display/libalfalfadisplay.a ../util/libalfalfautil.a $(GLU_LIBS) $(X264_LIBS) $(GLEW_LIBS) $(GLFW3_LIBS) $(PROTOBUF_LIBS)
+alfalfa_play_semiauto_LDADD = ../client/libalfalfaclient.a ../format/libalfalfavideo.a ../protobufs/libalfalfaprotobufs.a ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../display/libalfalfadisplay.a ../util/libalfalfautil.a $(GLU_LIBS) $(X264_LIBS) $(GLEW_LIBS) $(GLFW3_LIBS) $(PROTOBUF_LIBS) -lboost_system -lboost_thread
