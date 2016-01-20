@@ -23,10 +23,10 @@ addons:
     - libcppnetlib-dev
 
 before_script:
-  - curl -sSL https://ftp-master.debian.org/keys/archive-key-7.0.asc | sudo -E apt-key add -
+  - sudo apt-get install -y -qq apache2-bin apache2-dev
   - sudo -E add-apt-repository -y 'deb http://ftp.us.debian.org/debian unstable main contrib non-free'
   - sudo apt-get update -qq
-  - sudo apt-get install -y -qq libglfw3-dev apache2-bin apache2-dev
+  - sudo apt-get install -y -qq --force-yes libglfw3-dev
   - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 99
   - ./fetch-grpc.sh
 
