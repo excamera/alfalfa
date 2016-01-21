@@ -11,8 +11,8 @@ using namespace std;
 
 int main( const int argc, char const *argv[] )
 {
-  if ( argc != 3 ) {
-    cerr << "Usage: " << argv[ 0 ] << " <server-address> <framestore-url>" << "\n";
+  if ( argc != 2 ) {
+    cerr << "Usage: " << argv[ 0 ] << " <server-address>" << "\n";
     return EX_USAGE;
   }
 
@@ -20,7 +20,7 @@ int main( const int argc, char const *argv[] )
   Decoder decoder( video.get_video_width(), video.get_video_height() );
   VideoDisplay display { decoder.example_raster() };
 
-  FrameFetcher fetcher { argv[ 2 ] };
+  FrameFetcher fetcher { video.get_url() };
   
   /* print out the available tracks in the video */
   const vector<size_t> track_ids = video.get_track_ids();
@@ -42,6 +42,7 @@ int main( const int argc, char const *argv[] )
 
   for ( const auto & frame : frames ) {
     const string coded_frame = fetcher.get_chunk( frame );
+    cout << coded_frame;
     const Optional<RasterHandle> raster = decoder.parse_and_decode_frame( coded_frame );
     if ( raster.initialized() ) {
       display.draw( raster.get() );
