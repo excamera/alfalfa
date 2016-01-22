@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "frame_info.hh"
 
@@ -29,6 +30,7 @@ public:
   FrameFetcher( const std::string & framestore_url );
   
   std::string get_chunk( const FrameInfo & frame_info );
+  std::vector<std::string> get_chunks( std::vector<FrameInfo> && frame_infos );
 };
 
 #endif /* FRAME_FETCHER_HH */

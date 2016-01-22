@@ -76,16 +76,29 @@ void FrameFetcher::CurlWrapper::perform()
 class HTTPResponse
 {
 private:
-  FrameInfo request_;
+  vector<FrameInfo> requests_;
   unordered_map<string, string> headers_ {};
   string body_ {};
 
 public:
+  string range_of_requests() const
+  {
+    string ret;
+    for ( const FrameInfo & x : requests_ ) {
+      if ( not ret.empty() ) {
+	ret.append( "," );
+      }
+
+      ret.append( to_string( x.offset() ) + "-" + to_string( x.offset() + x.length() - 1 ) );
+    }
+    return ret;
+  }
+
   const unordered_map<string, string> & headers() const { return headers_; }
   const string & body() const { return body_; }
   
-  HTTPResponse( const FrameInfo & desired_frame )
-    : request_( desired_frame )
+  HTTPResponse( vector<FrameInfo> && desired_frames )
+    : requests_( move( desired_frames ) )
   {}
 
   void new_body_chunk( const string & chunk )
@@ -109,11 +122,11 @@ public:
 	const size_t end_of_range = stoul( bytes.substr( dash + 1 ) );
 
 	/* check against requested FrameInfo */
-	if ( start_of_range != request_.offset() ) {
+	if ( start_of_range != requests_.front().offset() ) {
 	  throw runtime_error( "unexpected chunk served by HTTP server" );
 	}
 
-	if ( end_of_range != start_of_range + request_.length() - 1 ) {
+	if ( end_of_range != start_of_range + requests_.front().length() - 1 ) {
 	  throw runtime_error( "unexpected size served by HTTP server" );
 	}
       } else {
@@ -181,15 +194,12 @@ FrameFetcher::FrameFetcher( const string & framestore_url )
   curl_.setopt( CURLOPT_WRITEFUNCTION, response_appender );
 }
 
-string FrameFetcher::get_chunk( const FrameInfo & frame_info )
+vector<string> FrameFetcher::get_chunks( vector<FrameInfo> && frame_infos )
 {
-  /* set range header */
-  const string range_beginning = to_string( frame_info.offset() );
-  const string range_end = to_string( frame_info.offset() + frame_info.length() - 1 );
-  const string range_string = range_beginning + "-" + range_end;
-  curl_.setopt( CURLOPT_RANGE, range_string.c_str() );
+  HTTPResponse response { move( frame_infos ) };
 
-  HTTPResponse response { frame_info };
+  /* set range header */
+  curl_.setopt( CURLOPT_RANGE, response.range_of_requests().c_str() );
 
   /* tell CURL where to put the headers and body */
   curl_.setopt( CURLOPT_HEADERDATA, &response );
@@ -198,5 +208,11 @@ string FrameFetcher::get_chunk( const FrameInfo & frame_info )
   /* make the query */
   curl_.perform();
 
-  return response.body();
+  return { response.body() };
+}
+
+string FrameFetcher::get_chunk( const FrameInfo & frame_info )
+{
+  /* compatibility method */
+  return get_chunks( { frame_info } ).front();
 }
