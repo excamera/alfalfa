@@ -16,24 +16,25 @@ private:
 
 public:
   BackingStore( const std::string & filename );
-  size_t append_frame( const Chunk & chunk );
+  size_t append( const Chunk & chunk );
+  std::string read( const size_t offset, const size_t length ) const;
 };
 
 class FrameStore
 {
 private:
-  FrameDB local_frame_db_ {};
+  FrameDB local_frame_db_;
   BackingStore backing_store_;
 
 public:
   FrameStore( const std::string & filename );
   
-  void insert_frame( const FrameInfo & frame_info,
+  void insert_frame( FrameInfo frame_info,
 		     const Chunk & chunk );
   
-  bool has_frame( const FrameInfo & frame_info ) const;
+  bool has_frame( const FrameName & frame_name ) const;
 
-  const Chunk & coded_frame( const FrameInfo & frame_info ) const;
+  std::string coded_frame( const FrameName & frame_name ) const;
 };
 
 #endif /* FRAME_STORE_HH */

@@ -37,7 +37,7 @@ alfalfa_server_SOURCES = alfalfa-server.cc
 alfalfa_server_LDADD = ../format/libalfalfavideo.a ../protobufs/libalfalfaprotobufs.a ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../webserver/libalfalfawebserver.a ../util/libalfalfautil.a $(X264_LIBS) $(PROTOBUF_LIBS)
 
 alfalfa_play_manually_SOURCES = alfalfa-play-manually.cc
-alfalfa_play_manually_LDADD = ../format/libalfalfavideo.a ../protobufs/libalfalfaprotobufs.a ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../display/libalfalfadisplay.a ../util/libalfalfautil.a ../client/libalfalfaclient.a $(GLU_LIBS) $(X264_LIBS) $(GLEW_LIBS) $(GLFW3_LIBS) $(PROTOBUF_LIBS) $(CURL_LIBS)
+alfalfa_play_manually_LDADD = ../client/libalfalfaclient.a ../format/libalfalfavideo.a ../protobufs/libalfalfaprotobufs.a ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../display/libalfalfadisplay.a ../util/libalfalfautil.a $(GLU_LIBS) $(X264_LIBS) $(GLEW_LIBS) $(GLFW3_LIBS) $(PROTOBUF_LIBS) $(CURL_LIBS)
 
 alfalfa_play_super_manually_SOURCES = alfalfa-play-super-manually.cc
 alfalfa_play_super_manually_LDADD = ../format/libalfalfavideo.a ../protobufs/libalfalfaprotobufs.a ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../display/libalfalfadisplay.a ../util/libalfalfautil.a $(GLU_LIBS) $(X264_LIBS) $(GLEW_LIBS) $(GLFW3_LIBS) $(PROTOBUF_LIBS)
@@ -46,4 +46,4 @@ alfalfa_verify_SOURCES = alfalfa-verify.cc
 alfalfa_verify_LDADD = ../format/libalfalfavideo.a ../protobufs/libalfalfaprotobufs.a ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../util/libalfalfautil.a $(X264_LIBS) $(PROTOBUF_LIBS)
 
 alfalfa_play_semiauto_SOURCES = alfalfa-play-semiauto.cc
-alfalfa_play_semiauto_LDADD = ../format/libalfalfavideo.a ../protobufs/libalfalfaprotobufs.a ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../display/libalfalfadisplay.a ../util/libalfalfautil.a ../client/libalfalfaclient.a $(GLU_LIBS) $(X264_LIBS) $(GLEW_LIBS) $(GLFW3_LIBS) $(PROTOBUF_LIBS) $(CURL_LIBS)
+alfalfa_play_semiauto_LDADD = ../client/libalfalfaclient.a ../format/libalfalfavideo.a ../protobufs/libalfalfaprotobufs.a ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../display/libalfalfadisplay.a ../util/libalfalfautil.a $(GLU_LIBS) $(X264_LIBS) $(GLEW_LIBS) $(GLFW3_LIBS) $(PROTOBUF_LIBS) $(CURL_LIBS)
