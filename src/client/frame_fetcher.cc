@@ -46,32 +46,30 @@ public:
 static GlobalCURL global_curl_library;
 
 /* cleanup for the CURL handle */
-struct Deleter { void operator() ( CURL * x ) const { curl_easy_cleanup( x ); } };
-
-class HTTPClientWrapper
+void FrameFetcher::CurlWrapper::Deleter::operator() ( CURL * x ) const
 {
-private:
-  unique_ptr<CURL, Deleter> c;
+  curl_easy_cleanup( x );
+}
 
-public:
-  HTTPClientWrapper() : c( curl_easy_init() )
-  {
-    if ( not c ) {
-      throw runtime_error( "curl_easy_init failed" );
-    }
-  }
+CURL * notnull( CURL * const x )
+{
+  return x ? x : throw runtime_error( "curl_easy_init failed" );
+}
 
-  template <typename T>
-  void setopt( const CURLoption option, const T & parameter )
-  {
-    CurlCall( "curl_easy_setopt", curl_easy_setopt( c.get(), option, parameter ) );
-  }
+FrameFetcher::CurlWrapper::CurlWrapper()
+  : c( notnull( curl_easy_init() ) )
+{}
 
-  void perform()
-  {
-    CurlCall( "curl_easy_perform", curl_easy_perform( c.get() ) );
-  }
-};
+template <typename X, typename Y>
+void FrameFetcher::CurlWrapper::setopt( const X option, const Y & parameter )
+{
+  CurlCall( "curl_easy_setopt", curl_easy_setopt( c.get(), option, parameter ) );
+}
+
+void FrameFetcher::CurlWrapper::perform()
+{
+  CurlCall( "curl_easy_perform", curl_easy_perform( c.get() ) );
+}
 
 FrameFetcher::FrameFetcher( const string & framestore_url )
   : framestore_url_( framestore_url )
@@ -84,13 +82,12 @@ static ssize_t response_appender( const char * const buffer,
 {
   const size_t byte_size = size * nmemb;
   response_string->append( buffer, byte_size );
-  cerr << "response_body now " << response_string->size() << " bytes\n";
   return byte_size;
 }
 
 string FrameFetcher::get_chunk( const FrameInfo & frame_info )
 {
-  HTTPClientWrapper curl;
+  CurlWrapper curl;
 
   /* make request to video URL */
   curl.setopt( CURLOPT_URL, framestore_url_.c_str() );
