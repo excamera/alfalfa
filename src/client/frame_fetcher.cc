@@ -90,6 +90,37 @@ public:
 
   void new_body_chunk( const string & chunk )
   {
+    if ( body_.empty() ) { /* first chunk of the body */
+      /* Step 1: does response have a content-range header
+	 (and is therefore a single chunk?) */
+      const auto content_range = headers_.find( "Content-Range" );
+      if ( content_range != headers_.end() ) {
+	/* parse the header */
+	if ( content_range->second.substr( 0, 6 ) != "bytes " ) {
+	  throw runtime_error( "can't parse Content-Range: " + content_range->second );
+	}
+
+	const string bytes = content_range->second.substr( 6 );
+	const size_t dash = bytes.find( "-" );
+	if ( dash == string::npos ) {
+	  throw runtime_error( "can't parse Content-Range: " + content_range->second );
+	}
+	const size_t start_of_range = stoul( bytes.substr( 0, dash ) );
+	const size_t end_of_range = stoul( bytes.substr( dash + 1 ) );
+
+	/* check against requested FrameInfo */
+	if ( start_of_range != request_.offset() ) {
+	  throw runtime_error( "unexpected chunk served by HTTP server" );
+	}
+
+	if ( end_of_range != start_of_range + request_.length() - 1 ) {
+	  throw runtime_error( "unexpected size served by HTTP server" );
+	}
+      } else {
+	throw runtime_error( "need Content-Range header" );
+      }
+    }
+
     body_.append( chunk );
   }
   
@@ -166,10 +197,6 @@ string FrameFetcher::get_chunk( const FrameInfo & frame_info )
 
   /* make the query */
   curl_.perform();
-
-  for ( const auto & x : response.headers() ) {
-    cerr << x.first << ": {" << x.second << "}\n";
-  }
 
   return response.body();
 }
