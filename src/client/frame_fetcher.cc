@@ -77,8 +77,15 @@ class HTTPResponse
 {
 private:
   vector<FrameInfo> requests_;
+  vector<string> coded_frames_ { requests_.size() };
+  unordered_map<size_t, size_t> request_offset_to_index_ {};
   unordered_map<string, string> headers_ {};
-  string body_ {};
+  bool body_started_ {};
+  bool multipart_ {};
+
+  size_t range_start_ {};
+  size_t bytes_so_far_ {};
+  size_t range_length_ {};
 
 public:
   string range_of_requests() const
@@ -95,46 +102,90 @@ public:
   }
 
   const unordered_map<string, string> & headers() const { return headers_; }
-  const string & body() const { return body_; }
+  const vector<string> & coded_frames() const { return coded_frames_; }
   
   HTTPResponse( vector<FrameInfo> && desired_frames )
     : requests_( move( desired_frames ) )
-  {}
-
-  void new_body_chunk( const string & chunk )
   {
-    if ( body_.empty() ) { /* first chunk of the body */
-      /* Step 1: does response have a content-range header
-	 (and is therefore a single chunk?) */
-      const auto content_range = headers_.find( "Content-Range" );
-      if ( content_range != headers_.end() ) {
-	/* parse the header */
-	if ( content_range->second.substr( 0, 6 ) != "bytes " ) {
-	  throw runtime_error( "can't parse Content-Range: " + content_range->second );
-	}
+    for ( unsigned int i = 0; i < requests_.size(); i++ ) {
+      request_offset_to_index_.emplace( requests_[ i ].offset(), i );
+    }
+  }
 
-	const string bytes = content_range->second.substr( 6 );
-	const size_t dash = bytes.find( "-" );
-	if ( dash == string::npos ) {
-	  throw runtime_error( "can't parse Content-Range: " + content_range->second );
-	}
-	const size_t start_of_range = stoul( bytes.substr( 0, dash ) );
-	const size_t end_of_range = stoul( bytes.substr( dash + 1 ) );
-
-	/* check against requested FrameInfo */
-	if ( start_of_range != requests_.front().offset() ) {
-	  throw runtime_error( "unexpected chunk served by HTTP server" );
-	}
-
-	if ( end_of_range != start_of_range + requests_.front().length() - 1 ) {
-	  throw runtime_error( "unexpected size served by HTTP server" );
-	}
-      } else {
-	throw runtime_error( "need Content-Range header" );
+  void verify_sizes() const
+  {
+    for ( unsigned int i = 0; i < requests_.size(); i++ ) {
+      if ( requests_.at( i ).length() != coded_frames_.at( i ).length() ) {
+	throw runtime_error( "FrameFetcher length mismatch, expected "
+			     + to_string( requests_.at( i ).length() )
+			     + " and received "
+			     + to_string( coded_frames_.at( i ).length() ) );
       }
     }
+  }
 
-    body_.append( chunk );
+  void initialize_new_body()
+  {
+    /* Step 1: does response have a content-range header
+       (and is therefore a single chunk?) */
+    const auto content_range = headers_.find( "Content-Range" );
+    if ( content_range != headers_.end() ) {
+      /* parse the header */
+      if ( content_range->second.substr( 0, 6 ) != "bytes " ) {
+	throw runtime_error( "can't parse Content-Range: " + content_range->second );
+      }
+
+      const string bytes = content_range->second.substr( 6 );
+      const size_t dash = bytes.find( "-" );
+      if ( dash == string::npos ) {
+	throw runtime_error( "can't parse Content-Range: " + content_range->second );
+      }
+
+      /* set up for single-range response */
+      multipart_ = false;
+      
+      const size_t start_of_range = stoul( bytes.substr( 0, dash ) );
+      const size_t end_of_range = stoul( bytes.substr( dash + 1 ) );
+
+      initialize_new_range( start_of_range, end_of_range );
+    } else {
+      throw runtime_error( "need content-range header XXX" );
+    }
+  }    
+
+  void initialize_new_range( const size_t start_of_range, const size_t end_of_range )
+  {
+    if ( bytes_so_far_ != range_length_ ) {
+      throw runtime_error( "new range initialized before old range finished" );
+    }
+
+    range_start_ = start_of_range;
+    range_length_ = end_of_range + 1 - start_of_range;
+    bytes_so_far_ = 0;
+
+    /* make sure there's a corresponding FrameInfo */
+    if ( request_offset_to_index_.find( range_start_ ) == request_offset_to_index_.end() ) {
+      throw runtime_error( "HTTP range received without corresponding request" );
+    }
+  }
+  
+  void new_body_chunk( const string & chunk )
+  {
+    if ( not body_started_ ) { /* first chunk of the body */
+      body_started_ = true;
+      initialize_new_body();
+    }
+      
+    process_chunk( chunk );
+  }
+
+  void process_chunk( const string & chunk ) {
+    if ( bytes_so_far_ + chunk.size() <= range_length_ ) {
+      /* no worry of overlapping another request */
+      coded_frames_.at( request_offset_to_index_.at( range_start_ ) ).append( chunk );
+    } else {
+      throw runtime_error( "can't deal with overlap" );
+    }
   }
   
   void new_header( const string & header_line )
@@ -208,7 +259,9 @@ vector<string> FrameFetcher::get_chunks( vector<FrameInfo> && frame_infos )
   /* make the query */
   curl_.perform();
 
-  return { response.body() };
+  response.verify_sizes();
+  
+  return response.coded_frames();
 }
 
 string FrameFetcher::get_chunk( const FrameInfo & frame_info )
