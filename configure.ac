@@ -50,6 +50,7 @@ PKG_CHECK_MODULES([X264], [x264])
 PKG_CHECK_MODULES([GLFW3], [glfw3])
 PKG_CHECK_MODULES([GLEW], [glew])
 PKG_CHECK_MODULES([ZLIB], [zlib])
+PKG_CHECK_MODULES([CURL], [libcurl])
 
 PROTOBUF_CFLAGS='-isystem ../../third_party/grpc/third_party/protobuf/src -isystem ../../third_party/grpc/include $(ZLIB_CFLAGS)'
 AC_SUBST([PROTOBUF_CFLAGS])

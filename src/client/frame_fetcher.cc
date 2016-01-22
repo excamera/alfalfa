@@ -1,37 +1,114 @@
-#include <boost/network/protocol/http/client.hpp>
+#include <curl/curl.h>
 
 #include "frame_fetcher.hh"
 
 using namespace std;
-using namespace boost::network::http;
 
-typedef basic_client<tags::http_keepalive_8bit_udp_resolve, 1, 1> alfalfa_http_client;
-
-struct HTTPClientWrapper
+/* error category for CURLcodes */
+class curl_error_category : public error_category
 {
-  alfalfa_http_client c {};
+public:
+  const char * name( void ) const noexcept override { return "curl_error_category"; }
+  string message( const int errornum ) const noexcept override
+  {
+    return curl_easy_strerror( static_cast<CURLcode>( errornum ) );
+  }
+};
+
+/* call wrapper for CURL API */
+inline void CurlCall( const std::string & s_attempt, const CURLcode result )
+{
+  if ( result == CURLE_OK ) {
+    return;
+  }
+
+  throw tagged_error( curl_error_category(), s_attempt, static_cast<int>( result ) );
+}
+
+/* use static global to initialize library and clean up afterwards */
+/* pray for no fiascos:
+   https://isocpp.org/wiki/faq/ctors#static-init-order */
+
+class GlobalCURL
+{
+public:
+  GlobalCURL()
+  {
+    SystemCall( "curl_global_init", curl_global_init( CURL_GLOBAL_NOTHING ) );
+  }
+
+  ~GlobalCURL()
+  {
+    curl_global_cleanup();
+  }
+};
+
+static GlobalCURL global_curl_library;
+
+/* cleanup for the CURL handle */
+struct Deleter { void operator() ( CURL * x ) const { curl_easy_cleanup( x ); } };
+
+class HTTPClientWrapper
+{
+private:
+  unique_ptr<CURL, Deleter> c;
+
+public:
+  HTTPClientWrapper() : c( curl_easy_init() )
+  {
+    if ( not c ) {
+      throw runtime_error( "curl_easy_init failed" );
+    }
+  }
+
+  template <typename T>
+  void setopt( const CURLoption option, const T & parameter )
+  {
+    CurlCall( "curl_easy_setopt", curl_easy_setopt( c.get(), option, parameter ) );
+  }
+
+  void perform()
+  {
+    CurlCall( "curl_easy_perform", curl_easy_perform( c.get() ) );
+  }
 };
 
 FrameFetcher::FrameFetcher( const string & framestore_url )
-  : framestore_url_( framestore_url ),
-    http_client_( new HTTPClientWrapper )
+  : framestore_url_( framestore_url )
 {}
+
+static ssize_t response_appender( const char * const buffer,
+				  const size_t size,
+				  const size_t nmemb,
+				  string * const response_string )
+{
+  const size_t byte_size = size * nmemb;
+  response_string->append( buffer, byte_size );
+  cerr << "response_body now " << response_string->size() << " bytes\n";
+  return byte_size;
+}
 
 string FrameFetcher::get_chunk( const FrameInfo & frame_info )
 {
+  HTTPClientWrapper curl;
+
   /* make request to video URL */
-  alfalfa_http_client::request the_request { framestore_url_ };
+  curl.setopt( CURLOPT_URL, framestore_url_.c_str() );
 
   /* add range header */
   const string range_beginning = to_string( frame_info.offset() );
   const string range_end = to_string( frame_info.offset() + frame_info.length() - 1 );
-  const string range = "bytes=" + range_beginning + "-" + range_end;
-  add_header( the_request, "Range", range );
+  const string range_string = range_beginning + "-" + range_end;
+  curl.setopt( CURLOPT_RANGE, range_string.c_str() );
+
+  /* tell CURL where to put the response */
+  string response_body;
+
+  curl.setopt( CURLOPT_WRITEFUNCTION, response_appender );
+  curl.setopt( CURLOPT_WRITEDATA, &response_body );
 
   /* make the query */
-  auto the_response = http_client_->c.get( the_request );
+  curl.perform();
 
-  return body( the_response );
+  return response_body;
 }
-
-FrameFetcher::~FrameFetcher() {}

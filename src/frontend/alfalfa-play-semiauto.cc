@@ -42,7 +42,6 @@ int main( const int argc, char const *argv[] )
 
   for ( const auto & frame : frames ) {
     const string coded_frame = fetcher.get_chunk( frame );
-    cout << coded_frame;
     const Optional<RasterHandle> raster = decoder.parse_and_decode_frame( coded_frame );
     if ( raster.initialized() ) {
       display.draw( raster.get() );
