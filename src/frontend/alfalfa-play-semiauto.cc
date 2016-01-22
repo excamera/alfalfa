@@ -37,11 +37,10 @@ int main( const int argc, char const *argv[] )
   }
   
   const size_t track_to_play = track_ids.front();
-  const size_t track_size = video.get_track_size( track_to_play );
-  const vector<FrameInfo> frames = video.get_frames( track_to_play, 0, track_size );
+  //  const size_t track_size = video.get_track_size( track_to_play );
+  const vector<string> coded_frames = fetcher.get_chunks( video.get_frames( track_to_play, 0, 5 ) );
 
-  for ( const auto & frame : frames ) {
-    const string coded_frame = fetcher.get_chunk( frame );
+  for ( const auto & coded_frame : coded_frames ) {
     const Optional<RasterHandle> raster = decoder.parse_and_decode_frame( coded_frame );
     if ( raster.initialized() ) {
       display.draw( raster.get() );

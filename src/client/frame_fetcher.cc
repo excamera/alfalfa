@@ -78,14 +78,18 @@ class HTTPResponse
 private:
   vector<FrameInfo> requests_;
   vector<string> coded_frames_ { requests_.size() };
+  size_t current_frame_i_ {};
   unordered_map<size_t, size_t> request_offset_to_index_ {};
   unordered_map<string, string> headers_ {};
   bool body_started_ {};
   bool multipart_ {};
+  string multipart_boundary_ {};
 
   size_t range_start_ {};
   size_t bytes_so_far_ {};
   size_t range_length_ {};
+
+  string residue_ {};
 
 public:
   string range_of_requests() const
@@ -124,32 +128,47 @@ public:
     }
   }
 
+  static pair<size_t, size_t> parse_content_range( const string & header_val )
+  {
+    if ( header_val.substr( 0, 6 ) != "bytes " ) {
+      throw runtime_error( "can't parse Content-Range: " + header_val );
+    }
+
+    const string bytes = header_val.substr( 6 );
+    const size_t dash = bytes.find( "-" );
+    if ( dash == string::npos ) {
+      throw runtime_error( "can't find dash in Content-Range: " + header_val );
+    }
+
+    return { stoul( bytes.substr( 0, dash ) ), stoul( bytes.substr( dash + 1 ) ) };
+  }
+  
   void initialize_new_body()
   {
     /* Step 1: does response have a content-range header
        (and is therefore a single chunk?) */
     const auto content_range = headers_.find( "Content-Range" );
     if ( content_range != headers_.end() ) {
-      /* parse the header */
-      if ( content_range->second.substr( 0, 6 ) != "bytes " ) {
-	throw runtime_error( "can't parse Content-Range: " + content_range->second );
-      }
-
-      const string bytes = content_range->second.substr( 6 );
-      const size_t dash = bytes.find( "-" );
-      if ( dash == string::npos ) {
-	throw runtime_error( "can't parse Content-Range: " + content_range->second );
-      }
-
       /* set up for single-range response */
       multipart_ = false;
-      
-      const size_t start_of_range = stoul( bytes.substr( 0, dash ) );
-      const size_t end_of_range = stoul( bytes.substr( dash + 1 ) );
 
-      initialize_new_range( start_of_range, end_of_range );
+      /* parse the header */
+      const pair<size_t, size_t> start_and_end = parse_content_range( content_range->second );
+
+      initialize_new_range( start_and_end.first, start_and_end.second );
     } else {
-      throw runtime_error( "need content-range header XXX" );
+      /* multipart response? */
+      const auto content_type = headers_.find( "Content-Type" );
+      if ( content_type == headers_.end() ) {
+	throw runtime_error( "HTTP response needs Content-Range or Content-Type" );
+      }
+      const string prefix = "multipart/byteranges; boundary=";
+      if ( content_type->second.substr( 0, prefix.size() ) != prefix ) {
+	throw runtime_error( "Expected multipart/byteranges; got " + content_type->second );
+      }
+
+      multipart_ = true;
+      multipart_boundary_ = content_type->second.substr( prefix.size() );
     }
   }    
 
@@ -162,11 +181,19 @@ public:
     range_start_ = start_of_range;
     range_length_ = end_of_range + 1 - start_of_range;
     bytes_so_far_ = 0;
-
+    
     /* make sure there's a corresponding FrameInfo */
-    if ( request_offset_to_index_.find( range_start_ ) == request_offset_to_index_.end() ) {
-      throw runtime_error( "HTTP range received without corresponding request" );
+    initialize_new_request();
+  }
+
+  void initialize_new_request()
+  {
+    const auto cur = request_offset_to_index_.find( range_start_ + bytes_so_far_ );
+    if ( cur == request_offset_to_index_.end() ) {
+      throw runtime_error( "HTTP response but could not find matching FrameInfo request" );
     }
+
+    current_frame_i_ = cur->second;
   }
   
   void new_body_chunk( const string & chunk )
@@ -175,33 +202,134 @@ public:
       body_started_ = true;
       initialize_new_body();
     }
-      
-    process_chunk( chunk );
+
+    if ( multipart_ ) {
+      process_multipart_chunk( chunk );
+    } else {
+      process_simple_chunk( chunk );
+    }
   }
 
-  void process_chunk( const string & chunk ) {
-    if ( bytes_so_far_ + chunk.size() <= range_length_ ) {
-      /* no worry of overlapping another request */
-      coded_frames_.at( request_offset_to_index_.at( range_start_ ) ).append( chunk );
+  void process_simple_chunk( const string & chunk )
+  {
+    if ( bytes_so_far_ + chunk.size() > range_length_ ) {
+      throw runtime_error( "single-part response is longer than advertised" );
+    }
+
+    size_t bytes_used_this_chunk = 0;
+    while ( bytes_used_this_chunk < chunk.size() ) {
+      /* is frame done? */
+      if ( requests_.at( current_frame_i_ ).length()
+	   == coded_frames_.at( current_frame_i_ ).length() ) {
+	initialize_new_request();
+      }
+
+      const size_t bytes_left_in_frame = requests_.at( current_frame_i_ ).length()
+	- coded_frames_.at( current_frame_i_ ).length();
+      const size_t bytes_available = chunk.size() - bytes_used_this_chunk;
+      const size_t bytes_to_append = min( bytes_left_in_frame, bytes_available );
+
+      /* use the available bytes */
+      coded_frames_.at( current_frame_i_ ).append( chunk.substr( bytes_used_this_chunk,
+								 bytes_to_append ) );
+      bytes_used_this_chunk += bytes_to_append;
+      bytes_so_far_ += bytes_to_append;
+      
+      assert( coded_frames_.at( current_frame_i_ ).length() <= requests_.at( current_frame_i_ ).length() );
+    }
+  }
+
+  void process_multipart_boundary_header()
+  {
+    /* are there four newlines yet? */
+    /* need initial CRLF, then "--" + boundary + CRLF, then header line + CRLF CRLF*/
+    unsigned int newline_count = 0;
+    size_t newline_index = 0;
+    for ( const auto & ch : residue_ ) {
+      if ( ch == '\n' ) {
+	newline_count++;
+      }
+
+      if ( newline_count >= 4 ) {
+	break;
+      }
+
+      newline_index++;
+    }
+
+    if ( newline_count < 4 ) {
+      return;
+    }
+
+    const string boundary_phrase = "\r\n--" + multipart_boundary_ + "\r\n";
+    if ( residue_.substr( 0, boundary_phrase.size() ) != boundary_phrase ) {
+      throw runtime_error( "expected multipart boundary" );
+    }
+
+    const string header = residue_.substr( boundary_phrase.size(),
+					   newline_index - boundary_phrase.size() - 1 );
+    const Optional<size_t> colon_pos = colon_position( header );
+    if ( not colon_pos.initialized() ) {
+      throw runtime_error( "invalid multipart range header: " + header );
+    }
+
+    const pair<string, string> fields = parse_header( header, colon_pos.get() );
+    if ( fields.first != "Content-range" ) {
+      throw runtime_error( "invalid multipart range header key: " + header );
+    }
+
+    const pair<size_t, size_t> start_and_end = parse_content_range( fields.second );
+    initialize_new_range( start_and_end.first, start_and_end.second );
+
+    residue_.replace( 0, newline_index + 1, "" );
+  }
+  
+  void process_multipart_chunk( const string & chunk )
+  {
+    residue_.append( chunk );
+
+    while ( true ) {
+      if ( residue_.empty() ) {
+	return;
+      }
+
+      if ( range_length_ - bytes_so_far_ == 0 ) {
+	/* current range is unknown */
+	/* try to identify the new range */
+	process_multipart_boundary_header();
+
+	if ( range_length_ - bytes_so_far_ == 0 ) {
+	  return; /* not enough bytes to identify a new range */
+	}
+      }
+
+      /* we have a range and some available bytes to process */
+      const size_t bytes_left_in_range = range_length_ - bytes_so_far_;
+      const size_t bytes_available = residue_.size();
+      const size_t bytes_to_process = min( bytes_left_in_range, bytes_available );
+      process_simple_chunk( residue_.substr( 0, bytes_to_process ) );
+      residue_.replace( 0, bytes_to_process, "" );
+    }
+  }
+
+  static Optional<size_t> colon_position( const string & header_line )
+  {
+    /* step 1: does buffer contain colon? */
+    const size_t colon_location = header_line.find( ":" );
+    if ( colon_location == std::string::npos ) {
+      return {}; /* status line or blank space, but not a header */
     } else {
-      throw runtime_error( "can't deal with overlap" );
+      return { true, colon_location };
     }
   }
   
-  void new_header( const string & header_line )
+  static pair<string, string> parse_header( const string & header_line, const size_t colon_location )
   {
     /* parser taken from mahimahi http_header.cc */
-    const string separator = ":";
-
-    /* step 1: does buffer contain colon? */
-    const size_t colon_location = header_line.find( separator );
-    if ( colon_location == std::string::npos ) {
-      return; /* status line or blank space, but not a header */
-    }
 
     /* step 2: split buffer */
     const string key = header_line.substr( 0, colon_location );
-    const string value_temp = header_line.substr( colon_location + separator.size() );
+    const string value_temp = header_line.substr( colon_location + 1 );
 
     /* step 3: strip whitespace */
     const string whitespace = " \r\n";
@@ -212,8 +340,16 @@ public:
     const size_t last_nonspace = value_temp.find_last_not_of( whitespace );
     const string value = ( last_nonspace == string::npos )
       ? value_postfix : value_postfix.substr( 0, last_nonspace );
+    
+    return { key, value };
+  }
 
-    headers_.emplace( key, value );
+  void new_header( const string & header_line )
+  {
+    const Optional<size_t> colon_pos = colon_position( header_line );
+    if ( colon_pos.initialized() ) {
+      headers_.insert( parse_header( header_line, colon_pos.get() ) );
+    }
   }
 };
 
