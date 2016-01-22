@@ -22,7 +22,7 @@ private:
 
     void perform();
   };
-  
+
   CurlWrapper curl_;
   
 public:

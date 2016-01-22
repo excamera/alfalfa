@@ -1,3 +1,5 @@
+#include <unordered_map>
+
 #include <curl/curl.h>
 
 #include "frame_fetcher.hh"
@@ -71,20 +73,81 @@ void FrameFetcher::CurlWrapper::perform()
   CurlCall( "curl_easy_perform", curl_easy_perform( c.get() ) );
 }
 
+class HTTPResponse
+{
+private:
+  FrameInfo request_;
+  unordered_map<string, string> headers_ {};
+  string body_ {};
+
+public:
+  const unordered_map<string, string> & headers() const { return headers_; }
+  const string & body() const { return body_; }
+  
+  HTTPResponse( const FrameInfo & desired_frame )
+    : request_( desired_frame )
+  {}
+
+  void new_body_chunk( const string & chunk )
+  {
+    body_.append( chunk );
+  }
+  
+  void new_header( const string & header_line )
+  {
+    /* parser taken from mahimahi http_header.cc */
+    const string separator = ":";
+
+    /* step 1: does buffer contain colon? */
+    const size_t colon_location = header_line.find( separator );
+    if ( colon_location == std::string::npos ) {
+      return; /* status line or blank space, but not a header */
+    }
+
+    /* step 2: split buffer */
+    const string key = header_line.substr( 0, colon_location );
+    const string value_temp = header_line.substr( colon_location + separator.size() );
+
+    /* step 3: strip whitespace */
+    const string whitespace = " \r\n";
+    const size_t first_nonspace = value_temp.find_first_not_of( whitespace );
+    const string value_postfix = ( first_nonspace == string::npos ) /* handle case of all spaces */
+      ? value_temp : value_temp.substr( first_nonspace );
+
+    const size_t last_nonspace = value_temp.find_last_not_of( whitespace );
+    const string value = ( last_nonspace == string::npos )
+      ? value_postfix : value_postfix.substr( 0, last_nonspace );
+
+    headers_.emplace( key, value );
+  }
+};
+
+static size_t response_appender( const char * const buffer,
+				 const size_t size,
+				 const size_t nmemb,
+				 HTTPResponse * const response )
+{
+  const size_t byte_size = size * nmemb;
+  response->new_body_chunk( string( buffer, byte_size ) );
+  return byte_size;
+}
+
+static size_t header_appender( const char * const buffer,
+			       const size_t size,
+			       const size_t nmemb,
+			       HTTPResponse * const response )
+{
+  const size_t byte_size = size * nmemb;
+  response->new_header( string( buffer, byte_size ) );
+  return byte_size;
+}
+
 FrameFetcher::FrameFetcher( const string & framestore_url )
   : curl_()
 {
   curl_.setopt( CURLOPT_URL, framestore_url.c_str() );
-}
-
-static ssize_t response_appender( const char * const buffer,
-				  const size_t size,
-				  const size_t nmemb,
-				  string * const response_string )
-{
-  const size_t byte_size = size * nmemb;
-  response_string->append( buffer, byte_size );
-  return byte_size;
+  curl_.setopt( CURLOPT_HEADERFUNCTION, header_appender );
+  curl_.setopt( CURLOPT_WRITEFUNCTION, response_appender );
 }
 
 string FrameFetcher::get_chunk( const FrameInfo & frame_info )
@@ -95,14 +158,18 @@ string FrameFetcher::get_chunk( const FrameInfo & frame_info )
   const string range_string = range_beginning + "-" + range_end;
   curl_.setopt( CURLOPT_RANGE, range_string.c_str() );
 
-  /* tell CURL where to put the response */
-  string response_body;
+  HTTPResponse response { frame_info };
 
-  curl_.setopt( CURLOPT_WRITEFUNCTION, response_appender );
-  curl_.setopt( CURLOPT_WRITEDATA, &response_body );
+  /* tell CURL where to put the headers and body */
+  curl_.setopt( CURLOPT_HEADERDATA, &response );
+  curl_.setopt( CURLOPT_WRITEDATA, &response );
 
   /* make the query */
   curl_.perform();
 
-  return response_body;
+  for ( const auto & x : response.headers() ) {
+    cerr << x.first << ": {" << x.second << "}\n";
+  }
+
+  return response.body();
 }
