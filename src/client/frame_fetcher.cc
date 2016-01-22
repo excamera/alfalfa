@@ -72,8 +72,10 @@ void FrameFetcher::CurlWrapper::perform()
 }
 
 FrameFetcher::FrameFetcher( const string & framestore_url )
-  : framestore_url_( framestore_url )
-{}
+  : curl_()
+{
+  curl_.setopt( CURLOPT_URL, framestore_url.c_str() );
+}
 
 static ssize_t response_appender( const char * const buffer,
 				  const size_t size,
@@ -87,25 +89,20 @@ static ssize_t response_appender( const char * const buffer,
 
 string FrameFetcher::get_chunk( const FrameInfo & frame_info )
 {
-  CurlWrapper curl;
-
-  /* make request to video URL */
-  curl.setopt( CURLOPT_URL, framestore_url_.c_str() );
-
-  /* add range header */
+  /* set range header */
   const string range_beginning = to_string( frame_info.offset() );
   const string range_end = to_string( frame_info.offset() + frame_info.length() - 1 );
   const string range_string = range_beginning + "-" + range_end;
-  curl.setopt( CURLOPT_RANGE, range_string.c_str() );
+  curl_.setopt( CURLOPT_RANGE, range_string.c_str() );
 
   /* tell CURL where to put the response */
   string response_body;
 
-  curl.setopt( CURLOPT_WRITEFUNCTION, response_appender );
-  curl.setopt( CURLOPT_WRITEDATA, &response_body );
+  curl_.setopt( CURLOPT_WRITEFUNCTION, response_appender );
+  curl_.setopt( CURLOPT_WRITEDATA, &response_body );
 
   /* make the query */
-  curl.perform();
+  curl_.perform();
 
   return response_body;
 }

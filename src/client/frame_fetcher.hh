@@ -23,7 +23,7 @@ private:
     void perform();
   };
   
-  std::string framestore_url_;
+  CurlWrapper curl_;
   
 public:
   FrameFetcher( const std::string & framestore_url );
