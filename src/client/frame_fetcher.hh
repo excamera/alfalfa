@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "frame_info.hh"
+#include "frame_store.hh"
 
 typedef void CURL;
 
@@ -25,12 +26,13 @@ private:
   };
 
   CurlWrapper curl_;
-  
+  FrameStore local_frame_store_;
+
 public:
   FrameFetcher( const std::string & framestore_url );
   
   std::string get_chunk( const FrameInfo & frame_info );
-  std::vector<std::string> get_chunks( std::vector<FrameInfo> && frame_infos );
+  std::vector<std::string> get_chunks( const std::vector<FrameInfo> & frame_infos );
 };
 
 #endif /* FRAME_FETCHER_HH */

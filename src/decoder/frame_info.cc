@@ -57,3 +57,18 @@ bool FrameInfo::is_keyframe() const
 {
   return name_.source == SourceHash::keyframe;
 }
+
+size_t hash_value( const FrameName & name )
+{
+  size_t hashval = 0;
+
+  boost::hash_combine( hashval, hash<SourceHash>()( name.source ) );
+  boost::hash_combine( hashval, hash<TargetHash>()( name.target ) );
+
+  return hashval;
+}
+
+bool FrameName::operator==( const FrameName & other ) const
+{
+  return (source == other.source) and (target == other.target);
+}

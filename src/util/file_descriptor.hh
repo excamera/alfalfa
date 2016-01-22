@@ -84,6 +84,28 @@ public:
       amount_left_to_write = amount_left_to_write( bytes_written );
     }
   }
+
+  std::string pread( const off_t offset, const size_t length ) const
+  {
+    static const size_t BUFFER_SIZE = 1048576;
+    char buffer[ BUFFER_SIZE ];
+
+    std::string ret;
+    
+    while ( ret.length() < length ) {
+      const size_t count = std::min( BUFFER_SIZE, length - ret.length() );
+      ssize_t bytes_read_now = ::pread( fd_, buffer, count, offset + ret.length() );
+      if ( bytes_read_now == 0 ) {
+	throw std::runtime_error( "pread: unexpected EOF" );
+      } else if ( bytes_read_now < 0 ) {
+	throw unix_error( "pread" );
+      }
+
+      ret.append( buffer, bytes_read_now );
+    }
+
+    return ret; 
+  }
 };
 
 #endif /* FILE_DESCRIPTOR_HH */

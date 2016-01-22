@@ -106,25 +106,14 @@ public:
   }
 
   const unordered_map<string, string> & headers() const { return headers_; }
+  const vector<FrameInfo> & requests() const { return requests_; }
   const vector<string> & coded_frames() const { return coded_frames_; }
   
-  HTTPResponse( vector<FrameInfo> && desired_frames )
-    : requests_( move( desired_frames ) )
+  HTTPResponse( const vector<FrameInfo> & desired_frames )
+    : requests_( desired_frames )
   {
     for ( unsigned int i = 0; i < requests_.size(); i++ ) {
       request_offset_to_index_.emplace( requests_[ i ].offset(), i );
-    }
-  }
-
-  void verify_sizes() const
-  {
-    for ( unsigned int i = 0; i < requests_.size(); i++ ) {
-      if ( requests_.at( i ).length() != coded_frames_.at( i ).length() ) {
-	throw runtime_error( "FrameFetcher length mismatch, expected "
-			     + to_string( requests_.at( i ).length() )
-			     + " and received "
-			     + to_string( coded_frames_.at( i ).length() ) );
-      }
     }
   }
 
@@ -374,30 +363,83 @@ static size_t header_appender( const char * const buffer,
 }
 
 FrameFetcher::FrameFetcher( const string & framestore_url )
-  : curl_()
+  : curl_(),
+    local_frame_store_()
 {
   curl_.setopt( CURLOPT_URL, framestore_url.c_str() );
   curl_.setopt( CURLOPT_HEADERFUNCTION, header_appender );
   curl_.setopt( CURLOPT_WRITEFUNCTION, response_appender );
 }
 
-vector<string> FrameFetcher::get_chunks( vector<FrameInfo> && frame_infos )
+vector<string> FrameFetcher::get_chunks( const vector<FrameInfo> & frame_infos )
 {
-  HTTPResponse response { move( frame_infos ) };
+  /* decide which frames we really need to fetch */
+  vector<FrameInfo> frame_infos_to_fetch;
 
-  /* set range header */
-  curl_.setopt( CURLOPT_RANGE, response.range_of_requests().c_str() );
+  for ( const auto & x : frame_infos ) {
+    if ( local_frame_store_.has_frame( x.name() ) ) {
+      /* skip it */
+    } else if ( local_frame_store_.is_frame_pending( x.name() ) ) {
+      /* skip it */
+    } else {
+      local_frame_store_.mark_frame_pending( x.name() );
+      frame_infos_to_fetch.push_back( x );
+    }
+  }
 
-  /* tell CURL where to put the headers and body */
-  curl_.setopt( CURLOPT_HEADERDATA, &response );
-  curl_.setopt( CURLOPT_WRITEDATA, &response );
+  /* fetch new frames! */
+  if ( not frame_infos_to_fetch.empty() ) {
+    HTTPResponse response { frame_infos_to_fetch };
 
-  /* make the query */
-  curl_.perform();
+    /* set range header */
+    curl_.setopt( CURLOPT_RANGE, response.range_of_requests().c_str() );
 
-  response.verify_sizes();
+    cerr << "fetching " << response.range_of_requests() << endl;
   
-  return response.coded_frames();
+    /* tell CURL where to put the headers and body */
+    curl_.setopt( CURLOPT_HEADERDATA, &response );
+    curl_.setopt( CURLOPT_WRITEDATA, &response );
+
+    /* make the query */
+    curl_.perform();
+
+    /* add results to local frame store */
+    for ( unsigned int i = 0; i < response.requests().size(); i++ ) {
+      if ( not response.coded_frames().empty() ) {
+	local_frame_store_.insert_frame( response.requests()[ i ],
+					 response.coded_frames()[ i ] );
+      }
+    }
+  }
+
+  /* fill in answers from the local frame store */
+  vector<string> coded_frames;
+  for ( const auto & x : frame_infos ) {
+    if ( not local_frame_store_.has_frame( x.name() ) ) {
+      throw runtime_error( "missing frame: " + x.name().str() );
+    }
+
+    coded_frames.push_back( local_frame_store_.coded_frame( x.name() ) );
+  }
+
+  /* verify sizes */
+  for ( unsigned int i = 0; i < frame_infos.size(); i++ ) {
+    if ( frame_infos.at( i ).length() != coded_frames.at( i ).length() ) {
+      throw runtime_error( "FrameFetcher length mismatch, expected "
+			   + to_string( frame_infos.at( i ).length() )
+			   + " and received "
+			   + to_string( coded_frames.at( i ).length() ) );
+    }
+  }
+
+  /* verify nothing is pending */
+  if ( local_frame_store_.is_anything_pending() ) {
+    throw runtime_error( "frame still pending at end of fetch" );
+  }
+  
+  cerr << "done.\n";
+  
+  return coded_frames;
 }
 
 string FrameFetcher::get_chunk( const FrameInfo & frame_info )

@@ -18,6 +18,10 @@ struct FrameName
 
   FrameName( const std::string & name );
   FrameName( const SourceHash & source, const TargetHash & target );
+
+  friend size_t hash_value( const FrameName & name );
+
+  bool operator==( const FrameName & other ) const;
 };
 
 class SerializedFrame
