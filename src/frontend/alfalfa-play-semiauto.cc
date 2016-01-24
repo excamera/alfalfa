@@ -41,27 +41,17 @@ int main( const int argc, char const *argv[] )
   const size_t track_size = video.get_track_size( track_to_play );
 
   cerr << "Getting the track list... ";
-  const vector<FrameInfo> track = video.get_frames( track_to_play,
-						    0, track_size );
+  const auto abridged_track = video.get_abridged_frames( track_to_play,
+							 0, track_size );
   cerr << "done.\n";
 
-  /* convert to AbridgedFrameInfo */
-  vector<AbridgedFrameInfo> abridged_track;
-  for ( const auto & f : track ) {
-    AbridgedFrameInfo af;
-    af.set_offset( f.offset() );
-    af.set_length( f.length() );
-    af.set_shown( f.shown() );
-    abridged_track.push_back( af );
-  }
-  
   const size_t group_size = 24;
 
   for ( size_t begin_frame = 0; begin_frame + group_size < track_size; begin_frame += group_size ) {
     vector<AbridgedFrameInfo> frames_to_fetch;
     frames_to_fetch.insert( frames_to_fetch.begin(),
-			    abridged_track.begin() + begin_frame,
-			    abridged_track.begin() + begin_frame + group_size );
+			    abridged_track.frame().begin() + begin_frame,
+			    abridged_track.frame().begin() + begin_frame + group_size );
     const vector<string> coded_frames = fetcher.get_chunks( frames_to_fetch );
     
     for ( const auto & coded_frame : coded_frames ) {

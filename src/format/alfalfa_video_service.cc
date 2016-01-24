@@ -71,6 +71,25 @@ Status AlfalfaVideoServiceImpl::get_raster( ServerContext *,
   return Status::OK;
 }
 
+Status AlfalfaVideoServiceImpl::get_abridged_frames( ServerContext *,
+						     const AlfalfaProtobufs::TrackRangeArgs * args,
+						     AlfalfaProtobufs::AbridgedFrameList * response )
+{
+  Log( "get_abridged_frames" );
+
+  const auto frames = video_.get_track_range( args->track_id(),
+					      args->start_frame_index(),
+					      args->end_frame_index() );
+  for ( auto frame = frames.first; frame != frames.second; frame++ ) {
+    AlfalfaProtobufs::AbridgedFrameInfo * abridged_frame_info = response->add_frame();
+    abridged_frame_info->set_offset( frame->offset() );
+    abridged_frame_info->set_length( frame->length() );
+    abridged_frame_info->set_shown( frame->shown() );
+  }
+
+  return Status::OK;
+}
+
 Status AlfalfaVideoServiceImpl::get_frames( ServerContext *,
                                             const AlfalfaProtobufs::TrackRangeArgs * args,
                                             AlfalfaProtobufs::FrameIterator * response )

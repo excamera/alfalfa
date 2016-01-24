@@ -32,6 +32,12 @@ public:
   /* Get a raster hash given raster_index. */
   size_t get_raster( const size_t raster_index ) const;
 
+  /* Get a bare-bones summary of the track */
+  AlfalfaProtobufs::AbridgedFrameList
+  get_abridged_frames( const size_t track_id,
+		       const size_t start_frame_index,
+		       const size_t end_frame_index ) const;
+  
   /* Gets frames in the given track, between the provided indices --
      here, start_frame_index is included and end_frame_index is
      excluded. */
