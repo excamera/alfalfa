@@ -224,7 +224,7 @@ public:
       bytes_used_this_chunk += bytes_to_append;
       bytes_so_far_ += bytes_to_append;
       
-      assert( coded_frames_.at( current_frame_i_ ).length() <= requests_.at( current_frame_i_ ).length );
+      assert( coded_frames_.at( current_frame_i_ ).length() <= requests_.at( current_frame_i_ ).length() );
     }
   }
 
