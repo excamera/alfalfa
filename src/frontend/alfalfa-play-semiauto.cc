@@ -8,6 +8,7 @@
 #include "frame_fetcher.hh"
 
 using namespace std;
+using AbridgedFrameInfo = AlfalfaProtobufs::AbridgedFrameInfo;
 
 int main( const int argc, char const *argv[] )
 {
@@ -47,7 +48,11 @@ int main( const int argc, char const *argv[] )
   /* convert to AbridgedFrameInfo */
   vector<AbridgedFrameInfo> abridged_track;
   for ( const auto & f : track ) {
-    abridged_track.push_back( { f.offset(), f.length(), f.shown() } );
+    AbridgedFrameInfo af;
+    af.set_offset( f.offset() );
+    af.set_length( f.length() );
+    af.set_shown( f.shown() );
+    abridged_track.push_back( af );
   }
   
   const size_t group_size = 24;

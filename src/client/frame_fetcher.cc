@@ -5,6 +5,7 @@
 #include "frame_fetcher.hh"
 
 using namespace std;
+using AbridgedFrameInfo = AlfalfaProtobufs::AbridgedFrameInfo;
 
 /* error category for CURLcodes */
 class curl_error_category : public error_category
@@ -100,7 +101,7 @@ public:
 	ret.append( "," );
       }
 
-      ret.append( to_string( x.offset ) + "-" + to_string( x.offset + x.length - 1 ) );
+      ret.append( to_string( x.offset() ) + "-" + to_string( x.offset() + x.length() - 1 ) );
     }
     return ret;
   }
@@ -112,7 +113,7 @@ public:
     : requests_( desired_frames )
   {
     for ( unsigned int i = 0; i < requests_.size(); i++ ) {
-      request_offset_to_index_.emplace( requests_[ i ].offset, i );
+      request_offset_to_index_.emplace( requests_[ i ].offset(), i );
     }
   }
 
@@ -207,12 +208,12 @@ public:
     size_t bytes_used_this_chunk = 0;
     while ( bytes_used_this_chunk < chunk.size() ) {
       /* is frame done? */
-      if ( requests_.at( current_frame_i_ ).length
+      if ( requests_.at( current_frame_i_ ).length()
 	   == coded_frames_.at( current_frame_i_ ).length() ) {
 	initialize_new_request();
       }
 
-      const size_t bytes_left_in_frame = requests_.at( current_frame_i_ ).length
+      const size_t bytes_left_in_frame = requests_.at( current_frame_i_ ).length()
 	- coded_frames_.at( current_frame_i_ ).length();
       const size_t bytes_available = chunk.size() - bytes_used_this_chunk;
       const size_t bytes_to_append = min( bytes_left_in_frame, bytes_available );
@@ -376,12 +377,12 @@ vector<string> FrameFetcher::get_chunks( const vector<AbridgedFrameInfo> & frame
   vector<AbridgedFrameInfo> frame_infos_to_fetch;
 
   for ( const auto & x : frame_infos ) {
-    if ( local_frame_store_.has_frame( x.offset ) ) {
+    if ( local_frame_store_.has_frame( x.offset() ) ) {
       /* skip it */
-    } else if ( local_frame_store_.is_frame_pending( x.offset ) ) {
+    } else if ( local_frame_store_.is_frame_pending( x.offset() ) ) {
       /* skip it */
     } else {
-      local_frame_store_.mark_frame_pending( x.offset );
+      local_frame_store_.mark_frame_pending( x.offset() );
       frame_infos_to_fetch.push_back( x );
     }
   }
@@ -405,7 +406,7 @@ vector<string> FrameFetcher::get_chunks( const vector<AbridgedFrameInfo> & frame
     /* add results to local frame store */
     for ( unsigned int i = 0; i < frame_infos_to_fetch.size(); i++ ) {
       if ( not response.coded_frames().empty() ) {
-	local_frame_store_.insert_frame( frame_infos_to_fetch.at( i ).offset,
+	local_frame_store_.insert_frame( frame_infos_to_fetch.at( i ).offset(),
 					 response.coded_frames().at( i ) );
       }
     }
@@ -414,18 +415,18 @@ vector<string> FrameFetcher::get_chunks( const vector<AbridgedFrameInfo> & frame
   /* fill in answers from the local frame store */
   vector<string> coded_frames;
   for ( const auto & x : frame_infos ) {
-    if ( not local_frame_store_.has_frame( x.offset ) ) {
-      throw runtime_error( "missing frame @ " + x.offset );
+    if ( not local_frame_store_.has_frame( x.offset() ) ) {
+      throw runtime_error( "missing frame @ " + x.offset() );
     }
 
-    coded_frames.push_back( local_frame_store_.coded_frame( x.offset ) );
+    coded_frames.push_back( local_frame_store_.coded_frame( x.offset() ) );
   }
 
   /* verify sizes */
   for ( unsigned int i = 0; i < frame_infos.size(); i++ ) {
-    if ( frame_infos.at( i ).length != coded_frames.at( i ).length() ) {
+    if ( frame_infos.at( i ).length() != coded_frames.at( i ).length() ) {
       throw runtime_error( "FrameFetcher length mismatch, expected "
-			   + to_string( frame_infos.at( i ).length )
+			   + to_string( frame_infos.at( i ).length() )
 			   + " and received "
 			   + to_string( coded_frames.at( i ).length() ) );
     }
@@ -444,7 +445,11 @@ vector<string> FrameFetcher::get_chunks( const vector<AbridgedFrameInfo> & frame
 string FrameFetcher::get_chunk( const FrameInfo & frame_info )
 {
   /* compatibility method */
-  const AbridgedFrameInfo sub { frame_info.offset(), frame_info.length(), frame_info.shown() };
+  AbridgedFrameInfo sub;
+
+  sub.set_offset( frame_info.offset() );
+  sub.set_length( frame_info.length() );
+  sub.set_shown( frame_info.shown() );
   
   return get_chunks( { sub } ).front();
 }
