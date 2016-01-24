@@ -10,6 +10,13 @@
 
 typedef void CURL;
 
+struct AbridgedFrameInfo
+{
+  uint64_t offset;
+  size_t length;
+  bool shown;
+};
+
 class FrameFetcher
 {
 private:
@@ -32,7 +39,7 @@ public:
   FrameFetcher( const std::string & framestore_url );
   
   std::string get_chunk( const FrameInfo & frame_info );
-  std::vector<std::string> get_chunks( const std::vector<FrameInfo> & frame_infos );
+  std::vector<std::string> get_chunks( const std::vector<AbridgedFrameInfo> & frame_infos );
 };
 
 #endif /* FRAME_FETCHER_HH */

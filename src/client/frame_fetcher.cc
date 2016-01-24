@@ -76,7 +76,7 @@ void FrameFetcher::CurlWrapper::perform()
 class HTTPResponse
 {
 private:
-  vector<FrameInfo> requests_;
+  vector<AbridgedFrameInfo> requests_;
   vector<string> coded_frames_ { requests_.size() };
   size_t current_frame_i_ {};
   unordered_map<size_t, size_t> request_offset_to_index_ {};
@@ -95,25 +95,24 @@ public:
   string range_of_requests() const
   {
     string ret;
-    for ( const FrameInfo & x : requests_ ) {
+    for ( const AbridgedFrameInfo & x : requests_ ) {
       if ( not ret.empty() ) {
 	ret.append( "," );
       }
 
-      ret.append( to_string( x.offset() ) + "-" + to_string( x.offset() + x.length() - 1 ) );
+      ret.append( to_string( x.offset ) + "-" + to_string( x.offset + x.length - 1 ) );
     }
     return ret;
   }
 
   const unordered_map<string, string> & headers() const { return headers_; }
-  const vector<FrameInfo> & requests() const { return requests_; }
   const vector<string> & coded_frames() const { return coded_frames_; }
   
-  HTTPResponse( const vector<FrameInfo> & desired_frames )
+  HTTPResponse( const vector<AbridgedFrameInfo> & desired_frames )
     : requests_( desired_frames )
   {
     for ( unsigned int i = 0; i < requests_.size(); i++ ) {
-      request_offset_to_index_.emplace( requests_[ i ].offset(), i );
+      request_offset_to_index_.emplace( requests_[ i ].offset, i );
     }
   }
 
@@ -179,7 +178,7 @@ public:
   {
     const auto cur = request_offset_to_index_.find( range_start_ + bytes_so_far_ );
     if ( cur == request_offset_to_index_.end() ) {
-      throw runtime_error( "HTTP response but could not find matching FrameInfo request" );
+      throw runtime_error( "HTTP response but could not find matching request" );
     }
 
     current_frame_i_ = cur->second;
@@ -208,12 +207,12 @@ public:
     size_t bytes_used_this_chunk = 0;
     while ( bytes_used_this_chunk < chunk.size() ) {
       /* is frame done? */
-      if ( requests_.at( current_frame_i_ ).length()
+      if ( requests_.at( current_frame_i_ ).length
 	   == coded_frames_.at( current_frame_i_ ).length() ) {
 	initialize_new_request();
       }
 
-      const size_t bytes_left_in_frame = requests_.at( current_frame_i_ ).length()
+      const size_t bytes_left_in_frame = requests_.at( current_frame_i_ ).length
 	- coded_frames_.at( current_frame_i_ ).length();
       const size_t bytes_available = chunk.size() - bytes_used_this_chunk;
       const size_t bytes_to_append = min( bytes_left_in_frame, bytes_available );
@@ -224,7 +223,7 @@ public:
       bytes_used_this_chunk += bytes_to_append;
       bytes_so_far_ += bytes_to_append;
       
-      assert( coded_frames_.at( current_frame_i_ ).length() <= requests_.at( current_frame_i_ ).length() );
+      assert( coded_frames_.at( current_frame_i_ ).length() <= requests_.at( current_frame_i_ ).length );
     }
   }
 
@@ -371,18 +370,18 @@ FrameFetcher::FrameFetcher( const string & framestore_url )
   curl_.setopt( CURLOPT_WRITEFUNCTION, response_appender );
 }
 
-vector<string> FrameFetcher::get_chunks( const vector<FrameInfo> & frame_infos )
+vector<string> FrameFetcher::get_chunks( const vector<AbridgedFrameInfo> & frame_infos )
 {
   /* decide which frames we really need to fetch */
-  vector<FrameInfo> frame_infos_to_fetch;
+  vector<AbridgedFrameInfo> frame_infos_to_fetch;
 
   for ( const auto & x : frame_infos ) {
-    if ( local_frame_store_.has_frame( x.offset() ) ) {
+    if ( local_frame_store_.has_frame( x.offset ) ) {
       /* skip it */
-    } else if ( local_frame_store_.is_frame_pending( x.offset() ) ) {
+    } else if ( local_frame_store_.is_frame_pending( x.offset ) ) {
       /* skip it */
     } else {
-      local_frame_store_.mark_frame_pending( x.offset() );
+      local_frame_store_.mark_frame_pending( x.offset );
       frame_infos_to_fetch.push_back( x );
     }
   }
@@ -404,10 +403,10 @@ vector<string> FrameFetcher::get_chunks( const vector<FrameInfo> & frame_infos )
     curl_.perform();
 
     /* add results to local frame store */
-    for ( unsigned int i = 0; i < response.requests().size(); i++ ) {
+    for ( unsigned int i = 0; i < frame_infos_to_fetch.size(); i++ ) {
       if ( not response.coded_frames().empty() ) {
-	local_frame_store_.insert_frame( response.requests()[ i ].offset(),
-					 response.coded_frames()[ i ] );
+	local_frame_store_.insert_frame( frame_infos_to_fetch.at( i ).offset,
+					 response.coded_frames().at( i ) );
       }
     }
   }
@@ -415,18 +414,18 @@ vector<string> FrameFetcher::get_chunks( const vector<FrameInfo> & frame_infos )
   /* fill in answers from the local frame store */
   vector<string> coded_frames;
   for ( const auto & x : frame_infos ) {
-    if ( not local_frame_store_.has_frame( x.offset() ) ) {
-      throw runtime_error( "missing frame: " + x.name().str() );
+    if ( not local_frame_store_.has_frame( x.offset ) ) {
+      throw runtime_error( "missing frame @ " + x.offset );
     }
 
-    coded_frames.push_back( local_frame_store_.coded_frame( x.offset() ) );
+    coded_frames.push_back( local_frame_store_.coded_frame( x.offset ) );
   }
 
   /* verify sizes */
   for ( unsigned int i = 0; i < frame_infos.size(); i++ ) {
-    if ( frame_infos.at( i ).length() != coded_frames.at( i ).length() ) {
+    if ( frame_infos.at( i ).length != coded_frames.at( i ).length() ) {
       throw runtime_error( "FrameFetcher length mismatch, expected "
-			   + to_string( frame_infos.at( i ).length() )
+			   + to_string( frame_infos.at( i ).length )
 			   + " and received "
 			   + to_string( coded_frames.at( i ).length() ) );
     }
@@ -445,5 +444,7 @@ vector<string> FrameFetcher::get_chunks( const vector<FrameInfo> & frame_infos )
 string FrameFetcher::get_chunk( const FrameInfo & frame_info )
 {
   /* compatibility method */
-  return get_chunks( { frame_info } ).front();
+  const AbridgedFrameInfo sub { frame_info.offset(), frame_info.length(), frame_info.shown() };
+  
+  return get_chunks( { sub } ).front();
 }
