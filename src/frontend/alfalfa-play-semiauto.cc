@@ -11,8 +11,8 @@ using namespace std;
 
 int main( const int argc, char const *argv[] )
 {
-  if ( argc != 2 ) {
-    cerr << "Usage: " << argv[ 0 ] << " <server-address>" << "\n";
+  if ( argc != 3 ) {
+    cerr << "Usage: " << argv[ 0 ] << " <server-address> <track>" << "\n";
     return EX_USAGE;
   }
 
@@ -35,11 +35,14 @@ int main( const int argc, char const *argv[] )
   if ( track_ids.empty() ) {
     throw runtime_error( "no tracks to play" );
   }
-  
-  const size_t track_to_play = track_ids.front();
+
+  const size_t track_to_play = stoi( argv[ 2 ] );
   const size_t track_size = video.get_track_size( track_to_play );
+
+  cerr << "Getting the track list... ";
   const vector<FrameInfo> track = video.get_frames( track_to_play,
 						    0, track_size );
+  cerr << "done.\n";
   
   const size_t group_size = 24;
 

@@ -2,13 +2,15 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <cassert>
+
 #include "frame_store.hh"
 #include "exception.hh"
 
 using namespace std;
 
 BackingStore::BackingStore()
-  : file_( "alfalfa.local" ),
+  : file_( "/tmp/alfalfa.local" ),
     file_size_( file_.fd().size() )
 {
   if ( file_size_ ) {
@@ -16,9 +18,9 @@ BackingStore::BackingStore()
   }
 }
 
-size_t BackingStore::append( const Chunk & chunk )
+uint64_t BackingStore::append( const Chunk & chunk )
 {
-  const size_t written_offset = file_size_;
+  const uint64_t written_offset = file_size_;
 
   file_.fd().write( chunk );
   file_size_ += chunk.size();
@@ -27,27 +29,23 @@ size_t BackingStore::append( const Chunk & chunk )
   return written_offset;
 }
 
-void FrameStore::insert_frame( FrameInfo frame_info,
+void FrameStore::insert_frame( const uint64_t global_offset,
 			       const Chunk & chunk )
 {
-  pending_.erase( frame_info.name() );
-  
-  if ( not local_frame_db_.has_frame_name( frame_info.name() ) ) {
-    size_t offset = backing_store_.append( chunk );
-    frame_info.set_offset( offset );
+  pending_.erase( global_offset );
 
-    cerr << "inserting " << frame_info.name().str() << " at " << frame_info.offset() << " len=" << frame_info.length() << "\n";
-  
-    local_frame_db_.insert( frame_info );
+  if ( not has_frame( global_offset ) ) {
+    const uint64_t local_offset = backing_store_.append( chunk );
+    local_frame_db_.emplace( global_offset, make_pair( local_offset, chunk.size() ) );
   }
 }
 
-bool FrameStore::has_frame( const FrameName & frame_name ) const
+bool FrameStore::has_frame( const uint64_t global_offset ) const
 {
-  return local_frame_db_.has_frame_name( frame_name );
+  return ( local_frame_db_.find( global_offset ) != local_frame_db_.end() );
 }
 
-string BackingStore::read( const size_t offset, const size_t length ) const
+string BackingStore::read( const uint64_t offset, const size_t length ) const
 {
   if ( offset + length > file_size_ ) {
     throw std::out_of_range( "attempt to read beyond BackingStore" );
@@ -56,21 +54,22 @@ string BackingStore::read( const size_t offset, const size_t length ) const
   return file_.fd().pread( offset, length );
 }
 
-string FrameStore::coded_frame( const FrameName & frame_name ) const
+string FrameStore::coded_frame( const uint64_t global_offset ) const
 {
-  const FrameInfo & info = local_frame_db_.search_by_frame_name( frame_name );
-
-  return backing_store_.read( info.offset(), info.length() );
+  const auto & local_info = local_frame_db_.find( global_offset );
+  assert( local_info != local_frame_db_.end() );
+  
+  return backing_store_.read( local_info->second.first, local_info->second.second );
 }
 
-void FrameStore::mark_frame_pending( const FrameName & name )
+void FrameStore::mark_frame_pending( const uint64_t global_offset )
 {
-  pending_.insert( name );
+  pending_.emplace( global_offset );
 }
 
-bool FrameStore::is_frame_pending( const FrameName & name ) const
+bool FrameStore::is_frame_pending( const uint64_t global_offset ) const
 {
-  return pending_.count( name );
+  return ( pending_.find( global_offset ) != pending_.end() );
 }
 
 bool FrameStore::is_anything_pending() const

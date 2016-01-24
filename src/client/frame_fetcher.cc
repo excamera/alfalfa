@@ -377,12 +377,12 @@ vector<string> FrameFetcher::get_chunks( const vector<FrameInfo> & frame_infos )
   vector<FrameInfo> frame_infos_to_fetch;
 
   for ( const auto & x : frame_infos ) {
-    if ( local_frame_store_.has_frame( x.name() ) ) {
+    if ( local_frame_store_.has_frame( x.offset() ) ) {
       /* skip it */
-    } else if ( local_frame_store_.is_frame_pending( x.name() ) ) {
+    } else if ( local_frame_store_.is_frame_pending( x.offset() ) ) {
       /* skip it */
     } else {
-      local_frame_store_.mark_frame_pending( x.name() );
+      local_frame_store_.mark_frame_pending( x.offset() );
       frame_infos_to_fetch.push_back( x );
     }
   }
@@ -406,7 +406,7 @@ vector<string> FrameFetcher::get_chunks( const vector<FrameInfo> & frame_infos )
     /* add results to local frame store */
     for ( unsigned int i = 0; i < response.requests().size(); i++ ) {
       if ( not response.coded_frames().empty() ) {
-	local_frame_store_.insert_frame( response.requests()[ i ],
+	local_frame_store_.insert_frame( response.requests()[ i ].offset(),
 					 response.coded_frames()[ i ] );
       }
     }
@@ -415,11 +415,11 @@ vector<string> FrameFetcher::get_chunks( const vector<FrameInfo> & frame_infos )
   /* fill in answers from the local frame store */
   vector<string> coded_frames;
   for ( const auto & x : frame_infos ) {
-    if ( not local_frame_store_.has_frame( x.name() ) ) {
+    if ( not local_frame_store_.has_frame( x.offset() ) ) {
       throw runtime_error( "missing frame: " + x.name().str() );
     }
 
-    coded_frames.push_back( local_frame_store_.coded_frame( x.name() ) );
+    coded_frames.push_back( local_frame_store_.coded_frame( x.offset() ) );
   }
 
   /* verify sizes */
