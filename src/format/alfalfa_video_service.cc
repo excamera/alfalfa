@@ -84,6 +84,7 @@ Status AlfalfaVideoServiceImpl::get_abridged_frames( ServerContext *,
     AlfalfaProtobufs::AbridgedFrameInfo * abridged_frame_info = response->add_frame();
     abridged_frame_info->set_offset( frame->offset() );
     abridged_frame_info->set_length( frame->length() );
+    abridged_frame_info->set_frame_id( frame->frame_id() );
     abridged_frame_info->set_shown( frame->shown() );
   }
 
