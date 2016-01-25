@@ -19,7 +19,7 @@ public:
 };
 
 /* call wrapper for CURL API */
-inline void CurlCall( const std::string & s_attempt, const CURLcode result )
+inline void CurlCall( const string & s_attempt, const CURLcode result )
 {
   if ( result == CURLE_OK ) {
     return;
@@ -58,10 +58,6 @@ CURL * notnull( CURL * const x )
 {
   return x ? x : throw runtime_error( "curl_easy_init failed" );
 }
-
-FrameFetcher::CurlWrapper::CurlWrapper()
-  : c( notnull( curl_easy_init() ) )
-{}
 
 template <typename X, typename Y>
 void FrameFetcher::CurlWrapper::setopt( const X option, const Y & parameter )
@@ -305,7 +301,7 @@ public:
   {
     /* step 1: does buffer contain colon? */
     const size_t colon_location = header_line.find( ":" );
-    if ( colon_location == std::string::npos ) {
+    if ( colon_location == string::npos ) {
       return {}; /* status line or blank space, but not a header */
     } else {
       return { true, colon_location };
@@ -362,34 +358,65 @@ static size_t header_appender( const char * const buffer,
   return byte_size;
 }
 
-FrameFetcher::FrameFetcher( const string & framestore_url )
-  : curl_(),
-    local_frame_store_()
+FrameFetcher::CurlWrapper::CurlWrapper( const string & url )
+  : c( notnull( curl_easy_init() ) )
 {
-  curl_.setopt( CURLOPT_URL, framestore_url.c_str() );
-  curl_.setopt( CURLOPT_HEADERFUNCTION, header_appender );
-  curl_.setopt( CURLOPT_WRITEFUNCTION, response_appender );
+  setopt( CURLOPT_URL, url.c_str() );
+  setopt( CURLOPT_HEADERFUNCTION, header_appender );
+  setopt( CURLOPT_WRITEFUNCTION, response_appender );
 }
 
-vector<string> FrameFetcher::get_chunks( const vector<AbridgedFrameInfo> & frame_infos )
+FrameFetcher::FrameFetcher( const string & framestore_url )
+  : curl_( framestore_url ),
+    downloader_thread_( [&] () { event_loop(); } )
+{}
+
+FrameFetcher::~FrameFetcher()
 {
-  /* decide which frames we really need to fetch */
-  vector<AbridgedFrameInfo> frame_infos_to_fetch;
+  /* shut down the downloader thread */
+  shutdown_ = true;
+  new_request_or_shutdown_.notify_all();
+  downloader_thread_.join();
+}
 
-  for ( const auto & x : frame_infos ) {
-    if ( local_frame_store_.has_frame( x.offset() ) ) {
-      /* skip it */
-    } else if ( local_frame_store_.is_frame_pending( x.offset() ) ) {
-      /* skip it */
-    } else {
-      local_frame_store_.mark_frame_pending( x.offset() );
-      frame_infos_to_fetch.push_back( x );
+void FrameFetcher::event_loop()
+{
+  while ( not shutdown_ ) {
+    /* fetch one batch of frames */
+    vector<AbridgedFrameInfo> frames_to_fetch;
+    unordered_set<uint64_t> frames_to_fetch_set;
+
+    /* decide which frames we really need to fetch */
+    {
+      unique_lock<mutex> lock { mutex_ };
+
+      for ( const auto & x : wishlist_ ) {
+	if ( frames_to_fetch.size() >= 24 ) {
+	  break;
+	}
+
+	if ( local_frame_store_.has_frame( x.offset() ) ) {
+	  /* skip it */
+	} else if ( frames_to_fetch_set.count( x.offset() ) ) {
+	  /* skip it */
+	} else {
+	  frames_to_fetch_set.emplace( x.offset() );
+	  frames_to_fetch.push_back( x );
+	}
+      }
     }
-  }
 
-  /* fetch new frames! */
-  if ( not frame_infos_to_fetch.empty() ) {
-    HTTPResponse response { frame_infos_to_fetch };
+    /* if nothing to fetch, wait and loop again */
+    if ( frames_to_fetch.empty() ) {
+      unique_lock<mutex> lock { mutex_ };
+      new_request_or_shutdown_.wait( lock );
+      continue;
+    }
+
+    assert( not frames_to_fetch.empty() );
+
+    /* fetch the new round of frames */
+    HTTPResponse response { frames_to_fetch };
 
     /* set range header */
     curl_.setopt( CURLOPT_RANGE, response.range_of_requests().c_str() );
@@ -404,42 +431,44 @@ vector<string> FrameFetcher::get_chunks( const vector<AbridgedFrameInfo> & frame
     curl_.perform();
 
     /* add results to local frame store */
-    for ( unsigned int i = 0; i < frame_infos_to_fetch.size(); i++ ) {
-      if ( not response.coded_frames().empty() ) {
-	local_frame_store_.insert_frame( frame_infos_to_fetch.at( i ).offset(),
-					 response.coded_frames().at( i ) );
+    {
+      unique_lock<mutex> lock { mutex_ };
+      for ( unsigned int i = 0; i < frames_to_fetch.size(); i++ ) {
+	/* verify size */
+	const auto & request = frames_to_fetch[ i ];
+	const auto & coded_frame = response.coded_frames()[ i ];
+	if ( request.length() != coded_frame.length() ) {
+	  throw runtime_error( "FrameFetcher: length mismatch" );
+	}
+	local_frame_store_.insert_frame( request.offset(), coded_frame );
       }
     }
+
+    /* alert waiting threads */
+    new_response_.notify_all();
+  }
+}
+  
+vector<string> FrameFetcher::get_chunks( const vector<AbridgedFrameInfo> & frame_infos )
+{
+  /* make the request */
+  {
+    unique_lock<mutex> lock { mutex_ };
+
+    wishlist_ = frame_infos;
+    new_request_or_shutdown_.notify_all();
   }
 
-  /* fill in answers from the local frame store */
-  vector<string> coded_frames;
+  /* collect the results */
+  vector<string> ret;
   for ( const auto & x : frame_infos ) {
-    if ( not local_frame_store_.has_frame( x.offset() ) ) {
-      throw runtime_error( "missing frame @ " + x.offset() );
-    }
-
-    coded_frames.push_back( local_frame_store_.coded_frame( x.offset() ) );
-  }
-
-  /* verify sizes */
-  for ( unsigned int i = 0; i < frame_infos.size(); i++ ) {
-    if ( frame_infos.at( i ).length() != coded_frames.at( i ).length() ) {
-      throw runtime_error( "FrameFetcher length mismatch, expected "
-			   + to_string( frame_infos.at( i ).length() )
-			   + " and received "
-			   + to_string( coded_frames.at( i ).length() ) );
-    }
-  }
-
-  /* verify nothing is pending */
-  if ( local_frame_store_.is_anything_pending() ) {
-    throw runtime_error( "frame still pending at end of fetch" );
+    /* wait for the frame */
+    unique_lock<mutex> lock { mutex_ };
+    new_response_.wait( lock, [&] () { return local_frame_store_.has_frame( x.offset() ); } );    
+    ret.emplace_back( local_frame_store_.coded_frame( x.offset() ) );
   }
   
-  cerr << "done.\n";
-  
-  return coded_frames;
+  return ret;
 }
 
 string FrameFetcher::get_chunk( const FrameInfo & frame_info )

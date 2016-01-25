@@ -32,8 +32,6 @@ uint64_t BackingStore::append( const Chunk & chunk )
 void FrameStore::insert_frame( const uint64_t global_offset,
 			       const Chunk & chunk )
 {
-  pending_.erase( global_offset );
-
   if ( not has_frame( global_offset ) ) {
     const uint64_t local_offset = backing_store_.append( chunk );
     local_frame_db_.emplace( global_offset, make_pair( local_offset, chunk.size() ) );
@@ -60,19 +58,4 @@ string FrameStore::coded_frame( const uint64_t global_offset ) const
   assert( local_info != local_frame_db_.end() );
   
   return backing_store_.read( local_info->second.first, local_info->second.second );
-}
-
-void FrameStore::mark_frame_pending( const uint64_t global_offset )
-{
-  pending_.emplace( global_offset );
-}
-
-bool FrameStore::is_frame_pending( const uint64_t global_offset ) const
-{
-  return ( pending_.find( global_offset ) != pending_.end() );
-}
-
-bool FrameStore::is_anything_pending() const
-{
-  return not pending_.empty();
 }

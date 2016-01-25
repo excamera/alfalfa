@@ -28,7 +28,6 @@ private:
   std::unordered_map<uint64_t, std::pair<uint64_t, size_t>> local_frame_db_ {};
   /* mapping from global offset => local offset and length */
   BackingStore backing_store_ {};
-  std::unordered_set<uint64_t> pending_ {}; /* field is the offset */
   
 public:
   void insert_frame( const uint64_t global_offset,
@@ -37,10 +36,6 @@ public:
   bool has_frame( const uint64_t global_offset ) const;
 
   std::string coded_frame( const uint64_t global_offset ) const;
-
-  void mark_frame_pending( const uint64_t global_offset );
-  bool is_frame_pending( const uint64_t global_offset ) const;
-  bool is_anything_pending() const;
 };
 
 #endif /* FRAME_STORE_HH */

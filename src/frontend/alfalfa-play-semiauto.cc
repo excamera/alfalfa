@@ -38,7 +38,7 @@ int main( const int argc, char const *argv[] )
   }
 
   const size_t track_to_play = stoi( argv[ 2 ] );
-  const size_t track_size = video.get_track_size( track_to_play );
+  const size_t track_size = 2000; // video.get_track_size( track_to_play );
 
   cerr << "Getting the track list... ";
   const auto abridged_track = video.get_abridged_frames( track_to_play,
