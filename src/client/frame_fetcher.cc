@@ -237,7 +237,9 @@ public:
       assert( coded_frames_.at( current_frame_i_ ).length() <= requests_.at( current_frame_i_ ).length() );
     }
 
-    insert();
+    if ( bytes_so_far_ == range_length_ ) {
+      insert();
+    }
   }
 
   void insert()
