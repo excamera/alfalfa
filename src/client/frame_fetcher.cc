@@ -184,12 +184,7 @@ public:
   void initialize_new_request()
   {
     if ( current_frame_i_ != size_t( -1 ) ) {
-      if ( requests_.at( current_frame_i_ ).length()
-	   != coded_frames_.at( current_frame_i_ ).length() ) {
-	throw runtime_error( "BUG: frame length mismatch" );
-      }
-      parent_->insert_frame( requests_.at( current_frame_i_ ).offset(),
-			     coded_frames_.at( current_frame_i_ ) );
+      insert();
     }
 
     const auto cur = request_offset_to_index_.find( range_start_ + bytes_so_far_ );
@@ -241,8 +236,20 @@ public:
       
       assert( coded_frames_.at( current_frame_i_ ).length() <= requests_.at( current_frame_i_ ).length() );
     }
+
+    insert();
   }
 
+  void insert()
+  {
+    if ( requests_.at( current_frame_i_ ).length()
+	 != coded_frames_.at( current_frame_i_ ).length() ) {
+      throw runtime_error( "BUG: frame length mismatch" );
+    }
+    parent_->insert_frame( requests_.at( current_frame_i_ ).offset(),
+			   coded_frames_.at( current_frame_i_ ) );    
+  }
+  
   void process_multipart_boundary_header()
   {
     /* are there four newlines yet? */
@@ -516,7 +523,7 @@ string FrameFetcher::coded_frame( const AlfalfaProtobufs::AbridgedFrameInfo & fr
 {
   unique_lock<mutex> lock { mutex_ };
   if ( wishlist_.empty() ) {
-    throw runtime_error( "wait_for_frame with empty plan" );
+    throw runtime_error( "coded_frame with empty plan" );
   } else if ( wishlist_.front().frame_id() != frame.frame_id() ) {
     throw runtime_error( "mismatch between requested frame and plan" );
   }
