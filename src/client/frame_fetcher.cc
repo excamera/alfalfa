@@ -77,7 +77,7 @@ class HTTPResponse
 private:
   vector<AbridgedFrameInfo> requests_;
   vector<string> coded_frames_ { requests_.size() };
-  size_t current_frame_i_ {};
+  size_t current_frame_i_ = size_t( -1 );
   unordered_map<size_t, size_t> request_offset_to_index_ {};
   unordered_map<string, string> headers_ {};
   bool body_started_ {};
@@ -90,7 +90,13 @@ private:
 
   string residue_ {};
 
+  FrameFetcher * parent_;
+  
 public:
+  /* forbid copying */
+  HTTPResponse( const HTTPResponse & other ) = delete;
+  HTTPResponse & operator=( const HTTPResponse & other ) = delete;
+  
   string range_of_requests() const
   {
     string ret;
@@ -107,8 +113,10 @@ public:
   const unordered_map<string, string> & headers() const { return headers_; }
   const vector<string> & coded_frames() const { return coded_frames_; }
   
-  HTTPResponse( const vector<AbridgedFrameInfo> & desired_frames )
-    : requests_( desired_frames )
+  HTTPResponse( const vector<AbridgedFrameInfo> & desired_frames,
+		FrameFetcher * parent )
+    : requests_( desired_frames ),
+      parent_( parent )
   {
     for ( unsigned int i = 0; i < requests_.size(); i++ ) {
       request_offset_to_index_.emplace( requests_[ i ].offset(), i );
@@ -175,6 +183,15 @@ public:
 
   void initialize_new_request()
   {
+    if ( current_frame_i_ != size_t( -1 ) ) {
+      if ( requests_.at( current_frame_i_ ).length()
+	   != coded_frames_.at( current_frame_i_ ).length() ) {
+	throw runtime_error( "BUG: frame length mismatch" );
+      }
+      parent_->insert_frame( requests_.at( current_frame_i_ ).offset(),
+			     coded_frames_.at( current_frame_i_ ) );
+    }
+
     const auto cur = request_offset_to_index_.find( range_start_ + bytes_so_far_ );
     if ( cur == request_offset_to_index_.end() ) {
       throw runtime_error( "HTTP response but could not find matching request" );
@@ -430,7 +447,7 @@ void FrameFetcher::event_loop()
     assert( not frames_to_fetch.empty() );
 
     /* fetch the new round of frames */
-    HTTPResponse response { frames_to_fetch };
+    HTTPResponse response { frames_to_fetch, this };
 
     /* set range header */
     curl_.setopt( CURLOPT_RANGE, response.range_of_requests().c_str() );
@@ -458,24 +475,17 @@ void FrameFetcher::event_loop()
       + alpha * estimated_bytes_per_second_sample;
 
     //    cerr << "estimated throughput now " << estimated_bytes_per_second_ * 8.0 / 1000.0 << " kilobits per second\n";
-    
-    /* add results to local frame store */
-    {
-      unique_lock<mutex> lock { mutex_ };
-      for ( unsigned int i = 0; i < frames_to_fetch.size(); i++ ) {
-	/* verify size */
-	const auto & request = frames_to_fetch[ i ];
-	const auto & coded_frame = response.coded_frames()[ i ];
-	if ( request.length() != coded_frame.length() ) {
-	  throw runtime_error( "FrameFetcher: length mismatch" );
-	}
-	local_frame_store_.insert_frame( request.offset(), coded_frame );
-      }
-    }
-
-    /* alert waiting threads */
-    new_response_.notify_all();
   }
+}
+
+void FrameFetcher::insert_frame( const uint64_t offset, const string & contents )
+{
+  {
+    unique_lock<mutex> lock { mutex_ };
+    local_frame_store_.insert_frame( offset, contents );
+  }
+
+  new_response_.notify_all();
 }
 
 bool FrameFetcher::has_frame( const AlfalfaProtobufs::AbridgedFrameInfo & frame )

@@ -50,6 +50,8 @@ private:
   
 public:
   FrameFetcher( const std::string & framestore_url );
+
+  void insert_frame( const uint64_t offset, const std::string & contents );
   
   std::string get_chunk( const FrameInfo & frame_info );
 
