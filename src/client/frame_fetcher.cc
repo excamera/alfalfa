@@ -402,7 +402,7 @@ void FrameFetcher::event_loop()
       unique_lock<mutex> lock { mutex_ };
 
       for ( const auto & x : wishlist_ ) {
-	if ( fetch_size( frames_to_fetch ) > 1024576 ) {
+	if ( fetch_size( frames_to_fetch ) / estimated_bytes_per_second_ > 0.5 ) {
 	  break;
 	} else if ( frames_to_fetch.size() >= 96 ) {
 	  break;

@@ -42,7 +42,7 @@ private:
   std::atomic<bool> shutdown_ {};
   std::thread downloader_thread_;
 
-  double estimated_bytes_per_second_ {};
+  double estimated_bytes_per_second_ = 10000;
   
   void event_loop();
   
