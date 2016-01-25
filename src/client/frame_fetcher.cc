@@ -391,7 +391,7 @@ void FrameFetcher::event_loop()
       unique_lock<mutex> lock { mutex_ };
 
       for ( const auto & x : wishlist_ ) {
-	if ( frames_to_fetch.size() >= 12 ) {
+	if ( frames_to_fetch.size() >= 24 ) {
 	  break;
 	}
 
@@ -449,21 +449,28 @@ void FrameFetcher::event_loop()
   }
 }
 
-void FrameFetcher::set_frame_plan( const std::vector<AlfalfaProtobufs::AbridgedFrameInfo> & frames )
+bool FrameFetcher::has_frame( const AlfalfaProtobufs::AbridgedFrameInfo & frame )
 {
-  /* make the request */
-  {
-    unique_lock<mutex> lock { mutex_ };
-
-    wishlist_ = frames;
-    new_request_or_shutdown_.notify_all();
-  }  
+  unique_lock<mutex> lock { mutex_ };
+  return local_frame_store_.has_frame( frame.offset() );
 }
 
-std::string FrameFetcher::wait_for_frame( const AlfalfaProtobufs::AbridgedFrameInfo & frame )
+void FrameFetcher::wait_for_frame( const AlfalfaProtobufs::AbridgedFrameInfo & frame )
 {
   unique_lock<mutex> lock { mutex_ };
   new_response_.wait( lock, [&] () { return local_frame_store_.has_frame( frame.offset() ); } );    
+}
+
+string FrameFetcher::coded_frame( const AlfalfaProtobufs::AbridgedFrameInfo & frame )
+{
+  unique_lock<mutex> lock { mutex_ };
+  if ( wishlist_.empty() ) {
+    throw runtime_error( "wait_for_frame with empty plan" );
+  } else if ( wishlist_.front().frame_id() != frame.frame_id() ) {
+    throw runtime_error( "mismatch between requested frame and plan" );
+  }
+
+  wishlist_.pop_front();
   return local_frame_store_.coded_frame( frame.offset() );
 }
 
@@ -476,6 +483,7 @@ string FrameFetcher::get_chunk( const FrameInfo & frame_info )
   sub.set_length( frame_info.length() );
   sub.set_shown( frame_info.shown() );
 
-  set_frame_plan( { sub } );
-  return wait_for_frame( sub );
+  set_frame_plan( vector<AbridgedFrameInfo> { sub } );
+  wait_for_frame( sub );
+  return coded_frame( sub );
 }

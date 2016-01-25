@@ -37,7 +37,7 @@ private:
   std::condition_variable new_request_or_shutdown_ {};
   std::condition_variable new_response_ {};
 
-  std::vector<AlfalfaProtobufs::AbridgedFrameInfo> wishlist_ {};
+  std::deque<AlfalfaProtobufs::AbridgedFrameInfo> wishlist_ {};
 
   std::atomic<bool> shutdown_ {};
   std::thread downloader_thread_;
@@ -49,8 +49,18 @@ public:
   
   std::string get_chunk( const FrameInfo & frame_info );
 
-  void set_frame_plan( const std::vector<AlfalfaProtobufs::AbridgedFrameInfo> & frames );
-  std::string wait_for_frame( const AlfalfaProtobufs::AbridgedFrameInfo & frame );
+  template <typename Iterable>
+  void set_frame_plan( const Iterable & frames )
+  {
+    std::unique_lock<std::mutex> lock { mutex_ };
+    wishlist_.clear();
+    wishlist_.insert( wishlist_.begin(), frames.begin(), frames.end() );
+    new_request_or_shutdown_.notify_all();
+  }
+
+  bool has_frame( const AlfalfaProtobufs::AbridgedFrameInfo & frame );
+  void wait_for_frame( const AlfalfaProtobufs::AbridgedFrameInfo & frame );
+  std::string coded_frame( const AlfalfaProtobufs::AbridgedFrameInfo & frame );
   
   ~FrameFetcher();
 };

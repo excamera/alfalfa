@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <iostream>
+#include <chrono>
 
 #include <sysexits.h>
 
@@ -8,6 +9,7 @@
 #include "frame_fetcher.hh"
 
 using namespace std;
+using namespace std::chrono;
 using AbridgedFrameInfo = AlfalfaProtobufs::AbridgedFrameInfo;
 
 int main( const int argc, char const *argv[] )
@@ -38,7 +40,7 @@ int main( const int argc, char const *argv[] )
   }
 
   const size_t track_to_play = stoi( argv[ 2 ] );
-  const size_t track_size = 2000; // video.get_track_size( track_to_play );
+  const size_t track_size = video.get_track_size( track_to_play );
 
   cerr << "Getting the track list... ";
   const auto abridged_track = video.get_abridged_frames( track_to_play,
@@ -46,15 +48,31 @@ int main( const int argc, char const *argv[] )
   cerr << "done.\n";
 
   /* start fetching */
-  vector<AbridgedFrameInfo> track;
-  track.insert( track.begin(), abridged_track.frame().begin(), abridged_track.frame().end() );
-  fetcher.set_frame_plan( track );
+  fetcher.set_frame_plan( abridged_track.frame() );
 
   /* start playing */
-  for ( const auto & x : track ) {
-    const string coded_frame = fetcher.wait_for_frame( x );
+  auto next_raster_time = steady_clock::now();
+  bool stalled = false;
+  for ( const auto & x : abridged_track.frame() ) {
+    if ( not fetcher.has_frame( x ) ) {
+      /* stall */
+      cerr << "stalling... ";
+      fetcher.wait_for_frame( x );
+      stalled = true;
+    }
+
+    const string coded_frame = fetcher.coded_frame( x );
     const Optional<RasterHandle> raster = decoder.parse_and_decode_frame( coded_frame );
-    if ( raster.initialized() ) { display.draw( raster.get() ); }
+    if ( raster.initialized() ) {
+      if ( stalled ) {
+	next_raster_time = steady_clock::now();
+	stalled = false;
+	cerr << "end of stall.\n";
+      }
+      this_thread::sleep_until( next_raster_time );
+      display.draw( raster.get() );
+      next_raster_time += microseconds( 41667 );
+    }
   }
 
   return EXIT_SUCCESS;
