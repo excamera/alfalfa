@@ -52,27 +52,38 @@ int main( const int argc, char const *argv[] )
 
   /* start playing */
   auto next_raster_time = steady_clock::now();
-  bool stalled = false;
-  for ( const auto & x : abridged_track.frame() ) {
-    if ( not fetcher.has_frame( x ) ) {
-      /* stall */
-      cerr << "stalling... ";
-      fetcher.wait_for_frame( x );
-      stalled = true;
+  bool playing = false;
+  auto frame_it = abridged_track.frame().begin();
+  while ( true ) {
+    if ( frame_it == abridged_track.frame().end() ) {
+      break; /* done with video */
     }
 
-    const string coded_frame = fetcher.coded_frame( x );
+    /* should we resume from a stall? */
+    if ( not playing ) {
+      fetcher.wait_until_feasible();
+      playing = true;
+      next_raster_time = steady_clock::now();
+      cerr << "Playing.\n";
+    }
+
+    /* do we need to stall? */
+    if ( not fetcher.has_frame( *frame_it ) ) {
+      /* stall */
+      cerr << "Stalling.\n";
+      playing = false;
+      continue;
+    }
+    
+    const string coded_frame = fetcher.coded_frame( *frame_it );
     const Optional<RasterHandle> raster = decoder.parse_and_decode_frame( coded_frame );
     if ( raster.initialized() ) {
-      if ( stalled ) {
-	next_raster_time = steady_clock::now();
-	stalled = false;
-	cerr << "end of stall.\n";
-      }
       this_thread::sleep_until( next_raster_time );
       display.draw( raster.get() );
-      next_raster_time += microseconds( 41667 );
+      next_raster_time += microseconds( lrint( 1000000.0 / 24.0 ) );
     }
+
+    frame_it++;
   }
 
   return EXIT_SUCCESS;

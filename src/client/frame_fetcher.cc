@@ -370,6 +370,7 @@ FrameFetcher::CurlWrapper::CurlWrapper( const string & url )
 
 FrameFetcher::FrameFetcher( const string & framestore_url )
   : curl_( framestore_url ),
+    estimated_bytes_per_second_( 10000 ),
     downloader_thread_( [&] () { event_loop(); } )
 {}
 
@@ -448,7 +449,7 @@ void FrameFetcher::event_loop()
 
     duration<double> time_in_seconds = end_fetch_time - start_fetch_time;
 
-    cerr << "fetched " << fetch_size( frames_to_fetch ) << " bytes in " << time_in_seconds.count() << " seconds\n";
+    //    cerr << "fetched " << fetch_size( frames_to_fetch ) << " bytes in " << time_in_seconds.count() << " seconds\n";
     
     const auto estimated_bytes_per_second_sample = fetch_size( frames_to_fetch ) / time_in_seconds.count();
 
@@ -456,7 +457,7 @@ void FrameFetcher::event_loop()
     estimated_bytes_per_second_ = (1 - alpha) * estimated_bytes_per_second_
       + alpha * estimated_bytes_per_second_sample;
 
-    cerr << "estimated throughput now " << estimated_bytes_per_second_ * 8.0 / 1000.0 << " kilobits per second\n";
+    //    cerr << "estimated throughput now " << estimated_bytes_per_second_ * 8.0 / 1000.0 << " kilobits per second\n";
     
     /* add results to local frame store */
     {
@@ -489,6 +490,18 @@ void FrameFetcher::wait_for_frame( const AlfalfaProtobufs::AbridgedFrameInfo & f
   new_response_.wait( lock, [&] () { return local_frame_store_.has_frame( frame.offset() ); } );    
 }
 
+bool FrameFetcher::is_plan_feasible()
+{
+  unique_lock<mutex> lock { mutex_ };
+  return is_plan_feasible_nolock();
+}
+
+void FrameFetcher::wait_until_feasible()
+{
+  unique_lock<mutex> lock { mutex_ };
+  new_response_.wait( lock, [&] () { return is_plan_feasible_nolock(); } );
+}
+
 string FrameFetcher::coded_frame( const AlfalfaProtobufs::AbridgedFrameInfo & frame )
 {
   unique_lock<mutex> lock { mutex_ };
@@ -514,4 +527,33 @@ string FrameFetcher::get_chunk( const FrameInfo & frame_info )
   set_frame_plan( vector<AbridgedFrameInfo> { sub } );
   wait_for_frame( sub );
   return coded_frame( sub );
+}
+
+bool FrameFetcher::is_plan_feasible_nolock()
+{
+  const double discount_factor = 0.8;
+
+  double presentation_time = 0.0;
+  double arrival_time = 0.0;
+
+  unsigned int frameno = 0;
+  for ( const auto & frame : wishlist_ ) {
+    if ( not local_frame_store_.has_frame( frame.offset() ) ) {
+      /* need to download */
+      arrival_time += frame.length() / (estimated_bytes_per_second_ * discount_factor);
+    }
+
+    if ( arrival_time > presentation_time ) {
+      cerr << "failed feasibility @ frame " << frameno << ", " << arrival_time << " > " << presentation_time << "\n";
+      return false;
+    }
+
+    if ( frame.shown() ) {
+      presentation_time += 1.0 / 24.0;
+    }
+
+    frameno++;
+  }
+  
+  return true;
 }

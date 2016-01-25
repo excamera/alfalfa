@@ -40,11 +40,13 @@ private:
   std::deque<AlfalfaProtobufs::AbridgedFrameInfo> wishlist_ {};
 
   std::atomic<bool> shutdown_ {};
-  std::thread downloader_thread_;
+  std::atomic<double> estimated_bytes_per_second_;
 
-  double estimated_bytes_per_second_ = 10000;
+  std::thread downloader_thread_;
   
   void event_loop();
+
+  bool is_plan_feasible_nolock();
   
 public:
   FrameFetcher( const std::string & framestore_url );
@@ -63,6 +65,9 @@ public:
   bool has_frame( const AlfalfaProtobufs::AbridgedFrameInfo & frame );
   void wait_for_frame( const AlfalfaProtobufs::AbridgedFrameInfo & frame );
   std::string coded_frame( const AlfalfaProtobufs::AbridgedFrameInfo & frame );
+
+  bool is_plan_feasible();
+  void wait_until_feasible();
   
   ~FrameFetcher();
 };
