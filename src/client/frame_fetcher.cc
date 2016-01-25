@@ -1,10 +1,12 @@
 #include <unordered_map>
+#include <chrono>
 
 #include <curl/curl.h>
 
 #include "frame_fetcher.hh"
 
 using namespace std;
+using namespace std::chrono;
 using AbridgedFrameInfo = AlfalfaProtobufs::AbridgedFrameInfo;
 
 /* error category for CURLcodes */
@@ -381,6 +383,15 @@ FrameFetcher::~FrameFetcher()
 
 void FrameFetcher::event_loop()
 {
+  const auto fetch_size = [] ( const vector<AbridgedFrameInfo> & frames )
+    {
+      unsigned int size = 0;
+      for ( const auto & frame : frames ) {
+	size += frame.length();
+      }
+      return size;
+    };
+
   while ( not shutdown_ ) {
     /* fetch one batch of frames */
     vector<AbridgedFrameInfo> frames_to_fetch;
@@ -391,7 +402,9 @@ void FrameFetcher::event_loop()
       unique_lock<mutex> lock { mutex_ };
 
       for ( const auto & x : wishlist_ ) {
-	if ( frames_to_fetch.size() >= 24 ) {
+	if ( fetch_size( frames_to_fetch ) > 1024576 ) {
+	  break;
+	} else if ( frames_to_fetch.size() >= 96 ) {
 	  break;
 	}
 
@@ -421,15 +434,30 @@ void FrameFetcher::event_loop()
     /* set range header */
     curl_.setopt( CURLOPT_RANGE, response.range_of_requests().c_str() );
 
-    cerr << "fetching " << response.range_of_requests() << endl;
+    //    cerr << "fetching " << response.range_of_requests() << endl;
   
     /* tell CURL where to put the headers and body */
     curl_.setopt( CURLOPT_HEADERDATA, &response );
     curl_.setopt( CURLOPT_WRITEDATA, &response );
 
     /* make the query */
-    curl_.perform();
 
+    const auto start_fetch_time = steady_clock::now();
+    curl_.perform();
+    const auto end_fetch_time = steady_clock::now();
+
+    duration<double> time_in_seconds = end_fetch_time - start_fetch_time;
+
+    cerr << "fetched " << fetch_size( frames_to_fetch ) << " bytes in " << time_in_seconds.count() << " seconds\n";
+    
+    const auto estimated_bytes_per_second_sample = fetch_size( frames_to_fetch ) / time_in_seconds.count();
+
+    const double alpha = 1.0 / 4.0;
+    estimated_bytes_per_second_ = (1 - alpha) * estimated_bytes_per_second_
+      + alpha * estimated_bytes_per_second_sample;
+
+    cerr << "estimated throughput now " << estimated_bytes_per_second_ * 8.0 / 1000.0 << " kilobits per second\n";
+    
     /* add results to local frame store */
     {
       unique_lock<mutex> lock { mutex_ };
