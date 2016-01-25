@@ -391,7 +391,7 @@ void FrameFetcher::event_loop()
       unique_lock<mutex> lock { mutex_ };
 
       for ( const auto & x : wishlist_ ) {
-	if ( frames_to_fetch.size() >= 24 ) {
+	if ( frames_to_fetch.size() >= 12 ) {
 	  break;
 	}
 
@@ -448,27 +448,23 @@ void FrameFetcher::event_loop()
     new_response_.notify_all();
   }
 }
-  
-vector<string> FrameFetcher::get_chunks( const vector<AbridgedFrameInfo> & frame_infos )
+
+void FrameFetcher::set_frame_plan( const std::vector<AlfalfaProtobufs::AbridgedFrameInfo> & frames )
 {
   /* make the request */
   {
     unique_lock<mutex> lock { mutex_ };
 
-    wishlist_ = frame_infos;
+    wishlist_ = frames;
     new_request_or_shutdown_.notify_all();
-  }
+  }  
+}
 
-  /* collect the results */
-  vector<string> ret;
-  for ( const auto & x : frame_infos ) {
-    /* wait for the frame */
-    unique_lock<mutex> lock { mutex_ };
-    new_response_.wait( lock, [&] () { return local_frame_store_.has_frame( x.offset() ); } );    
-    ret.emplace_back( local_frame_store_.coded_frame( x.offset() ) );
-  }
-  
-  return ret;
+std::string FrameFetcher::wait_for_frame( const AlfalfaProtobufs::AbridgedFrameInfo & frame )
+{
+  unique_lock<mutex> lock { mutex_ };
+  new_response_.wait( lock, [&] () { return local_frame_store_.has_frame( frame.offset() ); } );    
+  return local_frame_store_.coded_frame( frame.offset() );
 }
 
 string FrameFetcher::get_chunk( const FrameInfo & frame_info )
@@ -479,6 +475,7 @@ string FrameFetcher::get_chunk( const FrameInfo & frame_info )
   sub.set_offset( frame_info.offset() );
   sub.set_length( frame_info.length() );
   sub.set_shown( frame_info.shown() );
-  
-  return get_chunks( { sub } ).front();
+
+  set_frame_plan( { sub } );
+  return wait_for_frame( sub );
 }

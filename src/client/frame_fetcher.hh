@@ -48,8 +48,10 @@ public:
   FrameFetcher( const std::string & framestore_url );
   
   std::string get_chunk( const FrameInfo & frame_info );
-  std::vector<std::string> get_chunks( const std::vector<AlfalfaProtobufs::AbridgedFrameInfo> & frame_infos );
 
+  void set_frame_plan( const std::vector<AlfalfaProtobufs::AbridgedFrameInfo> & frames );
+  std::string wait_for_frame( const AlfalfaProtobufs::AbridgedFrameInfo & frame );
+  
   ~FrameFetcher();
 };
 

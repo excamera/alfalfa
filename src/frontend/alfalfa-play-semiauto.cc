@@ -45,22 +45,17 @@ int main( const int argc, char const *argv[] )
 							 0, track_size );
   cerr << "done.\n";
 
-  const size_t group_size = 24;
+  /* start fetching */
+  vector<AbridgedFrameInfo> track;
+  track.insert( track.begin(), abridged_track.frame().begin(), abridged_track.frame().end() );
+  fetcher.set_frame_plan( track );
 
-  for ( size_t begin_frame = 0; begin_frame + group_size < track_size; begin_frame += group_size ) {
-    vector<AbridgedFrameInfo> frames_to_fetch;
-    frames_to_fetch.insert( frames_to_fetch.begin(),
-			    abridged_track.frame().begin() + begin_frame,
-			    abridged_track.frame().begin() + begin_frame + group_size );
-    const vector<string> coded_frames = fetcher.get_chunks( frames_to_fetch );
-    
-    for ( const auto & coded_frame : coded_frames ) {
-      const Optional<RasterHandle> raster = decoder.parse_and_decode_frame( coded_frame );
-      if ( raster.initialized() ) {
-	display.draw( raster.get() );
-      }
-    }
+  /* start playing */
+  for ( const auto & x : track ) {
+    const string coded_frame = fetcher.wait_for_frame( x );
+    const Optional<RasterHandle> raster = decoder.parse_and_decode_frame( coded_frame );
+    if ( raster.initialized() ) { display.draw( raster.get() ); }
   }
-  
+
   return EXIT_SUCCESS;
 }
