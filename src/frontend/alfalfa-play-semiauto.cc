@@ -7,6 +7,7 @@
 #include "alfalfa_video_client.hh"
 #include "display.hh"
 #include "frame_fetcher.hh"
+#include "video_map.hh"
 
 using namespace std;
 using namespace std::chrono;
@@ -24,6 +25,7 @@ int main( const int argc, char const *argv[] )
   VideoDisplay display { decoder.example_raster() };
 
   FrameFetcher fetcher { video.get_url() };
+  VideoMap video_map { argv[ 1 ] };
   
   /* print out the available tracks in the video */
   const vector<size_t> track_ids = video.get_track_ids();
