@@ -51,6 +51,7 @@ message AbridgedFrameInfo {
   optional uint32 length = 2;
   optional uint64 frame_id = 3;
   optional bool shown = 4;
+  optional bool key = 5;
 }
 
 message AbridgedFrameList {

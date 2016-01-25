@@ -86,6 +86,7 @@ Status AlfalfaVideoServiceImpl::get_abridged_frames( ServerContext *,
     abridged_frame_info->set_length( frame->length() );
     abridged_frame_info->set_frame_id( frame->frame_id() );
     abridged_frame_info->set_shown( frame->shown() );
+    abridged_frame_info->set_key( frame->is_keyframe() );
   }
 
   return Status::OK;
