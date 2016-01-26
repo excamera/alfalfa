@@ -68,7 +68,7 @@ int main( int argc, char const *argv[] )
         FrameInfo fi = *track_beginning;
         if ( fi.target_hash().shown ) {
           // Get an iterator to the quality data for a frame and read quality member variable
-          pair<QualityDBCollectionByApproximateRaster::iterator, QualityDBCollectionByApproximateRaster::iterator> quality_iterator = alf.get_quality_data_by_approximate_raster( fi.target_hash().output_hash );
+          auto quality_iterator = alf.get_quality_data_by_approximate_raster( fi.target_hash().output_hash );
           double quality = ( *quality_iterator.first ).quality;
           quality_sum += quality;
 
@@ -80,9 +80,7 @@ int main( int argc, char const *argv[] )
           frame_count++;
         }
         // Get an iterator to the frame even if it is not shown. Total coded size includes both shown and unshown frames.
-        pair<FrameDataSetCollectionByOutputHash::iterator, FrameDataSetCollectionByOutputHash::iterator> frame_iterator = alf.get_frames_by_output_hash( fi.target_hash().output_hash );
-
-        uint64_t frame_length = ( *frame_iterator.first ).length();
+        uint64_t frame_length = track_beginning->length();
 
         total_coded_size += frame_length;
         // Increment iterator to get next frame in track
