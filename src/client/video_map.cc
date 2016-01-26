@@ -22,9 +22,21 @@ unsigned int find_max( vector<size_t> track_ids )
   return track_ids.back();
 }
 
+vector<size_t> get_track_lengths( const AlfalfaVideoClient & video )
+{
+  unsigned int max_track_id = find_max( video.get_track_ids() );
+  vector<size_t> ret;
+  
+  for ( unsigned int i = 0; i < max_track_id; i++ ) {
+    ret.push_back( video.get_track_size( i ) );
+  }
+
+  return ret;
+}
+
 VideoMap::VideoMap( const string & server_address )
   : video_( server_address ),
-    max_track_id_( find_max( video_.get_track_ids() ) ),
+    track_lengths_ ( get_track_lengths( video_ ) ),
     fetcher_thread_( [&] () { fetch_all_tracks(); } )
 {
   fetcher_thread_.detach();
@@ -32,13 +44,8 @@ VideoMap::VideoMap( const string & server_address )
 
 void VideoMap::fetch_all_tracks()
 {
-  /* get the lengths */
-  for ( unsigned int i = 0; i < max_track_id_; i++ ) {
-    track_lengths_.push_back( video_.get_track_size( i ) );
-  }
-
   const auto tracks_still_to_fetch = [&] () {
-    for ( unsigned int i = 0; i < max_track_id_; i++ ) {
+    for ( unsigned int i = 0; i < tracks_.size(); i++ ) {
       if ( track_lengths_.at( i ) != tracks_.at( i ).size() ) {
 	return true;
       }
@@ -46,17 +53,24 @@ void VideoMap::fetch_all_tracks()
     return false;
   };
   
+  unique_lock<mutex> lock { mutex_ };
+  
   /* start fetching the track details */
   while ( tracks_still_to_fetch() ) {
-    for ( unsigned int i = 0; i < max_track_id_; i++ ) {
+    for ( unsigned int i = 0; i < tracks_.size(); i++ ) {
       if ( tracks_.at( i ).size() == track_lengths_.at( i ) ) {
 	break;
       }
-      
-      const auto track = video_.get_abridged_frames( i,
-						     tracks_.at( i ).size(),
-						     min( tracks_.at( i ).size() + 480,
-							  track_lengths_.at( i ) ) );
+
+
+      const unsigned int start_frame = tracks_.at( i ).size();
+      const unsigned int stop_frame = min( tracks_.at( i ).size() + 480,
+					   track_lengths_.at( i ) );
+
+      lock.unlock();
+      const auto track = video_.get_abridged_frames( i, start_frame, stop_frame );
+
+      lock.lock();
       for ( const auto & x : track.frame() ) {
 	tracks_.at( i ).push_back( x );
       }
