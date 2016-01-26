@@ -50,8 +50,9 @@ message AbridgedFrameInfo {
   optional uint64 offset = 1;
   optional uint32 length = 2;
   optional uint32 frame_id = 3;
-  optional bool shown = 4;
-  optional bool key = 5;
+  optional bool key = 4;
+  optional bool shown = 5;
+  optional float quality = 6;
 }
 
 message AbridgedFrameList {

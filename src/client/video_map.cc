@@ -55,11 +55,13 @@ void VideoMap::fetch_all_tracks()
       
       const auto track = video_.get_abridged_frames( i,
 						     tracks_.at( i ).size(),
-						     min( tracks_.at( i ).size() + 240,
+						     min( tracks_.at( i ).size() + 480,
 							  track_lengths_.at( i ) ) );
       for ( const auto & x : track.frame() ) {
 	tracks_.at( i ).push_back( x );
       }
+
+      cerr << "track " << i << " now has " << tracks_.at( i ).size() << " frames\n";
     }
   }
 
