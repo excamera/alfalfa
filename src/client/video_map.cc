@@ -10,7 +10,7 @@ unsigned int find_max( vector<size_t> track_ids )
   if ( track_ids.empty() ) {
     throw runtime_error( "video has no tracks" );
   }
-
+  
   sort( track_ids.begin(), track_ids.end() );
 
   for ( unsigned int i = 0; i < track_ids.size(); i++ ) {
@@ -27,7 +27,7 @@ vector<size_t> get_track_lengths( const AlfalfaVideoClient & video )
   unsigned int max_track_id = find_max( video.get_track_ids() );
   vector<size_t> ret;
   
-  for ( unsigned int i = 0; i < max_track_id; i++ ) {
+  for ( unsigned int i = 0; i <= max_track_id; i++ ) {
     ret.push_back( video.get_track_size( i ) );
   }
 
@@ -44,6 +44,8 @@ VideoMap::VideoMap( const string & server_address )
 
 void VideoMap::fetch_all_tracks()
 {
+  unique_lock<mutex> lock { mutex_ };
+
   const auto tracks_still_to_fetch = [&] () {
     for ( unsigned int i = 0; i < tracks_.size(); i++ ) {
       if ( track_lengths_.at( i ) != tracks_.at( i ).size() ) {
@@ -52,8 +54,6 @@ void VideoMap::fetch_all_tracks()
     }
     return false;
   };
-  
-  unique_lock<mutex> lock { mutex_ };
   
   /* start fetching the track details */
   while ( tracks_still_to_fetch() ) {
@@ -64,7 +64,7 @@ void VideoMap::fetch_all_tracks()
 
 
       const unsigned int start_frame = tracks_.at( i ).size();
-      const unsigned int stop_frame = min( tracks_.at( i ).size() + 480,
+      const unsigned int stop_frame = min( tracks_.at( i ).size() + 1000,
 					   track_lengths_.at( i ) );
 
       lock.unlock();
