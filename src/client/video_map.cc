@@ -35,11 +35,12 @@ vector<size_t> get_track_lengths( const AlfalfaVideoClient & video )
   return ret;
 }
 
-VideoMap::VideoMap( const string & server_address )
+VideoMap::VideoMap( const string & server_address, const unsigned int raster_count )
   : video_( server_address ),
     track_lengths_ ( get_track_lengths( video_ ) ),
     tracks_(),
-    shown_frame_counts_()
+    shown_frame_counts_(),
+    total_shown_frame_count_( raster_count )
 {
   for ( unsigned int i = 0; i < track_lengths_.size(); i++ ) {
     tracks_.emplace_back();
@@ -62,13 +63,24 @@ void VideoMap::fetch_track( unsigned int track_id )
   AlfalfaProtobufs::AbridgedFrameInfo frame;
   while ( track_infos->Read( &frame ) ) {
     lock.lock();
+    const uint64_t cumulative_length = frame.length() + (tracks_.at( track_id ).empty()
+							 ? 0
+							 : tracks_.at( track_id ).back().cumulative_length);
     tracks_.at( track_id ).emplace_back( frame,
 					 shown_frame_counts_.at( track_id ),
 					 track_id,
-					 tracks_.at( track_id ).size() );
+					 tracks_.at( track_id ).size(),
+					 cumulative_length );
+    if ( frame.key() ) {
+      const auto & new_frame = tracks_.at( track_id ).back();
+      keyframe_switches_.emplace( new_frame.timestamp,
+				  make_pair( new_frame.track_id, new_frame.track_index ) );
+    }
+
     if ( frame.shown() ) {
       shown_frame_counts_.at( track_id )++;
     }
+
     lock.unlock();
   }
 
@@ -95,26 +107,92 @@ unsigned int VideoMap::track_length_now( const unsigned int track_id ) const
   return tracks_.at( track_id ).size();
 }
 
-deque<AnnotatedFrameInfo> VideoMap::track_snapshot( const unsigned int track_id,
-						    const unsigned int start_frame_index ) const
+deque<AnnotatedFrameInfo> VideoMap::best_plan( unsigned int track_id,
+					       unsigned int track_index ) const
 {
   deque<AnnotatedFrameInfo> ret;
   unique_lock<mutex> lock { mutex_ };
-  const auto & track = tracks_.at( track_id );
-  if ( start_frame_index > track.size() ) {
-    throw out_of_range( "attempt to read beyond end of track" );
+
+  double time_margin_available = 0;
+
+  //  cerr << "best_plan( " << track_id << ", " << track_index << " )\n";
+  
+  while ( track_index < tracks_.at( track_id ).size() ) {
+    const AnnotatedFrameInfo & start_location = tracks_.at( track_id ).at( track_index );
+
+    vector<pair<unsigned int, unsigned int>> eligible_next_frames;
+    eligible_next_frames.emplace_back( track_id, track_index );
+
+    /* are there available keyframe switches? */
+    auto range = keyframe_switches_.equal_range( start_location.timestamp );
+    for ( auto sw = range.first; sw != range.second; sw++ ) {
+      eligible_next_frames.push_back( sw->second );
+    }
+
+    /* if there are any feasible paths, choose purely based on quality.
+       but if no paths are feasible, choose the soonest to be feasible */
+
+    const bool exist_feasible_paths = any_of( eligible_next_frames.begin(), eligible_next_frames.end(),
+					      [&] ( const pair<unsigned int, unsigned int> & x ) {
+						const auto & frame = tracks_.at( x.first ).at( x.second );
+						return frame.time_margin_required < time_margin_available;
+					      } );
+
+    const auto evaluator = [&] ( const pair<unsigned int, unsigned int> & x ) {
+      const auto & frame = tracks_.at( x.first ).at( x.second );
+      if ( exist_feasible_paths ) {
+	if ( frame.time_margin_required < time_margin_available ) {
+	  return -(frame.average_quality_to_end - frame.stddev_quality_to_end);
+	} else {
+	  return numeric_limits<double>::max();
+	}
+      } else {
+	return frame.time_margin_required;
+      }
+    };
+
+    const auto sorter = [&] ( const pair<unsigned int, unsigned int> & x,
+			      const pair<unsigned int, unsigned int> & y ) {
+      return evaluator( x ) < evaluator( y );
+    };
+
+    /*
+    cerr << "pre sort: ";
+    for ( const auto & x : eligible_next_frames ) {
+      cerr << "( " << x.first << ", " << x.second << ") => " << tracks_.at( x.first ).at( x.second ).time_margin_required << "\n";
+    }
+    */
+    sort( eligible_next_frames.begin(), eligible_next_frames.end(), sorter );
+    /*
+    cerr << "post sort: ";
+    for ( const auto & x : eligible_next_frames ) {
+      cerr << "( " << x.first << ", " << x.second << ") => " << tracks_.at( x.first ).at( x.second ).time_margin_required << "\n";
+    }
+    */
+    
+    tie( track_id, track_index ) = eligible_next_frames.front();
+    ret.push_back( tracks_.at( track_id ).at( track_index ) );
+    if ( ret.back().shown ) {
+      time_margin_available += 1.0 / 24.0;
+    }
+
+    track_index++;
   }
-				       
-  ret.insert( ret.begin(),
-	      track.begin() + start_frame_index,
-	      track.end() );
+
+  /*
+  cerr << "proposing a sequence of " << ret.size() << " frames\n";
+  cerr << "first frame: " << ret.front().track_id << "\n";
+  cerr << "time margin for first: " << ret.front().time_margin_required << "\n";
+  */
+  
   return ret;
 }
 
 AnnotatedFrameInfo::AnnotatedFrameInfo( const AlfalfaProtobufs::AbridgedFrameInfo & fi,
 					const unsigned int timestamp,
 					const unsigned int track_id,
-					const unsigned int track_index )
+					const unsigned int track_index,
+					const uint64_t cumulative_length )
   : offset( fi.offset() ),
     length( fi.length() ),
     frame_id( fi.frame_id() ),
@@ -123,7 +201,8 @@ AnnotatedFrameInfo::AnnotatedFrameInfo( const AlfalfaProtobufs::AbridgedFrameInf
     quality( fi.quality() ),
     timestamp( timestamp ),
     track_id( track_id ),
-    track_index( track_index )
+    track_index( track_index ),
+    cumulative_length( cumulative_length )
 {}
 
 AnnotatedFrameInfo::AnnotatedFrameInfo( const FrameInfo & fi )
@@ -135,7 +214,8 @@ AnnotatedFrameInfo::AnnotatedFrameInfo( const FrameInfo & fi )
     quality(),
     timestamp(),
     track_id(),
-    track_index()
+    track_index(),
+    cumulative_length()
 {}
 
 void VideoMap::update_annotations( const double estimated_bytes_per_second_,
@@ -157,6 +237,20 @@ void VideoMap::update_annotations( const double estimated_bytes_per_second_,
 	float running_min = 1.0;
 	double time_margin_required = 0;
 
+	/* extrapolate if we only have a partial track so far */
+	if ( (not track.empty()) and (track.back().timestamp != total_shown_frame_count_ - 1) ) {
+	  const double average_bytes_per_shown_frame = double( track.back().cumulative_length ) / double( track.back().timestamp );
+	  const unsigned int num_shown_frames_remaining = total_shown_frame_count_ - track.back().timestamp;
+	  /*
+	  cerr << "frames remaining: " << num_shown_frames_remaining << endl;
+	  cerr << "current bytes per second: " << estimated_bytes_per_second << endl;
+	  */
+	  time_margin_required = average_bytes_per_shown_frame * num_shown_frames_remaining / estimated_bytes_per_second;
+	  time_margin_required -= num_shown_frames_remaining / 24.0;
+	  //	  cerr << "estimate this will take: " << time_margin_required << endl;
+	  if ( time_margin_required < 0.0 ) { time_margin_required = 0.0; }
+	}
+	
 	/* algorithm from Knuth volume 2, per http://www.johndcook.com/blog/standard_deviation/ */
 	for ( auto frame = track.rbegin(); frame != track.rend(); frame++ ) {
 	  if ( frame->shown ) {

@@ -428,7 +428,7 @@ void FrameFetcher::event_loop()
       unique_lock<mutex> lock { mutex_ };
 
       for ( const auto & x : wishlist_ ) {
-	if ( fetch_size( frames_to_fetch ) / estimated_bytes_per_second_ > 0.5 ) {
+	if ( fetch_size( frames_to_fetch ) / estimated_bytes_per_second_ > 2.0 ) {
 	  break;
 	} else if ( frames_to_fetch.size() >= 96 ) {
 	  break;
@@ -481,8 +481,6 @@ void FrameFetcher::event_loop()
     const double alpha = 1.0 / 4.0;
     estimated_bytes_per_second_ = (1 - alpha) * estimated_bytes_per_second_
       + alpha * estimated_bytes_per_second_sample;
-
-    //    cerr << "estimated throughput now " << estimated_bytes_per_second_ * 8.0 / 1000.0 << " kilobits per second\n";
   }
 }
 

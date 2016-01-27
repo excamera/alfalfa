@@ -31,11 +31,14 @@ struct AnnotatedFrameInfo
 
   unsigned int track_id;
   unsigned int track_index;
+
+  uint64_t cumulative_length;
   
   AnnotatedFrameInfo( const AlfalfaProtobufs::AbridgedFrameInfo & fi,
 		      const unsigned int timestamp,
 		      const unsigned int track_id,
-		      const unsigned int track_index );
+		      const unsigned int track_index,
+		      const uint64_t cumulative_length );
   AnnotatedFrameInfo( const FrameInfo & fi );
 };
 
@@ -48,7 +51,11 @@ private:
   std::vector<std::vector<AnnotatedFrameInfo>> tracks_;
   std::vector<unsigned int> shown_frame_counts_;
   std::vector<std::thread> fetchers_ {};
+  std::unordered_multimap<uint64_t, std::pair<unsigned int, unsigned int>> keyframe_switches_ {};
+  /* timestamp (dri) => track_id, track_index */
 
+  unsigned int total_shown_frame_count_;
+  
   void fetch_track( unsigned int track_id );
 
   mutable std::mutex mutex_ {};
@@ -58,12 +65,12 @@ private:
   std::atomic_uint analysis_generation_ {};
   
 public:
-  VideoMap( const std::string & server_address );
+  VideoMap( const std::string & server_address, const unsigned int raster_count );
 
   unsigned int track_length_full( const unsigned int track_id ) const;
   unsigned int track_length_now( const unsigned int track_id ) const;
-  std::deque<AnnotatedFrameInfo> track_snapshot( const unsigned int track_id,
-						  const unsigned int start_frame_index ) const;
+  std::deque<AnnotatedFrameInfo> best_plan( unsigned int track_id,
+					    unsigned int track_index ) const;
   void update_annotations( const double estimated_bytes_per_second,
 			   const std::unordered_map<uint64_t, std::pair<uint64_t, size_t>> frame_store );
 
