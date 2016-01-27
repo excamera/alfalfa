@@ -508,18 +508,6 @@ void FrameFetcher::wait_for_frame( const AnnotatedFrameInfo & frame )
   new_response_.wait( lock, [&] () { return local_frame_store_.has_frame( frame.offset ); } );    
 }
 
-bool FrameFetcher::is_plan_feasible()
-{
-  unique_lock<mutex> lock { mutex_ };
-  return is_plan_feasible_nolock();
-}
-
-void FrameFetcher::wait_until_feasible()
-{
-  unique_lock<mutex> lock { mutex_ };
-  new_response_.wait( lock, [&] () { return is_plan_feasible_nolock(); } );
-}
-
 string FrameFetcher::coded_frame( const AnnotatedFrameInfo & frame )
 {
   unique_lock<mutex> lock { mutex_ };
@@ -541,35 +529,6 @@ string FrameFetcher::get_chunk( const FrameInfo & frame_info )
   set_frame_plan( vector<AnnotatedFrameInfo> { sub } );
   wait_for_frame( sub );
   return coded_frame( sub );
-}
-
-bool FrameFetcher::is_plan_feasible_nolock()
-{
-  const double discount_factor = 0.8;
-
-  double presentation_time = 0.0;
-  double arrival_time = 0.0;
-
-  unsigned int frameno = 0;
-  for ( const auto & frame : wishlist_ ) {
-    if ( not local_frame_store_.has_frame( frame.offset ) ) {
-      /* need to download */
-      arrival_time += frame.length / (estimated_bytes_per_second_ * discount_factor);
-    }
-
-    if ( arrival_time > presentation_time ) {
-      cerr << "failed feasibility @ frame " << frameno << ", " << arrival_time << " > " << presentation_time << "\n";
-      return false;
-    }
-
-    if ( frame.shown ) {
-      presentation_time += 1.0 / 24.0;
-    }
-
-    frameno++;
-  }
-  
-  return true;
 }
 
 unordered_map<uint64_t, pair<uint64_t, size_t>> FrameFetcher::frame_db_snapshot()

@@ -320,3 +320,12 @@ Status AlfalfaVideoServiceImpl::get_url( ServerContext *,
   response->set_url( url_ );
   return Status::OK;
 }
+
+Status AlfalfaVideoServiceImpl::get_raster_count( ServerContext *,
+						  const AlfalfaProtobufs::Empty *,
+						  AlfalfaProtobufs::SizeT * count )
+{
+  Log( "get_raster_count" );
+  count->set_sizet( video_.get_raster_list_size() );
+  return Status::OK;
+}

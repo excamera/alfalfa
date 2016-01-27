@@ -109,6 +109,12 @@ public:
   grpc::Status get_url( grpc::ServerContext * context,
 			const AlfalfaProtobufs::Empty * empty,
 			AlfalfaProtobufs::URL * url ) override;
+
+  /* count the number of [displayed] rasters in the output */
+  grpc::Status get_raster_count( grpc::ServerContext * context,
+				 const AlfalfaProtobufs::Empty * empty,
+				 AlfalfaProtobufs::SizeT * count ) override;
+  
 };
 
 #endif /* ALFALFA_VIDEO_SERVER_HH */

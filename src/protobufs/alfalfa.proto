@@ -161,4 +161,5 @@ service AlfalfaVideo {
   rpc get_switches_ending_with_frame( SizeT ) returns ( Switches ) {}
   rpc get_video_width( Empty ) returns ( SizeT ) {}
   rpc get_video_height( Empty ) returns ( SizeT ) {}
+  rpc get_raster_count( Empty ) returns ( SizeT ) {}
 }

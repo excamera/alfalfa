@@ -15,8 +15,8 @@ using AbridgedFrameInfo = AlfalfaProtobufs::AbridgedFrameInfo;
 
 int main( const int argc, char const *argv[] )
 {
-  if ( argc != 3 ) {
-    cerr << "Usage: " << argv[ 0 ] << " <server-address> <track>" << "\n";
+  if ( argc != 2 ) {
+    cerr << "Usage: " << argv[ 0 ] << " <server-address>" << "\n";
     return EX_USAGE;
   }
 
@@ -27,18 +27,23 @@ int main( const int argc, char const *argv[] )
   FrameFetcher fetcher { video.get_url() };
   VideoMap video_map { argv[ 1 ] };
   
-  const size_t track_to_play = stoi( argv[ 2 ] );
-
+  const unsigned int rasters_to_display = video.get_raster_count();
+  
   /* start playing */
   auto next_raster_time = steady_clock::now();
   bool playing = false;
-  unsigned int frames_played = 0;
-  const unsigned int frames_to_play = video_map.track_length_full( track_to_play );
+  unsigned int rasters_displayed = 0;
   auto last_feasibility_analysis = steady_clock::now();
   unsigned int analysis_generation = video_map.analysis_generation();
-  auto current_future_of_track = video_map.track_snapshot( track_to_play, frames_played );
 
- while ( frames_played < frames_to_play ) {
+  unsigned int last_track_played = 1;
+  unsigned int last_frame_index = -1;
+
+  deque<AnnotatedFrameInfo> current_future_of_track;
+
+  const auto frame_interval = microseconds( lrint( 1000000.0 / 24.0 ) );
+  
+  while ( rasters_displayed < rasters_to_display ) {
     /* kick off a feasibility analysis? */
     const auto now = steady_clock::now();
     if ( now - last_feasibility_analysis > milliseconds( 250 ) ) {
@@ -50,24 +55,29 @@ int main( const int argc, char const *argv[] )
     /* is a new analysis available? */
     const unsigned int new_analysis_generation = video_map.analysis_generation();
     if ( new_analysis_generation != analysis_generation ) {
-      current_future_of_track = video_map.track_snapshot( track_to_play, frames_played );
+      current_future_of_track = video_map.track_snapshot( last_track_played, last_frame_index + 1 );
       fetcher.set_frame_plan( current_future_of_track );
       analysis_generation = new_analysis_generation;
-      video_map.report_feasibility();
     }
     
     /* are we out of available track? */
     if ( current_future_of_track.empty() ) {
-      this_thread::sleep_until( next_raster_time );
+      cerr << "Stalling [out of track]\n";
+      playing = false;
+      this_thread::sleep_for( frame_interval );
       continue;
     }
     
     /* should we resume from a stall? */
     if ( not playing ) {
-      fetcher.wait_until_feasible();
-      playing = true;
-      next_raster_time = steady_clock::now();
-      cerr << "Playing.\n";
+      if ( current_future_of_track.front().time_margin_required <= 0 ) {
+	playing = true;
+	next_raster_time = steady_clock::now();
+	cerr << "Playing.\n";
+      } else {
+	this_thread::sleep_for( frame_interval );
+	continue;
+      }
     }
 
     /* do we need to stall? */
@@ -79,15 +89,16 @@ int main( const int argc, char const *argv[] )
     }
 
     const string coded_frame = fetcher.coded_frame( current_future_of_track.front() );
+    last_track_played = current_future_of_track.front().track_id;
+    last_frame_index = current_future_of_track.front().track_index;
     current_future_of_track.pop_front();
     const Optional<RasterHandle> raster = decoder.parse_and_decode_frame( coded_frame );
     if ( raster.initialized() ) {
       this_thread::sleep_until( next_raster_time );
       display.draw( raster.get() );
-      next_raster_time += microseconds( lrint( 1000000.0 / 24.0 ) );
+      next_raster_time += frame_interval;
+      rasters_displayed++;
     }
-
-    frames_played++;
   }
 
   return EXIT_SUCCESS;

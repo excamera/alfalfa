@@ -219,3 +219,13 @@ string AlfalfaVideoClient::get_url() const
        stub_->get_url( &context, empty, &response ) );
   return response.url();
 }
+
+size_t AlfalfaVideoClient::get_raster_count() const
+{
+  ClientContext context;
+  AlfalfaProtobufs::Empty empty;
+  AlfalfaProtobufs::SizeT response;
+  RPC( "get_raster_count",
+       stub_->get_raster_count( &context, empty, &response ) );
+  return SizeT( response ).sizet;
+}

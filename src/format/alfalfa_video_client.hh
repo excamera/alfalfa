@@ -93,6 +93,9 @@ public:
 
   /* Get URL to retrieve frames via HTTP */
   std::string get_url() const;
+
+  /* count number of [displayed] rasters in the output */
+  size_t get_raster_count() const;
 };
 
 #endif /* ALFALFA_VIDEO_CLIENT_HH */

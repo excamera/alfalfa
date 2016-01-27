@@ -62,9 +62,11 @@ void VideoMap::fetch_track( unsigned int track_id )
   AlfalfaProtobufs::AbridgedFrameInfo frame;
   while ( track_infos->Read( &frame ) ) {
     lock.lock();
-    tracks_.at( track_id ).emplace_back( frame );
+    tracks_.at( track_id ).emplace_back( frame,
+					 shown_frame_counts_.at( track_id ),
+					 track_id,
+					 tracks_.at( track_id ).size() );
     if ( frame.shown() ) {
-      tracks_.at( track_id ).back().timestamp = shown_frame_counts_.at( track_id );
       shown_frame_counts_.at( track_id )++;
     }
     lock.unlock();
@@ -94,7 +96,7 @@ unsigned int VideoMap::track_length_now( const unsigned int track_id ) const
 }
 
 deque<AnnotatedFrameInfo> VideoMap::track_snapshot( const unsigned int track_id,
-						     const unsigned int start_frame_index ) const
+						    const unsigned int start_frame_index ) const
 {
   deque<AnnotatedFrameInfo> ret;
   unique_lock<mutex> lock { mutex_ };
@@ -109,13 +111,19 @@ deque<AnnotatedFrameInfo> VideoMap::track_snapshot( const unsigned int track_id,
   return ret;
 }
 
-AnnotatedFrameInfo::AnnotatedFrameInfo( const AlfalfaProtobufs::AbridgedFrameInfo & fi )
+AnnotatedFrameInfo::AnnotatedFrameInfo( const AlfalfaProtobufs::AbridgedFrameInfo & fi,
+					const unsigned int timestamp,
+					const unsigned int track_id,
+					const unsigned int track_index )
   : offset( fi.offset() ),
     length( fi.length() ),
     frame_id( fi.frame_id() ),
     key( fi.key() ),
     shown( fi.shown() ),
-    quality( fi.quality() )
+    quality( fi.quality() ),
+    timestamp( timestamp ),
+    track_id( track_id ),
+    track_index( track_index )
 {}
 
 AnnotatedFrameInfo::AnnotatedFrameInfo( const FrameInfo & fi )
@@ -124,7 +132,10 @@ AnnotatedFrameInfo::AnnotatedFrameInfo( const FrameInfo & fi )
     frame_id( fi.frame_id() ),
     key( fi.is_keyframe() ),
     shown( fi.shown() ),
-    quality()
+    quality(),
+    timestamp(),
+    track_id(),
+    track_index()
 {}
 
 void VideoMap::update_annotations( const double estimated_bytes_per_second_,
@@ -185,7 +196,7 @@ void VideoMap::update_annotations( const double estimated_bytes_per_second_,
 	  frame->time_margin_required = time_margin_required;
 
 	  if ( frame->shown ) {
-	    time_margin_required -= 1.0 / 24.0;
+	    time_margin_required -= ( 1.0 / 24.0 );
 	    if ( time_margin_required < 0.0 ) { time_margin_required = 0.0; }
 	  }
 	}

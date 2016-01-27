@@ -25,11 +25,17 @@ struct AnnotatedFrameInfo
   double average_quality_to_end {};
   double stddev_quality_to_end {};
   double min_quality_to_end {};
-  unsigned int timestamp {}; /* displayed raster index */
+  unsigned int timestamp; /* displayed raster index */
 
   double time_margin_required {};
 
-  AnnotatedFrameInfo( const AlfalfaProtobufs::AbridgedFrameInfo & fi );
+  unsigned int track_id;
+  unsigned int track_index;
+  
+  AnnotatedFrameInfo( const AlfalfaProtobufs::AbridgedFrameInfo & fi,
+		      const unsigned int timestamp,
+		      const unsigned int track_id,
+		      const unsigned int track_index );
   AnnotatedFrameInfo( const FrameInfo & fi );
 };
 
