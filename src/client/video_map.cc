@@ -93,10 +93,10 @@ unsigned int VideoMap::track_length_now( const unsigned int track_id ) const
   return tracks_.at( track_id ).size();
 }
 
-vector<AnnotatedFrameInfo> VideoMap::track_snapshot( const unsigned int track_id,
+deque<AnnotatedFrameInfo> VideoMap::track_snapshot( const unsigned int track_id,
 						     const unsigned int start_frame_index ) const
 {
-  vector<AnnotatedFrameInfo> ret;
+  deque<AnnotatedFrameInfo> ret;
   unique_lock<mutex> lock { mutex_ };
   const auto & track = tracks_.at( track_id );
   if ( start_frame_index > track.size() ) {
@@ -172,6 +172,8 @@ void VideoMap::update_annotations( const double estimated_bytes_per_second_,
 	  frame->download_time_required_from_here = bytes_to_download_from_here / estimated_bytes_per_second;
 	}
       }
+
+      analysis_generation_++;
     }, estimated_bytes_per_second_, move( frame_store_ ) );
 
   newthread.detach();
