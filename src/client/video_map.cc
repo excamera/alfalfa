@@ -37,9 +37,13 @@ vector<size_t> get_track_lengths( const AlfalfaVideoClient & video )
 
 VideoMap::VideoMap( const string & server_address )
   : video_( server_address ),
-    track_lengths_ ( get_track_lengths( video_ ) )
+    track_lengths_ ( get_track_lengths( video_ ) ),
+    tracks_(),
+    shown_frame_counts_()
 {
-  for ( unsigned int i = 0; i < tracks_.size(); i++ ) {
+  for ( unsigned int i = 0; i < track_lengths_.size(); i++ ) {
+    tracks_.emplace_back();
+    shown_frame_counts_.emplace_back();
     fetchers_.emplace_back( [&] ( unsigned int track_id ) { fetch_track( track_id ); }, i );
     fetchers_.back().detach();
   }
@@ -59,6 +63,10 @@ void VideoMap::fetch_track( unsigned int track_id )
   while ( track_infos->Read( &frame ) ) {
     lock.lock();
     tracks_.at( track_id ).emplace_back( frame );
+    if ( frame.shown() ) {
+      tracks_.at( track_id ).back().timestamp = shown_frame_counts_.at( track_id );
+      shown_frame_counts_.at( track_id )++;
+    }
     lock.unlock();
   }
 
@@ -66,13 +74,12 @@ void VideoMap::fetch_track( unsigned int track_id )
   
   /* confirm all finished okay */
   lock.lock();
+  RPC( "ClientReader::Finish", track_infos->Finish() );
   if ( tracks_.at( track_id ).size() != tracklen ) {
     throw runtime_error( "on track " + to_string( track_id ) + ", got "
 			 + to_string( tracks_.at( track_id ).size() )
 			 + " frames, expected " + to_string( tracklen ) );
   }
-
-  RPC( "ClientReader::Finish", track_infos->Finish() );
 }
 
 unsigned int VideoMap::track_length_full( const unsigned int track_id ) const
@@ -120,3 +127,52 @@ AnnotatedFrameInfo::AnnotatedFrameInfo( const FrameInfo & fi )
     quality()
 {}
 
+void VideoMap::update_annotations( const double estimated_bytes_per_second_,
+				   const unordered_map<uint64_t, pair<uint64_t, size_t>> frame_store_ )
+{
+  thread newthread( [&] ( const double estimated_bytes_per_second, const unordered_map<uint64_t, pair<uint64_t, size_t>> frame_store ) { 
+      std::unique_lock<mutex> locked { annotation_mutex_, try_to_lock };
+      if ( not locked ) {
+	cerr << "skipping redundant run of frame annotations\n";
+	return;
+      }
+
+      unique_lock<mutex> lock { mutex_ };
+    
+      for ( auto & track : tracks_ ) {
+	unsigned int shown_frame_count = 0;
+	double running_mean = 0.0;
+	double running_varsum = 0.0;
+	uint64_t bytes_to_download_from_here = 0;
+    
+	/* algorithm from Knuth volume 2, per http://www.johndcook.com/blog/standard_deviation/ */
+	for ( auto frame = track.rbegin(); frame != track.rend(); frame++ ) {
+	  if ( frame->shown ) {
+	    shown_frame_count++;
+	  }
+
+	  if ( shown_frame_count == 0 ) {
+	    frame->average_quality_to_end = 1;
+	    frame->stddev_quality_to_end = 0;
+	  } else {
+	    const double new_mean = running_mean + ( frame->quality - running_mean ) / shown_frame_count;
+	    const double new_varsum = running_varsum + ( frame->quality - running_mean ) * ( frame->quality - new_mean );
+	    tie( running_mean, running_varsum ) = make_tuple( new_mean, new_varsum );
+
+	    frame->average_quality_to_end = running_mean;
+	    frame->stddev_quality_to_end = sqrt( running_varsum / ( shown_frame_count - 1.0 ) );
+	  }
+      
+	  frame->remaining_time_in_video = ( shown_frame_count - 1.0 ) / 24.0;
+
+	  if ( frame_store.find( frame->offset ) == frame_store.end() ) {
+	    bytes_to_download_from_here += frame->length;
+	  }
+
+	  frame->download_time_required_from_here = bytes_to_download_from_here / estimated_bytes_per_second;
+	}
+      }
+    }, estimated_bytes_per_second_, move( frame_store_ ) );
+
+  newthread.detach();
+}

@@ -572,7 +572,7 @@ bool FrameFetcher::is_plan_feasible_nolock()
   return true;
 }
 
-unordered_set<uint64_t> FrameFetcher::frame_db_snapshot()
+unordered_map<uint64_t, pair<uint64_t, size_t>> FrameFetcher::frame_db_snapshot()
 {
   unique_lock<mutex> lock { mutex_ };
   return local_frame_store_.frame_db_snapshot();

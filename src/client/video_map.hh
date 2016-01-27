@@ -5,6 +5,7 @@
 #include <string>
 #include <thread>
 #include <mutex>
+#include <unordered_map>
 
 #include "alfalfa_video_client.hh"
 
@@ -36,13 +37,15 @@ private:
   AlfalfaVideoClient video_;
 
   std::vector<size_t> track_lengths_;
-  std::vector<std::vector<AnnotatedFrameInfo>> tracks_ { track_lengths_.size() };
+  std::vector<std::vector<AnnotatedFrameInfo>> tracks_;
+  std::vector<unsigned int> shown_frame_counts_;
   std::vector<std::thread> fetchers_ {};
-  std::vector<std::vector<size_t>> timestamp_to_frame_ {};
 
   void fetch_track( unsigned int track_id );
 
   mutable std::mutex mutex_ {};
+
+  std::mutex annotation_mutex_ {};
   
 public:
   VideoMap( const std::string & server_address );
@@ -52,7 +55,7 @@ public:
   std::vector<AnnotatedFrameInfo> track_snapshot( const unsigned int track_id,
 						  const unsigned int start_frame_index ) const;
   void update_annotations( const double estimated_bytes_per_second,
-			   const std::unordered_set<uint64_t> & frame_store );
+			   const std::unordered_map<uint64_t, std::pair<uint64_t, size_t>> frame_store );
 };
 
 #endif /* VIDEO_MAP_HH */

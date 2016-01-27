@@ -34,11 +34,12 @@ int main( const int argc, char const *argv[] )
   bool playing = false;
   unsigned int frames_played = 0;
   const unsigned int frames_to_play = video_map.track_length_full( track_to_play );
-
+  auto last_feasibility_analysis = steady_clock::now();
+  
   while ( frames_played < frames_to_play ) {
     const auto current_future_of_track = video_map.track_snapshot( track_to_play, frames_played );
     fetcher.set_frame_plan( current_future_of_track );
-        
+
     /* are we out of available track? */
     if ( current_future_of_track.empty() ) {
       this_thread::sleep_until( next_raster_time );
@@ -59,6 +60,14 @@ int main( const int argc, char const *argv[] )
       cerr << "Stalling.\n";
       playing = false;
       continue;
+    }
+
+    /* evaluate some feasibilities? */
+    const auto now = steady_clock::now();
+    if ( now - last_feasibility_analysis > milliseconds( 250 ) ) {
+      video_map.update_annotations( fetcher.estimated_bytes_per_second() * 0.8,
+				    fetcher.frame_db_snapshot() );
+      last_feasibility_analysis = now;
     }
     
     const string coded_frame = fetcher.coded_frame( current_future_of_track.front() );

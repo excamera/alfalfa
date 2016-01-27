@@ -59,12 +59,3 @@ string FrameStore::coded_frame( const uint64_t global_offset ) const
   
   return backing_store_.read( local_info->second.first, local_info->second.second );
 }
-
-unordered_set<uint64_t> FrameStore::frame_db_snapshot() const
-{
-  unordered_set<uint64_t> ret;
-  for ( const auto & x : local_frame_db_ ) {
-    ret.insert( x.first );
-  }
-  return ret;
-}

@@ -37,7 +37,7 @@ public:
 
   std::string coded_frame( const uint64_t global_offset ) const;
 
-  std::unordered_set<uint64_t> frame_db_snapshot() const;
+  decltype( local_frame_db_ ) frame_db_snapshot() const { return local_frame_db_; }
 };
 
 #endif /* FRAME_STORE_HH */

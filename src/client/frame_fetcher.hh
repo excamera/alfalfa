@@ -71,7 +71,7 @@ public:
 
   double estimated_bytes_per_second() const { return estimated_bytes_per_second_; }
 
-  std::unordered_set<uint64_t> frame_db_snapshot();
+  std::unordered_map<uint64_t, std::pair<uint64_t, size_t>> frame_db_snapshot();
   
   bool is_plan_feasible();
   void wait_until_feasible();
