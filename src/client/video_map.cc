@@ -4,6 +4,8 @@
 #include "video_map.hh"
 
 using namespace std;
+using namespace grpc;
+using namespace AlfalfaProtobufs;
 
 unsigned int find_max( vector<size_t> track_ids )
 {
@@ -18,7 +20,7 @@ unsigned int find_max( vector<size_t> track_ids )
       throw runtime_error( "video does not have contiguous track_ids starting with 0" );
     }
   }
-  
+
   return track_ids.back();
 }
 
@@ -36,48 +38,67 @@ vector<size_t> get_track_lengths( const AlfalfaVideoClient & video )
 
 VideoMap::VideoMap( const string & server_address )
   : video_( server_address ),
-    track_lengths_ ( get_track_lengths( video_ ) ),
-    fetcher_thread_( [&] () { fetch_all_tracks(); } )
+    track_lengths_ ( get_track_lengths( video_ ) )
 {
-  fetcher_thread_.detach();
+  for ( unsigned int i = 0; i < tracks_.size(); i++ ) {
+    fetchers_.emplace_back( [&] ( unsigned int track_id ) { fetch_track( track_id ); }, i );
+    fetchers_.back().detach();
+  }
 }
 
-void VideoMap::fetch_all_tracks()
+void VideoMap::fetch_track( unsigned int track_id )
 {
-  unique_lock<mutex> lock { mutex_ };
-
-  const auto tracks_still_to_fetch = [&] () {
-    for ( unsigned int i = 0; i < tracks_.size(); i++ ) {
-      if ( track_lengths_.at( i ) != tracks_.at( i ).size() ) {
-	return true;
-      }
-    }
-    return false;
-  };
-  
   /* start fetching the track details */
-  while ( tracks_still_to_fetch() ) {
-    for ( unsigned int i = 0; i < tracks_.size(); i++ ) {
-      if ( tracks_.at( i ).size() == track_lengths_.at( i ) ) {
-	break;
-      }
+  unique_lock<mutex> lock { mutex_ };
+  grpc::ClientContext client_context;
+  const unsigned int tracklen = track_lengths_.at( track_id );
+  auto track_infos = video_.get_abridged_frames( client_context, track_id, 0, tracklen );
 
-
-      const unsigned int start_frame = tracks_.at( i ).size();
-      const unsigned int stop_frame = min( tracks_.at( i ).size() + 1000,
-					   track_lengths_.at( i ) );
-
-      lock.unlock();
-      const auto track = video_.get_abridged_frames( i, start_frame, stop_frame );
-
-      lock.lock();
-      for ( const auto & x : track.frame() ) {
-	tracks_.at( i ).push_back( x );
-      }
-
-      cerr << "track " << i << " now has " << tracks_.at( i ).size() << " frames\n";
-    }
+  lock.unlock();
+  
+  AbridgedFrameInfo frame;
+  while ( track_infos->Read( &frame ) ) {
+    lock.lock();
+    tracks_.at( track_id ).push_back( frame );
+    lock.unlock();
   }
 
-  cerr << "Got all the tracks.\n";
+  cerr << "all done with track " << track_id << endl;
+  
+  /* confirm all finished okay */
+  lock.lock();
+  if ( tracks_.at( track_id ).size() != tracklen ) {
+    throw runtime_error( "on track " + to_string( track_id ) + ", got "
+			 + to_string( tracks_.at( track_id ).size() )
+			 + " frames, expected " + to_string( tracklen ) );
+  }
+
+  RPC( "ClientReader::Finish", track_infos->Finish() );
+}
+
+unsigned int VideoMap::track_length_full( const unsigned int track_id ) const
+{
+  return track_lengths_.at( track_id );
+}
+
+unsigned int VideoMap::track_length_now( const unsigned int track_id ) const
+{
+  unique_lock<mutex> lock { mutex_ };
+  return tracks_.at( track_id ).size();
+}
+
+vector<AlfalfaProtobufs::AbridgedFrameInfo> VideoMap::track_snapshot( const unsigned int track_id,
+								      const unsigned int start_frame_index ) const
+{
+  vector<AlfalfaProtobufs::AbridgedFrameInfo> ret;
+  unique_lock<mutex> lock { mutex_ };
+  const auto & track = tracks_.at( track_id );
+  if ( start_frame_index > track.size() ) {
+    throw out_of_range( "attempt to read beyond end of track" );
+  }
+				       
+  ret.insert( ret.begin(),
+	      track.begin() + start_frame_index,
+	      track.end() );
+  return ret;
 }

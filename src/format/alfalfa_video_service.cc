@@ -73,7 +73,7 @@ Status AlfalfaVideoServiceImpl::get_raster( ServerContext *,
 
 Status AlfalfaVideoServiceImpl::get_abridged_frames( ServerContext *,
 						     const AlfalfaProtobufs::TrackRangeArgs * args,
-						     AlfalfaProtobufs::AbridgedFrameList * response )
+						     grpc::ServerWriter<AlfalfaProtobufs::AbridgedFrameInfo> * response )
 {
   Log( "get_abridged_frames" );
 
@@ -81,20 +81,22 @@ Status AlfalfaVideoServiceImpl::get_abridged_frames( ServerContext *,
 					      args->start_frame_index(),
 					      args->end_frame_index() );
   for ( auto frame = frames.first; frame != frames.second; frame++ ) {
-    AlfalfaProtobufs::AbridgedFrameInfo * abridged_frame_info = response->add_frame();
-    abridged_frame_info->set_offset( frame->offset() );
-    abridged_frame_info->set_length( frame->length() );
-    abridged_frame_info->set_frame_id( frame->frame_id() );
-    abridged_frame_info->set_key( frame->is_keyframe() );
-    abridged_frame_info->set_shown( frame->shown() );
+    AlfalfaProtobufs::AbridgedFrameInfo abridged_frame_info;
+    abridged_frame_info.set_offset( frame->offset() );
+    abridged_frame_info.set_length( frame->length() );
+    abridged_frame_info.set_frame_id( frame->frame_id() );
+    abridged_frame_info.set_key( frame->is_keyframe() );
+    abridged_frame_info.set_shown( frame->shown() );
 
     if ( frame->shown() ) {
       const auto q = video_.get_quality_data_by_approximate_raster( frame->name().target.output_hash );
       if ( q.first == q.second ) {
 	throw runtime_error( "no quality data found for " + frame->name().target.output_hash );
       }
-      abridged_frame_info->set_quality( q.first->quality );
+      abridged_frame_info.set_quality( q.first->quality );
     }
+
+    response->Write( abridged_frame_info );
   }
 
   return Status::OK;

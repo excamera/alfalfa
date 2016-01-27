@@ -27,40 +27,24 @@ int main( const int argc, char const *argv[] )
   FrameFetcher fetcher { video.get_url() };
   VideoMap video_map { argv[ 1 ] };
   
-  /* print out the available tracks in the video */
-  const vector<size_t> track_ids = video.get_track_ids();
-
-  cout << "track_ids:";
-  for ( const auto & id : track_ids ) {
-    cout << " " << id;
-  }
-  cout << "\n";
-
-  /* play the first track found */
-  if ( track_ids.empty() ) {
-    throw runtime_error( "no tracks to play" );
-  }
-
   const size_t track_to_play = stoi( argv[ 2 ] );
-  const size_t track_size = video.get_track_size( track_to_play );
-
-  cerr << "Getting the track list... ";
-  const auto abridged_track = video.get_abridged_frames( track_to_play,
-							 0, track_size );
-  cerr << "done.\n";
-
-  /* start fetching */
-  fetcher.set_frame_plan( abridged_track.frame() );
 
   /* start playing */
   auto next_raster_time = steady_clock::now();
   bool playing = false;
-  auto frame_it = abridged_track.frame().begin();
-  while ( true ) {
-    if ( frame_it == abridged_track.frame().end() ) {
-      break; /* done with video */
-    }
+  unsigned int frames_played = 0;
+  const unsigned int frames_to_play = video_map.track_length_full( track_to_play );
 
+  while ( frames_played < frames_to_play ) {
+    const auto current_future_of_track = video_map.track_snapshot( track_to_play, frames_played );
+    fetcher.set_frame_plan( current_future_of_track );
+        
+    /* are we out of available track? */
+    if ( current_future_of_track.empty() ) {
+      this_thread::sleep_until( next_raster_time );
+      continue;
+    }
+    
     /* should we resume from a stall? */
     if ( not playing ) {
       fetcher.wait_until_feasible();
@@ -70,14 +54,14 @@ int main( const int argc, char const *argv[] )
     }
 
     /* do we need to stall? */
-    if ( not fetcher.has_frame( *frame_it ) ) {
+    if ( not fetcher.has_frame( current_future_of_track.front() ) ) {
       /* stall */
       cerr << "Stalling.\n";
       playing = false;
       continue;
     }
     
-    const string coded_frame = fetcher.coded_frame( *frame_it );
+    const string coded_frame = fetcher.coded_frame( current_future_of_track.front() );
     const Optional<RasterHandle> raster = decoder.parse_and_decode_frame( coded_frame );
     if ( raster.initialized() ) {
       this_thread::sleep_until( next_raster_time );
@@ -85,7 +69,7 @@ int main( const int argc, char const *argv[] )
       next_raster_time += microseconds( lrint( 1000000.0 / 24.0 ) );
     }
 
-    frame_it++;
+    frames_played++;
   }
 
   return EXIT_SUCCESS;

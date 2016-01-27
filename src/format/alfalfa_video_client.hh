@@ -1,6 +1,8 @@
 #ifndef ALFALFA_VIDEO_CLIENT_HH
 #define ALFALFA_VIDEO_CLIENT_HH
 
+#include <memory>
+
 #include <grpc/grpc.h>
 #include <grpc++/channel.h>
 #include <grpc++/client_context.h>
@@ -15,7 +17,7 @@ class AlfalfaVideoClient
 {
 private:
   std::unique_ptr<AlfalfaProtobufs::AlfalfaVideo::Stub> stub_;
-
+  
 public:
   AlfalfaVideoClient( const std::string & server_address )
     : stub_( AlfalfaProtobufs::AlfalfaVideo::NewStub( grpc::CreateChannel(
@@ -33,8 +35,9 @@ public:
   size_t get_raster( const size_t raster_index ) const;
 
   /* Get a bare-bones summary of the track */
-  AlfalfaProtobufs::AbridgedFrameList
-  get_abridged_frames( const size_t track_id,
+  std::unique_ptr<grpc::ClientReader<AlfalfaProtobufs::AbridgedFrameInfo>>
+  get_abridged_frames( grpc::ClientContext & context,
+		       const size_t track_id,
 		       const size_t start_frame_index,
 		       const size_t end_frame_index ) const;
   

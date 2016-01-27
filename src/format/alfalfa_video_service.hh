@@ -47,7 +47,7 @@ public:
   /* Get a bare-bones summary of the track */
   grpc::Status get_abridged_frames( grpc::ServerContext * context,
 				    const AlfalfaProtobufs::TrackRangeArgs * args,
-				    AlfalfaProtobufs::AbridgedFrameList * response ) override;
+				    grpc::ServerWriter<AlfalfaProtobufs::AbridgedFrameInfo> * response ) override;
   
   /* Gets frames in the given track, between the provided indices. */
   grpc::Status get_frames( grpc::ServerContext * context,

@@ -51,16 +51,14 @@ AlfalfaVideoClient::get_raster( const size_t raster_index ) const
   return SizeT( response ).sizet;
 }
 
-AlfalfaProtobufs::AbridgedFrameList
-AlfalfaVideoClient::get_abridged_frames( const size_t track_id, const size_t start_frame_index,
+unique_ptr<ClientReader<AlfalfaProtobufs::AbridgedFrameInfo>>
+AlfalfaVideoClient::get_abridged_frames( ClientContext & context,
+					 const size_t track_id,
+					 const size_t start_frame_index,
 					 const size_t end_frame_index ) const
 {
-  ClientContext context;
   const TrackRangeArgs track_range { track_id, start_frame_index, end_frame_index };
-  AlfalfaProtobufs::AbridgedFrameList ret;
-  RPC( "get_abridged_frames",
-       stub_->get_abridged_frames( &context, track_range.to_protobuf(), &ret ) );
-  return ret;
+  return stub_->get_abridged_frames( &context, track_range.to_protobuf() );
 }
 
 vector<FrameInfo>

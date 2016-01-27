@@ -15,17 +15,20 @@ private:
 
   std::vector<size_t> track_lengths_;
   std::vector<std::vector<AlfalfaProtobufs::AbridgedFrameInfo>> tracks_ { track_lengths_.size() };
+  std::vector<std::thread> fetchers_ {};
   std::vector<std::vector<size_t>> timestamp_to_frame_ {};
 
-  std::thread fetcher_thread_;
+  void fetch_track( unsigned int track_id );
 
-  void fetch_all_tracks();
-  bool tracks_still_to_fetch() const;
-
-  std::mutex mutex_ {};
+  mutable std::mutex mutex_ {};
   
 public:
   VideoMap( const std::string & server_address );
+
+  unsigned int track_length_full( const unsigned int track_id ) const;
+  unsigned int track_length_now( const unsigned int track_id ) const;
+  std::vector<AlfalfaProtobufs::AbridgedFrameInfo> track_snapshot( const unsigned int track_id,
+								   const unsigned int start_frame_index ) const;
 };
 
 #endif /* VIDEO_MAP_HH */
