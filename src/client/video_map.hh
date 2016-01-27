@@ -24,10 +24,10 @@ struct AnnotatedFrameInfo
   /* annotations */
   double average_quality_to_end {};
   double stddev_quality_to_end {};
+  double min_quality_to_end {};
   unsigned int timestamp {}; /* displayed raster index */
 
-  double remaining_time_in_video {};
-  double download_time_required_from_here {};
+  double time_margin_required {};
 
   AnnotatedFrameInfo( const AlfalfaProtobufs::AbridgedFrameInfo & fi );
   AnnotatedFrameInfo( const FrameInfo & fi );
@@ -62,6 +62,8 @@ public:
 			   const std::unordered_map<uint64_t, std::pair<uint64_t, size_t>> frame_store );
 
   unsigned int analysis_generation() const { return analysis_generation_; }
+
+  void report_feasibility() const;
 };
 
 #endif /* VIDEO_MAP_HH */

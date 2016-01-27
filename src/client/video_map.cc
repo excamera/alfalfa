@@ -143,33 +143,51 @@ void VideoMap::update_annotations( const double estimated_bytes_per_second_,
 	unsigned int shown_frame_count = 0;
 	double running_mean = 0.0;
 	double running_varsum = 0.0;
-	uint64_t bytes_to_download_from_here = 0;
-    
+	float running_min = 1.0;
+	double time_margin_required = 0;
+
 	/* algorithm from Knuth volume 2, per http://www.johndcook.com/blog/standard_deviation/ */
 	for ( auto frame = track.rbegin(); frame != track.rend(); frame++ ) {
 	  if ( frame->shown ) {
 	    shown_frame_count++;
-	  }
+	  
+	    if ( shown_frame_count == 0 ) {
+	      frame->average_quality_to_end = 1;
+	      frame->stddev_quality_to_end = 0;
+	      frame->min_quality_to_end = 1;
+	    } else if ( shown_frame_count == 1 ) {
+	      running_mean = running_min = frame->quality;
+	      frame->average_quality_to_end = running_mean;
+	      frame->stddev_quality_to_end = 0;
+	      frame->min_quality_to_end = running_min;
+	    } else {
+	      const double new_mean = running_mean + ( frame->quality - running_mean ) / shown_frame_count;
+	      const double new_varsum = running_varsum + ( frame->quality - running_mean ) * ( frame->quality - new_mean );
+	      tie( running_mean, running_varsum ) = make_tuple( new_mean, new_varsum );
 
-	  if ( shown_frame_count == 0 ) {
-	    frame->average_quality_to_end = 1;
-	    frame->stddev_quality_to_end = 0;
+	      frame->average_quality_to_end = running_mean;
+	      frame->stddev_quality_to_end = sqrt( running_varsum / ( shown_frame_count - 1.0 ) );
+
+	      running_min = min( running_min, frame->quality );
+	      frame->min_quality_to_end = running_min;
+	    }
 	  } else {
-	    const double new_mean = running_mean + ( frame->quality - running_mean ) / shown_frame_count;
-	    const double new_varsum = running_varsum + ( frame->quality - running_mean ) * ( frame->quality - new_mean );
-	    tie( running_mean, running_varsum ) = make_tuple( new_mean, new_varsum );
-
 	    frame->average_quality_to_end = running_mean;
 	    frame->stddev_quality_to_end = sqrt( running_varsum / ( shown_frame_count - 1.0 ) );
+	    frame->min_quality_to_end = running_min;
 	  }
-      
-	  frame->remaining_time_in_video = ( shown_frame_count - 1.0 ) / 24.0;
 
 	  if ( frame_store.find( frame->offset ) == frame_store.end() ) {
-	    bytes_to_download_from_here += frame->length;
+	    /* would need to fetch */
+	    time_margin_required += frame->length / estimated_bytes_per_second;
 	  }
 
-	  frame->download_time_required_from_here = bytes_to_download_from_here / estimated_bytes_per_second;
+	  frame->time_margin_required = time_margin_required;
+
+	  if ( frame->shown ) {
+	    time_margin_required -= 1.0 / 24.0;
+	    if ( time_margin_required < 0.0 ) { time_margin_required = 0.0; }
+	  }
 	}
       }
 
@@ -177,4 +195,23 @@ void VideoMap::update_annotations( const double estimated_bytes_per_second_,
     }, estimated_bytes_per_second_, move( frame_store_ ) );
 
   newthread.detach();
+}
+
+void VideoMap::report_feasibility() const
+{
+  unique_lock<mutex> lock { mutex_ };
+  for ( unsigned int i = 0; i < tracks_.size(); i++ ) {
+    if ( tracks_[ i ].empty() ) {
+      continue;
+    }
+
+    const auto & frame = tracks_[ i ].front();
+    
+    cerr << "track " << i << ", average quality: " << frame.average_quality_to_end
+	 << ", stddev: " << frame.stddev_quality_to_end
+	 << ", min: " << frame.min_quality_to_end
+	 << ", timestamp = " << frame.timestamp
+	 << ", time margin required: " << frame.time_margin_required
+	 << "\n";
+  }
 }

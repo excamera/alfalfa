@@ -53,6 +53,7 @@ int main( const int argc, char const *argv[] )
       current_future_of_track = video_map.track_snapshot( track_to_play, frames_played );
       fetcher.set_frame_plan( current_future_of_track );
       analysis_generation = new_analysis_generation;
+      video_map.report_feasibility();
     }
     
     /* are we out of available track? */
