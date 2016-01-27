@@ -108,12 +108,13 @@ unsigned int VideoMap::track_length_now( const unsigned int track_id ) const
 }
 
 deque<AnnotatedFrameInfo> VideoMap::best_plan( unsigned int track_id,
-					       unsigned int track_index ) const
+					       unsigned int track_index,
+					       const bool playing ) const
 {
   deque<AnnotatedFrameInfo> ret;
   unique_lock<mutex> lock { mutex_ };
 
-  double time_margin_available = 0;
+  double time_margin_available = playing ? 0 : 1.0;
 
   //  cerr << "best_plan( " << track_id << ", " << track_index << " )\n";
   
@@ -166,12 +167,14 @@ deque<AnnotatedFrameInfo> VideoMap::best_plan( unsigned int track_id,
     /*
     cerr << "post sort: ";
     for ( const auto & x : eligible_next_frames ) {
-      cerr << "( " << x.first << ", " << x.second << ") => " << tracks_.at( x.first ).at( x.second ).time_margin_required << "\n";
+      cerr << "( " << x.first << ", " << x.second << ") => " << time_margin_available - tracks_.at( x.first ).at( x.second ).time_margin_required << "\n";
     }
     */
     
     tie( track_id, track_index ) = eligible_next_frames.front();
     ret.push_back( tracks_.at( track_id ).at( track_index ) );
+
+    time_margin_available -= tracks_.at( track_id ).at( track_index ).time_to_fetch;
     if ( ret.back().shown ) {
       time_margin_available += 1.0 / 24.0;
     }
@@ -284,9 +287,12 @@ void VideoMap::update_annotations( const double estimated_bytes_per_second_,
 
 	  if ( frame_store.find( frame->offset ) == frame_store.end() ) {
 	    /* would need to fetch */
-	    time_margin_required += frame->length / estimated_bytes_per_second;
+	    frame->time_to_fetch = frame->length / estimated_bytes_per_second;
+	  } else {
+	    frame->time_to_fetch = 0;
 	  }
 
+	  time_margin_required += frame->time_to_fetch;
 	  frame->time_margin_required = time_margin_required;
 
 	  if ( frame->shown ) {
