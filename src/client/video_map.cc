@@ -5,7 +5,6 @@
 
 using namespace std;
 using namespace grpc;
-using namespace AlfalfaProtobufs;
 
 unsigned int find_max( vector<size_t> track_ids )
 {
@@ -56,10 +55,10 @@ void VideoMap::fetch_track( unsigned int track_id )
 
   lock.unlock();
   
-  AbridgedFrameInfo frame;
+  AlfalfaProtobufs::AbridgedFrameInfo frame;
   while ( track_infos->Read( &frame ) ) {
     lock.lock();
-    tracks_.at( track_id ).push_back( frame );
+    tracks_.at( track_id ).emplace_back( frame );
     lock.unlock();
   }
 
@@ -87,10 +86,10 @@ unsigned int VideoMap::track_length_now( const unsigned int track_id ) const
   return tracks_.at( track_id ).size();
 }
 
-vector<AlfalfaProtobufs::AbridgedFrameInfo> VideoMap::track_snapshot( const unsigned int track_id,
-								      const unsigned int start_frame_index ) const
+vector<AnnotatedFrameInfo> VideoMap::track_snapshot( const unsigned int track_id,
+						     const unsigned int start_frame_index ) const
 {
-  vector<AlfalfaProtobufs::AbridgedFrameInfo> ret;
+  vector<AnnotatedFrameInfo> ret;
   unique_lock<mutex> lock { mutex_ };
   const auto & track = tracks_.at( track_id );
   if ( start_frame_index > track.size() ) {
@@ -102,3 +101,22 @@ vector<AlfalfaProtobufs::AbridgedFrameInfo> VideoMap::track_snapshot( const unsi
 	      track.end() );
   return ret;
 }
+
+AnnotatedFrameInfo::AnnotatedFrameInfo( const AlfalfaProtobufs::AbridgedFrameInfo & fi )
+  : offset( fi.offset() ),
+    length( fi.length() ),
+    frame_id( fi.frame_id() ),
+    key( fi.key() ),
+    shown( fi.shown() ),
+    quality( fi.quality() )
+{}
+
+AnnotatedFrameInfo::AnnotatedFrameInfo( const FrameInfo & fi )
+  : offset( fi.offset() ),
+    length( fi.length() ),
+    frame_id( fi.frame_id() ),
+    key( fi.is_keyframe() ),
+    shown( fi.shown() ),
+    quality()
+{}
+

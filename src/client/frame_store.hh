@@ -36,6 +36,8 @@ public:
   bool has_frame( const uint64_t global_offset ) const;
 
   std::string coded_frame( const uint64_t global_offset ) const;
+
+  std::unordered_set<uint64_t> frame_db_snapshot() const;
 };
 
 #endif /* FRAME_STORE_HH */

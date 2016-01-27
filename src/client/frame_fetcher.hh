@@ -11,6 +11,7 @@
 
 #include "frame_info.hh"
 #include "frame_store.hh"
+#include "video_map.hh"
 #include "alfalfa.pb.h"
 
 typedef void CURL;
@@ -37,7 +38,7 @@ private:
   std::condition_variable new_request_or_shutdown_ {};
   std::condition_variable new_response_ {};
 
-  std::deque<AlfalfaProtobufs::AbridgedFrameInfo> wishlist_ {};
+  std::deque<AnnotatedFrameInfo> wishlist_ {};
 
   std::atomic<bool> shutdown_ {};
   std::atomic<double> estimated_bytes_per_second_;
@@ -64,10 +65,14 @@ public:
     new_request_or_shutdown_.notify_all();
   }
 
-  bool has_frame( const AlfalfaProtobufs::AbridgedFrameInfo & frame );
-  void wait_for_frame( const AlfalfaProtobufs::AbridgedFrameInfo & frame );
-  std::string coded_frame( const AlfalfaProtobufs::AbridgedFrameInfo & frame );
+  bool has_frame( const AnnotatedFrameInfo & frame );
+  void wait_for_frame( const AnnotatedFrameInfo & frame );
+  std::string coded_frame( const AnnotatedFrameInfo & frame );
 
+  double estimated_bytes_per_second() const { return estimated_bytes_per_second_; }
+
+  std::unordered_set<uint64_t> frame_db_snapshot();
+  
   bool is_plan_feasible();
   void wait_until_feasible();
   

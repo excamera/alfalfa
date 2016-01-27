@@ -7,7 +7,6 @@
 
 using namespace std;
 using namespace std::chrono;
-using AbridgedFrameInfo = AlfalfaProtobufs::AbridgedFrameInfo;
 
 /* error category for CURLcodes */
 class curl_error_category : public error_category
@@ -75,7 +74,7 @@ void FrameFetcher::CurlWrapper::perform()
 class HTTPResponse
 {
 private:
-  vector<AbridgedFrameInfo> requests_;
+  vector<AnnotatedFrameInfo> requests_;
   vector<string> coded_frames_ { requests_.size() };
   size_t current_frame_i_ = size_t( -1 );
   unordered_map<size_t, size_t> request_offset_to_index_ {};
@@ -100,12 +99,12 @@ public:
   string range_of_requests() const
   {
     string ret;
-    for ( const AbridgedFrameInfo & x : requests_ ) {
+    for ( const AnnotatedFrameInfo & x : requests_ ) {
       if ( not ret.empty() ) {
 	ret.append( "," );
       }
 
-      ret.append( to_string( x.offset() ) + "-" + to_string( x.offset() + x.length() - 1 ) );
+      ret.append( to_string( x.offset ) + "-" + to_string( x.offset + x.length - 1 ) );
     }
     return ret;
   }
@@ -113,13 +112,13 @@ public:
   const unordered_map<string, string> & headers() const { return headers_; }
   const vector<string> & coded_frames() const { return coded_frames_; }
   
-  HTTPResponse( const vector<AbridgedFrameInfo> & desired_frames,
+  HTTPResponse( const vector<AnnotatedFrameInfo> & desired_frames,
 		FrameFetcher * parent )
     : requests_( desired_frames ),
       parent_( parent )
   {
     for ( unsigned int i = 0; i < requests_.size(); i++ ) {
-      request_offset_to_index_.emplace( requests_[ i ].offset(), i );
+      request_offset_to_index_.emplace( requests_[ i ].offset, i );
     }
   }
 
@@ -218,12 +217,12 @@ public:
     size_t bytes_used_this_chunk = 0;
     while ( bytes_used_this_chunk < chunk.size() ) {
       /* is frame done? */
-      if ( requests_.at( current_frame_i_ ).length()
+      if ( requests_.at( current_frame_i_ ).length
 	   == coded_frames_.at( current_frame_i_ ).length() ) {
 	initialize_new_request();
       }
 
-      const size_t bytes_left_in_frame = requests_.at( current_frame_i_ ).length()
+      const size_t bytes_left_in_frame = requests_.at( current_frame_i_ ).length
 	- coded_frames_.at( current_frame_i_ ).length();
       const size_t bytes_available = chunk.size() - bytes_used_this_chunk;
       const size_t bytes_to_append = min( bytes_left_in_frame, bytes_available );
@@ -234,7 +233,7 @@ public:
       bytes_used_this_chunk += bytes_to_append;
       bytes_so_far_ += bytes_to_append;
       
-      assert( coded_frames_.at( current_frame_i_ ).length() <= requests_.at( current_frame_i_ ).length() );
+      assert( coded_frames_.at( current_frame_i_ ).length() <= requests_.at( current_frame_i_ ).length );
     }
 
     if ( bytes_so_far_ == range_length_ ) {
@@ -244,11 +243,11 @@ public:
 
   void insert()
   {
-    if ( requests_.at( current_frame_i_ ).length()
+    if ( requests_.at( current_frame_i_ ).length
 	 != coded_frames_.at( current_frame_i_ ).length() ) {
       throw runtime_error( "BUG: frame length mismatch" );
     }
-    parent_->insert_frame( requests_.at( current_frame_i_ ).offset(),
+    parent_->insert_frame( requests_.at( current_frame_i_ ).offset,
 			   coded_frames_.at( current_frame_i_ ) );    
   }
   
@@ -410,18 +409,18 @@ FrameFetcher::~FrameFetcher()
 
 void FrameFetcher::event_loop()
 {
-  const auto fetch_size = [] ( const vector<AbridgedFrameInfo> & frames )
+  const auto fetch_size = [] ( const vector<AnnotatedFrameInfo> & frames )
     {
       unsigned int size = 0;
       for ( const auto & frame : frames ) {
-	size += frame.length();
+	size += frame.length;
       }
       return size;
     };
 
   while ( not shutdown_ ) {
     /* fetch one batch of frames */
-    vector<AbridgedFrameInfo> frames_to_fetch;
+    vector<AnnotatedFrameInfo> frames_to_fetch;
     unordered_set<uint64_t> frames_to_fetch_set;
 
     /* decide which frames we really need to fetch */
@@ -435,12 +434,12 @@ void FrameFetcher::event_loop()
 	  break;
 	}
 
-	if ( local_frame_store_.has_frame( x.offset() ) ) {
+	if ( local_frame_store_.has_frame( x.offset ) ) {
 	  /* skip it */
-	} else if ( frames_to_fetch_set.count( x.offset() ) ) {
+	} else if ( frames_to_fetch_set.count( x.offset ) ) {
 	  /* skip it */
 	} else {
-	  frames_to_fetch_set.emplace( x.offset() );
+	  frames_to_fetch_set.emplace( x.offset );
 	  frames_to_fetch.push_back( x );
 	}
       }
@@ -497,16 +496,16 @@ void FrameFetcher::insert_frame( const uint64_t offset, const string & contents 
   new_response_.notify_all();
 }
 
-bool FrameFetcher::has_frame( const AlfalfaProtobufs::AbridgedFrameInfo & frame )
+bool FrameFetcher::has_frame( const AnnotatedFrameInfo & frame )
 {
   unique_lock<mutex> lock { mutex_ };
-  return local_frame_store_.has_frame( frame.offset() );
+  return local_frame_store_.has_frame( frame.offset );
 }
 
-void FrameFetcher::wait_for_frame( const AlfalfaProtobufs::AbridgedFrameInfo & frame )
+void FrameFetcher::wait_for_frame( const AnnotatedFrameInfo & frame )
 {
   unique_lock<mutex> lock { mutex_ };
-  new_response_.wait( lock, [&] () { return local_frame_store_.has_frame( frame.offset() ); } );    
+  new_response_.wait( lock, [&] () { return local_frame_store_.has_frame( frame.offset ); } );    
 }
 
 bool FrameFetcher::is_plan_feasible()
@@ -521,29 +520,25 @@ void FrameFetcher::wait_until_feasible()
   new_response_.wait( lock, [&] () { return is_plan_feasible_nolock(); } );
 }
 
-string FrameFetcher::coded_frame( const AlfalfaProtobufs::AbridgedFrameInfo & frame )
+string FrameFetcher::coded_frame( const AnnotatedFrameInfo & frame )
 {
   unique_lock<mutex> lock { mutex_ };
   if ( wishlist_.empty() ) {
     throw runtime_error( "coded_frame with empty plan" );
-  } else if ( wishlist_.front().frame_id() != frame.frame_id() ) {
+  } else if ( wishlist_.front().frame_id != frame.frame_id ) {
     throw runtime_error( "mismatch between requested frame and plan" );
   }
 
   wishlist_.pop_front();
-  return local_frame_store_.coded_frame( frame.offset() );
+  return local_frame_store_.coded_frame( frame.offset );
 }
 
 string FrameFetcher::get_chunk( const FrameInfo & frame_info )
 {
   /* compatibility method */
-  AbridgedFrameInfo sub;
+  AnnotatedFrameInfo sub { frame_info };
 
-  sub.set_offset( frame_info.offset() );
-  sub.set_length( frame_info.length() );
-  sub.set_shown( frame_info.shown() );
-
-  set_frame_plan( vector<AbridgedFrameInfo> { sub } );
+  set_frame_plan( vector<AnnotatedFrameInfo> { sub } );
   wait_for_frame( sub );
   return coded_frame( sub );
 }
@@ -557,9 +552,9 @@ bool FrameFetcher::is_plan_feasible_nolock()
 
   unsigned int frameno = 0;
   for ( const auto & frame : wishlist_ ) {
-    if ( not local_frame_store_.has_frame( frame.offset() ) ) {
+    if ( not local_frame_store_.has_frame( frame.offset ) ) {
       /* need to download */
-      arrival_time += frame.length() / (estimated_bytes_per_second_ * discount_factor);
+      arrival_time += frame.length / (estimated_bytes_per_second_ * discount_factor);
     }
 
     if ( arrival_time > presentation_time ) {
@@ -567,7 +562,7 @@ bool FrameFetcher::is_plan_feasible_nolock()
       return false;
     }
 
-    if ( frame.shown() ) {
+    if ( frame.shown ) {
       presentation_time += 1.0 / 24.0;
     }
 
@@ -575,4 +570,10 @@ bool FrameFetcher::is_plan_feasible_nolock()
   }
   
   return true;
+}
+
+unordered_set<uint64_t> FrameFetcher::frame_db_snapshot()
+{
+  unique_lock<mutex> lock { mutex_ };
+  return local_frame_store_.frame_db_snapshot();
 }
