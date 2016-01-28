@@ -19,7 +19,7 @@ struct AnnotatedFrameInfo
   unsigned int frame_id;
   bool key;
   bool shown;
-  float quality;
+  double quality;
 
   /* annotations */
   double average_quality_to_end {};

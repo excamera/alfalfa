@@ -321,7 +321,7 @@ void VideoMap::update_annotations( const double estimated_bytes_per_second_,
 	unsigned int shown_frame_count = 0;
 	double running_mean = 0.0;
 	double running_varsum = 0.0;
-	float running_min = 1.0;
+	double running_min = 1.0;
 	double time_margin_required = 0;
 
 #if 0
@@ -344,12 +344,8 @@ void VideoMap::update_annotations( const double estimated_bytes_per_second_,
 	for ( auto frame = track.rbegin(); frame != track.rend(); frame++ ) {
 	  if ( frame->shown ) {
 	    shown_frame_count++;
-	  
-	    if ( shown_frame_count == 0 ) {
-	      frame->average_quality_to_end = 1;
-	      frame->stddev_quality_to_end = 0;
-	      frame->min_quality_to_end = 1;
-	    } else if ( shown_frame_count == 1 ) {
+
+	    if ( shown_frame_count == 1 ) {
 	      running_mean = running_min = frame->quality;
 	      frame->average_quality_to_end = running_mean;
 	      frame->stddev_quality_to_end = 0;
@@ -365,6 +361,10 @@ void VideoMap::update_annotations( const double estimated_bytes_per_second_,
 	      running_min = min( running_min, frame->quality );
 	      frame->min_quality_to_end = running_min;
 	    }
+	  } else if ( shown_frame_count == 0 ) {
+	    frame->average_quality_to_end = 1;
+	    frame->stddev_quality_to_end = 0;
+	    frame->min_quality_to_end = 1;
 	  } else {
 	    frame->average_quality_to_end = running_mean;
 	    frame->stddev_quality_to_end = sqrt( running_varsum / ( shown_frame_count - 1.0 ) );
