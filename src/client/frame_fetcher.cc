@@ -395,7 +395,7 @@ FrameFetcher::CurlWrapper::CurlWrapper( const string & url )
 
 FrameFetcher::FrameFetcher( const string & framestore_url )
   : curl_( framestore_url ),
-    estimated_bytes_per_second_( 10000 ),
+    estimated_bytes_per_second_( 100000 ),
     downloader_thread_( [&] () { event_loop(); } )
 {}
 

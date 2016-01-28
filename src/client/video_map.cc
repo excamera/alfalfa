@@ -123,12 +123,13 @@ const AnnotatedFrameInfo & VideoMap::no_frame()
   return init_frame;
 }
 
-deque<AnnotatedFrameInfo> VideoMap::best_plan( const AnnotatedFrameInfo & last_frame ) const
+deque<AnnotatedFrameInfo> VideoMap::best_plan( const AnnotatedFrameInfo & last_frame,
+					       const bool playing ) const
 {
   deque<AnnotatedFrameInfo> ret;
   unique_lock<mutex> lock { mutex_ };
 
-  double time_margin_available = 0;
+  double time_margin_available = playing ? 0 : 2;
 
   //  cerr << "best_plan( " << track_id << ", " << track_index << " )\n";
 
@@ -166,9 +167,12 @@ while ( true ) {
       const bool current_option_is_playable = best_margin_required <= time_margin_available;
       const bool alternative_is_playable = alt_margin_required <= time_margin_available;
 
-      /* case 1: neither is playable. pick the one that has the latest predicted stall */
+      /* case 1: neither is playable. pick the one that has some reasonable compromise */
       if ( (not current_option_is_playable) and (not alternative_is_playable) ) {
-	if ( alt_margin_required < best_margin_required ) {
+	const double best_score = best_option.suffix_figure_of_merit() * 100 - best_margin_required;
+	const double alt_score = alternative.suffix_figure_of_merit() * 100 - alt_margin_required;
+
+	if ( alt_score > best_score ) {
 	  best_option = alternative;
 	}
 	continue;

@@ -54,7 +54,7 @@ int main( const int argc, char const *argv[] )
     /* is a new analysis available? */
     const unsigned int new_analysis_generation = video_map.analysis_generation();
     if ( new_analysis_generation != analysis_generation ) {
-      current_future_of_track = video_map.best_plan( last_frame_decoded );
+      current_future_of_track = video_map.best_plan( last_frame_decoded, playing );
       fetcher.set_frame_plan( current_future_of_track );
       analysis_generation = new_analysis_generation;
       //      video_map.report_feasibility();
@@ -100,6 +100,14 @@ int main( const int argc, char const *argv[] )
       display.draw( raster.get() );
       next_raster_time += frame_interval;
       rasters_displayed++;
+    }
+
+    if ( rasters_displayed == 60 * 24 ) {
+      cerr << "Seeking!\n\n\n";
+      rasters_displayed = 60 * 24 * 2;
+      last_frame_decoded.track_id = 6;
+      last_frame_decoded.track_index = rasters_displayed;
+      current_future_of_track.clear();
     }
   }
 
