@@ -124,7 +124,8 @@ const AnnotatedFrameInfo & VideoMap::no_frame()
 }
 
 deque<AnnotatedFrameInfo> VideoMap::best_plan( const AnnotatedFrameInfo & last_frame,
-					       const bool playing ) const
+					       const bool playing,
+					       const double estimated_bytes_per_second ) const
 {
   deque<AnnotatedFrameInfo> ret;
   unique_lock<mutex> lock { mutex_ };
@@ -168,7 +169,7 @@ deque<AnnotatedFrameInfo> VideoMap::best_plan( const AnnotatedFrameInfo & last_f
       const bool current_option_is_playable = best_margin_required <= time_margin_available;
       const bool alternative_is_playable = alt_margin_required <= time_margin_available;
 
-      /* case 1: neither is playable. pick the one that will be playable sooner */
+      /* case 1: neither is playable. pick the one that has the latest predicted stall */
       if ( (not current_option_is_playable) and (not alternative_is_playable) ) {
 	if ( alt_margin_required < best_margin_required ) {
 	  best_option = alternative;
@@ -190,6 +191,13 @@ deque<AnnotatedFrameInfo> VideoMap::best_plan( const AnnotatedFrameInfo & last_f
       if ( alternative.suffix_figure_of_merit() > best_option.suffix_figure_of_merit() ) {
 	best_option = alternative;
       }
+    }
+
+    double best_margin_required = best_option.time_margin_required + (best_option.time_to_fetch ? 2.0 : 0);
+    const bool best_option_is_playable = best_margin_required <= time_margin_available;
+
+    if ( not best_option_is_playable ) {
+      cerr << "WARNING! best option (" << best_option.track_id << ") is still not playable\n";
     }
 
     ret.push_back( best_option );
@@ -257,7 +265,8 @@ deque<AnnotatedFrameInfo> VideoMap::best_plan( const AnnotatedFrameInfo & last_f
     }
   }
 
-  cerr << "Frames of plan in buffer: " << already_buffered << ".";
+  cerr << "E[Mbit/s]: " << 8 * estimated_bytes_per_second / 1000000.0;
+  cerr << ". Frames of plan in buffer: " << already_buffered << ".";
   if ( time_to_stall != numeric_limits<double>::max() ) {
     cerr << " Predicting stall in " << time_to_stall << " seconds.";
   }
