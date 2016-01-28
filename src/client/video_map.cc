@@ -1,10 +1,12 @@
 #include <algorithm>
 #include <limits>
+#include <chrono>
 
 #include "video_map.hh"
 
 using namespace std;
 using namespace grpc;
+using namespace chrono;
 
 unsigned int find_max( vector<size_t> track_ids )
 {
@@ -61,6 +63,9 @@ void VideoMap::fetch_track( unsigned int track_id )
   lock.unlock();
   
   AlfalfaProtobufs::AbridgedFrameInfo frame;
+
+  auto next_frame_read = steady_clock::now();
+
   while ( track_infos->Read( &frame ) ) {
     lock.lock();
     const uint64_t cumulative_length = frame.length() + (tracks_.at( track_id ).empty()
@@ -82,6 +87,10 @@ void VideoMap::fetch_track( unsigned int track_id )
     }
 
     lock.unlock();
+
+    /* throttle download of frames to 1000 fps per track to allow video to start playing */
+    next_frame_read += milliseconds( 1 );
+    this_thread::sleep_until( next_frame_read );
   }
 
   cerr << "all done with track " << track_id << endl;
@@ -178,7 +187,7 @@ deque<AnnotatedFrameInfo> VideoMap::best_plan( const AnnotatedFrameInfo & last_f
       }
 
       /* case 4: they're both playable */
-      if ( alternative.average_quality_to_end > best_option.average_quality_to_end ) {
+      if ( alternative.suffix_figure_of_merit() > best_option.suffix_figure_of_merit() ) {
 	best_option = alternative;
       }
     }
@@ -264,7 +273,7 @@ deque<AnnotatedFrameInfo> VideoMap::best_plan( const AnnotatedFrameInfo & last_f
     if ( x.track_id == cur_track ) {
       cur_count++;
     } else {
-      cerr << "[ " << cur_count << " of " << cur_track << " @ " << x.average_quality_to_end << " ] ";
+      cerr << "[ " << cur_count << " of " << cur_track << " @ " << x.suffix_figure_of_merit() << " ] ";
       cur_track = x.track_id;
       cur_count = 0;
     }
@@ -411,4 +420,9 @@ void VideoMap::report_feasibility() const
 	 << ", time margin required: " << frame.time_margin_required
 	 << "\n";
   }
+}
+
+double AnnotatedFrameInfo::suffix_figure_of_merit() const
+{
+  return average_quality_to_end - stddev_quality_to_end;
 }

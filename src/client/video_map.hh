@@ -41,6 +41,8 @@ struct AnnotatedFrameInfo
 		      const unsigned int track_index,
 		      const uint64_t cumulative_length );
   AnnotatedFrameInfo( const FrameInfo & fi );
+
+  double suffix_figure_of_merit() const;
 };
 
 class VideoMap
