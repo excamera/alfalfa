@@ -534,3 +534,44 @@ unordered_map<uint64_t, pair<uint64_t, size_t>> FrameFetcher::frame_db_snapshot(
   unique_lock<mutex> lock { mutex_ };
   return local_frame_store_.frame_db_snapshot();
 }
+
+bool FrameFetcher::is_plan_feasible()
+{
+  unique_lock<mutex> lock { mutex_ };
+  return is_plan_feasible_nolock();
+}
+
+void FrameFetcher::wait_until_feasible()
+{
+  unique_lock<mutex> lock { mutex_ };
+  new_response_.wait( lock, [&] () { return is_plan_feasible_nolock(); } );
+}
+
+bool FrameFetcher::is_plan_feasible_nolock()
+{
+  const double discount_factor = 0.75;
+
+  double presentation_time = 0.0;
+  double arrival_time = 0.0;
+
+  unsigned int frameno = 0;
+  for ( const auto & frame : wishlist_ ) {
+    if ( not local_frame_store_.has_frame( frame.offset ) ) {
+      /* need to download */
+      arrival_time += frame.length / (estimated_bytes_per_second_ * discount_factor);
+    }
+
+    if ( arrival_time > presentation_time ) {
+      cerr << "failed feasibility @ frame " << frameno << ", " << arrival_time << " > " << presentation_time << "\n";
+      return false;
+    }
+
+    if ( frame.shown ) {
+      presentation_time += 1.0 / 24.0;
+    }
+
+    frameno++;
+  }
+  
+  return true;
+}

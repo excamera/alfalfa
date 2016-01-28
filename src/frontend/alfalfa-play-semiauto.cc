@@ -45,8 +45,8 @@ int main( const int argc, char const *argv[] )
   while ( rasters_displayed < rasters_to_display ) {
     /* kick off a feasibility analysis? */
     const auto now = steady_clock::now();
-    if ( now - last_feasibility_analysis > milliseconds( 1000 ) ) {
-      video_map.update_annotations( fetcher.estimated_bytes_per_second() * 0.8,
+    if ( now - last_feasibility_analysis > milliseconds( 500 ) ) {
+      video_map.update_annotations( fetcher.estimated_bytes_per_second() * 0.75,
 				    fetcher.frame_db_snapshot() );
       last_feasibility_analysis = now;
     }
@@ -71,12 +71,12 @@ int main( const int argc, char const *argv[] )
     
     /* should we resume from a stall? */
     if ( not playing ) {
-      if ( current_future_of_track.front().time_margin_required <= 0 ) {
+      if ( fetcher.is_plan_feasible() ) {
 	playing = true;
 	next_raster_time = steady_clock::now();
 	cerr << "Playing.\n";
       } else {
-	this_thread::sleep_for( frame_interval );
+	this_thread::sleep_for( 4 * frame_interval );
 	continue;
       }
     }
