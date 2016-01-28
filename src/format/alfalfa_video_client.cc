@@ -229,3 +229,18 @@ size_t AlfalfaVideoClient::get_raster_count() const
        stub_->get_raster_count( &context, empty, &response ) );
   return SizeT( response ).sizet;
 }
+
+AlfalfaProtobufs::AbridgedSwitch AlfalfaVideoClient::get_outbound_switch( const unsigned int from_track_id,
+									  const unsigned int from_frame_index,
+									  const unsigned int to_track_id ) const
+{
+  ClientContext context;
+  AlfalfaProtobufs::OutboundSwitchQuery request;
+  request.set_from_track_id( from_track_id );
+  request.set_from_frame_index( from_frame_index );
+  request.set_to_track_id( to_track_id );
+  AlfalfaProtobufs::AbridgedSwitch response;
+  RPC( "get_outbound_switch",
+       stub_->get_outbound_switch( &context, request, &response ) );
+  return response;
+}

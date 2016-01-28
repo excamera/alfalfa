@@ -92,6 +92,20 @@ message TrackDataIterator {
   repeated TrackData track_data = 1;
 }
 
+message AbridgedSwitch {
+  repeated AbridgedFrameInfo frame = 1;
+  optional uint32 from_track_id = 2;
+  optional uint32 to_track_id = 3;
+  optional uint32 from_frame_index = 4;
+  optional uint32 to_frame_index = 5;
+}
+
+message OutboundSwitchQuery {
+  optional uint32 from_track_id = 1;
+  optional uint32 from_frame_index = 2;
+  optional uint32 to_track_id = 3;
+}
+
 message SwitchInfo {
   repeated FrameInfo frame = 1;
   required uint64 from_track_id = 2;
@@ -162,4 +176,5 @@ service AlfalfaVideo {
   rpc get_video_width( Empty ) returns ( SizeT ) {}
   rpc get_video_height( Empty ) returns ( SizeT ) {}
   rpc get_raster_count( Empty ) returns ( SizeT ) {}
+  rpc get_outbound_switch( OutboundSwitchQuery ) returns ( AbridgedSwitch ) {}
 }

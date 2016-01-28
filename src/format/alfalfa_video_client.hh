@@ -96,6 +96,10 @@ public:
 
   /* count number of [displayed] rasters in the output */
   size_t get_raster_count() const;
+
+  AlfalfaProtobufs::AbridgedSwitch get_outbound_switch( const unsigned int from_track_id,
+							const unsigned int from_frame_index,
+							const unsigned int to_track_id ) const;
 };
 
 #endif /* ALFALFA_VIDEO_CLIENT_HH */

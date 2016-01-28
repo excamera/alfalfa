@@ -115,6 +115,9 @@ public:
 				 const AlfalfaProtobufs::Empty * empty,
 				 AlfalfaProtobufs::SizeT * count ) override;
   
+  grpc::Status get_outbound_switch( grpc::ServerContext * context,
+				    const AlfalfaProtobufs::OutboundSwitchQuery * query,
+				    AlfalfaProtobufs::AbridgedSwitch * response ) override;
 };
 
 #endif /* ALFALFA_VIDEO_SERVER_HH */
