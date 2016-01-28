@@ -69,6 +69,8 @@ private:
 
   double estimated_bytes_per_second_ {};
   
+  Optional<AnnotatedFrameInfo> successor( const AnnotatedFrameInfo & fi ) const;
+
 public:
   VideoMap( const std::string & server_address, const unsigned int raster_count );
 

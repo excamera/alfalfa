@@ -123,6 +123,24 @@ const AnnotatedFrameInfo & VideoMap::no_frame()
   return init_frame;
 }
 
+Optional<AnnotatedFrameInfo> VideoMap::successor( const AnnotatedFrameInfo & fi ) const
+{
+  if ( fi.track_id == no_frame().track_id ) {
+    if ( tracks_.empty() or tracks_.at( 0 ).empty() ) {
+      return {};
+    } else {
+      return { true, tracks_.at( 0 ).at( 0 ) };
+    }
+  }
+
+
+  if ( fi.track_index + 1 >= tracks_.at( fi.track_id ).size() ) {
+    return {};
+  }
+
+  return { true, tracks_.at( fi.track_id ).at( fi.track_index + 1 ) };
+}
+
 deque<AnnotatedFrameInfo> VideoMap::best_plan( const AnnotatedFrameInfo & last_frame,
 					       const bool playing ) const
 {
@@ -137,18 +155,18 @@ deque<AnnotatedFrameInfo> VideoMap::best_plan( const AnnotatedFrameInfo & last_f
     return ret.empty() ? last_frame : ret.back();
   };
 
-while ( true ) {
+  while ( true ) {
     vector<AnnotatedFrameInfo> eligible_next_frames;
 
     /* set up for initialization from scratch */
     unsigned int timestamp = 0;
 
     /* add the "normal" path option */
-    if ( previous_frame().track_id != no_frame().track_id ) {
+    auto normal_next_frame = successor( previous_frame() );
+    if ( normal_next_frame.initialized() ) {
       /* the decoder is in a particular state already */
-      AnnotatedFrameInfo normal_next_frame = tracks_.at( previous_frame().track_id ).at( previous_frame().track_index + 1 );
-      timestamp = normal_next_frame.timestamp;
-      eligible_next_frames.push_back( normal_next_frame );
+      timestamp = normal_next_frame.get().timestamp;
+      eligible_next_frames.push_back( normal_next_frame.get() );
     }
 
     /* are there available keyframe options in other tracks? */
@@ -202,7 +220,7 @@ while ( true ) {
     }
 
     /* are we done? */
-    if ( best_option.track_index >= tracks_.at( best_option.track_id ).size() - 1 ) {
+    if ( not successor( best_option ).initialized() ) {
       break;
     }
   }
