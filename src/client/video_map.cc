@@ -266,6 +266,7 @@ deque<AnnotatedFrameInfo> VideoMap::best_plan( const AnnotatedFrameInfo & last_f
 
   unsigned int cur_track = ret.empty() ? -1 : ret.front().track_id;
   unsigned int cur_count = 0;
+  double cached_figure_of_merit = ret.empty() ? -1 : ret.front().suffix_figure_of_merit();
 
   cerr << " Plan: ";
 
@@ -273,9 +274,10 @@ deque<AnnotatedFrameInfo> VideoMap::best_plan( const AnnotatedFrameInfo & last_f
     if ( x.track_id == cur_track ) {
       cur_count++;
     } else {
-      cerr << "[ " << cur_count << " of " << cur_track << " @ " << x.suffix_figure_of_merit() << " ] ";
+      cerr << "[ " << cur_count << " of " << cur_track << " @ " << cached_figure_of_merit << " ] ";
       cur_track = x.track_id;
       cur_count = 0;
+      cached_figure_of_merit = x.suffix_figure_of_merit();
     }
   }
 
