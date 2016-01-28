@@ -54,8 +54,7 @@ int main( const int argc, char const *argv[] )
     /* is a new analysis available? */
     const unsigned int new_analysis_generation = video_map.analysis_generation();
     if ( new_analysis_generation != analysis_generation ) {
-      current_future_of_track = video_map.best_plan( last_frame_decoded, playing,
-						     fetcher.estimated_bytes_per_second() * 0.75 );
+      current_future_of_track = video_map.best_plan( last_frame_decoded );
       fetcher.set_frame_plan( current_future_of_track );
       analysis_generation = new_analysis_generation;
       //      video_map.report_feasibility();

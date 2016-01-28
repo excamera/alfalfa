@@ -123,14 +123,12 @@ const AnnotatedFrameInfo & VideoMap::no_frame()
   return init_frame;
 }
 
-deque<AnnotatedFrameInfo> VideoMap::best_plan( const AnnotatedFrameInfo & last_frame,
-					       const bool playing,
-					       const double estimated_bytes_per_second ) const
+deque<AnnotatedFrameInfo> VideoMap::best_plan( const AnnotatedFrameInfo & last_frame ) const
 {
   deque<AnnotatedFrameInfo> ret;
   unique_lock<mutex> lock { mutex_ };
 
-  double time_margin_available = playing ? 0 : 1.0;
+  double time_margin_available = 0;
 
   //  cerr << "best_plan( " << track_id << ", " << track_index << " )\n";
 
@@ -138,7 +136,7 @@ deque<AnnotatedFrameInfo> VideoMap::best_plan( const AnnotatedFrameInfo & last_f
     return ret.empty() ? last_frame : ret.back();
   };
 
-  while ( true ) {
+while ( true ) {
     vector<AnnotatedFrameInfo> eligible_next_frames;
 
     /* set up for initialization from scratch */
@@ -162,7 +160,6 @@ deque<AnnotatedFrameInfo> VideoMap::best_plan( const AnnotatedFrameInfo & last_f
     AnnotatedFrameInfo best_option = eligible_next_frames.front();
     for ( const auto & alternative : eligible_next_frames ) {
       /* penalize not-here frames with a constant offset, representing request-response latency */
-
       double best_margin_required = best_option.time_margin_required + (best_option.time_to_fetch ? 2.0 : 0);
       double alt_margin_required = alternative.time_margin_required + (alternative.time_to_fetch ? 2.0 : 0);
 
@@ -191,13 +188,6 @@ deque<AnnotatedFrameInfo> VideoMap::best_plan( const AnnotatedFrameInfo & last_f
       if ( alternative.suffix_figure_of_merit() > best_option.suffix_figure_of_merit() ) {
 	best_option = alternative;
       }
-    }
-
-    double best_margin_required = best_option.time_margin_required + (best_option.time_to_fetch ? 2.0 : 0);
-    const bool best_option_is_playable = best_margin_required <= time_margin_available;
-
-    if ( not best_option_is_playable ) {
-      cerr << "WARNING! best option (" << best_option.track_id << ") is still not playable\n";
     }
 
     ret.push_back( best_option );
@@ -249,7 +239,7 @@ deque<AnnotatedFrameInfo> VideoMap::best_plan( const AnnotatedFrameInfo & last_f
     if ( f.time_to_fetch ) {
       frame_arrival_time += f.time_to_fetch;
 
-      double margin = elapsed_time - frame_arrival_time - 2.0;
+      double margin = elapsed_time - frame_arrival_time;
       if ( margin < narrowest_margin ) {
 	narrowest_margin = margin;
 	narrowest_margin_time = elapsed_time;
@@ -265,10 +255,10 @@ deque<AnnotatedFrameInfo> VideoMap::best_plan( const AnnotatedFrameInfo & last_f
     }
   }
 
-  cerr << "E[Mbit/s]: " << 8 * estimated_bytes_per_second / 1000000.0;
+  cerr << "E[Mbit/s]: " << 8 * estimated_bytes_per_second_ / 1000000.0;
   cerr << ". Frames of plan in buffer: " << already_buffered << ".";
   if ( time_to_stall != numeric_limits<double>::max() ) {
-    cerr << " Predicting stall in " << time_to_stall << " seconds.";
+    cerr << " PREDICTING STALL in " << time_to_stall << " seconds.";
   }
 
   cerr << " Narrowest margin will be " << narrowest_margin << " seconds at " << narrowest_margin_time << " seconds.";
@@ -325,10 +315,12 @@ AnnotatedFrameInfo::AnnotatedFrameInfo( const FrameInfo & fi )
     cumulative_length()
 {}
 
-void VideoMap::update_annotations( const double estimated_bytes_per_second_,
+void VideoMap::update_annotations( const double estimated_bytes_per_second,
 				   const unordered_map<uint64_t, pair<uint64_t, size_t>> frame_store_ )
 {
-  thread newthread( [&] ( const double estimated_bytes_per_second, const unordered_map<uint64_t, pair<uint64_t, size_t>> frame_store ) { 
+  estimated_bytes_per_second_ = estimated_bytes_per_second;
+
+  thread newthread( [&] ( const unordered_map<uint64_t, pair<uint64_t, size_t>> frame_store ) { 
       std::unique_lock<mutex> locked { annotation_mutex_, try_to_lock };
       if ( not locked ) {
 	cerr << "skipping redundant run of frame annotations\n";
@@ -342,24 +334,10 @@ void VideoMap::update_annotations( const double estimated_bytes_per_second_,
 	double running_mean = 0.0;
 	double running_varsum = 0.0;
 	double running_min = 1.0;
-	double time_margin_required = 0;
 
-#if 0
-	/* extrapolate if we only have a partial track so far */
-	if ( (not track.empty()) and (track.back().timestamp != total_shown_frame_count_ - 1) ) {
-	  const double average_bytes_per_shown_frame = double( track.back().cumulative_length ) / double( track.back().timestamp );
-	  const unsigned int num_shown_frames_remaining = total_shown_frame_count_ - track.back().timestamp;
-	  /*
-	  cerr << "frames remaining: " << num_shown_frames_remaining << endl;
-	  cerr << "current bytes per second: " << estimated_bytes_per_second << endl;
-	  */
-	  time_margin_required = average_bytes_per_shown_frame * num_shown_frames_remaining / estimated_bytes_per_second;
-	  time_margin_required -= num_shown_frames_remaining / 24.0;
-	  //	  cerr << "estimate this will take: " << time_margin_required << endl;
-	  if ( time_margin_required < 0.0 ) { time_margin_required = 0.0; }
-	}
-#endif
-	
+	double required_frame_arrival_time = 0;
+	double elapsed_time = 0;
+
 	/* algorithm from Knuth volume 2, per http://www.johndcook.com/blog/standard_deviation/ */
 	for ( auto frame = track.rbegin(); frame != track.rend(); frame++ ) {
 	  if ( frame->shown ) {
@@ -393,23 +371,29 @@ void VideoMap::update_annotations( const double estimated_bytes_per_second_,
 
 	  if ( frame_store.find( frame->offset ) == frame_store.end() ) {
 	    /* would need to fetch */
-	    frame->time_to_fetch = frame->length / estimated_bytes_per_second;
+	    frame->time_to_fetch = frame->length / estimated_bytes_per_second_;
 	  } else {
 	    frame->time_to_fetch = 0;
 	  }
 
-	  time_margin_required += frame->time_to_fetch;
-	  frame->time_margin_required = time_margin_required;
+	  required_frame_arrival_time -= frame->time_to_fetch;
+
+	  if ( required_frame_arrival_time >= elapsed_time ) {
+	    const double added_margin = required_frame_arrival_time - elapsed_time;
+
+	    required_frame_arrival_time -= added_margin;
+	  }
+
+	  frame->time_margin_required = max( 0.0, elapsed_time - required_frame_arrival_time );
 
 	  if ( frame->shown ) {
-	    time_margin_required -= ( 1.0 / 24.0 );
-	    if ( time_margin_required < 0.0 ) { time_margin_required = 0.0; }
+	    elapsed_time -= ( 1.0 / 24.0 );
 	  }
 	}
       }
 
       analysis_generation_++;
-    }, estimated_bytes_per_second_, move( frame_store_ ) );
+    }, move( frame_store_ ) );
 
   newthread.detach();
 }
