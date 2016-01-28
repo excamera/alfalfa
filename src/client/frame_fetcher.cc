@@ -556,12 +556,13 @@ bool FrameFetcher::is_plan_feasible_nolock()
 
   unsigned int frameno = 0;
   for ( const auto & frame : wishlist_ ) {
-    if ( not local_frame_store_.has_frame( frame.offset ) ) {
+    bool need_to_download = not local_frame_store_.has_frame( frame.offset );
+    if ( need_to_download ) {
       /* need to download */
       arrival_time += frame.length / (estimated_bytes_per_second_ * discount_factor);
     }
 
-    if ( arrival_time > presentation_time ) {
+    if ( (arrival_time + (need_to_download ? 2.0 : 0)) > presentation_time ) {
       cerr << "failed feasibility @ frame " << frameno << ", " << arrival_time << " > " << presentation_time << "\n";
       return false;
     }

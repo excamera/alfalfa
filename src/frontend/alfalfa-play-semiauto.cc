@@ -102,9 +102,9 @@ int main( const int argc, char const *argv[] )
       rasters_displayed++;
     }
 
-    if ( rasters_displayed == 60 * 24 ) {
+    if ( rasters_displayed == 10 * 24 ) {
       cerr << "Seeking!\n\n\n";
-      rasters_displayed = 60 * 24 * 2;
+      rasters_displayed = 60 * 24 * 3;
       last_frame_decoded.track_id = 6;
       last_frame_decoded.track_index = rasters_displayed;
       current_future_of_track.clear();
