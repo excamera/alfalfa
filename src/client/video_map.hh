@@ -70,8 +70,7 @@ public:
 
   unsigned int track_length_full( const unsigned int track_id ) const;
   unsigned int track_length_now( const unsigned int track_id ) const;
-  std::deque<AnnotatedFrameInfo> best_plan( unsigned int track_id,
-					    unsigned int track_index,
+  std::deque<AnnotatedFrameInfo> best_plan( const AnnotatedFrameInfo & last_frame,
 					    const bool playing ) const;
   void update_annotations( const double estimated_bytes_per_second,
 			   const std::unordered_map<uint64_t, std::pair<uint64_t, size_t>> frame_store );
@@ -79,6 +78,8 @@ public:
   unsigned int analysis_generation() const { return analysis_generation_; }
 
   void report_feasibility() const;
+
+  static const AnnotatedFrameInfo & no_frame();
 };
 
 #endif /* VIDEO_MAP_HH */

@@ -107,8 +107,14 @@ unsigned int VideoMap::track_length_now( const unsigned int track_id ) const
   return tracks_.at( track_id ).size();
 }
 
-deque<AnnotatedFrameInfo> VideoMap::best_plan( unsigned int track_id,
-					       unsigned int track_index,
+/* initialization state of the "dumb" decoder */
+const AnnotatedFrameInfo & VideoMap::no_frame()
+{
+  static AnnotatedFrameInfo init_frame ( AlfalfaProtobufs::AbridgedFrameInfo {}, -1, -1, -1, -1 );
+  return init_frame;
+}
+
+deque<AnnotatedFrameInfo> VideoMap::best_plan( const AnnotatedFrameInfo & last_frame,
 					       const bool playing ) const
 {
   deque<AnnotatedFrameInfo> ret;
@@ -117,69 +123,72 @@ deque<AnnotatedFrameInfo> VideoMap::best_plan( unsigned int track_id,
   double time_margin_available = playing ? 0 : 1.0;
 
   //  cerr << "best_plan( " << track_id << ", " << track_index << " )\n";
+
+  const auto previous_frame = [&] () {
+    return ret.empty() ? last_frame : ret.back();
+  };
   
-  while ( track_index < tracks_.at( track_id ).size() ) {
-    const AnnotatedFrameInfo & start_location = tracks_.at( track_id ).at( track_index );
+  while ( true ) {
+    vector<AnnotatedFrameInfo> eligible_next_frames;
 
-    vector<pair<unsigned int, unsigned int>> eligible_next_frames;
-    eligible_next_frames.emplace_back( track_id, track_index );
+    /* set up for initialization from scratch */
+    unsigned int timestamp = 0;
 
-    /* are there available keyframe switches? */
-    auto range = keyframe_switches_.equal_range( start_location.timestamp );
+    /* add the "normal" path option */
+    if ( previous_frame().track_id != no_frame().track_id ) {
+      /* the decoder is in a particular state already */
+      AnnotatedFrameInfo normal_next_frame = tracks_.at( previous_frame().track_id ).at( previous_frame().track_index + 1 );
+      timestamp = normal_next_frame.timestamp;
+      eligible_next_frames.push_back( normal_next_frame );
+    }
+
+    /* are there available keyframe options in other tracks? */
+    auto range = keyframe_switches_.equal_range( timestamp );
     for ( auto sw = range.first; sw != range.second; sw++ ) {
-      eligible_next_frames.push_back( sw->second );
+      eligible_next_frames.push_back( tracks_.at( sw->second.first ).at( sw->second.second ) );
     }
 
-    /* if there are any feasible paths, choose purely based on quality.
-       but if no paths are feasible, choose the soonest to be feasible */
+    /* find best option */
+    AnnotatedFrameInfo best_option = eligible_next_frames.front();
+    for ( const auto & alternative : eligible_next_frames ) {
+      const bool current_option_is_playable = best_option.time_margin_required <= time_margin_available;
+      const bool alternative_is_playable = alternative.time_margin_required <= time_margin_available;
 
-    const bool exist_feasible_paths = any_of( eligible_next_frames.begin(), eligible_next_frames.end(),
-					      [&] ( const pair<unsigned int, unsigned int> & x ) {
-						const auto & frame = tracks_.at( x.first ).at( x.second );
-						return frame.time_margin_required < time_margin_available;
-					      } );
-
-    const auto evaluator = [&] ( const pair<unsigned int, unsigned int> & x ) {
-      const auto & frame = tracks_.at( x.first ).at( x.second );
-      if ( exist_feasible_paths ) {
-	if ( frame.time_margin_required < time_margin_available ) {
-	  return -(frame.average_quality_to_end - frame.stddev_quality_to_end);
-	} else {
-	  return numeric_limits<double>::max();
+      /* case 1: neither is playable. pick the one that will be playable sooner */
+      if ( (not current_option_is_playable) and (not alternative_is_playable) ) {
+	if ( alternative.time_margin_required < best_option.time_margin_required ) {
+	  best_option = alternative;
 	}
-      } else {
-	return frame.time_margin_required;
+	continue;
       }
-    };
 
-    const auto sorter = [&] ( const pair<unsigned int, unsigned int> & x,
-			      const pair<unsigned int, unsigned int> & y ) {
-      return evaluator( x ) < evaluator( y );
-    };
+      /* cases 2 and 3: one is playable and the other isn't */
+      if ( (current_option_is_playable) and (not alternative_is_playable) ) {
+	continue;
+      }
 
-    /*
-    cerr << "pre sort: ";
-    for ( const auto & x : eligible_next_frames ) {
-      cerr << "( " << x.first << ", " << x.second << ") => " << tracks_.at( x.first ).at( x.second ).time_margin_required << "\n";
+      if ( (not current_option_is_playable) and (alternative_is_playable) ) {
+	best_option = alternative;
+	continue;
+      }
+
+      /* case 4: they're both playable */
+      if ( alternative.average_quality_to_end > best_option.average_quality_to_end ) {
+	best_option = alternative;
+      }
     }
-    */
-    sort( eligible_next_frames.begin(), eligible_next_frames.end(), sorter );
-    /*
-    cerr << "post sort: ";
-    for ( const auto & x : eligible_next_frames ) {
-      cerr << "( " << x.first << ", " << x.second << ") => " << time_margin_available - tracks_.at( x.first ).at( x.second ).time_margin_required << "\n";
-    }
-    */
-    
-    tie( track_id, track_index ) = eligible_next_frames.front();
-    ret.push_back( tracks_.at( track_id ).at( track_index ) );
 
-    time_margin_available -= tracks_.at( track_id ).at( track_index ).time_to_fetch;
-    if ( ret.back().shown ) {
+    ret.push_back( best_option );
+
+    time_margin_available -= best_option.time_to_fetch;
+    if ( best_option.shown ) {
       time_margin_available += 1.0 / 24.0;
     }
 
-    track_index++;
+    /* are we done? */
+    if ( best_option.track_index >= tracks_.at( best_option.track_id ).size() - 1 ) {
+      break;
+    }
   }
 
   /*
@@ -188,6 +197,13 @@ deque<AnnotatedFrameInfo> VideoMap::best_plan( unsigned int track_id,
   cerr << "time margin for first: " << ret.front().time_margin_required << "\n";
   */
   
+  cerr << "PLAN:";
+  for ( unsigned int i = 0; i < min( size_t( 128 ), ret.size() ); i++ ) {
+    const auto & f = ret.at( i );
+    cerr << " [ " << f.track_id << ", " << f.timestamp << ", " << f.time_margin_required << " ]";
+  }
+  cerr << "\n";
+
   return ret;
 }
 

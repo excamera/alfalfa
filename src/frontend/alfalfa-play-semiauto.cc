@@ -37,17 +37,15 @@ int main( const int argc, char const *argv[] )
   auto last_feasibility_analysis = steady_clock::now();
   unsigned int analysis_generation = video_map.analysis_generation();
 
-  unsigned int last_track_played = 0;
-  unsigned int last_frame_index = -1;
-
   deque<AnnotatedFrameInfo> current_future_of_track;
+  AnnotatedFrameInfo last_frame_decoded = VideoMap::no_frame();
 
   const auto frame_interval = microseconds( lrint( 1000000.0 / 24.0 ) );
   
   while ( rasters_displayed < rasters_to_display ) {
     /* kick off a feasibility analysis? */
     const auto now = steady_clock::now();
-    if ( now - last_feasibility_analysis > milliseconds( 100 ) ) {
+    if ( now - last_feasibility_analysis > milliseconds( 1000 ) ) {
       video_map.update_annotations( fetcher.estimated_bytes_per_second() * 0.8,
 				    fetcher.frame_db_snapshot() );
       last_feasibility_analysis = now;
@@ -56,7 +54,7 @@ int main( const int argc, char const *argv[] )
     /* is a new analysis available? */
     const unsigned int new_analysis_generation = video_map.analysis_generation();
     if ( new_analysis_generation != analysis_generation ) {
-      current_future_of_track = video_map.best_plan( last_track_played, last_frame_index + 1, playing );
+      current_future_of_track = video_map.best_plan( last_frame_decoded, playing );
       fetcher.set_frame_plan( current_future_of_track );
       analysis_generation = new_analysis_generation;
       //      video_map.report_feasibility();
@@ -91,17 +89,11 @@ int main( const int argc, char const *argv[] )
       continue;
     }
 
-    const string coded_frame = fetcher.coded_frame( current_future_of_track.front() );
-    last_track_played = current_future_of_track.front().track_id;
-    last_frame_index = current_future_of_track.front().track_index;
-
-    if ( rasters_displayed > 60 * 24 ) {
-      last_track_played = 6;
-      last_frame_index = 60 * 24; /* XXX */
-    }
-    
+    /* pop the frame from the plan and apply it */
+    last_frame_decoded = current_future_of_track.front(); 
     current_future_of_track.pop_front();
-    cerr << last_track_played << " ";
+    const string coded_frame = fetcher.coded_frame( last_frame_decoded );
+
     const Optional<RasterHandle> raster = decoder.parse_and_decode_frame( coded_frame );
     if ( raster.initialized() ) {
       this_thread::sleep_until( next_raster_time );
