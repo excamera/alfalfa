@@ -335,30 +335,31 @@ Status AlfalfaVideoServiceImpl::get_outbound_switch( grpc::ServerContext *,
 						     AlfalfaProtobufs::AbridgedSwitch * response )
 {
   Log( "get_outbound_switch" );
-  const auto switchdesc = video_.get_frames_switch( query->from_track_id(),
-						    query->from_frame_index(),
-						    query->to_track_id() );
-  for ( auto it = switchdesc.first; it != switchdesc.second; it++ ) {
-    response->set_from_track_id( it.from_track_id() );
-    response->set_to_track_id( it.to_track_id() );
-    response->set_from_frame_index( it.from_frame_index() );
-    response->set_to_frame_index( it.to_frame_index() );
 
-    AlfalfaProtobufs::AbridgedFrameInfo * fi = response->add_frame();
-    fi->set_offset( it->offset() );
-    fi->set_length( it->length() );
-    fi->set_frame_id( it->frame_id() );
-    fi->set_key( it->is_keyframe() );
-    fi->set_shown( it->shown() );
+  response->set_from_track_id( query->from_track_id() );
+  response->set_to_track_id( query->to_track_id() );
+  response->set_from_frame_index( query->from_frame_index() );
 
-    if ( it->shown() ) {
-      const auto q = video_.get_quality_data_by_approximate_raster( it->name().target.output_hash );
-      if ( q.first == q.second ) {
-	throw runtime_error( "no quality data found for " + it->name().target.output_hash );
-      }
-      fi->set_quality( q.first->quality );
+  try {
+    for ( unsigned int switch_index = 0; ; switch_index++ ) {
+      const SwitchData & x = video_.get_switch( query->from_track_id(), query->to_track_id(),
+						query->from_frame_index(), switch_index );
+      response->set_to_frame_index( x.to_frame_index );
+      /* get the frame */
+      const FrameInfo & frame = video_.get_frame( x.frame_id );
+
+      AlfalfaProtobufs::AbridgedFrameInfo * fi = response->add_frame();
+      fi->set_offset( frame.offset() );
+      fi->set_length( frame.length() );
+      fi->set_frame_id( frame.frame_id() );
+      fi->set_key( frame.is_keyframe() );
+      fi->set_shown( frame.shown() );
     }
+  } catch ( const out_of_range & o ) {
+
   }
+
+  /* need to do this because of duplicate entries in SwitchDB */
 
   return Status::OK;
 }

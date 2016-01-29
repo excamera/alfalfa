@@ -213,6 +213,13 @@ public:
                                                                   const size_t switch_start_index,
                                                                   const size_t switch_end_index ) const;
 
+  const SwitchData & get_switch( const size_t from_track_id, const size_t to_track_id,
+				 const size_t from_frame_index, const size_t switch_frame_index ) const
+  {
+    return switch_db_.get_frame( from_track_id, to_track_id,
+				 from_frame_index, switch_frame_index );
+  }
+
   /* Get the quality of the frame associated with supplied frame_info, given
      the index of the corresponding original raster in the raster_list. */
   double get_quality( int raster_index, const FrameInfo & frame_info ) const;

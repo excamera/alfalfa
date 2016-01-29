@@ -60,6 +60,13 @@ int main( const int argc, char const *argv[] )
       //      video_map.report_feasibility();
       //      cerr << "kilobits per second: " << fetcher.estimated_bytes_per_second() * 8 * 0.8 / 1000.0 << "\n";
     }
+
+    /* should we fetch a switch? */
+    if ( not playing ) {
+      video_map.fetch_switch( last_frame_decoded.track_id,
+			      last_frame_decoded.track_index,
+			      5 ); /* XXX */
+    }
     
     /* are we out of available track? */
     if ( current_future_of_track.empty() ) {

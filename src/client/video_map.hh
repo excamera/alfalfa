@@ -6,8 +6,11 @@
 #include <thread>
 #include <mutex>
 #include <unordered_map>
+#include <unordered_set>
 #include <deque>
 #include <atomic>
+
+#include <boost/functional/hash.hpp>
 
 #include "alfalfa_video_client.hh"
 
@@ -57,6 +60,15 @@ private:
   std::unordered_multimap<uint64_t, std::pair<unsigned int, unsigned int>> keyframe_switches_ {};
   /* timestamp (dri) => track_id, track_index */
 
+  using SwitchSource = std::tuple<unsigned int, unsigned int, unsigned int>;
+  /* from_track_id, from_track_index, to_track_id */
+
+  std::unordered_set<SwitchSource, boost::hash<SwitchSource>> pending_switches_ {};
+
+  std::unordered_map<SwitchSource,
+		     AlfalfaProtobufs::AbridgedSwitch,
+		     boost::hash<SwitchSource>> switches_ {};
+
   unsigned int total_shown_frame_count_;
   
   void fetch_track( unsigned int track_id );
@@ -78,6 +90,10 @@ public:
   unsigned int track_length_now( const unsigned int track_id ) const;
   std::deque<AnnotatedFrameInfo> best_plan( const AnnotatedFrameInfo & last_frame,
 					    const bool playing ) const;
+
+  void fetch_switch( const unsigned int track_id,
+		     const unsigned int frame_id,
+		     const unsigned int track_target );
 
   void update_annotations( const double estimated_bytes_per_second,
 			   const std::unordered_map<uint64_t, std::pair<uint64_t, size_t>> frame_store );

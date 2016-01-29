@@ -147,7 +147,7 @@ deque<AnnotatedFrameInfo> VideoMap::best_plan( const AnnotatedFrameInfo & last_f
   deque<AnnotatedFrameInfo> ret;
   unique_lock<mutex> lock { mutex_ };
 
-  double time_margin_available = playing ? 0 : 2;
+  double time_margin_available = playing ? 0 : 1;
 
   //  cerr << "best_plan( " << track_id << ", " << track_index << " )\n";
 
@@ -302,6 +302,8 @@ deque<AnnotatedFrameInfo> VideoMap::best_plan( const AnnotatedFrameInfo & last_f
     }
   }
 
+  cerr << "[ " << cur_count << " of " << cur_track << " @ " << cached_figure_of_merit << " ] ";
+
   cerr << "\n";
 
   return ret;
@@ -336,6 +338,34 @@ AnnotatedFrameInfo::AnnotatedFrameInfo( const FrameInfo & fi )
     track_index(),
     cumulative_length()
 {}
+
+void VideoMap::fetch_switch( const unsigned int track_id_,
+			     const unsigned int frame_id_,
+			     const unsigned int track_target_ )
+{
+  /* is this switch already pending? */
+  if ( pending_switches_.find( make_tuple( track_id_, frame_id_, track_target_ ) ) != pending_switches_.end() ) {
+    return;
+  }
+
+  pending_switches_.emplace( track_id_, frame_id_, track_target_ );
+
+  thread newthread( [&] ( const unsigned int track_id, const unsigned int frame_id, const unsigned int track_target ) {
+      cerr << "requesting switch from " << track_id << " " << frame_id << " to " << track_target << "\n";
+
+      /* make RPC for switch */
+      AlfalfaProtobufs::AbridgedSwitch sw = video_.get_outbound_switch( track_id,
+									frame_id,
+									track_target );
+      unique_lock<mutex> lock { mutex_ };
+      switches_.emplace( make_tuple( track_id, frame_id, track_target ),
+			 sw );
+
+      cerr << "got switch. total length in frames = " << sw.frame().size() << "\n";
+    }, track_id_, frame_id_, track_target_ );
+
+  newthread.detach();
+}
 
 void VideoMap::update_annotations( const double estimated_bytes_per_second,
 				   const unordered_map<uint64_t, pair<uint64_t, size_t>> frame_store_ )

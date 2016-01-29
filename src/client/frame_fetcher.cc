@@ -563,7 +563,7 @@ bool FrameFetcher::is_plan_feasible_nolock()
     }
 
     if ( (arrival_time + (need_to_download ? 2.0 : 0)) > presentation_time ) {
-      cerr << "failed feasibility @ frame " << frameno << ", " << arrival_time << " > " << presentation_time << "\n";
+      //      cerr << "failed feasibility @ frame " << frameno << ", " << arrival_time << " > " << presentation_time << "\n";
       return false;
     }
 
