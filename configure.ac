@@ -50,13 +50,6 @@ PKG_CHECK_MODULES([X264], [x264])
 PKG_CHECK_MODULES([GLFW3], [glfw3])
 PKG_CHECK_MODULES([GLEW], [glew])
 PKG_CHECK_MODULES([ZLIB], [zlib])
-PKG_CHECK_MODULES([CURL], [libcurl])
-
-PROTOBUF_CFLAGS='-isystem ../../third_party/grpc/third_party/protobuf/src -isystem ../../third_party/grpc/include $(ZLIB_CFLAGS)'
-AC_SUBST([PROTOBUF_CFLAGS])
-
-PROTOBUF_LIBS='../../third_party/grpc/libs/opt/protobuf/libprotobuf.a ../../third_party/grpc/libs/opt/libgrpc++_unsecure.a ../../third_party/grpc/libs/opt/libgrpc_unsecure.a ../../third_party/grpc/libs/opt/libgpr.a $(ZLIB_LIBS) -lpthread'
-AC_SUBST([PROTOBUF_LIBS])
 
 # Checks for header files.
 AC_PATH_X
@@ -65,8 +58,6 @@ AC_CHECK_HEADERS([fcntl.h unistd.h], [], [AC_MSG_ERROR([Missing required header 
 AC_CHECK_HEADERS([boost/functional/hash.hpp], [], [AC_MSG_ERROR[Missing boost hash]])
 
 AC_CHECK_HEADERS([boost/graph/adjacency_list.hpp boost/graph/graph_traits.hpp], [], [AC_MSG_ERROR[Missing boost graph]])
-
-AC_CHECK_HEADERS([boost/multi_index_container.hpp boost/multi_index/member.hpp boost/multi_index/hashed_index.hpp boost/multi_index/sequenced_index.hpp], [], [AC_MSG_ERROR[Missing boost multi-index]])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_INLINE
@@ -83,46 +74,17 @@ AC_TYPE_UINT8_T
 AC_FUNC_MMAP
 
 # Checks for Apache and Apache modules
-AC_ARG_VAR([APACHE2], [path to apache2])
-AC_PATH_PROGS([APACHE2], [apache2 httpd], [no], [$PATH$PATH_SEPARATOR/sbin$PATH_SEPARATOR/usr/sbin$PATH_SEPARATOR/bin$PATH_SEPARATOR/usr/bin])
-if test "$APACHE2" = "no"; then
-  AC_MSG_ERROR([apache2 is required])
-fi
-AC_DEFINE_UNQUOTED([APACHE2], ["$APACHE2"], [path to apache2])
-
-AC_PATH_PROG([APXS], [apxs], [])
-AS_IF([test x"$APXS" = x],
-  [AC_MSG_ERROR([cannot find apxs, the Apache extension tool])])
-
-AC_SUBST([APACHE2_MODULE_DIR], [$(apxs -q exp_libexecdir)])
-
-AC_CHECK_FILE([$APACHE2_MODULE_DIR/mod_mpm_prefork.so],
-	      [AC_DEFINE_UNQUOTED([MOD_MPM_PREFORK], ["$APACHE2_MODULE_DIR/mod_mpm_prefork.so"], [mod_prefork.so])],
-              [AC_MSG_ERROR([apache2 mod_mpm_prefork.so is required])])
-
-AC_CHECK_FILE([$APACHE2_MODULE_DIR/mod_authz_core.so],
-              [AC_DEFINE_UNQUOTED([MOD_AUTHZ_CORE], ["$APACHE2_MODULE_DIR/mod_authz_core.so"], [mod_authz_core.so])],
-              [AC_MSG_ERROR([apache2 mod_authz_core.so is required])])
-
-AC_CHECK_FILE([$APACHE2_MODULE_DIR/mod_rewrite.so],
-              [AC_DEFINE_UNQUOTED([MOD_REWRITE], ["$APACHE2_MODULE_DIR/mod_rewrite.so"], [mod_rewrite.so])],
-              [AC_MSG_ERROR([apache2 mod_rewrite.so is required])])
 
 AC_LANG_POP(C++)
 
 AC_CONFIG_FILES([Makefile
-		 third_party/Makefile
-		 src/Makefile
-                 src/protobufs/Makefile
+                 src/Makefile
                  src/util/Makefile
                  src/decoder/Makefile
-                 src/format/Makefile
                  src/display/Makefile
                  src/encoder/Makefile
                  src/frontend/Makefile
-		 src/webserver/Makefile
-		 src/client/Makefile
-		 src/tests/Makefile
+                 src/tests/Makefile
                  man/Makefile])
 
 AC_OUTPUT

@@ -7,7 +7,6 @@
 
 #include "decoder.hh"
 #include "dependency_tracking.hh"
-#include "alfalfa.pb.h"
 
 struct FrameName
 {
@@ -61,9 +60,6 @@ public:
   void set_frame_id( const size_t & frame_id ) { frame_id_ = frame_id; }
 
   FrameInfo( const FrameName & name, const size_t & offset, const size_t & length );
-  FrameInfo( const AlfalfaProtobufs::FrameInfo & message );
-
-  AlfalfaProtobufs::FrameInfo to_protobuf() const;
 
   bool validate_source( const DecoderHash & decoder_hash ) const;
   bool validate_target( const DecoderHash & decoder_hash ) const;
