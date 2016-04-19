@@ -70,6 +70,7 @@ public:
       Predictors( const typename TwoD< Block >::Context & context );
     } predictors_;
 
+  public:
     uint8_t above( const int column ) const { return predictors_.above( column ); }
     uint8_t left( const int column ) const { return predictors_.left( column ); }
     uint8_t east( const int column ) const { return predictors_.east( column ); }

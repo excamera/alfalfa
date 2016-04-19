@@ -290,7 +290,7 @@ struct InterFrameHeader
            prob_skip_false == other.prob_skip_false and
            prob_inter == other.prob_inter and
            prob_references_last == other.prob_references_last and
-           prob_references_golden == other.prob_references_golden and 
+           prob_references_golden == other.prob_references_golden and
            intra_16x16_prob == other.intra_16x16_prob and
            intra_chroma_prob == other.intra_chroma_prob and
            mv_prob_update == other.mv_prob_update;
@@ -362,7 +362,7 @@ struct RefUpdateFrameHeader
 
   bool operator==( const RefUpdateFrameHeader & other ) const
   {
-    return ref_to_update == other.ref_to_update and 
+    return ref_to_update == other.ref_to_update and
            log2_number_of_dct_partitions == other.log2_number_of_dct_partitions and
            token_prob_update == other.token_prob_update and
            prob_skip_false == other.prob_skip_false and

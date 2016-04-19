@@ -69,12 +69,15 @@ class Frame
          const Optional<Segmentation> & target_segmentation,
          const Optional<FilterAdjustments> & target_filter );
 
+  /* XXX fix this guy */
   const FrameHeaderType & header() const { return header_; }
+  FrameHeaderType & mutable_header() { return header_; }
 
   DependencyTracker get_used() const;
   UpdateTracker get_updated() const { return ref_updates_; }
-
+  /* XXX fix this guy */
   const TwoD<MacroblockType> & macroblocks() const { return macroblock_headers_.get(); }
+  TwoD<MacroblockType> & mutable_macroblocks() { return macroblock_headers_.get(); }
 
   void parse_macroblock_headers( BoolDecoder & rest_of_first_partition,
 				 const ProbabilityTables & probability_tables );

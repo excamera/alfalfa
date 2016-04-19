@@ -65,7 +65,7 @@ size_t IVFWriter::append_frame( const Chunk & chunk )
   MMap_Region header_in_mem( IVF::supported_header_len, PROT_READ | PROT_WRITE, MAP_SHARED, fd_.num() );
   uint8_t * mutable_header_ptr = header_in_mem.addr();
 
-  Chunk header( mutable_header_ptr, IVF::supported_header_len );  
+  Chunk header( mutable_header_ptr, IVF::supported_header_len );
 
   /* verify the existing frame count */
   assert( frame_count_ == header( 24, 4 ).le32() );

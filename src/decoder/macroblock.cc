@@ -486,8 +486,9 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::reconstruct_intra( const
   if ( Y2_.prediction_mode() == B_PRED ) {
     /* Prediction and inverse transform done in line! */
     Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row ) {
-	raster.Y_sub.at( column, row ).intra_predict( block.prediction_mode() );
-	if ( has_nonzero_ ) block.dequantize( quantizer ).idct_add( raster.Y_sub.at( column, row ) ); } );
+        raster.Y_sub.at( column, row ).intra_predict( block.prediction_mode() );
+        if ( has_nonzero_ ) block.dequantize( quantizer ).idct_add( raster.Y_sub.at( column, row ) );
+      } );
   } else {
     raster.Y.intra_predict( Y2_.prediction_mode() );
 

@@ -31,11 +31,13 @@ private:
   Optional< Boolean > mb_skip_coeff_;
 
   MacroblockHeaderType header_;
-
+	
+public: /* XXX this is temporary */
   Y2Block & Y2_;
   TwoDSubRange< YBlock, 4, 4 > Y_;
   TwoDSubRange< UVBlock, 2, 2 > U_, V_;
 
+private:
   bool has_nonzero_ { false };
 
   void decode_prediction_modes( BoolDecoder & data,

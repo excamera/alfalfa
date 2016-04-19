@@ -48,7 +48,7 @@ public:
   {
     return not operator==( other );
   }
-} ;
+};
 
 template <BlockType initial_block_type, class PredictionMode>
 class Block

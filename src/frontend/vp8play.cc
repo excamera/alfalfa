@@ -19,6 +19,8 @@ int main( int argc, char *argv[] )
 
     while ( not player.eof() ) {
       display.draw( player.advance() );
+      int a;
+      cin >> a;
     }
   } catch ( const exception & e ) {
     print_exception( argv[ 0 ], e );

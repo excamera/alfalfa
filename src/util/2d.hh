@@ -324,7 +324,7 @@ public:
 
   void fill( const T & value )
   {
-    forall( [&] ( T & x ) { x = value; } ); 
+    forall( [&] ( T & x ) { x = value; } );
   }
 
   template <class lambda>

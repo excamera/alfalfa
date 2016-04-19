@@ -2,6 +2,7 @@
 #define CHUNK_HH
 
 #include <string>
+#include <vector>
 #include <stdexcept>
 #include <cstring>
 
@@ -45,6 +46,11 @@ public:
   Chunk( const std::string & str )
     : buffer_( reinterpret_cast<const uint8_t *>( str.data() ) ),
       size_( str.size() )
+  {}
+
+  Chunk( const std::vector< uint8_t > & vec )
+    : buffer_( reinterpret_cast<const uint8_t *>( vec.data() ) ),
+      size_( vec.size() )
   {}
 
   const uint8_t * buffer( void ) const { return buffer_; }
