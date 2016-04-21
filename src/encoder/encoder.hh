@@ -4,6 +4,7 @@
 #include <fstream>
 #include <cmath>
 
+#include "transform_sse.hh"
 #include "dct.hh"
 #include "block.hh"
 #include "vp8_raster.hh"
@@ -15,17 +16,25 @@ using namespace std;
 class Encoder
 {
 public:
-  DCTCoefficients get_dct_coeffs( const VP8Raster::Block4 & block, uint16_t bias )
+  DCTCoefficients get_dct_coeffs( const VP8Raster::Block4 & block, uint8_t bias )
   {
-    int pitch = 4;
+    int pitch = 8;
     short dct_input[ 16 ];
     short dct_output[ 16 ];
 
+    //cout << "DCT Bias: " << bias << endl;
+
     for ( size_t i = 0; i < 4; i++ ) {
       for ( size_t j = 0; j < 4; j++ ) {
-        dct_input[ i + 4 * j ] = block.at( i, j ) - bias;
+        dct_input[ i * 4 + j ] = block.at( i, j ) - bias;
       }
     }
+
+    /* cout << "input: ";
+    for ( int i = 0; i < 16; i++ ) {
+      cout << dct_input[ i ] <<  " ";
+    }
+    cout << endl; */
 
     vp8_short_fdct4x4_c( dct_input, dct_output, pitch );
 
@@ -34,6 +43,8 @@ public:
     for ( size_t i = 0; i < 16; i++ ) {
       dct_coeffs.at( i ) = dct_output[ i ];
     }
+
+    // cout << "output: " << dct_coeffs << endl;
 
     return dct_coeffs;
   }
@@ -55,7 +66,7 @@ public:
     return frame;
   }
 
-  void encode( const VP8Raster & raster )
+  void encode( const VP8Raster & raster, KeyFrame & original_frame )
   {
     KeyFrame frame = make_empty_frame( raster.display_width(), raster.display_height() );
     Quantizer quantizer( frame.header().quant_indices );
@@ -63,56 +74,96 @@ public:
     raster.macroblocks().forall_ij( [&]( const VP8Raster::Macroblock & macroblock,
       unsigned int mb_column,
       unsigned int mb_row ) {
+        cout << "Processing Macroblock: " << mb_column << ":" << mb_row << endl;
+
         auto & frame_macroblock = frame.mutable_macroblocks().at( mb_column, mb_row );
-        frame_macroblock.Y2_.set_prediction_mode( B_PRED );
+        auto & mb_y = macroblock.Y;
+
+        uint8_t prediction_value = 0;
+
+        if ( mb_y.context().above.initialized() and mb_y.context().left.initialized() ) {
+          static constexpr uint8_t log2size = 4;
+
+          prediction_value = ((mb_y.predictors().above_row.sum(int16_t())
+        		    + mb_y.predictors().left_column.sum(int16_t())) + (1 << log2size))
+        		  >> (log2size+1);
+        }
+        else {
+          prediction_value = 128;
+
+          static constexpr uint8_t log2size = 4;
+          if ( mb_y.context().above.initialized() ) {
+            prediction_value = (mb_y.predictors().above_row.sum(int16_t()) + (1 << (log2size-1))) >> log2size;
+          } else if ( mb_y.context().left.initialized() ) {
+            prediction_value = (mb_y.predictors().left_column.sum(int16_t()) + (1 << (log2size-1))) >> log2size;
+          }
+        }
+
+        cout << "Original prediction mode: " << original_frame.mutable_macroblocks().at( mb_column, mb_row ).Y2_.prediction_mode() << endl;
+        frame_macroblock.Y2_.set_prediction_mode( DC_PRED );
+
+        cout << "Bias: " << (int)prediction_value << endl;
+
+        short walsh_input[ 16 ];
+        short walsh_output[ 16 ];
 
         /* Y */
         macroblock.Y_sub.forall_ij( [&]( const VP8Raster::Block4 & subblock,
           unsigned int sb_column,
           unsigned int sb_row ) {
-            cout << mb_column << ":" << mb_row << ":" << sb_column << ":" << sb_row << endl;
-
-            static constexpr uint8_t log2size = 2;
-
-            uint16_t bias = ((subblock.predictors().above_row.sum(int16_t())
-          		    + subblock.predictors().left_column.sum(int16_t())) + (1 << log2size))
-          		  >> (log2size+1);
-
-            auto dct_coeffs = get_dct_coeffs( subblock, bias );
+            auto dct_coeffs = get_dct_coeffs( subblock, prediction_value );
             auto & frame_subblock = frame_macroblock.Y_.at( sb_column, sb_row );
+
+            walsh_input[ sb_column * 4 + sb_row ] = dct_coeffs.at( 0 );
+            dct_coeffs.at( 0 ) = 0;
 
             quantize( quantizer.y_dc, quantizer.y_ac, dct_coeffs, frame_subblock );
             frame_subblock.set_prediction_mode( B_DC_PRED );
           } );
 
+        /* Y2 */
+        vp8_short_walsh4x4_c( walsh_input, walsh_output, 4 );
+
+        walsh_output[ 0 ] /= quantizer.y2_dc;
+        for ( int i = 1; i < 16; i++ ) {
+          walsh_output[ i ] /= quantizer.y2_ac;
+        }
+
+        for ( size_t i = 0; i < 4; i++ ) {
+          for ( size_t j = 0; j < 4; j++ ) {
+            frame_macroblock.Y2_.mutable_coefficients().at( i + 4 * j ) = walsh_output[ i + 4 * j ];
+          }
+        }
+
         /* U */
         frame_macroblock.U_.at(0, 0).set_prediction_mode( DC_PRED );
 
         auto & mb_u = macroblock.U;
-        uint16_t bias_value = 0;
+
+        prediction_value = 0;
 
         if ( mb_u.context().above.initialized() and mb_u.context().left.initialized() ) {
           static constexpr uint8_t log2size = 3;
 
-          bias_value = ((mb_u.predictors().above_row.sum(int16_t())
+          prediction_value = ((mb_u.predictors().above_row.sum(int16_t())
         		    + mb_u.predictors().left_column.sum(int16_t())) + (1 << log2size))
         		  >> (log2size+1);
         }
         else {
-          bias_value = 128;
+          prediction_value = 128;
           static constexpr uint8_t log2size = 3;
 
           if ( mb_u.context().above.initialized() ) {
-            bias_value = (mb_u.predictors().above_row.sum(int16_t()) + (1 << (log2size-1))) >> log2size;
+            prediction_value = (mb_u.predictors().above_row.sum(int16_t()) + (1 << (log2size-1))) >> log2size;
           } else if ( mb_u.context().left.initialized() ) {
-            bias_value = (mb_u.predictors().left_column.sum(int16_t()) + (1 << (log2size-1))) >> log2size;
+            prediction_value = (mb_u.predictors().left_column.sum(int16_t()) + (1 << (log2size-1))) >> log2size;
           }
         }
 
         macroblock.U_sub.forall_ij( [&]( const VP8Raster::Block4 & subblock,
           unsigned int sb_column,
           unsigned int sb_row ) {
-            auto dct_coeffs = get_dct_coeffs( subblock, bias_value );
+            auto dct_coeffs = get_dct_coeffs( subblock, prediction_value );
             auto & frame_subblock = frame_macroblock.U_.at( sb_column, sb_row );
             quantize( quantizer.uv_dc, quantizer.uv_ac, dct_coeffs, frame_subblock );
           } );
@@ -121,30 +172,30 @@ public:
         frame_macroblock.V_.at(0, 0).set_prediction_mode( DC_PRED );
 
         auto & mb_v = macroblock.V;
-        bias_value = 0;
+        prediction_value = 0;
 
         if ( mb_v.context().above.initialized() and mb_v.context().left.initialized() ) {
           static constexpr uint8_t log2size = 3;
 
-          bias_value = ((mb_v.predictors().above_row.sum(int16_t())
+          prediction_value = ((mb_v.predictors().above_row.sum(int16_t())
         		    + mb_v.predictors().left_column.sum(int16_t())) + (1 << log2size))
         		  >> (log2size+1);
         }
         else {
-          bias_value = 128;
+          prediction_value = 128;
           static constexpr uint8_t log2size = 3;
 
           if ( mb_v.context().above.initialized() ) {
-            bias_value = (mb_v.predictors().above_row.sum(int16_t()) + (1 << (log2size-1))) >> log2size;
+            prediction_value = (mb_v.predictors().above_row.sum(int16_t()) + (1 << (log2size-1))) >> log2size;
           } else if ( mb_v.context().left.initialized() ) {
-            bias_value = (mb_v.predictors().left_column.sum(int16_t()) + (1 << (log2size-1))) >> log2size;
+            prediction_value = (mb_v.predictors().left_column.sum(int16_t()) + (1 << (log2size-1))) >> log2size;
           }
         }
 
         macroblock.V_sub.forall_ij( [&]( const VP8Raster::Block4 & subblock,
           unsigned int sb_column,
           unsigned int sb_row ) {
-            auto dct_coeffs = get_dct_coeffs( subblock, bias_value );
+            auto dct_coeffs = get_dct_coeffs( subblock, prediction_value );
             auto & frame_subblock = frame_macroblock.V_.at( sb_column, sb_row );
             quantize( quantizer.uv_dc, quantizer.uv_ac, dct_coeffs, frame_subblock );
           } );

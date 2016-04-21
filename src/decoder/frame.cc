@@ -110,7 +110,7 @@ DependencyTracker InterFrame::get_used( void ) const
 				        deps.reference( mb.header().reference() ) = true;
                                       }
 				    } );
-  
+
   return deps;
 }
 
@@ -263,6 +263,8 @@ void KeyFrame::decode( const Optional< Segmentation > & segmentation, const Refe
 					 const auto & quantizer = segmentation.initialized()
 					   ? segment_quantizers.at( macroblock.segment_id() )
 					   : frame_quantizer;
+             /* XXX remove this */
+             // cout << "reconstruct_intra: " << column << ":" << row << endl;
 					 macroblock.reconstruct_intra( quantizer,
 								       raster.macroblock( column, row ) );
 				       } );
@@ -278,7 +280,7 @@ void InterFrame::decode( const Optional<Segmentation> & segmentation, const Refe
   /* process each macroblock */
   macroblock_headers_.get().forall_ij( [&]( const InterFrameMacroblock & macroblock,
 					    const unsigned int column,
-					    const unsigned int row ) { 
+					    const unsigned int row ) {
 					 const auto & quantizer = segmentation.initialized()
 					   ? segment_quantizers.at( macroblock.segment_id() )
 					   : frame_quantizer;
@@ -302,7 +304,7 @@ void RefUpdateFrame::decode( const Optional<Segmentation> &, const References & 
   macroblock_headers_.get().forall_ij( [&]( const RefUpdateFrameMacroblock & macroblock,
                                             const unsigned column,
                                             const unsigned row ) {
-                                         macroblock.reconstruct_continuation( reference, raster.macroblock( column, row ) ); 
+                                         macroblock.reconstruct_continuation( reference, raster.macroblock( column, row ) );
                                        } );
 }
 
@@ -320,7 +322,7 @@ void Frame<FrameHeaderType, MacroblockType>::relink_y2_blocks( void )
 {
   vector< Optional< const Y2Block * > > above_coded( macroblock_width_ );
   vector< Optional< const Y2Block * > > left_coded( macroblock_height_ );
-  
+
   Y2_.forall_ij( [&]( Y2Block & block, const unsigned int column, const unsigned int row ) {
       block.set_above( above_coded.at( column ) );
       block.set_left( left_coded.at( row ) );
@@ -427,7 +429,7 @@ string InterFrame::stats( void ) const
 				      }
 				    } );
 
-  return "\tPercentage Inter Coded: " + 
+  return "\tPercentage Inter Coded: " +
     to_string( (double)inter_coded_macroblocks * 100 / total_macroblocks ) + "%\n" +
     "\tLast: " + to_string( (double)ref_percentages[ 1 ] * 100 / inter_coded_macroblocks ) + "%" +
     " Golden: " + to_string( (double)ref_percentages[ 2 ] * 100 / inter_coded_macroblocks ) + "%" +

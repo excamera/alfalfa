@@ -490,8 +490,8 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::reconstruct_intra( const
         if ( has_nonzero_ ) block.dequantize( quantizer ).idct_add( raster.Y_sub.at( column, row ) );
       } );
   } else {
+    cout << "[reconstruct_intra] prediction mode: " << Y2_.prediction_mode() << endl;
     raster.Y.intra_predict( Y2_.prediction_mode() );
-
     if ( has_nonzero_ ) {
       apply_walsh( quantizer, raster );
     }

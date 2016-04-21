@@ -142,9 +142,13 @@ void VP8Raster::Block<size>::dc_predict_simple( void )
   static_assert( size == 4 or size == 8 or size == 16, "invalid Block size" );
   static constexpr uint8_t log2size = size == 4 ? 2 : size == 8 ? 3 : size == 16 ? 4 : 0;
 
-  contents_.fill( ((predictors().above_row.sum(int16_t())
+	uint8_t value = ((predictors().above_row.sum(int16_t())
 		    + predictors().left_column.sum(int16_t())) + (1 << log2size))
-		  >> (log2size+1) );
+		  >> (log2size+1);
+
+  contents_.fill( value );
+
+  cout << "DC prediction value: " << context_.column << ":" << context_.row << " = " << (int)value << endl;
 }
 
 template <unsigned int size>
@@ -163,6 +167,8 @@ void VP8Raster::Block<size>::dc_predict( void )
   } else if ( context_.left.initialized() ) {
     value = (predictors().left_column.sum(int16_t()) + (1 << (log2size-1))) >> log2size;
   }
+
+  cout << "DC prediction value: " << context_.column << ":" << context_.row << " = " << (int)value << endl;
 
   contents_.fill( value );
 }

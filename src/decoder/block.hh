@@ -1,6 +1,8 @@
 #ifndef BLOCK_HH
 #define BLOCK_HH
 
+#include <iostream>
+
 #include "modemv_data.hh"
 #include "2d.hh"
 #include "vp8_raster.hh"
@@ -47,6 +49,15 @@ public:
   bool operator!=( const DCTCoefficients & other ) const
   {
     return not operator==( other );
+  }
+
+  friend std::ostream &operator<<( std::ostream & output, const DCTCoefficients & dctc )
+  {
+    for ( int i = 0; i < 16; i++ ) {
+      output << dctc.at( i ) <<  " ";
+    }
+
+    return output;
   }
 };
 
