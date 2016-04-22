@@ -26,15 +26,15 @@ public:
 
     for ( size_t i = 0; i < 4; i++ ) {
       for ( size_t j = 0; j < 4; j++ ) {
-        dct_input[ i * 4 + j ] = block.at( i, j ) - bias;
+        dct_input[ i + 4 * j ] = block.at( i, j ) - bias;
       }
     }
 
-    /* cout << "input: ";
+    cout << "input: ";
     for ( int i = 0; i < 16; i++ ) {
       cout << dct_input[ i ] <<  " ";
     }
-    cout << endl; */
+    cout << endl;
 
     vp8_short_fdct4x4_c( dct_input, dct_output, pitch );
 
@@ -44,7 +44,7 @@ public:
       dct_coeffs.at( i ) = dct_output[ i ];
     }
 
-    // cout << "output: " << dct_coeffs << endl;
+    cout << "output: " << dct_coeffs << endl;
 
     return dct_coeffs;
   }
@@ -68,7 +68,8 @@ public:
 
   void encode( const VP8Raster & raster, KeyFrame & original_frame )
   {
-    KeyFrame frame = make_empty_frame( raster.display_width(), raster.display_height() );
+    //KeyFrame frame = make_empty_frame( raster.display_width(), raster.display_height() );
+    KeyFrame & frame = original_frame;
     Quantizer quantizer( frame.header().quant_indices );
 
     raster.macroblocks().forall_ij( [&]( const VP8Raster::Macroblock & macroblock,
@@ -100,8 +101,6 @@ public:
         }
 
         cout << "Original prediction mode: " << original_frame.mutable_macroblocks().at( mb_column, mb_row ).Y2_.prediction_mode() << endl;
-        frame_macroblock.Y2_.set_prediction_mode( DC_PRED );
-
         cout << "Bias: " << (int)prediction_value << endl;
 
         short walsh_input[ 16 ];
@@ -111,13 +110,15 @@ public:
         macroblock.Y_sub.forall_ij( [&]( const VP8Raster::Block4 & subblock,
           unsigned int sb_column,
           unsigned int sb_row ) {
-            auto dct_coeffs = get_dct_coeffs( subblock, prediction_value );
             auto & frame_subblock = frame_macroblock.Y_.at( sb_column, sb_row );
+            cout << "current: " << frame_subblock.coefficients() << endl;
+            auto dct_coeffs = get_dct_coeffs( subblock, prediction_value );
 
             walsh_input[ sb_column * 4 + sb_row ] = dct_coeffs.at( 0 );
             dct_coeffs.at( 0 ) = 0;
 
             quantize( quantizer.y_dc, quantizer.y_ac, dct_coeffs, frame_subblock );
+            cout << "quantized: " << frame_subblock.coefficients() << endl;
             frame_subblock.set_prediction_mode( B_DC_PRED );
           } );
 
@@ -128,16 +129,35 @@ public:
         for ( int i = 1; i < 16; i++ ) {
           walsh_output[ i ] /= quantizer.y2_ac;
         }
+        cout << "current prediction mode: " << frame_macroblock.Y2_.prediction_mode() << endl;
+        cout << "current walsh: ";
+        for ( size_t i = 0; i < 16; i++ ) {
+          cout << frame_macroblock.Y2_.mutable_coefficients().at( i ) << " ";
+        }
 
+        frame_macroblock.Y2_.set_prediction_mode( DC_PRED );
+
+        cout << endl;
+
+        cout << "input walsh: ";
+        for ( size_t i = 0; i < 16; i++ ) {
+          cout << walsh_input[ i ] << " ";
+        }
+        cout << endl;
+
+        cout << "output walsh: ";
         for ( size_t i = 0; i < 4; i++ ) {
           for ( size_t j = 0; j < 4; j++ ) {
+            cout << walsh_output[ i * 4 + j] << " ";
             frame_macroblock.Y2_.mutable_coefficients().at( i + 4 * j ) = walsh_output[ i + 4 * j ];
           }
         }
+        cout << endl;
+
+        return;
 
         /* U */
-        frame_macroblock.U_.at(0, 0).set_prediction_mode( DC_PRED );
-
+        // frame_macroblock.U_.at(0, 0).set_prediction_mode( DC_PRED );
         auto & mb_u = macroblock.U;
 
         prediction_value = 0;
@@ -159,18 +179,19 @@ public:
             prediction_value = (mb_u.predictors().left_column.sum(int16_t()) + (1 << (log2size-1))) >> log2size;
           }
         }
+        cout << "U prediciton: " << (int)prediction_value << endl;
 
         macroblock.U_sub.forall_ij( [&]( const VP8Raster::Block4 & subblock,
           unsigned int sb_column,
           unsigned int sb_row ) {
+            return;
+            cout << frame_macroblock.U_.at(sb_column, sb_row).coefficients() << endl;
             auto dct_coeffs = get_dct_coeffs( subblock, prediction_value );
             auto & frame_subblock = frame_macroblock.U_.at( sb_column, sb_row );
             quantize( quantizer.uv_dc, quantizer.uv_ac, dct_coeffs, frame_subblock );
           } );
 
         /* V */
-        frame_macroblock.V_.at(0, 0).set_prediction_mode( DC_PRED );
-
         auto & mb_v = macroblock.V;
         prediction_value = 0;
 
@@ -195,6 +216,7 @@ public:
         macroblock.V_sub.forall_ij( [&]( const VP8Raster::Block4 & subblock,
           unsigned int sb_column,
           unsigned int sb_row ) {
+            return;
             auto dct_coeffs = get_dct_coeffs( subblock, prediction_value );
             auto & frame_subblock = frame_macroblock.V_.at( sb_column, sb_row );
             quantize( quantizer.uv_dc, quantizer.uv_ac, dct_coeffs, frame_subblock );

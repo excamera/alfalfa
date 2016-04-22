@@ -36,7 +36,7 @@ int main( int argc, char *argv[] )
     Player player( argv[ 1 ] );
     DecoderState decoder_state( ivf.width(), ivf.height() );
 
-    int frame_number = 22;
+    int frame_number = 3;
 
     for ( int i = 0; i < frame_number; i++ ) {
       UncompressedChunk whole_frame( ivf.frame( i ), ivf.width(), ivf.height() );
