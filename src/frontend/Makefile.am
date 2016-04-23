@@ -13,4 +13,4 @@ collisions_SOURCES = collisions.cc
 collisions_LDADD = ../decoder/libalfalfadecoder.a ../util/libalfalfautil.a $(X264_LIBS)
 
 dumbencode_SOURCES = dumbencode.cc
-dumbencode_LDADD = ../encoder/libalfalfaencoder.a ../decoder/libalfalfadecoder.a ../util/libalfalfautil.a $(X264_LIBS)
+dumbencode_LDADD = ../encoder/libalfalfaencoder.a ../decoder/libalfalfadecoder.a ../display/libalfalfadisplay.a ../util/libalfalfautil.a $(X264_LIBS) $(GLU_LIBS) $(GLEW_LIBS) $(GLFW3_LIBS)
