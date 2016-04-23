@@ -90,3 +90,35 @@ DCTCoefficients UVBlock::dequantize( const Quantizer & quantizer ) const
 {
   return coefficients_.dequantize( quantizer.uv_dc, quantizer.uv_ac );
 }
+
+DCTCoefficients DCTCoefficients::quantize( const uint16_t dc_factor, const uint16_t ac_factor ) const
+{
+  DCTCoefficients new_coefficients;
+  new_coefficients.at( 0 ) = coefficients_.at( 0 ) / dc_factor;
+  for ( uint8_t i = 1; i < 16; i++ ) {
+    new_coefficients.at( i ) = coefficients_.at( i ) / ac_factor;
+  }
+
+  return new_coefficients;
+}
+
+template <>
+DCTCoefficients Y2Block::quantize( const Quantizer & quantizer,
+				   const DCTCoefficients & coefficients )
+{
+  return coefficients.quantize( quantizer.y2_dc, quantizer.y2_ac );
+}
+
+template <>
+DCTCoefficients YBlock::quantize( const Quantizer & quantizer,
+				  const DCTCoefficients & coefficients )
+{
+  return coefficients.quantize( quantizer.y_dc, quantizer.y_ac );
+}
+
+template <>
+DCTCoefficients UVBlock::quantize( const Quantizer & quantizer,
+				   const DCTCoefficients & coefficients)
+{
+  return coefficients.quantize( quantizer.uv_dc, quantizer.uv_ac );
+}

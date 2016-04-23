@@ -48,6 +48,10 @@ void Block<initial_block_type, PredictionMode>::calculate_has_nonzero( void )
   }
 }
 
+template void YBlock::calculate_has_nonzero();
+template void Y2Block::calculate_has_nonzero();
+template void UVBlock::calculate_has_nonzero();
+
 template <BlockType initial_block_type, class PredictionMode>
 void Block<initial_block_type, PredictionMode>::zero_out()
 {

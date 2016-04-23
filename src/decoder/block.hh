@@ -61,6 +61,7 @@ public:
   }
 
   DCTCoefficients dequantize( const uint16_t dc_factor, const uint16_t ac_factor ) const;
+  DCTCoefficients quantize( const uint16_t dc_factor, const uint16_t ac_factor ) const;
 };
 
 template <BlockType initial_block_type, class PredictionMode>
@@ -106,6 +107,13 @@ public:
     type_ = Y_without_Y2;
   }
 
+  void set_Y_after_Y2( void )
+  {
+    static_assert( initial_block_type == Y_after_Y2,
+		   "set_Y_after_Y2 called on non-Y coded block" );
+    type_ = Y_after_Y2;
+  }
+
   void set_coded ( const bool coded )
   {
     coded_ = coded;
@@ -129,6 +137,7 @@ public:
 
   void set_dc_coefficient( const int16_t & val );
   DCTCoefficients dequantize( const Quantizer & quantizer ) const;
+  static DCTCoefficients quantize( const Quantizer & quantizer, const DCTCoefficients & coefficients );
 
   const MotionVector & motion_vector() const
   {

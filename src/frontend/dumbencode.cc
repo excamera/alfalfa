@@ -37,7 +37,26 @@ void copy_macroblock( Macroblock<FrameHeaderType2, MacroblockHeaderType2> & targ
   target.V_.copy_from( source.V_ );
 
   target.Y_.forall_ij( [&] ( YBlock & target_block, const unsigned int col, const unsigned int row ) {
-      target_block = source.Y_.at( col, row );
+      const YBlock & source_block = source.Y_.at( col, row );
+
+      target_block.set_prediction_mode( source_block.prediction_mode() );
+      target_block.set_motion_vector( source_block.motion_vector() );
+      assert( source_block.motion_vector() == MotionVector() );
+
+      target_block.mutable_coefficients() = source_block.coefficients();
+      target_block.calculate_has_nonzero();
+
+      if ( source_block.type() == Y_without_Y2 ) {
+	target_block.set_Y_without_Y2();
+      } else if ( source_block.type() == Y_after_Y2 ) {
+	target_block.set_Y_after_Y2();
+      }
+
+      assert( target_block.coefficients() == source_block.coefficients() );
+      assert( target_block.type() == source_block.type() );
+      assert( target_block.prediction_mode() == source_block.prediction_mode() );
+      assert( target_block.has_nonzero() == source_block.has_nonzero() );
+      assert( target_block.motion_vector() == source_block.motion_vector() );
     } );
 }
 
