@@ -29,23 +29,36 @@ void copy_macroblock( Macroblock<FrameHeaderType2, MacroblockHeaderType2> & targ
   target.mb_skip_coeff_ = source.mb_skip_coeff_;
   target.header_ = source.header_;
   target.has_nonzero_ = source.has_nonzero_;
+
+  /* copy contents */
+  target.Y2_ = source.Y2_;
+  target.Y_.copy_from( source.Y_ );
+  target.U_.copy_from( source.U_ );
+  target.V_.copy_from( source.V_ );
 }
 
 template <>
-void copy_frame( KeyFrame & target, const KeyFrame & source )
+void copy_frame( KeyFrame & target, const KeyFrame & source,
+		 const Optional<Segmentation> & segmentation __attribute((unused)) )
 {
   target.show_ = source.show_;
+  target.header_ = source.header_;
+
   assert( target.display_width_ == source.display_width_ );
   assert( target.display_height_ == source.display_height_ );
   assert( target.macroblock_width_ == source.macroblock_width_ );
   assert( target.macroblock_height_ == source.macroblock_height_ );
 
-  target.Y2_.copy_from( source.Y2_ );
-  target.Y_.copy_from( source.Y_ );
-  target.U_.copy_from( source.U_ );
-  target.V_.copy_from( source.V_ );
+  /*
+  {
+    const Quantizer frame_quantizer( target.header_.quant_indices );
+    const auto segment_quantizers = target.calculate_segment_quantizers( segmentation );
 
-  target.header_ = source.header_;
+    target.Y_.forall_ij( [&] ( YBlock & target_block, const unsigned int col, const unsigned int row ) {
+	target_block = source.Y_.at( col, row );
+      } );
+  }
+  */
 
   assert( source.macroblock_headers_.initialized() );
   assert( target.macroblock_headers_.initialized() );
@@ -96,7 +109,8 @@ int main( int argc, char *argv[] )
       vector<uint8_t> serialized_old_frame = frame.serialize( temp_state.probability_tables );
 
       KeyFrame temp_new_frame = make_empty_frame( width, height );
-      copy_frame( temp_new_frame, frame );
+      copy_frame( temp_new_frame, frame,
+		  temp_state.segmentation );
 
       assert( temp_new_frame == frame );
 
