@@ -22,7 +22,8 @@ KeyFrame make_empty_frame( unsigned int width, unsigned int height ) {
 
 template <class FrameHeaderType2, class MacroblockHeaderType2>
 void copy_macroblock( Macroblock<FrameHeaderType2, MacroblockHeaderType2> & target,
-		      const Macroblock<FrameHeaderType2, MacroblockHeaderType2> & source )
+		      const Macroblock<FrameHeaderType2, MacroblockHeaderType2> & source,
+		      const Quantizer & )
 {
   target.segment_id_update_ = source.segment_id_update_;
   target.segment_id_ = source.segment_id_;
@@ -32,14 +33,17 @@ void copy_macroblock( Macroblock<FrameHeaderType2, MacroblockHeaderType2> & targ
 
   /* copy contents */
   target.Y2_ = source.Y2_;
-  target.Y_.copy_from( source.Y_ );
   target.U_.copy_from( source.U_ );
   target.V_.copy_from( source.V_ );
+
+  target.Y_.forall_ij( [&] ( YBlock & target_block, const unsigned int col, const unsigned int row ) {
+      target_block = source.Y_.at( col, row );
+    } );
 }
 
 template <>
 void copy_frame( KeyFrame & target, const KeyFrame & source,
-		 const Optional<Segmentation> & segmentation __attribute((unused)) )
+		 const Optional<Segmentation> & segmentation )
 {
   target.show_ = source.show_;
   target.header_ = source.header_;
@@ -49,17 +53,6 @@ void copy_frame( KeyFrame & target, const KeyFrame & source,
   assert( target.macroblock_width_ == source.macroblock_width_ );
   assert( target.macroblock_height_ == source.macroblock_height_ );
 
-  /*
-  {
-    const Quantizer frame_quantizer( target.header_.quant_indices );
-    const auto segment_quantizers = target.calculate_segment_quantizers( segmentation );
-
-    target.Y_.forall_ij( [&] ( YBlock & target_block, const unsigned int col, const unsigned int row ) {
-	target_block = source.Y_.at( col, row );
-      } );
-  }
-  */
-
   assert( source.macroblock_headers_.initialized() );
   assert( target.macroblock_headers_.initialized() );
 
@@ -67,11 +60,19 @@ void copy_frame( KeyFrame & target, const KeyFrame & source,
   assert( source.macroblock_headers_.get().height() == target.macroblock_headers_.get().height() );
 
   /* copy each macroblock */
+  const Quantizer frame_quantizer( target.header_.quant_indices );
+  const auto segment_quantizers = target.calculate_segment_quantizers( segmentation );
+
   target.macroblock_headers_.get().forall_ij( [&] ( KeyFrameMacroblock & target_macroblock,
 						    const unsigned int col,
 						    const unsigned int row ) {
+						const auto & quantizer = segmentation.initialized()
+						  ? segment_quantizers.at( source.macroblock_headers_.get().at( col, row ).segment_id() )
+						  : frame_quantizer;
+
 						copy_macroblock( target_macroblock,
-								 source.macroblock_headers_.get().at( col, row ) );
+								 source.macroblock_headers_.get().at( col, row ),
+								 quantizer );
 					      } );
 
   target.relink_y2_blocks();

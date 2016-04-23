@@ -24,7 +24,8 @@ class Macroblock
 {
   template <class FrameHeaderType2, class MacroblockHeaderType2>
   friend void copy_macroblock( Macroblock<FrameHeaderType2, MacroblockHeaderType2> & target,
-			       const Macroblock<FrameHeaderType2, MacroblockHeaderType2> & source );
+			       const Macroblock<FrameHeaderType2, MacroblockHeaderType2> & source,
+			       const Quantizer & quantizer );
 
 private:
   typename TwoD< Macroblock >::Context context_;
