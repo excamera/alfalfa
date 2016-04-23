@@ -22,6 +22,10 @@ typedef SafeArray< SafeArray< SafeArray< SafeArray< std::pair< uint32_t, uint32_
 template <class FrameHeaderType, class MacroblockHeaderType>
 class Macroblock
 {
+  template <class FrameHeaderType2, class MacroblockHeaderType2>
+  friend void copy_macroblock( Macroblock<FrameHeaderType2, MacroblockHeaderType2> & target,
+			       const Macroblock<FrameHeaderType2, MacroblockHeaderType2> & source );
+
 private:
   typename TwoD< Macroblock >::Context context_;
 

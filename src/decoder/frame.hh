@@ -21,6 +21,10 @@ struct Quantizers
 template <class FrameHeaderType, class MacroblockType>
 class Frame
 {
+  template <class FrameHeaderType2, class MacroblockType2>
+  friend void copy_frame( Frame<FrameHeaderType2, MacroblockType2> & target,
+			  const Frame<FrameHeaderType2, MacroblockType2> & source );
+
  private:
   bool show_;
 
