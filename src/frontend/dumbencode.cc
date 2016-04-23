@@ -106,7 +106,11 @@ int main( int argc, char *argv[] )
       cerr << "length of original frame, serialized: " << serialized_old_frame.size() << "\n";
       cerr << "length of new frame: " << serialized_new_frame.size() << "\n";
 
-      assert( serialized_new_frame == serialized_old_frame );
+      if ( serialized_new_frame != serialized_old_frame ) {
+	throw runtime_error( "roundtrip failure" );
+      } else {
+	cerr << "roundtrip success!\n";
+      }
     }
 
     /* new decode the copied frame */
