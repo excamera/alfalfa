@@ -263,8 +263,6 @@ void KeyFrame::decode( const Optional< Segmentation > & segmentation, const Refe
 					 const auto & quantizer = segmentation.initialized()
 					   ? segment_quantizers.at( macroblock.segment_id() )
 					   : frame_quantizer;
-             /* XXX remove this */
-             // cout << "reconstruct_intra: " << column << ":" << row << endl;
 					 macroblock.reconstruct_intra( quantizer,
 								       raster.macroblock( column, row ) );
 				       } );

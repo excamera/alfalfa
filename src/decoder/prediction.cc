@@ -147,8 +147,6 @@ void VP8Raster::Block<size>::dc_predict_simple( void )
 		  >> (log2size+1);
 
   contents_.fill( value );
-
-  cout << "DC prediction value: " << context_.column << ":" << context_.row << " = " << (int)value << endl;
 }
 
 template <unsigned int size>
@@ -167,8 +165,6 @@ void VP8Raster::Block<size>::dc_predict( void )
   } else if ( context_.left.initialized() ) {
     value = (predictors().left_column.sum(int16_t()) + (1 << (log2size-1))) >> log2size;
   }
-
-  cout << "DC prediction value: " << context_.column << ":" << context_.row << " = " << (int)value << endl;
 
   contents_.fill( value );
 }
