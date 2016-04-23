@@ -77,6 +77,34 @@ void copy_frame( KeyFrame & target, const KeyFrame & source,
   target.relink_y2_blocks();
 }
 
+vector<uint8_t> loopback( const Chunk & chunk, const uint16_t width, const uint16_t height )
+{
+    vector<uint8_t> serialized_new_frame;
+
+    UncompressedChunk temp_uncompressed_chunk { chunk, width, height };
+    if ( not temp_uncompressed_chunk.key_frame() ) {
+      throw runtime_error( "not a keyframe" );
+    }
+
+    DecoderState temp_state { width, height };
+    KeyFrame frame = temp_state.parse_and_apply<KeyFrame>( temp_uncompressed_chunk );
+    vector<uint8_t> serialized_old_frame = frame.serialize( temp_state.probability_tables );
+
+    KeyFrame temp_new_frame = make_empty_frame( width, height );
+    copy_frame( temp_new_frame, frame,
+		temp_state.segmentation );
+
+    assert( temp_new_frame == frame );
+
+    serialized_new_frame = temp_new_frame.serialize( temp_state.probability_tables );
+
+    if ( serialized_new_frame != serialized_old_frame ) {
+      throw runtime_error( "roundtrip failure" );
+    }
+
+    return serialized_new_frame;
+}
+
 int main( int argc, char *argv[] )
 {
   try {
@@ -84,64 +112,24 @@ int main( int argc, char *argv[] )
       abort();
     }
 
-    if ( argc != 3 ) {
-      cerr << "Usage: " << argv[ 0 ] << " <video> <frame number>" << endl;
+    if ( argc != 2 ) {
+      cerr << "Usage: " << argv[ 0 ] << " <video>" << endl;
       return EXIT_FAILURE;
     }
 
-    vector<uint8_t> serialized_new_frame;
-    uint16_t width, height;
+    const IVF ivf( argv[ 1 ] );
 
-    {
-      const IVF ivf( argv[ 1 ] );
-      const unsigned int frame_number = atoi( argv[ 2 ] );
+    FramePlayer player { ivf.width(), ivf.height() };
+    VideoDisplay display { player.example_raster() };
 
-      width = ivf.width();
-      height = ivf.height();
-
-      UncompressedChunk temp_uncompressed_chunk { ivf.frame( frame_number ), width, height };
-      if ( not temp_uncompressed_chunk.key_frame() ) {
-	throw runtime_error( "not a keyframe" );
-      }
-
-      DecoderState temp_state { width, height };
-      KeyFrame frame = temp_state.parse_and_apply<KeyFrame>( temp_uncompressed_chunk );
-      vector<uint8_t> serialized_old_frame = frame.serialize( temp_state.probability_tables );
-
-      KeyFrame temp_new_frame = make_empty_frame( width, height );
-      copy_frame( temp_new_frame, frame,
-		  temp_state.segmentation );
-
-      assert( temp_new_frame == frame );
-
-      serialized_new_frame = temp_new_frame.serialize( temp_state.probability_tables );
-
-      cerr << "length of original frame: " << ivf.frame( frame_number ).size() << "\n";
-      cerr << "length of original frame, serialized: " << serialized_old_frame.size() << "\n";
-      cerr << "length of new frame: " << serialized_new_frame.size() << "\n";
-
-      if ( serialized_new_frame != serialized_old_frame ) {
-	throw runtime_error( "roundtrip failure" );
-      } else {
-	cerr << "roundtrip success!\n";
+    for ( unsigned int frame_number = 0; frame_number < ivf.frame_count(); frame_number++ ) {
+      const vector<uint8_t> serialized_new_frame = loopback( ivf.frame( frame_number ),
+							     ivf.width(), ivf.height() );
+      const auto maybe_raster = player.decode( serialized_new_frame );
+      if ( maybe_raster.initialized() ) {
+	display.draw( maybe_raster.get() );
       }
     }
-
-    /* new decode the copied frame */
-    UncompressedChunk uncompressed_chunk { serialized_new_frame, width, height };
-    DecoderState state { width, height };
-    KeyFrame new_frame = state.parse_and_apply<KeyFrame>( uncompressed_chunk );
-
-    References references { width, height };
-    MutableRasterHandle raster { width, height };
-
-    new_frame.decode( state.segmentation, references, raster );
-    new_frame.loopfilter( state.segmentation, state.filter_adjustments, raster );
-
-    VideoDisplay display { raster };
-    display.draw( raster );
-
-    pause();
   } catch ( const exception & e ) {
     print_exception( argv[ 0 ], e );
     return EXIT_FAILURE;
