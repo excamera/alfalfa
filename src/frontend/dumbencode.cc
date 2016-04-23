@@ -23,7 +23,7 @@ KeyFrame make_empty_frame( unsigned int width, unsigned int height ) {
 template <class FrameHeaderType2, class MacroblockHeaderType2>
 void copy_macroblock( Macroblock<FrameHeaderType2, MacroblockHeaderType2> & target,
 		      const Macroblock<FrameHeaderType2, MacroblockHeaderType2> & source,
-		      const Quantizer & )
+		      const Quantizer & quantizer )
 {
   target.segment_id_update_ = source.segment_id_update_;
   target.segment_id_ = source.segment_id_;
@@ -43,7 +43,7 @@ void copy_macroblock( Macroblock<FrameHeaderType2, MacroblockHeaderType2> & targ
       target_block.set_motion_vector( source_block.motion_vector() );
       assert( source_block.motion_vector() == MotionVector() );
 
-      target_block.mutable_coefficients() = source_block.coefficients();
+      target_block.mutable_coefficients() = YBlock::quantize( quantizer, source_block.dequantize( quantizer ) );
       target_block.calculate_has_nonzero();
 
       if ( source_block.type() == Y_without_Y2 ) {
