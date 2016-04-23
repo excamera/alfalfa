@@ -60,8 +60,7 @@ Quantizer::Quantizer( const QuantIndices & quant_indices )
   if ( uv_dc > 132 ) uv_dc = 132;
 }
 
-template <BlockType initial_block_type, class PredictionMode>
-DCTCoefficients Block<initial_block_type, PredictionMode>::dequantize_internal( const uint16_t dc_factor, const uint16_t ac_factor ) const
+DCTCoefficients DCTCoefficients::dequantize( const uint16_t dc_factor, const uint16_t ac_factor ) const
 {
   DCTCoefficients new_coefficients;
   new_coefficients.at( 0 ) = coefficients_.at( 0 ) * dc_factor;
@@ -77,17 +76,17 @@ DCTCoefficients Y2Block::dequantize( const Quantizer & quantizer ) const
 {
   assert( coded_ );
 
-  return dequantize_internal( quantizer.y2_dc, quantizer.y2_ac );
+  return coefficients_.dequantize( quantizer.y2_dc, quantizer.y2_ac );
 }
 
 template <>
 DCTCoefficients YBlock::dequantize( const Quantizer & quantizer ) const
 {
-  return dequantize_internal( quantizer.y_dc, quantizer.y_ac );
+  return coefficients_.dequantize( quantizer.y_dc, quantizer.y_ac );
 }
 
 template <>
 DCTCoefficients UVBlock::dequantize( const Quantizer & quantizer ) const
 {
-  return dequantize_internal( quantizer.uv_dc, quantizer.uv_ac );
+  return coefficients_.dequantize( quantizer.uv_dc, quantizer.uv_ac );
 }

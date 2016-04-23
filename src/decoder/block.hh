@@ -59,6 +59,8 @@ public:
 
     return output;
   }
+
+  DCTCoefficients dequantize( const uint16_t dc_factor, const uint16_t ac_factor ) const;
 };
 
 template <BlockType initial_block_type, class PredictionMode>
@@ -79,8 +81,6 @@ private:
   bool has_nonzero_ { false };
 
   MotionVector motion_vector_ {};
-
-  DCTCoefficients dequantize_internal( const uint16_t dc_factor, const uint16_t ac_factor ) const;
 
 public:
   Block( const typename TwoD< Block >::Context & context )
