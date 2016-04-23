@@ -19,6 +19,11 @@ KeyFrame make_empty_frame( unsigned int width, unsigned int height ) {
   return frame;
 }
 
+void copy_frames( KeyFrame & target __attribute((unused)), const KeyFrame & source __attribute((unused)) )
+{
+  /* do nothing */
+}
+
 int main( int argc, char *argv[] )
 {
   try {
@@ -44,8 +49,13 @@ int main( int argc, char *argv[] )
     MutableRasterHandle raster { ivf.width(), ivf.height() };
 
     KeyFrame frame = state.parse_and_apply<KeyFrame>( uncompressed_chunk );
-    frame.decode( state.segmentation, references, raster );
-    frame.loopfilter( state.segmentation, state.filter_adjustments, raster );
+
+    KeyFrame newframe = make_empty_frame( ivf.width(), ivf.height() );
+
+    copy_frames( newframe, frame );
+
+    newframe.decode( state.segmentation, references, raster );
+    newframe.loopfilter( state.segmentation, state.filter_adjustments, raster );
 
     VideoDisplay display { raster };
     display.draw( raster );
