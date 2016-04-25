@@ -8,111 +8,118 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-
 #include <cmath>
 
+#include "block.hh"
 #include "dct.hh"
+#include "safe_array.hh"
 
 void vp8_short_fdct4x4_c(short *input, short *output, int pitch)
 {
-    int i;
-    int a1, b1, c1, d1;
-    short *ip = input;
-    short *op = output;
+  int i;
+  int a1, b1, c1, d1;
+  short *ip = input;
+  short *op = output;
 
-    for (i = 0; i < 4; i++)
-    {
-        a1 = ((ip[0] + ip[3]) * 8);
-        b1 = ((ip[1] + ip[2]) * 8);
-        c1 = ((ip[1] - ip[2]) * 8);
-        d1 = ((ip[0] - ip[3]) * 8);
+  for (i = 0; i < 4; i++)
+  {
+    a1 = ((ip[0] + ip[3]) * 8);
+    b1 = ((ip[1] + ip[2]) * 8);
+    c1 = ((ip[1] - ip[2]) * 8);
+    d1 = ((ip[0] - ip[3]) * 8);
 
-        op[0] = a1 + b1;
-        op[2] = a1 - b1;
+    op[0] = a1 + b1;
+    op[2] = a1 - b1;
 
-        op[1] = (c1 * 2217 + d1 * 5352 +  14500)>>12;
-        op[3] = (d1 * 2217 - c1 * 5352 +   7500)>>12;
+    op[1] = (c1 * 2217 + d1 * 5352 +  14500)>>12;
+    op[3] = (d1 * 2217 - c1 * 5352 +   7500)>>12;
 
-        ip += pitch / 2;
-        op += 4;
+    ip += pitch / 2;
+    op += 4;
 
-    }
-    ip = output;
-    op = output;
-    for (i = 0; i < 4; i++)
-    {
-        a1 = ip[0] + ip[12];
-        b1 = ip[4] + ip[8];
-        c1 = ip[4] - ip[8];
-        d1 = ip[0] - ip[12];
+  }
+  ip = output;
+  op = output;
+  for (i = 0; i < 4; i++)
+  {
+    a1 = ip[0] + ip[12];
+    b1 = ip[4] + ip[8];
+    c1 = ip[4] - ip[8];
+    d1 = ip[0] - ip[12];
 
-        op[0]  = ( a1 + b1 + 7)>>4;
-        op[8]  = ( a1 - b1 + 7)>>4;
+    op[0]  = ( a1 + b1 + 7)>>4;
+    op[8]  = ( a1 - b1 + 7)>>4;
 
-        op[4]  =((c1 * 2217 + d1 * 5352 +  12000)>>16) + (d1!=0);
-        op[12] = (d1 * 2217 - c1 * 5352 +  51000)>>16;
+    op[4]  =((c1 * 2217 + d1 * 5352 +  12000)>>16) + (d1!=0);
+    op[12] = (d1 * 2217 - c1 * 5352 +  51000)>>16;
 
-        ip++;
-        op++;
-    }
+    ip++;
+    op++;
+  }
 }
 
 void vp8_short_fdct8x4_c(short *input, short *output, int pitch)
 {
-    vp8_short_fdct4x4_c(input,   output,    pitch);
-    vp8_short_fdct4x4_c(input + 4, output + 16, pitch);
+  vp8_short_fdct4x4_c(input,   output,  pitch);
+  vp8_short_fdct4x4_c(input + 4, output + 16, pitch);
 }
 
-void vp8_short_walsh4x4_c(short *input, short *output, int pitch)
+void DCTCoefficients::wht( const SafeArray< SafeArray< int16_t, 4 >, 4 > & input_coeffs )
 {
-    int i;
-    int a1, b1, c1, d1;
-    int a2, b2, c2, d2;
-    short *ip = input;
-    short *op = output;
+  SafeArray< int16_t, 16 > input;
 
-
-    for (i = 0; i < 4; i++)
-    {
-        a1 = ((ip[0] + ip[2]) * 4);
-        d1 = ((ip[1] + ip[3]) * 4);
-        c1 = ((ip[1] - ip[3]) * 4);
-        b1 = ((ip[0] - ip[2]) * 4);
-
-        op[0] = a1 + d1 + (a1!=0);
-        op[1] = b1 + c1;
-        op[2] = b1 - c1;
-        op[3] = a1 - d1;
-        ip += pitch / 2;
-        op += 4;
+  for ( size_t i = 0; i < 4; i++ ) {
+    for ( size_t j = 0; j < 4; j++ ) {
+      input.at( i + 4 * j ) = input_coeffs.at( i ).at( j );
     }
+  }
 
-    ip = output;
-    op = output;
+  size_t pitch = 8;
+  int a1, b1, c1, d1;
+  int a2, b2, c2, d2;
+  size_t i_offset = 0;
+  size_t o_offset = 0;
 
-    for (i = 0; i < 4; i++)
-    {
-        a1 = ip[0] + ip[8];
-        d1 = ip[4] + ip[12];
-        c1 = ip[4] - ip[12];
-        b1 = ip[0] - ip[8];
+  for ( size_t i = 0; i < 4; i++ ) {
+    a1 = ( input.at( i_offset + 0 ) + input.at( i_offset + 2 ) ) * 4;
+    d1 = ( input.at( i_offset + 1 ) + input.at( i_offset + 3 ) ) * 4;
+    c1 = ( input.at( i_offset + 1 ) - input.at( i_offset + 3 ) ) * 4;
+    b1 = ( input.at( i_offset + 0 ) - input.at( i_offset + 2 ) ) * 4;
 
-        a2 = a1 + d1;
-        b2 = b1 + c1;
-        c2 = b1 - c1;
-        d2 = a1 - d1;
+    at( o_offset + 0 ) = a1 + d1 + ( a1 != 0 );
+    at( o_offset + 1 ) = b1 + c1;
+    at( o_offset + 2 ) = b1 - c1;
+    at( o_offset + 3 ) = a1 - d1;
 
-        a2 += a2<0;
-        b2 += b2<0;
-        c2 += c2<0;
-        d2 += d2<0;
+    i_offset += pitch / 2;
+    o_offset += 4;
+  }
 
-        op[0] = (a2+3) >> 3;
-        op[4] = (b2+3) >> 3;
-        op[8] = (c2+3) >> 3;
-        op[12]= (d2+3) >> 3;
+  i_offset = 0;
+  o_offset = 0;
 
-        ip++;
-        op++;
-    }
+  for ( size_t i = 0; i < 4; i++ ) {
+    a1 = at( i_offset + 0 ) + at ( i_offset +  8 );
+    d1 = at( i_offset + 4 ) + at ( i_offset + 12 );
+    c1 = at( i_offset + 4 ) - at ( i_offset + 12 );
+    b1 = at( i_offset + 0 ) - at ( i_offset +  8 );
+
+    a2 = a1 + d1;
+    b2 = b1 + c1;
+    c2 = b1 - c1;
+    d2 = a1 - d1;
+
+    a2 += a2 < 0;
+    b2 += b2 < 0;
+    c2 += c2 < 0;
+    d2 += d2 < 0;
+
+    at( o_offset +  0 ) = (a2 + 3) >> 3;
+    at( o_offset +  4 ) = (b2 + 3) >> 3;
+    at( o_offset +  8 ) = (c2 + 3) >> 3;
+    at( o_offset + 12 ) = (d2 + 3) >> 3;
+
+    i_offset++;
+    o_offset++;
+  }
 }

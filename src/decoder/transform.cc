@@ -15,11 +15,12 @@ void DCTCoefficients::set_dc_coefficient( const int16_t & val )
   coefficients_.at( 0 ) = val;
 }
 
-void DCTCoefficients::walsh_transform( SafeArray< SafeArray< DCTCoefficients, 4 >, 4 > & output ) const
+SafeArray< SafeArray< int16_t, 4 >, 4 > DCTCoefficients::iwht() const
 {
   SafeArray< int16_t, 16 > intermediate;
+  SafeArray< SafeArray< int16_t, 4 >, 4 > output;
 
-  for ( unsigned int i = 0; i < 4; i++ ) {
+  for ( size_t i = 0; i < 4; i++ ) {
     int a1 = coefficients_.at( i + 0 ) + coefficients_.at( i + 12 );
     int b1 = coefficients_.at( i + 4 ) + coefficients_.at( i + 8  );
     int c1 = coefficients_.at( i + 4 ) - coefficients_.at( i + 8  );
@@ -31,7 +32,7 @@ void DCTCoefficients::walsh_transform( SafeArray< SafeArray< DCTCoefficients, 4 
     intermediate.at( i + 12 ) = d1 - c1;
   }
 
-  for ( unsigned int i = 0; i < 4; i++ ) {
+  for ( size_t i = 0; i < 4; i++ ) {
     const uint8_t offset = i * 4;
     int a1 = intermediate.at( offset + 0 ) + intermediate.at( offset + 3 );
     int b1 = intermediate.at( offset + 1 ) + intermediate.at( offset + 2 );
@@ -43,11 +44,13 @@ void DCTCoefficients::walsh_transform( SafeArray< SafeArray< DCTCoefficients, 4 
     int c2 = a1 - b1;
     int d2 = d1 - c1;
 
-    output.at( i ).at( 0 ).set_dc_coefficient( (a2 + 3) >> 3 );
-    output.at( i ).at( 1 ).set_dc_coefficient( (b2 + 3) >> 3 );
-    output.at( i ).at( 2 ).set_dc_coefficient( (c2 + 3) >> 3 );
-    output.at( i ).at( 3 ).set_dc_coefficient( (d2 + 3) >> 3 );
+    output.at( i ).at( 0 ) = ( a2 + 3 ) >> 3;
+    output.at( i ).at( 1 ) = ( b2 + 3 ) >> 3;
+    output.at( i ).at( 2 ) = ( c2 + 3 ) >> 3;
+    output.at( i ).at( 3 ) = ( d2 + 3 ) >> 3;
   }
+
+  return output;
 }
 
 #ifdef HAVE_SSE2

@@ -10,6 +10,7 @@
 #include "decoder.hh"
 #include "display.hh"
 #include "macroblock.hh"
+#include "dct.hh"
 
 using namespace std;
 
@@ -20,10 +21,19 @@ KeyFrame make_empty_frame( unsigned int width, unsigned int height ) {
   return frame;
 }
 
+void print_it( const SafeArray< SafeArray< int16_t, 4>, 4 > & array ) {
+  for ( size_t i = 0; i < 4; i++ ) {
+    for ( size_t j = 0; j < 4; j++ ) {
+      cout << array.at( i ).at( j ) << " ";
+    }
+    cout << endl;
+  }
+}
+
 template <class FrameHeaderType2, class MacroblockHeaderType2>
 void copy_macroblock( Macroblock<FrameHeaderType2, MacroblockHeaderType2> & target,
-		      const Macroblock<FrameHeaderType2, MacroblockHeaderType2> & source,
-		      const Quantizer & quantizer )
+                      const Macroblock<FrameHeaderType2, MacroblockHeaderType2> & source,
+                      const Quantizer & quantizer )
 {
   target.segment_id_update_ = source.segment_id_update_;
   target.segment_id_ = source.segment_id_;
@@ -32,24 +42,24 @@ void copy_macroblock( Macroblock<FrameHeaderType2, MacroblockHeaderType2> & targ
   target.has_nonzero_ = source.has_nonzero_;
 
   /* copy contents */
-  target.Y2_ = source.Y2_;
   target.U_.copy_from( source.U_ );
   target.V_.copy_from( source.V_ );
 
+  /* copy Y */
   target.Y_.forall_ij( [&] ( YBlock & target_block, const unsigned int col, const unsigned int row ) {
       const YBlock & source_block = source.Y_.at( col, row );
 
       target_block.set_prediction_mode( source_block.prediction_mode() );
       target_block.set_motion_vector( source_block.motion_vector() );
       assert( source_block.motion_vector() == MotionVector() );
-
-      target_block.mutable_coefficients() = YBlock::quantize( quantizer, source_block.dequantize( quantizer ) );
+      auto dequantized_coeffs = source_block.dequantize( quantizer );
+      target_block.mutable_coefficients() = YBlock::quantize( quantizer, dequantized_coeffs );
       target_block.calculate_has_nonzero();
 
       if ( source_block.type() == Y_without_Y2 ) {
-	target_block.set_Y_without_Y2();
+        target_block.set_Y_without_Y2();
       } else if ( source_block.type() == Y_after_Y2 ) {
-	target_block.set_Y_after_Y2();
+        target_block.set_Y_after_Y2();
       }
 
       assert( target_block.coefficients() == source_block.coefficients() );
@@ -58,11 +68,25 @@ void copy_macroblock( Macroblock<FrameHeaderType2, MacroblockHeaderType2> & targ
       assert( target_block.has_nonzero() == source_block.has_nonzero() );
       assert( target_block.motion_vector() == source_block.motion_vector() );
     } );
+
+    /* copy Y2 */
+    target.Y2_.set_prediction_mode( source.Y2_.prediction_mode() );
+    target.Y2_.set_coded( source.Y2_.coded() );
+
+    if ( target.Y2_.coded() ) {
+      auto dequantize_wht_coeffs = source.Y2_.dequantize( quantizer );
+      auto inversed_wht_coeffs = dequantize_wht_coeffs.iwht();
+      DCTCoefficients wht_back;
+      wht_back.wht( inversed_wht_coeffs );
+      target.Y2_.mutable_coefficients() = Y2Block::quantize( quantizer, wht_back );
+    }
+
+    target.Y2_.calculate_has_nonzero();
 }
 
 template <>
 void copy_frame( KeyFrame & target, const KeyFrame & source,
-		 const Optional<Segmentation> & segmentation )
+                 const Optional<Segmentation> & segmentation )
 {
   target.show_ = source.show_;
   target.header_ = source.header_;
@@ -83,16 +107,16 @@ void copy_frame( KeyFrame & target, const KeyFrame & source,
   const auto segment_quantizers = target.calculate_segment_quantizers( segmentation );
 
   target.macroblock_headers_.get().forall_ij( [&] ( KeyFrameMacroblock & target_macroblock,
-						    const unsigned int col,
-						    const unsigned int row ) {
-						const auto & quantizer = segmentation.initialized()
-						  ? segment_quantizers.at( source.macroblock_headers_.get().at( col, row ).segment_id() )
-						  : frame_quantizer;
+                                                    const unsigned int col,
+                                                    const unsigned int row ) {
+                                                const auto & quantizer = segmentation.initialized()
+                                                  ? segment_quantizers.at( source.macroblock_headers_.get().at( col, row ).segment_id() )
+                                                  : frame_quantizer;
 
-						copy_macroblock( target_macroblock,
-								 source.macroblock_headers_.get().at( col, row ),
-								 quantizer );
-					      } );
+                                                copy_macroblock( target_macroblock,
+                                                                 source.macroblock_headers_.get().at( col, row ),
+                                                                 quantizer );
+                                              } );
 
   target.relink_y2_blocks();
 }
@@ -144,10 +168,10 @@ int main( int argc, char *argv[] )
 
     for ( unsigned int frame_number = 0; frame_number < ivf.frame_count(); frame_number++ ) {
       const vector<uint8_t> serialized_new_frame = loopback( ivf.frame( frame_number ),
-							     ivf.width(), ivf.height() );
+                                                             ivf.width(), ivf.height() );
       const auto maybe_raster = player.decode( serialized_new_frame );
       if ( maybe_raster.initialized() ) {
-	display.draw( maybe_raster.get() );
+        display.draw( maybe_raster.get() );
       }
     }
   } catch ( const exception & e ) {

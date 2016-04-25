@@ -36,8 +36,9 @@ public:
     return coefficients_.at( index );
   }
 
-  void walsh_transform( SafeArray< SafeArray< DCTCoefficients, 4 >, 4 > & output ) const;
+  SafeArray< SafeArray< int16_t, 4 >, 4 > iwht() const;
   void idct_add( VP8Raster::Block4 & output ) const;
+  void wht( const SafeArray< SafeArray< int16_t, 4 >, 4 > & input );
 
   void set_dc_coefficient( const int16_t & val );
 
@@ -171,7 +172,10 @@ public:
 
   bool operator==( const Block & other ) const
   {
-    return coefficients_ == other.coefficients_ and
+    return type_ == other.type_ and
+           coded_ == other.coded_ and
+           has_nonzero_ == other.has_nonzero_ and
+           coefficients_ == other.coefficients_ and
            prediction_mode_ == other.prediction_mode_ and
            motion_vector_ == other.motion_vector_;
   }
