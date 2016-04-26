@@ -156,7 +156,7 @@ template <unsigned int size>
 void VP8Raster::Block<size>::dc_predict( TwoDSubRange< uint8_t, size, size > & output )
 {
   if ( context_.above.initialized() and context_.left.initialized() ) {
-    return dc_predict_simple();
+    return dc_predict_simple( output );
   }
 
   uint8_t value = 128;
