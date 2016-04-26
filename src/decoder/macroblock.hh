@@ -22,11 +22,6 @@ typedef SafeArray< SafeArray< SafeArray< SafeArray< std::pair< uint32_t, uint32_
 template <class FrameHeaderType, class MacroblockHeaderType>
 class Macroblock
 {
-  template <class FrameHeaderType2, class MacroblockHeaderType2>
-  friend void copy_macroblock( Macroblock<FrameHeaderType2, MacroblockHeaderType2> & target,
-			       const Macroblock<FrameHeaderType2, MacroblockHeaderType2> & source,
-			       const Quantizer & quantizer );
-
 private:
   typename TwoD< Macroblock >::Context context_;
 
@@ -37,12 +32,10 @@ private:
 
   MacroblockHeaderType header_;
 
-public: /* XXX this is temporary */
   Y2Block & Y2_;
   TwoDSubRange< YBlock, 4, 4 > Y_;
   TwoDSubRange< UVBlock, 2, 2 > U_, V_;
 
-private:
   bool has_nonzero_ { false };
 
   void decode_prediction_modes( BoolDecoder & data,
@@ -136,6 +129,11 @@ public:
 
 	/* Encoding */
 	SafeArray< int16_t, 16 > extract_y_dc_coeffs( bool set_to_zero = false );
+
+	Y2Block & Y2()                      { return Y2_; }
+  TwoDSubRange< YBlock, 4, 4 >  & Y() { return Y_; }
+  TwoDSubRange< UVBlock, 2, 2 > & U() { return U_; }
+	TwoDSubRange< UVBlock, 2, 2 > & V() { return V_; }
 };
 
 struct KeyFrameMacroblockHeader

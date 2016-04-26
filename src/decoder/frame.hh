@@ -21,11 +21,6 @@ struct Quantizers
 template <class FrameHeaderType, class MacroblockType>
 class Frame
 {
-  template <class FrameHeaderType2, class MacroblockType2>
-  friend void copy_frame( Frame<FrameHeaderType2, MacroblockType2> & target,
-			  const Frame<FrameHeaderType2, MacroblockType2> & source,
-			  const Optional<Segmentation> & segmentation );
-
  private:
   bool show_;
 
@@ -73,13 +68,12 @@ class Frame
          const Optional<Segmentation> & target_segmentation,
          const Optional<FilterAdjustments> & target_filter );
 
-  /* XXX fix this guy */
   const FrameHeaderType & header() const { return header_; }
   FrameHeaderType & mutable_header() { return header_; }
 
   DependencyTracker get_used() const;
   UpdateTracker get_updated() const { return ref_updates_; }
-  /* XXX fix this guy */
+
   const TwoD<MacroblockType> & macroblocks() const { return macroblock_headers_.get(); }
   TwoD<MacroblockType> & mutable_macroblocks() { return macroblock_headers_.get(); }
 
