@@ -112,32 +112,35 @@ uint8_t VP8Raster::Block<size>::Predictors::east( const int8_t num ) const
 }
 
 template <unsigned int size>
-void VP8Raster::Block<size>::true_motion_predict( void )
+void VP8Raster::Block<size>::true_motion_predict( TwoDSubRange< uint8_t, size, size > & output )
 {
-  contents_.forall_ij( [&] ( uint8_t & b, unsigned int column, unsigned int row )
-		       { b = clamp255( predictors().left_column.at( 0, row )
-				       + predictors().above_row.at( column, 0 )
-				       - predictors().above_left ); } );
+
+  output.forall_ij( [&] ( uint8_t & b, unsigned int column, unsigned int row )
+                    {
+                      b = clamp255( predictors().left_column.at( 0, row )
+                        + predictors().above_row.at( column, 0 )
+                        - predictors().above_left );
+                    } );
 }
 
 template <unsigned int size>
-void VP8Raster::Block<size>::horizontal_predict( void )
+void VP8Raster::Block<size>::horizontal_predict( TwoDSubRange< uint8_t, size, size > & output )
 {
   for ( unsigned int row = 0; row < size; row++ ) {
-    contents_.row( row ).fill( predictors().left_column.at( 0, row ) );
+    output.row( row ).fill( predictors().left_column.at( 0, row ) );
   }
 }
 
 template <unsigned int size>
-void VP8Raster::Block<size>::vertical_predict( void )
+void VP8Raster::Block<size>::vertical_predict( TwoDSubRange< uint8_t, size, size > & output )
 {
   for ( unsigned int column = 0; column < size; column++ ) {
-    contents_.column( column ).fill( predictors().above_row.at( column, 0 ) );
+    output.column( column ).fill( predictors().above_row.at( column, 0 ) );
   }
 }
 
 template <unsigned int size>
-void VP8Raster::Block<size>::dc_predict_simple( void )
+void VP8Raster::Block<size>::dc_predict_simple( TwoDSubRange< uint8_t, size, size > & output )
 {
   static_assert( size == 4 or size == 8 or size == 16, "invalid Block size" );
   static constexpr uint8_t log2size = size == 4 ? 2 : size == 8 ? 3 : size == 16 ? 4 : 0;
@@ -146,11 +149,11 @@ void VP8Raster::Block<size>::dc_predict_simple( void )
 		    + predictors().left_column.sum(int16_t())) + (1 << log2size))
 		  >> (log2size+1);
 
-  contents_.fill( value );
+  output.fill( value );
 }
 
 template <unsigned int size>
-void VP8Raster::Block<size>::dc_predict( void )
+void VP8Raster::Block<size>::dc_predict( TwoDSubRange< uint8_t, size, size > & output )
 {
   if ( context_.above.initialized() and context_.left.initialized() ) {
     return dc_predict_simple();
@@ -166,35 +169,35 @@ void VP8Raster::Block<size>::dc_predict( void )
     value = (predictors().left_column.sum(int16_t()) + (1 << (log2size-1))) >> log2size;
   }
 
-  contents_.fill( value );
+  output.fill( value );
 }
 
 template <>
 template <>
-void VP8Raster::Block8::intra_predict( const mbmode uv_mode )
+void VP8Raster::Block8::intra_predict( const mbmode uv_mode, TwoDSubRange< uint8_t, 8, 8 > & output )
 {
   /* Chroma prediction */
 
   switch ( uv_mode ) {
-  case DC_PRED: dc_predict(); break;
-  case V_PRED:  vertical_predict();  break;
-  case H_PRED:  horizontal_predict();  break;
-  case TM_PRED: true_motion_predict(); break;
+  case DC_PRED: dc_predict( output ); break;
+  case V_PRED:  vertical_predict( output );  break;
+  case H_PRED:  horizontal_predict( output );  break;
+  case TM_PRED: true_motion_predict( output ); break;
   default: throw LogicError(); /* tree decoder for uv_mode can't produce this */
   }
 }
 
 template <>
 template <>
-void VP8Raster::Block16::intra_predict( const mbmode uv_mode )
+void VP8Raster::Block16::intra_predict( const mbmode uv_mode, TwoDSubRange< uint8_t, 16, 16 > & output )
 {
   /* Y prediction for whole macroblock */
 
   switch ( uv_mode ) {
-  case DC_PRED: dc_predict(); break;
-  case V_PRED:  vertical_predict();  break;
-  case H_PRED:  horizontal_predict();  break;
-  case TM_PRED: true_motion_predict(); break;
+  case DC_PRED: dc_predict( output ); break;
+  case V_PRED:  vertical_predict( output );  break;
+  case H_PRED:  horizontal_predict( output );  break;
+  case TM_PRED: true_motion_predict( output ); break;
   default: throw LogicError(); /* need to predict and transform subblocks independently */
   }
 }
@@ -210,124 +213,127 @@ uint8_t avg2( const uint8_t x, const uint8_t y )
 }
 
 template <>
-void VP8Raster::Block4::vertical_smoothed_predict( void )
+void VP8Raster::Block4::vertical_smoothed_predict( TwoDSubRange< uint8_t, 4, 4 > & output )
 {
-  contents_.column( 0 ).fill( avg3( above( -1 ), above( 0 ), above( 1 ) ) );
-  contents_.column( 1 ).fill( avg3( above( 0 ),  above( 1 ), above( 2 ) ) );
-  contents_.column( 2 ).fill( avg3( above( 1 ),  above( 2 ), above( 3 ) ) );
-  contents_.column( 3 ).fill( avg3( above( 2 ),  above( 3 ), above( 4 ) ) );
+  output.column( 0 ).fill( avg3( above( -1 ), above( 0 ), above( 1 ) ) );
+  output.column( 1 ).fill( avg3( above( 0 ),  above( 1 ), above( 2 ) ) );
+  output.column( 2 ).fill( avg3( above( 1 ),  above( 2 ), above( 3 ) ) );
+  output.column( 3 ).fill( avg3( above( 2 ),  above( 3 ), above( 4 ) ) );
 }
 
 template <>
-void VP8Raster::Block4::horizontal_smoothed_predict( void )
+void VP8Raster::Block4::horizontal_smoothed_predict( TwoDSubRange< uint8_t, 4, 4 > & output )
 {
-  contents_.row( 0 ).fill( avg3( left( -1 ), left( 0 ), left( 1 ) ) );
-  contents_.row( 1 ).fill( avg3( left( 0 ),  left( 1 ), left( 2 ) ) );
-  contents_.row( 2 ).fill( avg3( left( 1 ),  left( 2 ), left( 3 ) ) );
-  contents_.row( 3 ).fill( avg3( left( 2 ),  left( 3 ), left( 3 ) ) );
+  output.row( 0 ).fill( avg3( left( -1 ), left( 0 ), left( 1 ) ) );
+  output.row( 1 ).fill( avg3( left( 0 ),  left( 1 ), left( 2 ) ) );
+  output.row( 2 ).fill( avg3( left( 1 ),  left( 2 ), left( 3 ) ) );
+  output.row( 3 ).fill( avg3( left( 2 ),  left( 3 ), left( 3 ) ) );
   /* last line is special because we can't use left( 4 ) yet */
 }
 
 template <>
-void VP8Raster::Block4::left_down_predict( void )
+void VP8Raster::Block4::left_down_predict( TwoDSubRange< uint8_t, 4, 4 > & output )
 {
-  at( 0, 0 ) =                                        avg3( above( 0 ), above( 1 ), above( 2 ) );
-  at( 1, 0 ) = at( 0, 1 ) =                           avg3( above( 1 ), above( 2 ), above( 3 ) );
-  at( 2, 0 ) = at( 1, 1 ) = at( 0, 2 ) =              avg3( above( 2 ), above( 3 ), above( 4 ) );
-  at( 3, 0 ) = at( 2, 1 ) = at( 1, 2 ) = at( 0, 3 ) = avg3( above( 3 ), above( 4 ), above( 5 ) );
-  at( 3, 1 ) = at( 2, 2 ) = at( 1, 3 ) =              avg3( above( 4 ), above( 5 ), above( 6 ) );
-  at( 3, 2 ) = at( 2, 3 ) =                           avg3( above( 5 ), above( 6 ), above( 7 ) );
-  at( 3, 3 ) =                                        avg3( above( 6 ), above( 7 ), above( 7 ) );
+  output.at( 0, 0 ) =                                                      avg3( above( 0 ), above( 1 ), above( 2 ) );
+  output.at( 1, 0 ) = output.at( 0, 1 ) =                                  avg3( above( 1 ), above( 2 ), above( 3 ) );
+  output.at( 2, 0 ) = output.at( 1, 1 ) = output.at( 0, 2 ) =              avg3( above( 2 ), above( 3 ), above( 4 ) );
+  output.at( 3, 0 ) = output.at( 2, 1 ) = output.at( 1, 2 ) = at( 0, 3 ) = avg3( above( 3 ), above( 4 ), above( 5 ) );
+  output.at( 3, 1 ) = output.at( 2, 2 ) = output.at( 1, 3 ) =              avg3( above( 4 ), above( 5 ), above( 6 ) );
+  output.at( 3, 2 ) = output.at( 2, 3 ) =                                  avg3( above( 5 ), above( 6 ), above( 7 ) );
+  output.at( 3, 3 ) =                                                      avg3( above( 6 ), above( 7 ), above( 7 ) );
   /* last line is special because we don't use above( 8 ) */
 }
 
 template <>
-void VP8Raster::Block4::right_down_predict( void )
+void VP8Raster::Block4::right_down_predict( TwoDSubRange< uint8_t, 4, 4 > & output )
 {
-  at( 0, 3 ) =                                        avg3( east( 0 ), east( 1 ), east( 2 ) );
-  at( 1, 3 ) = at( 0, 2 ) =                           avg3( east( 1 ), east( 2 ), east( 3 ) );
-  at( 2, 3 ) = at( 1, 2 ) = at( 0, 1 ) =              avg3( east( 2 ), east( 3 ), east( 4 ) );
-  at( 3, 3 ) = at( 2, 2 ) = at( 1, 1 ) = at( 0, 0 ) = avg3( east( 3 ), east( 4 ), east( 5 ) );
-  at( 3, 2 ) = at( 2, 1 ) = at( 1, 0 ) =              avg3( east( 4 ), east( 5 ), east( 6 ) );
-  at( 3, 1 ) = at( 2, 0 ) =                           avg3( east( 5 ), east( 6 ), east( 7 ) );
-  at( 3, 0 ) =                                        avg3( east( 6 ), east( 7 ), east( 8 ) );
+  output.at( 0, 3 ) =                                                             avg3( east( 0 ), east( 1 ), east( 2 ) );
+  output.at( 1, 3 ) = output.at( 0, 2 ) =                                         avg3( east( 1 ), east( 2 ), east( 3 ) );
+  output.at( 2, 3 ) = output.at( 1, 2 ) = output.at( 0, 1 ) =                     avg3( east( 2 ), east( 3 ), east( 4 ) );
+  output.at( 3, 3 ) = output.at( 2, 2 ) = output.at( 1, 1 ) = output.at( 0, 0 ) = avg3( east( 3 ), east( 4 ), east( 5 ) );
+  output.at( 3, 2 ) = output.at( 2, 1 ) = output.at( 1, 0 ) =                     avg3( east( 4 ), east( 5 ), east( 6 ) );
+  output.at( 3, 1 ) = output.at( 2, 0 ) =                                         avg3( east( 5 ), east( 6 ), east( 7 ) );
+  output.at( 3, 0 ) =                                                             avg3( east( 6 ), east( 7 ), east( 8 ) );
 }
 
 template <>
-void VP8Raster::Block4::vertical_right_predict( void )
+void VP8Raster::Block4::vertical_right_predict( TwoDSubRange< uint8_t, 4, 4 > & output )
 {
-  at( 0, 3 ) =                                        avg3( east( 1 ), east( 2 ), east( 3 ) );
-  at( 0, 2 ) =                                        avg3( east( 2 ), east( 3 ), east( 4 ) );
-  at( 1, 3 ) = at( 0, 1 ) =                           avg3( east( 3 ), east( 4 ), east( 5 ) );
-  at( 1, 2 ) = at( 0, 0 ) =                           avg2( east( 4 ), east( 5 ) );
-  at( 2, 3 ) = at( 1, 1 ) =                           avg3( east( 4 ), east( 5 ), east( 6 ) );
-  at( 2, 2 ) = at( 1, 0 ) =                           avg2( east( 5 ), east( 6 ) );
-  at( 3, 3 ) = at( 2, 1 ) =                           avg3( east( 5 ), east( 6 ), east( 7 ) );
-  at( 3, 2 ) = at( 2, 0 ) =                           avg2( east( 6 ), east( 7 ) );
-  at( 3, 1 ) =                                        avg3( east( 6 ), east( 7 ), east( 8 ) );
-  at( 3, 0 ) =                                        avg2( east( 7 ), east( 8 ) );
+  output.at( 0, 3 ) =                     avg3( east( 1 ), east( 2 ), east( 3 ) );
+  output.at( 0, 2 ) =                     avg3( east( 2 ), east( 3 ), east( 4 ) );
+  output.at( 1, 3 ) = output.at( 0, 1 ) = avg3( east( 3 ), east( 4 ), east( 5 ) );
+  output.at( 1, 2 ) = output.at( 0, 0 ) = avg2( east( 4 ), east( 5 ) );
+  output.at( 2, 3 ) = output.at( 1, 1 ) = avg3( east( 4 ), east( 5 ), east( 6 ) );
+  output.at( 2, 2 ) = output.at( 1, 0 ) = avg2( east( 5 ), east( 6 ) );
+  output.at( 3, 3 ) = output.at( 2, 1 ) = avg3( east( 5 ), east( 6 ), east( 7 ) );
+  output.at( 3, 2 ) = output.at( 2, 0 ) = avg2( east( 6 ), east( 7 ) );
+  output.at( 3, 1 ) =                     avg3( east( 6 ), east( 7 ), east( 8 ) );
+  output.at( 3, 0 ) =                     avg2( east( 7 ), east( 8 ) );
 }
 
 template <>
-void VP8Raster::Block4::vertical_left_predict( void )
+void VP8Raster::Block4::vertical_left_predict( TwoDSubRange< uint8_t, 4, 4 > & output )
 {
-  at( 0, 0 ) =                                        avg2( above( 0 ), above( 1 ) );
-  at( 0, 1 ) =                                        avg3( above( 0 ), above( 1 ), above( 2 ) );
-  at( 0, 2 ) = at( 1, 0 ) =                           avg2( above( 1 ), above( 2 ) );
-  at( 1, 1 ) = at( 0, 3 ) =                           avg3( above( 1 ), above( 2 ), above( 3 ) );
-  at( 1, 2 ) = at( 2, 0 ) =                           avg2( above( 2 ), above( 3 ) );
-  at( 1, 3 ) = at( 2, 1 ) =                           avg3( above( 2 ), above( 3 ), above( 4 ) );
-  at( 2, 2 ) = at( 3, 0 ) =                           avg2( above( 3 ), above( 4 ) );
-  at( 2, 3 ) = at( 3, 1 ) =                           avg3( above( 3 ), above( 4 ), above( 5 ) );
-  at( 3, 2 ) =                                        avg3( above( 4 ), above( 5 ), above( 6 ) );
-  at( 3, 3 ) =                                        avg3( above( 5 ), above( 6 ), above( 7 ) );
+  output.at( 0, 0 ) =                     avg2( above( 0 ), above( 1 ) );
+  output.at( 0, 1 ) =                     avg3( above( 0 ), above( 1 ), above( 2 ) );
+  output.at( 0, 2 ) = output.at( 1, 0 ) = avg2( above( 1 ), above( 2 ) );
+  output.at( 1, 1 ) = output.at( 0, 3 ) = avg3( above( 1 ), above( 2 ), above( 3 ) );
+  output.at( 1, 2 ) = output.at( 2, 0 ) = avg2( above( 2 ), above( 3 ) );
+  output.at( 1, 3 ) = output.at( 2, 1 ) = avg3( above( 2 ), above( 3 ), above( 4 ) );
+  output.at( 2, 2 ) = output.at( 3, 0 ) = avg2( above( 3 ), above( 4 ) );
+  output.at( 2, 3 ) = output.at( 3, 1 ) = avg3( above( 3 ), above( 4 ), above( 5 ) );
+  output.at( 3, 2 ) =                     avg3( above( 4 ), above( 5 ), above( 6 ) );
+  output.at( 3, 3 ) =                     avg3( above( 5 ), above( 6 ), above( 7 ) );
 }
 
 template <>
-void VP8Raster::Block4::horizontal_down_predict( void )
+void VP8Raster::Block4::horizontal_down_predict( TwoDSubRange< uint8_t, 4, 4 > & output )
 {
-  at( 0, 3 ) =                                        avg2( east( 0 ), east( 1 ) );
-  at( 1, 3 ) =                                        avg3( east( 0 ), east( 1 ), east( 2 ) );
-  at( 0, 2 ) = at( 2, 3 ) =                           avg2( east( 1 ), east( 2 ) );
-  at( 1, 2 ) = at( 3, 3 ) =                           avg3( east( 1 ), east( 2 ), east( 3 ) );
-  at( 2, 2 ) = at( 0, 1 ) =                           avg2( east( 2 ), east( 3 ) );
-  at( 3, 2 ) = at( 1, 1 ) =                           avg3( east( 2 ), east( 3 ), east( 4 ) );
-  at( 2, 1 ) = at( 0, 0 ) =                           avg2( east( 3 ), east( 4 ) );
-  at( 3, 1 ) = at( 1, 0 ) =                           avg3( east( 3 ), east( 4 ), east( 5 ) );
-  at( 2, 0 ) =                                        avg3( east( 4 ), east( 5 ), east( 6 ) );
-  at( 3, 0 ) =                                        avg3( east( 5 ), east( 6 ), east( 7 ) );
+  output.at( 0, 3 ) =                     avg2( east( 0 ), east( 1 ) );
+  output.at( 1, 3 ) =                     avg3( east( 0 ), east( 1 ), east( 2 ) );
+  output.at( 0, 2 ) = output.at( 2, 3 ) = avg2( east( 1 ), east( 2 ) );
+  output.at( 1, 2 ) = output.at( 3, 3 ) = avg3( east( 1 ), east( 2 ), east( 3 ) );
+  output.at( 2, 2 ) = output.at( 0, 1 ) = avg2( east( 2 ), east( 3 ) );
+  output.at( 3, 2 ) = output.at( 1, 1 ) = avg3( east( 2 ), east( 3 ), east( 4 ) );
+  output.at( 2, 1 ) = output.at( 0, 0 ) = avg2( east( 3 ), east( 4 ) );
+  output.at( 3, 1 ) = output.at( 1, 0 ) = avg3( east( 3 ), east( 4 ), east( 5 ) );
+  output.at( 2, 0 ) =                     avg3( east( 4 ), east( 5 ), east( 6 ) );
+  output.at( 3, 0 ) =                     avg3( east( 5 ), east( 6 ), east( 7 ) );
 }
 
 template <>
-void VP8Raster::Block4::horizontal_up_predict( void )
+void VP8Raster::Block4::horizontal_up_predict( TwoDSubRange< uint8_t, 4, 4 > & output )
 {
-  at( 0, 0 ) =                                        avg2( left( 0 ), left( 1 ) );
-  at( 1, 0 ) =                                        avg3( left( 0 ), left( 1 ), left( 2 ) );
-  at( 2, 0 ) = at( 0, 1 ) =                           avg2( left( 1 ), left( 2 ) );
-  at( 3, 0 ) = at( 1, 1 ) =                           avg3( left( 1 ), left( 2 ), left( 3 ) );
-  at( 2, 1 ) = at( 0, 2 ) =                           avg2( left( 2 ), left( 3 ) );
-  at( 3, 1 ) = at( 1, 2 ) =                           avg3( left( 2 ), left( 3 ), left( 3 ) );
-  at( 2, 2 ) = at( 3, 2 ) = at( 0, 3 )
-    = at( 1, 3 ) = at( 2, 3 ) = at( 3, 3 ) =          left( 3 );
+  output.at( 0, 0 ) =                     avg2( left( 0 ), left( 1 ) );
+  output.at( 1, 0 ) =                     avg3( left( 0 ), left( 1 ), left( 2 ) );
+  output.at( 2, 0 ) = output.at( 0, 1 ) = avg2( left( 1 ), left( 2 ) );
+  output.at( 3, 0 ) = output.at( 1, 1 ) = avg3( left( 1 ), left( 2 ), left( 3 ) );
+  output.at( 2, 1 ) = output.at( 0, 2 ) = avg2( left( 2 ), left( 3 ) );
+  output.at( 3, 1 ) = output.at( 1, 2 ) = avg3( left( 2 ), left( 3 ), left( 3 ) );
+  output.at( 2, 2 ) = output.at( 3, 2 )
+                    = output.at( 0, 3 )
+                    = output.at( 1, 3 )
+                    = output.at( 2, 3 )
+                    = output.at( 3, 3 ) = left( 3 );
 }
 
 template <>
 template <>
-void VP8Raster::Block4::intra_predict( const bmode b_mode )
+void VP8Raster::Block4::intra_predict( const bmode b_mode, TwoDSubRange< uint8_t, 4, 4 > & output )
 {
   /* Luma prediction */
 
   switch ( b_mode ) {
-  case B_DC_PRED: dc_predict_simple(); break;
-  case B_TM_PRED: true_motion_predict(); break;
-  case B_VE_PRED: vertical_smoothed_predict(); break;
-  case B_HE_PRED: horizontal_smoothed_predict(); break;
-  case B_LD_PRED: left_down_predict(); break;
-  case B_RD_PRED: right_down_predict(); break;
-  case B_VR_PRED: vertical_right_predict(); break;
-  case B_VL_PRED: vertical_left_predict(); break;
-  case B_HD_PRED: horizontal_down_predict(); break;
-  case B_HU_PRED: horizontal_up_predict(); break;
+  case B_DC_PRED: dc_predict_simple( output ); break;
+  case B_TM_PRED: true_motion_predict( output ); break;
+  case B_VE_PRED: vertical_smoothed_predict( output ); break;
+  case B_HE_PRED: horizontal_smoothed_predict( output ); break;
+  case B_LD_PRED: left_down_predict( output ); break;
+  case B_RD_PRED: right_down_predict( output ); break;
+  case B_VR_PRED: vertical_right_predict( output ); break;
+  case B_VL_PRED: vertical_left_predict( output ); break;
+  case B_HD_PRED: horizontal_down_predict( output ); break;
+  case B_HU_PRED: horizontal_up_predict( output ); break;
   default: throw LogicError();
   }
 }

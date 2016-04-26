@@ -32,19 +32,33 @@ public:
     TwoDSubRange< uint8_t, size, size > contents_;
     typename TwoD< Block >::Context context_;
 
-    void dc_predict( void );
-    void dc_predict_simple( void );
-    void vertical_predict( void );
-    void horizontal_predict( void );
-    void true_motion_predict( void );
-    void vertical_smoothed_predict( void );
-    void horizontal_smoothed_predict( void );
-    void left_down_predict( void );
-    void right_down_predict( void );
-    void vertical_right_predict( void );
-    void vertical_left_predict( void );
-    void horizontal_down_predict( void );
-    void horizontal_up_predict( void );
+    void dc_predict() { dc_predict( this->contents_ ); }
+    void dc_predict_simple() { dc_predict_simple( this->contents_ ); }
+    void vertical_predict() { vertical_predict( this->contents_ ); }
+    void horizontal_predict() { horizontal_predict( this->contents_ ); }
+    void true_motion_predict() { true_motion_predict( this->contents_ ); }
+    void vertical_smoothed_predict() { vertical_smoothed_predict( this->contents_ ); }
+    void horizontal_smoothed_predict() { horizontal_smoothed_predict( this->contents_ ); }
+    void left_down_predict() { left_down_predict( this->contents_ ); }
+    void right_down_predict() { right_down_predict( this->contents_ ); }
+    void vertical_right_predict() { vertical_right_predict( this->contents_ ); }
+    void vertical_left_predict() { vertical_left_predict( this->contents_ ); }
+    void horizontal_down_predict() { horizontal_down_predict( this->contents_ ); }
+    void horizontal_up_predict() { horizontal_up_predict( this->contents_ ); }
+
+    void dc_predict( TwoDSubRange< uint8_t, size, size > & output );
+    void dc_predict_simple( TwoDSubRange< uint8_t, size, size > & output );
+    void vertical_predict( TwoDSubRange< uint8_t, size, size > & output );
+    void horizontal_predict( TwoDSubRange< uint8_t, size, size > & output );
+    void true_motion_predict( TwoDSubRange< uint8_t, size, size > & output );
+    void vertical_smoothed_predict( TwoDSubRange< uint8_t, size, size > & output );
+    void horizontal_smoothed_predict( TwoDSubRange< uint8_t, size, size > & output );
+    void left_down_predict( TwoDSubRange< uint8_t, size, size > & output );
+    void right_down_predict( TwoDSubRange< uint8_t, size, size > & output );
+    void vertical_right_predict( TwoDSubRange< uint8_t, size, size > & output );
+    void vertical_left_predict( TwoDSubRange< uint8_t, size, size > & output );
+    void horizontal_down_predict( TwoDSubRange< uint8_t, size, size > & output );
+    void horizontal_up_predict( TwoDSubRange< uint8_t, size, size > & output );
 
     struct Predictors {
       static const Row & row127( void );
@@ -91,7 +105,14 @@ public:
     const Predictors & predictors( void ) const { return predictors_; }
 
     template <class PredictionMode>
-    void intra_predict( const PredictionMode mb_mode );
+    void intra_predict( const PredictionMode mb_mode ) { intra_predict( mb_mode, this->contents_ ); }
+
+    template <class PredictionMode>
+    void intra_predict( const PredictionMode mb_mode, TwoDSubRange< uint8_t, size, size > & output );
+
+    /* for encoder */
+    template <class PredictionMode>
+    void intra_predict( const PredictionMode mb_mode, TwoD< uint8_t > & output );
 
     void inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference );
     void analyze_inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference );
