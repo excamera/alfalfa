@@ -36,8 +36,10 @@ public:
     return coefficients_.at( index );
   }
 
-  SafeArray< SafeArray< int16_t, 4 >, 4 > iwht() const;
   void idct_add( VP8Raster::Block4 & output ) const;
+  SafeArray< SafeArray< int16_t, 4 >, 4 > iwht() const;
+
+  void subtract_dct( const VP8Raster::Block4 & block, const TwoDSubRange< uint8_t, 4, 4 > & prediction );
   void wht( const SafeArray< SafeArray< int16_t, 4 >, 4 > & input );
 
   void set_dc_coefficient( const int16_t & val );

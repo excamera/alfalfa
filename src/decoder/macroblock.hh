@@ -36,7 +36,7 @@ private:
   Optional< Boolean > mb_skip_coeff_;
 
   MacroblockHeaderType header_;
-	
+
 public: /* XXX this is temporary */
   Y2Block & Y2_;
   TwoDSubRange< YBlock, 4, 4 > Y_;
@@ -125,9 +125,17 @@ public:
 
   void analyze_dependencies( VP8Raster::Macroblock & raster, const VP8Raster & reference ) const;
 
-  bool operator==( const Macroblock & other ) const { return has_nonzero_ == other.has_nonzero_ and mb_skip_coeff_ == other.mb_skip_coeff_ and segment_id_ == other.segment_id_; }
+  bool operator==( const Macroblock & other ) const
+  {
+    return has_nonzero_ == other.has_nonzero_ and
+           mb_skip_coeff_ == other.mb_skip_coeff_ and
+           segment_id_ == other.segment_id_;
+  }
 
   bool operator!=( const Macroblock & other ) const { return not operator==( other ); }
+
+	/* Encoding */
+	SafeArray< int16_t, 16 > extract_y_dc_coeffs( bool set_to_zero = false );
 };
 
 struct KeyFrameMacroblockHeader

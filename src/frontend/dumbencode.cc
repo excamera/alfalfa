@@ -3,14 +3,13 @@
 #include <iostream>
 #include <string>
 
-#include "dct.hh"
 #include "frame.hh"
 #include "player.hh"
 #include "vp8_raster.hh"
 #include "decoder.hh"
-#include "display.hh"
 #include "macroblock.hh"
-#include "dct.hh"
+#include "ivf_writer.hh"
+#include "display.hh"
 
 using namespace std;
 
@@ -19,15 +18,6 @@ KeyFrame make_empty_frame( unsigned int width, unsigned int height ) {
   KeyFrame frame { true, width, height, data };
   frame.parse_macroblock_headers( data, ProbabilityTables {} );
   return frame;
-}
-
-void print_it( const SafeArray< SafeArray< int16_t, 4>, 4 > & array ) {
-  for ( size_t i = 0; i < 4; i++ ) {
-    for ( size_t j = 0; j < 4; j++ ) {
-      cout << array.at( i ).at( j ) << " ";
-    }
-    cout << endl;
-  }
 }
 
 template <class FrameHeaderType2, class MacroblockHeaderType2>
@@ -136,17 +126,92 @@ vector<uint8_t> loopback( const Chunk & chunk, const uint16_t width, const uint1
 
     KeyFrame temp_new_frame = make_empty_frame( width, height );
     copy_frame( temp_new_frame, frame,
-		temp_state.segmentation );
+                temp_state.segmentation );
 
     assert( temp_new_frame == frame );
 
     serialized_new_frame = temp_new_frame.serialize( temp_state.probability_tables );
 
     if ( serialized_new_frame != serialized_old_frame ) {
-      throw runtime_error( "roundtrip failure" );
+      cerr << "roundtrip failure!" << endl;
+      // throw runtime_error( "roundtrip failure" );
     }
 
     return serialized_new_frame;
+}
+
+template <unsigned int size>
+template <class PredictionMode>
+void VP8Raster::Block<size>::intra_predict( const PredictionMode mb_mode, TwoD< uint8_t > & output )
+{
+  TwoDSubRange< uint8_t, size, size > subrange( output, 0, 0 );
+  intra_predict( mb_mode, subrange );
+}
+
+vector< uint8_t > encode( const VP8Raster & raster )
+{
+  unsigned int width = raster.width();
+  unsigned int height = raster.height();
+
+  KeyFrame frame = make_empty_frame( width, height );
+  DecoderState temp_state { width, height };
+  Quantizer quantizer( frame.header().quant_indices );
+
+  raster.macroblocks().forall_ij( [&] ( VP8Raster::Macroblock & raster_macroblock,
+    unsigned int column_mb, unsigned int row_mb ) {
+      auto & frame_macroblock = frame.mutable_macroblocks().at( column_mb, row_mb );
+      // Process Y
+      frame_macroblock.Y2_.set_prediction_mode( B_PRED ); // predict each subblock separately
+
+      raster_macroblock.Y_sub.forall_ij( [&] ( VP8Raster::Block4 & raster_y_subblock,
+        unsigned int column_sb, unsigned int row_sb ) {
+          YBlock & frame_y_subblock = frame_macroblock.Y_.at( column_sb, row_sb );
+
+          TwoD< uint8_t > prediction( 4, 4 );
+          raster_y_subblock.intra_predict( B_DC_PRED, prediction );
+          frame_y_subblock.set_prediction_mode( B_DC_PRED );
+          frame_y_subblock.mutable_coefficients().subtract_dct( raster_y_subblock,
+                                                                TwoDSubRange< uint8_t, 4, 4 >( prediction, 0, 0 ) );
+          frame_y_subblock.mutable_coefficients() = YBlock::quantize( quantizer, frame_y_subblock.coefficients() );
+
+          frame_y_subblock.set_Y_without_Y2();
+          frame_y_subblock.calculate_has_nonzero();
+        } );
+
+        // Process Y2
+        // Not needed for now
+        frame_macroblock.Y2_.set_coded( false );
+
+        // Process U
+        frame_macroblock.U_.at( 0, 0 ).set_prediction_mode( V_PRED );
+        TwoD< uint8_t > prediction( 8, 8 );
+
+        raster_macroblock.U.intra_predict( V_PRED, prediction );
+        raster_macroblock.U_sub.forall_ij( [&] ( VP8Raster::Block4 & raster_u_subblock,
+          unsigned int column_sb, unsigned int row_sb ) {
+            UVBlock & frame_u_subblock = frame_macroblock.U_.at( column_sb, row_sb );
+
+            frame_u_subblock.mutable_coefficients().subtract_dct( raster_u_subblock,
+                                                                  TwoDSubRange< uint8_t, 4, 4 >( prediction, 4 * column_sb, 4 * row_sb ) );
+            frame_u_subblock.mutable_coefficients() = UVBlock::quantize( quantizer, frame_u_subblock.coefficients() );
+            frame_u_subblock.calculate_has_nonzero();
+          } );
+
+          // Process V
+          raster_macroblock.V.intra_predict( V_PRED, prediction );
+          raster_macroblock.V_sub.forall_ij( [&] ( VP8Raster::Block4 & raster_v_subblock,
+            unsigned int column_sb, unsigned int row_sb ) {
+              UVBlock & frame_v_subblock = frame_macroblock.V_.at( column_sb, row_sb );
+
+              frame_v_subblock.mutable_coefficients().subtract_dct( raster_v_subblock,
+                                                                    TwoDSubRange< uint8_t, 4, 4 >( prediction, 4 * column_sb, 4 * row_sb ) );
+              frame_v_subblock.mutable_coefficients() = UVBlock::quantize( quantizer, frame_v_subblock.coefficients() );
+              frame_v_subblock.calculate_has_nonzero();
+            } );
+      } );
+
+    frame.relink_y2_blocks();
+    return frame.serialize( temp_state.probability_tables );
 }
 
 int main( int argc, char *argv[] )
@@ -164,12 +229,15 @@ int main( int argc, char *argv[] )
     const IVF ivf( argv[ 1 ] );
 
     FramePlayer player { ivf.width(), ivf.height() };
+    FilePlayer file_player { argv[ 1 ] };
     VideoDisplay display { player.example_raster() };
 
     for ( unsigned int frame_number = 0; frame_number < ivf.frame_count(); frame_number++ ) {
-      const vector<uint8_t> serialized_new_frame = loopback( ivf.frame( frame_number ),
-                                                             ivf.width(), ivf.height() );
-      const auto maybe_raster = player.decode( serialized_new_frame );
+      auto raster = file_player.advance();
+      vector< uint8_t > f = encode( raster );
+
+      const auto maybe_raster = player.decode( f );
+
       if ( maybe_raster.initialized() ) {
         display.draw( maybe_raster.get() );
       }

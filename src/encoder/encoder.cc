@@ -16,11 +16,3 @@ SafeArray< int16_t, 16 > Macroblock<FrameHeaderType, MacroblockHeaderType>::extr
 
   return result;
 }
-
-template <unsigned int size>
-template <class PredictionMode>
-void VP8Raster::Block<size>::intra_predict( const PredictionMode mb_mode, TwoD< uint8_t > & output )
-{
-  TwoDSubRange< uint8_t, size, size > subrange( output, 0, 0 );
-  intra_predict( mb_mode, subrange );
-}

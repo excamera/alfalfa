@@ -200,6 +200,11 @@ public:
   template <class lambda>
   void forall_ij( const lambda & f ) const { storage_->forall_ij( f ); }
 
+  void fill( const T & value )
+  {
+    forall( [&] ( T & x ) { x = value; } );
+  }
+
   typename TwoDStorage<T>::const_iterator begin( void ) const
   {
     return storage_->begin();

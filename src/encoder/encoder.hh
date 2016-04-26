@@ -12,6 +12,7 @@
 
 using namespace std;
 
+#if 0
 /* Temporary class, things will be moved around as soon as I realize what the fuck I'm doing. */
 class Encoder
 {
@@ -257,4 +258,5 @@ public:
   }
 };
 
+#endif
 #endif /* ENCODER_HH */
