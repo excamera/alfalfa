@@ -42,8 +42,8 @@ Encoder::Encoder( const string & output_filename, uint16_t width, uint16_t heigh
 
 void Encoder::encode_as_keyframe( const VP8Raster & raster )
 {
-  unsigned int width = raster.width();
-  unsigned int height = raster.height();
+  unsigned int width = raster.display_width();
+  unsigned int height = raster.display_height();
 
   KeyFrame frame = Encoder::make_empty_frame( width, height );
   DecoderState temp_state { width, height };
