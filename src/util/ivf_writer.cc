@@ -110,7 +110,7 @@ IVFWriter::IVFWriter( const string & filename,
 		      const uint32_t time_scale )
   : IVFWriter( SystemCall( filename,
 			   open( filename.c_str(),
-				 O_RDWR | O_CREAT,
+				 O_RDWR | O_TRUNC,
 				 S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH ) ),
 	       fourcc, width, height, frame_rate, time_scale )
 {}

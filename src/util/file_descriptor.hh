@@ -4,6 +4,7 @@
 #include <string>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <algorithm>
 
 #include "exception.hh"
 #include "chunk.hh"
@@ -91,20 +92,51 @@ public:
     char buffer[ BUFFER_SIZE ];
 
     std::string ret;
-    
+
     while ( ret.length() < length ) {
       const size_t count = std::min( BUFFER_SIZE, length - ret.length() );
       ssize_t bytes_read_now = ::pread( fd_, buffer, count, offset + ret.length() );
       if ( bytes_read_now == 0 ) {
-	throw std::runtime_error( "pread: unexpected EOF" );
+        throw std::runtime_error( "pread: unexpected EOF" );
       } else if ( bytes_read_now < 0 ) {
-	throw unix_error( "pread" );
+        throw unix_error( "pread" );
       }
 
       ret.append( buffer, bytes_read_now );
     }
 
-    return ret; 
+    return ret;
+  }
+
+  std::string getline()
+  {
+    static const size_t MAX_LENGTH = 1048576;
+    std::string ret;
+
+    while ( ret.length() < MAX_LENGTH ) {
+      char c;
+
+      ssize_t chars_read = SystemCall( "read", ::read( fd_, &c, 1 ) );
+
+      if ( chars_read <= 0 or c == '\n' ) {
+        break;
+      }
+
+      ret.append( 1, c );
+    }
+
+    return ret;
+  }
+
+  std::string read( const size_t limit )
+  {
+    static const size_t BUFFER_SIZE = 1048576;
+    char buffer[ BUFFER_SIZE ];
+
+    ssize_t bytes_read = SystemCall( "read",
+      ::read( fd_, buffer, std::min( BUFFER_SIZE, limit ) ) );
+
+    return std::string( buffer, bytes_read );
   }
 };
 

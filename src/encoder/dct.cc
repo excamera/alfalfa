@@ -11,7 +11,6 @@
 #include <cmath>
 
 #include "block.hh"
-#include "dct.hh"
 #include "safe_array.hh"
 
 void DCTCoefficients::subtract_dct( const VP8Raster::Block4 & block,
