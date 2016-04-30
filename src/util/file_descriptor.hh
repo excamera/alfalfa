@@ -13,6 +13,7 @@ class FileDescriptor
 {
 private:
   int fd_;
+  bool eof_ { false };
 
 public:
   FileDescriptor( const int s_fd ) : fd_( s_fd ) {}
@@ -33,13 +34,15 @@ public:
 
   const int & num( void ) const { return fd_; }
 
+  bool eof() { return eof_; }
+
   /* disallow copying or assigning */
   FileDescriptor( const FileDescriptor & other ) = delete;
   const FileDescriptor & operator=( const FileDescriptor & other ) = delete;
 
   /* allow moves */
   FileDescriptor( FileDescriptor && other )
-    : fd_( other.fd_ )
+    : fd_( other.fd_ ), eof_( other.eof_ )
   {
     // Need to make sure the old file descriptor doesn't try to
     // close fd_ when it is destructed
@@ -86,7 +89,7 @@ public:
     }
   }
 
-  std::string pread( const off_t offset, const size_t length ) const
+  std::string pread( const off_t offset, const size_t length )
   {
     static const size_t BUFFER_SIZE = 1048576;
     char buffer[ BUFFER_SIZE ];
@@ -97,7 +100,8 @@ public:
       const size_t count = std::min( BUFFER_SIZE, length - ret.length() );
       ssize_t bytes_read_now = ::pread( fd_, buffer, count, offset + ret.length() );
       if ( bytes_read_now == 0 ) {
-        throw std::runtime_error( "pread: unexpected EOF" );
+        // throw std::runtime_error( "pread: unexpected EOF" );
+        eof_ = true;
       } else if ( bytes_read_now < 0 ) {
         throw unix_error( "pread" );
       }
@@ -118,6 +122,10 @@ public:
 
       ssize_t chars_read = SystemCall( "read", ::read( fd_, &c, 1 ) );
 
+      if ( chars_read == 0 ) {
+        eof_ = true;
+      }
+
       if ( chars_read <= 0 or c == '\n' ) {
         break;
       }
@@ -135,6 +143,10 @@ public:
 
     ssize_t bytes_read = SystemCall( "read",
       ::read( fd_, buffer, std::min( BUFFER_SIZE, limit ) ) );
+
+    if ( bytes_read == 0 ) {
+      eof_ = true;
+    }
 
     return std::string( buffer, bytes_read );
   }

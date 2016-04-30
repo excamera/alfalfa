@@ -23,13 +23,10 @@ Makefile.in
 /stamp-h1
 /test-driver
 
-/src/frontend/frameify
-/src/frontend/frameplayer
-/src/frontend/graphgen
 /src/frontend/vp8play
 /src/frontend/vp8decode
 /src/frontend/collisions
-/src/frontend/dumbencode
+/src/frontend/xc-enc
 
 /src/tests/decode-to-stdout
 /src/tests/encode-loopback

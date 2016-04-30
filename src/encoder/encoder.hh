@@ -8,16 +8,16 @@
 #include "frame.hh"
 #include "ivf_writer.hh"
 
-class Encoder {
+class Encoder
+{
 private:
   IVFWriter ivf_writer_;
 
 public:
   Encoder( const std::string & output_filename, uint16_t width, uint16_t height );
-
   void encode_as_keyframe( const VP8Raster & raster );
 
-  static KeyFrame make_empty_frame( unsigned int width, unsigned int height );  
+  static KeyFrame make_empty_frame( unsigned int width, unsigned int height );
 };
 
 #endif /* ENCODER_HH */

@@ -147,11 +147,16 @@ YUV4MPEGReader::YUV4MPEGReader( FileDescriptor && fd )
   }
 }
 
-RasterHandle YUV4MPEGReader::get_next_frame()
+Optional<RasterHandle> YUV4MPEGReader::get_next_frame()
 {
   MutableRasterHandle raster { header_.width, header_.height };
 
   string frame_header = fd_.getline();
+
+  if ( fd_.eof() ) {
+    return Optional<RasterHandle>();
+  }
+
   if ( frame_header != "FRAME" ) {
     throw runtime_error( "invalid yuv4mpeg2 input format" );
   }
@@ -187,5 +192,5 @@ RasterHandle YUV4MPEGReader::get_next_frame()
   }
 
   RasterHandle handle( move( raster ) );
-  return handle;
+  return make_optional<RasterHandle>( true, handle );
 }

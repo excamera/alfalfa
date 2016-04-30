@@ -815,7 +815,7 @@ vector<uint8_t> KeyFrame::serialize( const ProbabilityTables & probability_table
 {
   ProbabilityTables frame_probability_tables( probability_tables );
   frame_probability_tables.coeff_prob_update( header() );
-
+  
   return make_frame( true,
                      show_,
                      false,
