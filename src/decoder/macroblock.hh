@@ -130,10 +130,12 @@ public:
 	/* Encoding */
 	SafeArray< int16_t, 16 > extract_y_dc_coeffs( bool set_to_zero = false );
 
-	Y2Block & Y2()                      { return Y2_; }
+  Y2Block & Y2()                      { return Y2_; }
   TwoDSubRange< YBlock, 4, 4 >  & Y() { return Y_; }
   TwoDSubRange< UVBlock, 2, 2 > & U() { return U_; }
-	TwoDSubRange< UVBlock, 2, 2 > & V() { return V_; }
+  TwoDSubRange< UVBlock, 2, 2 > & V() { return V_; }
+
+  void calculate_has_nonzero();
 };
 
 struct KeyFrameMacroblockHeader

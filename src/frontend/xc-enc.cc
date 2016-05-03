@@ -26,6 +26,7 @@ void usage_error( const string & program_name )
        << "Options:" << endl
        << " -o <arg>, --output=<arg>              Output file name (default: output.ivf)" << endl
        << " -i <arg>, --input-format=<arg>        Input file format" << endl
+       << " -s <arg>, --minimum-ssim=<arg>        Minimum SSIM for the output" << endl
        << "                                         ivf (default), y4m" << endl;
 }
 
@@ -43,6 +44,7 @@ int main( int argc, char *argv[] )
 
     string output_file = "output.ivf";
     string input_format = "ivf";
+    double minimum_ssim = 0.8;
 
     const option command_line_options[] = {
       { "output",       required_argument, nullptr, 'o' },
@@ -65,6 +67,9 @@ int main( int argc, char *argv[] )
       case 'i':
         input_format = optarg;
         break;
+
+      case 's':
+        minimum_ssim = stod( optarg );
 
       default:
         throw runtime_error( "getopt_long: unexpected return value." );
@@ -103,7 +108,7 @@ int main( int argc, char *argv[] )
     Optional<RasterHandle> raster = input_reader->get_next_frame();
 
     while ( raster.initialized() ) {
-      encoder.encode_as_keyframe( raster.get() );
+      encoder.encode_as_keyframe( raster.get(), minimum_ssim );
       raster = input_reader->get_next_frame();
     }
   } catch ( const exception &  e ) {
