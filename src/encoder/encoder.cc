@@ -1,3 +1,5 @@
+#include <limits>
+
 #include "encoder.hh"
 #include "frame_header.hh"
 
@@ -28,55 +30,104 @@ Encoder::Encoder( const string & output_filename, uint16_t width, uint16_t heigh
   : ivf_writer_( output_filename, "VP80", width, height, 1, 1 )
 {}
 
-template <class MacroblockType>
-pair< mbmode, TwoD< uint8_t > > Encoder::luma_mb_intra_predict( VP8Raster::Macroblock & /* original_mb */,
-                                                                VP8Raster::Macroblock & constructed_mb,
-                                                                MacroblockType & /* frame_mb */ )
+template<unsigned int size>
+uint64_t Encoder::get_energy( const VP8Raster::Block< size > & block,
+                              const TwoD< uint8_t > & prediction,
+                              const uint16_t dc_factor, const uint16_t ac_factor )
 {
-  // TODO: dynamically choose the best prediction mode
-  mbmode prediction_mode = DC_PRED;
-  TwoD< uint8_t > prediction( 16, 16 );
+  return get_energy( block, TwoDSubRange< uint8_t, size, size >( prediction, 0, 0 ),
+                     dc_factor, ac_factor );
+}
 
-  if ( prediction_mode == B_PRED ) {
-    prediction.fill( 0 );
-  }
-  else {
-    constructed_mb.Y.intra_predict( prediction_mode, prediction );
+template<unsigned int size>
+uint64_t Encoder::get_energy( const VP8Raster::Block< size > & block,
+                              const TwoDSubRange< uint8_t, size, size > & prediction,
+                              const uint16_t dc_factor, const uint16_t ac_factor )
+{
+  uint64_t energy = 0;
+
+  for ( size_t i = 0; i < size; i++ ) {
+    for ( size_t j = 0; j < size; j++ ) {
+      energy += ( block.at( i, j ) - prediction.at( i , j ) ) *
+                ( block.at( i, j ) - prediction.at( i , j ) ) /
+                ( ( i + j == 0 ) ? dc_factor : ac_factor );
+    }
   }
 
-  return make_pair( prediction_mode, move( prediction ) );
+  return energy;
 }
 
 template <class MacroblockType>
-pair< mbmode, TwoD< uint8_t > > Encoder::chroma_mb_intra_predict( VP8Raster::Macroblock & /* original_mb */,
-                                                                  VP8Raster::Macroblock & constructed_mb,
-                                                                  MacroblockType & /* frame_mb */,
-                                                                  Component component )
+pair< mbmode, TwoD< uint8_t > > Encoder::luma_mb_intra_predict( VP8Raster::Macroblock & original_mb,
+                                                                VP8Raster::Macroblock & constructed_mb,
+                                                                MacroblockType & /* frame_mb */,
+                                                                Quantizer & quantizer )
 {
-  assert( component != Y_COMPONENT );
+  uint64_t min_energy = numeric_limits< uint64_t >::max();
+  mbmode min_prediction_mode = DC_PRED;
+  TwoD< uint8_t > min_prediction( 16, 16 );
 
-  // TODO: dynamically choose the best prediction mode
-  mbmode prediction_mode = DC_PRED;
-  TwoD< uint8_t > prediction( 8, 8 );
-
-  if ( component == U_COMPONENT ) {
-    constructed_mb.U.intra_predict( prediction_mode, prediction );
+  if ( min_prediction_mode == B_PRED ) {
+    min_prediction.fill( 0 );
   }
   else {
-    constructed_mb.V.intra_predict( prediction_mode, prediction );
+    for ( int prediction_mode = DC_PRED; prediction_mode <= TM_PRED; prediction_mode++ ) {
+      TwoD< uint8_t > prediction( 16, 16 );
+
+      constructed_mb.Y.intra_predict( ( mbmode )prediction_mode, prediction );
+
+      uint64_t energy = get_energy( original_mb.Y, prediction, quantizer.y_dc, quantizer.y_ac );
+
+      if ( energy < min_energy ) {
+        min_prediction = move( prediction );
+        min_prediction_mode = ( mbmode )prediction_mode;
+        min_energy = energy;
+      }
+    }
   }
 
-  return make_pair( prediction_mode, move( prediction ) );
+  return make_pair( min_prediction_mode, move( min_prediction ) );
+}
+
+template <class MacroblockType>
+tuple< mbmode, TwoD< uint8_t >, TwoD< uint8_t > > Encoder::chroma_mb_intra_predict( VP8Raster::Macroblock & original_mb,
+                                                                                    VP8Raster::Macroblock & constructed_mb,
+                                                                                    MacroblockType & /* frame_mb */,
+                                                                                    Quantizer & quantizer )
+{
+  uint64_t min_energy = numeric_limits< uint64_t >::max();
+  mbmode min_prediction_mode = DC_PRED;
+  TwoD< uint8_t > u_min_prediction( 8, 8 );
+  TwoD< uint8_t > v_min_prediction( 8, 8 );
+
+  for ( int prediction_mode = DC_PRED; prediction_mode <= TM_PRED; prediction_mode++ ) {
+    TwoD< uint8_t > u_prediction( 8, 8 );
+    TwoD< uint8_t > v_prediction( 8, 8 );
+
+    constructed_mb.U.intra_predict( ( mbmode )prediction_mode, u_prediction );
+    constructed_mb.V.intra_predict( ( mbmode )prediction_mode, v_prediction );
+
+    uint64_t energy = get_energy( original_mb.U, u_prediction, quantizer.uv_dc, quantizer.uv_ac );
+    energy += get_energy( original_mb.V, v_prediction, quantizer.uv_dc, quantizer.uv_ac );
+
+    if ( energy < min_energy ) {
+      u_min_prediction = move( u_prediction );
+      v_min_prediction = move( v_prediction );
+      min_prediction_mode = ( mbmode )prediction_mode;
+      min_energy = energy;
+    }
+  }
+
+  return make_tuple( min_prediction_mode, move( u_min_prediction ), move( v_min_prediction ) );
 }
 
 template <class MacroblockType>
 pair< bmode, TwoD< uint8_t > > Encoder::luma_sb_intra_predict( VP8Raster::Macroblock & /* original_mb */,
-                                                                VP8Raster::Macroblock & /* constructed_mb */,
-                                                                MacroblockType & frame_mb,
-                                                                VP8Raster::Block4 & constructed_subblock )
+                                                               VP8Raster::Macroblock & /* constructed_mb */,
+                                                               MacroblockType & /* frame_mb */,
+                                                               VP8Raster::Block4 & constructed_subblock,
+                                                               Quantizer & /* quantizer */ )
 {
-  assert( frame_mb.Y2().prediction_mode() == B_PRED );
-
   bmode prediction_mode = B_DC_PRED;
   TwoD< uint8_t > prediction( 4, 4 );
   constructed_subblock.intra_predict( prediction_mode, prediction );
@@ -140,7 +191,7 @@ std::pair< KeyFrame, double > Encoder::get_encoded_keyframe( const VP8Raster & r
 
       // Process Y
       pair< mbmode, TwoD< uint8_t > > y_prediction = luma_mb_intra_predict( raster_macroblock,
-        constructed_macroblock, frame_macroblock );
+        constructed_macroblock, frame_macroblock, quantizer );
 
       SafeArray< int16_t, 16 > walsh_input;
 
@@ -160,7 +211,7 @@ std::pair< KeyFrame, double > Encoder::get_encoded_keyframe( const VP8Raster & r
           }
           else {
             pair< bmode, TwoD< uint8_t > > y_sb_prediction = luma_sb_intra_predict( raster_macroblock,
-              constructed_macroblock, frame_macroblock, constructed_y_subblock );
+              constructed_macroblock, frame_macroblock, constructed_y_subblock, quantizer );
 
             frame_y_subblock.mutable_coefficients().subtract_dct( raster_y_subblock,
               TwoDSubRange< uint8_t, 4, 4 >( y_sb_prediction.second, 0, 0 ) );
@@ -192,31 +243,26 @@ std::pair< KeyFrame, double > Encoder::get_encoded_keyframe( const VP8Raster & r
         }
 
         // Process U
-        pair< mbmode, TwoD< uint8_t > > u_prediction = chroma_mb_intra_predict( raster_macroblock,
-          constructed_macroblock, frame_macroblock, U_COMPONENT );
+        tuple< mbmode, TwoD< uint8_t >, TwoD< uint8_t > > uv_prediction = chroma_mb_intra_predict( raster_macroblock,
+          constructed_macroblock, frame_macroblock, quantizer );
 
-        frame_macroblock.U().at( 0, 0 ).set_prediction_mode( u_prediction.first );
+        frame_macroblock.U().at( 0, 0 ).set_prediction_mode( get<0>( uv_prediction ) );
 
         raster_macroblock.U_sub.forall_ij( [&] ( VP8Raster::Block4 & raster_u_subblock,
           unsigned int sb_column, unsigned int sb_row ) {
             UVBlock & frame_u_subblock = frame_macroblock.U().at( sb_column, sb_row );
             frame_u_subblock.mutable_coefficients().subtract_dct( raster_u_subblock,
-              TwoDSubRange< uint8_t, 4, 4 >( u_prediction.second, 4 * sb_column, 4 * sb_row ) );
+              TwoDSubRange< uint8_t, 4, 4 >( get<1>( uv_prediction ), 4 * sb_column, 4 * sb_row ) );
             frame_u_subblock.mutable_coefficients() = UVBlock::quantize( quantizer, frame_u_subblock.coefficients() );
             frame_u_subblock.calculate_has_nonzero();
           } );
 
           // Process V
-          pair< mbmode, TwoD< uint8_t > > v_prediction = chroma_mb_intra_predict( raster_macroblock,
-            constructed_macroblock, frame_macroblock, V_COMPONENT );
-
-          assert( v_prediction.first == u_prediction.first ); // same prediction mode for both U and V
-
           raster_macroblock.V_sub.forall_ij( [&] ( VP8Raster::Block4 & raster_v_subblock,
             unsigned int sb_column, unsigned int sb_row ) {
               UVBlock & frame_v_subblock = frame_macroblock.V().at( sb_column, sb_row );
               frame_v_subblock.mutable_coefficients().subtract_dct( raster_v_subblock,
-                TwoDSubRange< uint8_t, 4, 4 >( v_prediction.second, 4 * sb_column, 4 * sb_row ) );
+                TwoDSubRange< uint8_t, 4, 4 >( get<2>( uv_prediction ), 4 * sb_column, 4 * sb_row ) );
               frame_v_subblock.mutable_coefficients() = UVBlock::quantize( quantizer, frame_v_subblock.coefficients() );
               frame_v_subblock.calculate_has_nonzero();
             } );
