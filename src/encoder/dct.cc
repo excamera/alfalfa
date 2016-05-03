@@ -64,16 +64,8 @@ void DCTCoefficients::subtract_dct( const VP8Raster::Block4 & block,
   }
 }
 
-void DCTCoefficients::wht( const SafeArray< SafeArray< int16_t, 4 >, 4 > & input_coeffs )
+void DCTCoefficients::wht( const SafeArray< int16_t, 16 > & input )
 {
-  SafeArray< int16_t, 16 > input;
-
-  for ( size_t i = 0; i < 4; i++ ) {
-    for ( size_t j = 0; j < 4; j++ ) {
-      input.at( i + 4 * j ) = input_coeffs.at( i ).at( j );
-    }
-  }
-
   size_t pitch = 8;
   int a1, b1, c1, d1;
   int a2, b2, c2, d2;
@@ -114,10 +106,10 @@ void DCTCoefficients::wht( const SafeArray< SafeArray< int16_t, 4 >, 4 > & input
     c2 += c2 < 0;
     d2 += d2 < 0;
 
-    at( o_offset +  0 ) = (a2 + 3) >> 3;
-    at( o_offset +  4 ) = (b2 + 3) >> 3;
-    at( o_offset +  8 ) = (c2 + 3) >> 3;
-    at( o_offset + 12 ) = (d2 + 3) >> 3;
+    at( o_offset +  0 ) = ( a2 + 3 ) >> 3;
+    at( o_offset +  4 ) = ( b2 + 3 ) >> 3;
+    at( o_offset +  8 ) = ( c2 + 3 ) >> 3;
+    at( o_offset + 12 ) = ( d2 + 3 ) >> 3;
 
     i_offset++;
     o_offset++;

@@ -128,8 +128,6 @@ public:
   bool operator!=( const Macroblock & other ) const { return not operator==( other ); }
 
 	/* Encoding */
-	SafeArray< int16_t, 16 > extract_y_dc_coeffs( bool set_to_zero = false );
-
   Y2Block & Y2()                      { return Y2_; }
   TwoDSubRange< YBlock, 4, 4 >  & Y() { return Y_; }
   TwoDSubRange< UVBlock, 2, 2 > & U() { return U_; }

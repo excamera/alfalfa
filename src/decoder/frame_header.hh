@@ -20,6 +20,8 @@ struct QuantIndices
       y2_ac( data ), uv_dc( data ), uv_ac( data )
   {}
 
+  QuantIndices(); /* for encoder use */
+
   bool operator==( const QuantIndices & other ) const
   {
     return y_ac_qi == other.y_ac_qi and

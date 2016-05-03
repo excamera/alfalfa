@@ -25,8 +25,8 @@ void usage_error( const string & program_name )
        << endl
        << "Options:" << endl
        << " -o <arg>, --output=<arg>              Output file name (default: output.ivf)" << endl
+       << " -s <arg>, --ssim=<arg>                SSIM for the output" << endl
        << " -i <arg>, --input-format=<arg>        Input file format" << endl
-       << " -s <arg>, --minimum-ssim=<arg>        Minimum SSIM for the output" << endl
        << "                                         ivf (default), y4m" << endl;
 }
 
@@ -44,16 +44,17 @@ int main( int argc, char *argv[] )
 
     string output_file = "output.ivf";
     string input_format = "ivf";
-    double minimum_ssim = 0.8;
+    double ssim = 0.8;
 
     const option command_line_options[] = {
       { "output",       required_argument, nullptr, 'o' },
       { "input-format", required_argument, nullptr, 'i' },
+      { "ssim",         required_argument, nullptr, 's' },
       { 0, 0, nullptr, 0 }
     };
 
     while ( true ) {
-      const int opt = getopt_long( argc, argv, "o:i:", command_line_options, nullptr );
+      const int opt = getopt_long( argc, argv, "o:i:s:", command_line_options, nullptr );
 
       if ( opt == -1 ) {
         break;
@@ -69,7 +70,8 @@ int main( int argc, char *argv[] )
         break;
 
       case 's':
-        minimum_ssim = stod( optarg );
+        ssim = stod( optarg );
+        break;
 
       default:
         throw runtime_error( "getopt_long: unexpected return value." );
@@ -107,8 +109,13 @@ int main( int argc, char *argv[] )
 
     Optional<RasterHandle> raster = input_reader->get_next_frame();
 
+    size_t frame_index = 0;
+
     while ( raster.initialized() ) {
-      encoder.encode_as_keyframe( raster.get(), minimum_ssim );
+      double result_ssim = encoder.encode_as_keyframe( raster.get(), ssim );
+
+      cout << "Frame #" << frame_index++ << ": ssim(" << result_ssim << ")" << endl; 
+
       raster = input_reader->get_next_frame();
     }
   } catch ( const exception &  e ) {

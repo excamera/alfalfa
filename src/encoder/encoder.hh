@@ -36,7 +36,9 @@ private:
 
 public:
   Encoder( const std::string & output_filename, uint16_t width, uint16_t height );
-  void encode_as_keyframe( const VP8Raster & raster, double minimum_ssim );
+  double encode_as_keyframe( const VP8Raster & raster, double minimum_ssim );
+
+  std::pair< KeyFrame, double > get_encoded_keyframe( const VP8Raster & raster, const Optional<QuantIndices> quant_indices = Optional<QuantIndices>() );
 
   static KeyFrame make_empty_frame( unsigned int width, unsigned int height );
 };
