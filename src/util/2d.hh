@@ -225,7 +225,7 @@ public:
 
   /* allow moving */
   TwoD( TwoD && other ) : storage_( std::move( other.storage_ ) ) {}
-  TwoD & operator=( TwoD && other ) { storage_ = std::move( other.storage_ ); }
+  TwoD & operator=( TwoD && other ) { storage_ = std::move( other.storage_ ); return *this; }
 
   /* explicit copy operator */
   void copy_from( const TwoD & other ) { storage_->copy_from( *( other.storage_ ) ); }
