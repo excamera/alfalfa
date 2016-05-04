@@ -44,7 +44,7 @@ int main( int argc, char *argv[] )
 
     string output_file = "output.ivf";
     string input_format = "ivf";
-    double ssim = 0.8;
+    double ssim = 0.99;
 
     const option command_line_options[] = {
       { "output",       required_argument, nullptr, 'o' },
@@ -114,7 +114,7 @@ int main( int argc, char *argv[] )
     while ( raster.initialized() ) {
       double result_ssim = encoder.encode_as_keyframe( raster.get(), ssim );
 
-      cout << "Frame #" << frame_index++ << ": ssim(" << result_ssim << ")" << endl; 
+      cout << "Frame #" << frame_index++ << ": ssim(" << result_ssim << ")" << endl;
 
       raster = input_reader->get_next_frame();
     }

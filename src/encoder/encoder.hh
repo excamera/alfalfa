@@ -25,16 +25,16 @@ private:
                               const uint16_t dc_factor, const uint16_t ac_factor );
 
   template <class MacroblockType>
-  std::pair< mbmode, TwoD< uint8_t > > luma_mb_intra_predict( VP8Raster::Macroblock & original_mb,
-                                                              VP8Raster::Macroblock & constructed_mb,
-                                                              MacroblockType & frame_mb,
-                                                              Quantizer & quantizer );
+  void luma_mb_intra_predict( VP8Raster::Macroblock & original_mb,
+                              VP8Raster::Macroblock & constructed_mb,
+                              MacroblockType & frame_mb,
+                              Quantizer & quantizer );
 
   template <class MacroblockType>
-  std::tuple< mbmode, TwoD< uint8_t >, TwoD< uint8_t > > chroma_mb_intra_predict( VP8Raster::Macroblock & original_mb,
-                                                                                  VP8Raster::Macroblock & constructed_mb,
-                                                                                  MacroblockType & frame_mb,
-                                                                                  Quantizer & quantizer );
+  void chroma_mb_intra_predict( VP8Raster::Macroblock & original_mb,
+                                VP8Raster::Macroblock & constructed_mb,
+                                MacroblockType & frame_mb,
+                                Quantizer & quantizer );
 
   std::pair< bmode, TwoD< uint8_t > > luma_sb_intra_predict( VP8Raster::Block4 & original_sb,
                                                              VP8Raster::Block4 & constructed_sb,
