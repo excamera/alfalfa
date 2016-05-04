@@ -127,6 +127,18 @@ public:
 
   bool operator!=( const Macroblock & other ) const { return not operator==( other ); }
 
+  static bmode implied_subblock_mode( const mbmode y_mode )
+  {
+    switch ( y_mode ) {
+    case DC_PRED: return B_DC_PRED;
+    case V_PRED:  return B_VE_PRED;
+    case H_PRED:  return B_HE_PRED;
+    case TM_PRED: return B_TM_PRED;
+    default: throw LogicError();
+    }
+  }
+
+
 	/* Encoding */
   Y2Block & Y2()                      { return Y2_; }
   TwoDSubRange< YBlock, 4, 4 >  & Y() { return Y_; }

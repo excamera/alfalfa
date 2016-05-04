@@ -36,11 +36,9 @@ private:
                                                                                   MacroblockType & frame_mb,
                                                                                   Quantizer & quantizer );
 
-  template <class MacroblockType>
-  std::pair< bmode, TwoD< uint8_t > > luma_sb_intra_predict( VP8Raster::Macroblock & original_mb,
-                                                             VP8Raster::Macroblock & constructed_mb,
-                                                             MacroblockType & frame_mb,
-                                                             VP8Raster::Block4 & subblock,
+  std::pair< bmode, TwoD< uint8_t > > luma_sb_intra_predict( VP8Raster::Block4 & original_sb,
+                                                             VP8Raster::Block4 & constructed_sb,
+                                                             YBlock & frame_sb,
                                                              Quantizer & quantizer );
 
 public:

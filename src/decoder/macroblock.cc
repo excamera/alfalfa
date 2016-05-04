@@ -11,17 +11,6 @@
 
 using namespace std;
 
-static bmode implied_subblock_mode( const mbmode y_mode )
-{
-  switch ( y_mode ) {
-  case DC_PRED: return B_DC_PRED;
-  case V_PRED:  return B_VE_PRED;
-  case H_PRED:  return B_HE_PRED;
-  case TM_PRED: return B_TM_PRED;
-  default: throw LogicError();
-  }
-}
-
 template <class FrameHeaderType, class MacroblockHeaderType>
 Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename TwoD<Macroblock>::Context & c,
 							       BoolDecoder & data,

@@ -48,8 +48,8 @@ uint64_t Encoder::get_energy( const VP8Raster::Block< size > & block,
 
   for ( size_t i = 0; i < size; i++ ) {
     for ( size_t j = 0; j < size; j++ ) {
-      energy += ( block.at( i, j ) - prediction.at( i , j ) ) *
-                ( block.at( i, j ) - prediction.at( i , j ) ) /
+      energy += ( block.at( i, j ) - prediction.at( i, j ) ) *
+                ( block.at( i, j ) - prediction.at( i, j ) ) /
                 ( ( i + j == 0 ) ? dc_factor : ac_factor );
     }
   }
@@ -60,29 +60,50 @@ uint64_t Encoder::get_energy( const VP8Raster::Block< size > & block,
 template <class MacroblockType>
 pair< mbmode, TwoD< uint8_t > > Encoder::luma_mb_intra_predict( VP8Raster::Macroblock & original_mb,
                                                                 VP8Raster::Macroblock & constructed_mb,
-                                                                MacroblockType & /* frame_mb */,
+                                                                MacroblockType & frame_mb,
                                                                 Quantizer & quantizer )
 {
   uint64_t min_energy = numeric_limits< uint64_t >::max();
   mbmode min_prediction_mode = DC_PRED;
   TwoD< uint8_t > min_prediction( 16, 16 );
 
-  if ( min_prediction_mode == B_PRED ) {
-    min_prediction.fill( 0 );
-  }
-  else {
-    for ( int prediction_mode = DC_PRED; prediction_mode <= TM_PRED; prediction_mode++ ) {
-      TwoD< uint8_t > prediction( 16, 16 );
+  for ( int prediction_mode = DC_PRED; prediction_mode <= B_PRED; prediction_mode++ ) {
+    TwoD< uint8_t > prediction( 16, 16 );
+    uint64_t energy = numeric_limits< uint64_t >::max();
 
+    if ( prediction_mode == B_PRED ) {
+      prediction.fill( 0 );
+      energy = 0;
+
+      constructed_mb.Y_sub.forall_ij( [&] ( VP8Raster::Block4 & constructed_sb,
+        unsigned int sb_column, unsigned int sb_row ) {
+          auto & original_sb = original_mb.Y_sub.at( sb_column, sb_row );
+          auto & frame_sb = frame_mb.Y().at( sb_column, sb_row );
+
+          pair< bmode, TwoD< uint8_t > > sb_prediction = luma_sb_intra_predict( original_sb,
+            constructed_sb, frame_sb, quantizer );
+
+          energy += get_energy( original_sb, sb_prediction.second,
+            quantizer.y_dc, quantizer.y_ac );
+
+          frame_sb.mutable_coefficients().subtract_dct( original_sb,
+            TwoDSubRange< uint8_t, 4, 4 >( sb_prediction.second, 0, 0 ) );
+
+          frame_sb.mutable_coefficients() = YBlock::quantize( quantizer, frame_sb.coefficients() );
+          frame_sb.set_prediction_mode( sb_prediction.first );
+          constructed_sb.intra_predict( sb_prediction.first );
+          frame_sb.dequantize( quantizer ).idct_add( constructed_sb );
+        } );
+    }
+    else {
       constructed_mb.Y.intra_predict( ( mbmode )prediction_mode, prediction );
+      energy = get_energy( original_mb.Y, prediction, quantizer.y_dc, quantizer.y_ac );
+    }
 
-      uint64_t energy = get_energy( original_mb.Y, prediction, quantizer.y_dc, quantizer.y_ac );
-
-      if ( energy < min_energy ) {
-        min_prediction = move( prediction );
-        min_prediction_mode = ( mbmode )prediction_mode;
-        min_energy = energy;
-      }
+    if ( energy < min_energy ) {
+      min_prediction = move( prediction );
+      min_prediction_mode = ( mbmode )prediction_mode;
+      min_energy = energy;
     }
   }
 
@@ -121,18 +142,29 @@ tuple< mbmode, TwoD< uint8_t >, TwoD< uint8_t > > Encoder::chroma_mb_intra_predi
   return make_tuple( min_prediction_mode, move( u_min_prediction ), move( v_min_prediction ) );
 }
 
-template <class MacroblockType>
-pair< bmode, TwoD< uint8_t > > Encoder::luma_sb_intra_predict( VP8Raster::Macroblock & /* original_mb */,
-                                                               VP8Raster::Macroblock & /* constructed_mb */,
-                                                               MacroblockType & /* frame_mb */,
-                                                               VP8Raster::Block4 & constructed_subblock,
-                                                               Quantizer & /* quantizer */ )
+pair< bmode, TwoD< uint8_t > > Encoder::luma_sb_intra_predict( VP8Raster::Block4 & original_sb,
+                                                               VP8Raster::Block4 & constructed_sb,
+                                                               YBlock & /* frame_sb */,
+                                                               Quantizer & quantizer )
 {
-  bmode prediction_mode = B_DC_PRED;
-  TwoD< uint8_t > prediction( 4, 4 );
-  constructed_subblock.intra_predict( prediction_mode, prediction );
+  uint64_t min_energy = numeric_limits< uint64_t >::max();
+  bmode min_prediction_mode = B_DC_PRED;
+  TwoD< uint8_t > min_prediction( 4, 4 );
 
-  return make_pair( prediction_mode, move( prediction ) );
+  for ( size_t prediction_mode = B_DC_PRED; prediction_mode <= B_HU_PRED; prediction_mode++ ) {
+    TwoD< uint8_t > prediction( 4, 4 );
+
+    constructed_sb.intra_predict( ( bmode )prediction_mode, prediction );
+    uint64_t energy = get_energy( original_sb, prediction, quantizer.y_dc, quantizer.y_ac );
+
+    if ( energy < min_energy ) {
+      min_prediction = move( prediction );
+      min_prediction_mode = ( bmode )prediction_mode;
+      min_energy = energy;
+    }
+  }
+
+  return make_pair( min_prediction_mode, move( min_prediction ) );
 }
 
 
@@ -208,10 +240,11 @@ std::pair< KeyFrame, double > Encoder::get_encoded_keyframe( const VP8Raster & r
 
             walsh_input.at( sb_column + 4 * sb_row ) = frame_y_subblock.coefficients().at( 0 );
             frame_y_subblock.set_dc_coefficient( 0 );
+            frame_y_subblock.set_prediction_mode( KeyFrameMacroblock::implied_subblock_mode( y_prediction.first ) );
           }
           else {
-            pair< bmode, TwoD< uint8_t > > y_sb_prediction = luma_sb_intra_predict( raster_macroblock,
-              constructed_macroblock, frame_macroblock, constructed_y_subblock, quantizer );
+            pair< bmode, TwoD< uint8_t > > y_sb_prediction = luma_sb_intra_predict( raster_y_subblock,
+              constructed_y_subblock, frame_y_subblock, quantizer );
 
             frame_y_subblock.mutable_coefficients().subtract_dct( raster_y_subblock,
               TwoDSubRange< uint8_t, 4, 4 >( y_sb_prediction.second, 0, 0 ) );
