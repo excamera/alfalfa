@@ -31,30 +31,32 @@ Encoder::Encoder( const string & output_filename, uint16_t width, uint16_t heigh
 {}
 
 template<unsigned int size>
-uint64_t Encoder::get_energy( const VP8Raster::Block< size > & block,
-                              const TwoD< uint8_t > & prediction,
-                              const uint16_t dc_factor, const uint16_t ac_factor )
+uint32_t Encoder::get_variance( const VP8Raster::Block< size > & block,
+                                const TwoD< uint8_t > & prediction,
+                                const uint16_t dc_factor, const uint16_t ac_factor )
 {
-  return get_energy( block, TwoDSubRange< uint8_t, size, size >( prediction, 0, 0 ),
-                     dc_factor, ac_factor );
+  return get_variance( block, TwoDSubRange< uint8_t, size, size >( prediction, 0, 0 ),
+                       dc_factor, ac_factor );
 }
 
 template<unsigned int size>
-uint64_t Encoder::get_energy( const VP8Raster::Block< size > & block,
-                              const TwoDSubRange< uint8_t, size, size > & prediction,
-                              const uint16_t dc_factor, const uint16_t ac_factor )
+uint32_t Encoder::get_variance( const VP8Raster::Block< size > & block,
+                                const TwoDSubRange< uint8_t, size, size > & prediction,
+                                const uint16_t dc_factor, const uint16_t ac_factor )
 {
-  uint64_t energy = 0;
+  uint32_t sse = 0;
+  int32_t sum = 0;
 
   for ( size_t i = 0; i < size; i++ ) {
     for ( size_t j = 0; j < size; j++ ) {
-      energy += ( block.at( i, j ) - prediction.at( i, j ) ) *
-                ( block.at( i, j ) - prediction.at( i, j ) ) /
-                ( ( i + j == 0 ) ? dc_factor : ac_factor );
+      int16_t diff = ( block.at( i, j ) - prediction.at( i, j ) ) / ( ( i + j == 0 ) ? dc_factor : ac_factor );
+      sum += diff;
+      sse += diff * diff;
     }
   }
 
-  return energy;
+  /* NOTE: using SSE instead of the variance seems to give better results */
+  return sse;// - ( ( int64_t )sum * sum ) / ( size * size );
 }
 
 template <class MacroblockType>
@@ -64,27 +66,28 @@ void Encoder::luma_mb_intra_predict( VP8Raster::Macroblock & original_mb,
                                      Quantizer & quantizer )
 {
   // Select the best prediction mode
-  uint64_t min_energy = numeric_limits< uint64_t >::max();
+  uint32_t min_energy = numeric_limits< uint32_t >::max();
   mbmode min_prediction_mode = DC_PRED;
   TwoD< uint8_t > min_prediction( 16, 16 );
 
-  for ( int prediction_mode = DC_PRED; prediction_mode <= B_PRED; prediction_mode++ ) {
+  for ( int prediction_mode = B_PRED; prediction_mode <= B_PRED; prediction_mode++ ) {
     TwoD< uint8_t > prediction( 16, 16 );
-    uint64_t energy = numeric_limits< uint64_t >::max();
+    uint32_t variance = numeric_limits< uint32_t >::max();
 
     if ( prediction_mode == B_PRED ) {
       prediction.fill( 0 );
-      energy = 0;
+      variance = 0;
 
-      constructed_mb.Y_sub.forall_ij( [&] ( VP8Raster::Block4 & constructed_sb,
-        unsigned int sb_column, unsigned int sb_row ) {
+      constructed_mb.Y_sub.forall_ij(
+        [&] ( VP8Raster::Block4 & constructed_sb, unsigned int sb_column, unsigned int sb_row )
+        {
           auto & original_sb = original_mb.Y_sub.at( sb_column, sb_row );
           auto & frame_sb = frame_mb.Y().at( sb_column, sb_row );
 
           pair< bmode, TwoD< uint8_t > > sb_prediction = luma_sb_intra_predict( original_sb,
             constructed_sb, frame_sb, quantizer );
 
-          energy += get_energy( original_sb, sb_prediction.second,
+          variance += get_variance( original_sb, sb_prediction.second,
             quantizer.y_dc, quantizer.y_ac );
 
           frame_sb.mutable_coefficients().subtract_dct( original_sb,
@@ -101,13 +104,13 @@ void Encoder::luma_mb_intra_predict( VP8Raster::Macroblock & original_mb,
     }
     else {
       constructed_mb.Y.intra_predict( ( mbmode )prediction_mode, prediction );
-      energy = get_energy( original_mb.Y, prediction, quantizer.y_dc, quantizer.y_ac );
+      variance = get_variance( original_mb.Y, prediction, quantizer.y_dc, quantizer.y_ac );
     }
 
-    if ( energy < min_energy ) {
+    if ( variance < min_energy ) {
       min_prediction = move( prediction );
       min_prediction_mode = ( mbmode )prediction_mode;
-      min_energy = energy;
+      min_energy = variance;
     }
   }
 
@@ -117,24 +120,29 @@ void Encoder::luma_mb_intra_predict( VP8Raster::Macroblock & original_mb,
   if ( min_prediction_mode != B_PRED ) { // if B_PRED is selected, it is already taken care of.
     SafeArray< int16_t, 16 > walsh_input;
 
-    frame_mb.Y().forall_ij( [&] ( YBlock & frame_sb, unsigned int sb_column, unsigned int sb_row ) {
-      auto & original_sb = original_mb.Y_sub.at( sb_column, sb_row );
-      frame_sb.set_prediction_mode( KeyFrameMacroblock::implied_subblock_mode( min_prediction_mode ) );
+    frame_mb.Y().forall_ij(
+      [&] ( YBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
+      {
+        auto & original_sb = original_mb.Y_sub.at( sb_column, sb_row );
+        frame_sb.set_prediction_mode( KeyFrameMacroblock::implied_subblock_mode( min_prediction_mode ) );
 
-      frame_sb.mutable_coefficients().subtract_dct( original_sb,
-        TwoDSubRange< uint8_t, 4, 4 >( min_prediction, 4 * sb_column, 4 * sb_row ) );
+        frame_sb.mutable_coefficients().subtract_dct( original_sb,
+          TwoDSubRange< uint8_t, 4, 4 >( min_prediction, 4 * sb_column, 4 * sb_row ) );
 
-      walsh_input.at( sb_column + 4 * sb_row ) = frame_sb.coefficients().at( 0 );
-      frame_sb.set_dc_coefficient( 0 );
-      frame_sb.mutable_coefficients() = YBlock::quantize( quantizer, frame_sb.coefficients() );
-      frame_sb.set_Y_after_Y2();
-      frame_sb.calculate_has_nonzero();
-    } );
+        walsh_input.at( sb_column + 4 * sb_row ) = frame_sb.coefficients().at( 0 );
+        frame_sb.set_dc_coefficient( 0 );
+        frame_sb.mutable_coefficients() = YBlock::quantize( quantizer, frame_sb.coefficients() );
+        frame_sb.set_Y_after_Y2();
+        frame_sb.calculate_has_nonzero();
+      } );
 
     frame_mb.Y2().set_coded( true );
     frame_mb.Y2().mutable_coefficients().wht( walsh_input );
     frame_mb.Y2().mutable_coefficients() = Y2Block::quantize( quantizer, frame_mb.Y2().coefficients() );
     frame_mb.Y2().calculate_has_nonzero();
+  }
+  else {
+    frame_mb.Y2().set_coded( false );
   }
 }
 
@@ -145,7 +153,7 @@ void Encoder::chroma_mb_intra_predict( VP8Raster::Macroblock & original_mb,
                                        Quantizer & quantizer )
 {
   // Select the best prediction mode
-  uint64_t min_energy = numeric_limits< uint64_t >::max();
+  uint32_t min_energy = numeric_limits< uint32_t >::max();
   mbmode min_prediction_mode = DC_PRED;
   TwoD< uint8_t > u_min_prediction( 8, 8 );
   TwoD< uint8_t > v_min_prediction( 8, 8 );
@@ -157,22 +165,23 @@ void Encoder::chroma_mb_intra_predict( VP8Raster::Macroblock & original_mb,
     constructed_mb.U.intra_predict( ( mbmode )prediction_mode, u_prediction );
     constructed_mb.V.intra_predict( ( mbmode )prediction_mode, v_prediction );
 
-    uint64_t energy = get_energy( original_mb.U, u_prediction, quantizer.uv_dc, quantizer.uv_ac );
-    energy += get_energy( original_mb.V, v_prediction, quantizer.uv_dc, quantizer.uv_ac );
+    uint32_t variance = get_variance( original_mb.U, u_prediction, quantizer.uv_dc, quantizer.uv_ac );
+    variance += get_variance( original_mb.V, v_prediction, quantizer.uv_dc, quantizer.uv_ac );
 
-    if ( energy < min_energy ) {
+    if ( variance < min_energy ) {
       u_min_prediction = move( u_prediction );
       v_min_prediction = move( v_prediction );
       min_prediction_mode = ( mbmode )prediction_mode;
-      min_energy = energy;
+      min_energy = variance;
     }
   }
 
   // Apply
   frame_mb.U().at( 0, 0 ).set_prediction_mode( min_prediction_mode );
 
-  frame_mb.U().forall_ij( [&] ( UVBlock & frame_sb,
-    unsigned int sb_column, unsigned int sb_row ) {
+  frame_mb.U().forall_ij(
+    [&] ( UVBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
+    {
       auto & original_sb = original_mb.U_sub.at( sb_column, sb_row );
       frame_sb.mutable_coefficients().subtract_dct( original_sb,
         TwoDSubRange< uint8_t, 4, 4 >( u_min_prediction, 4 * sb_column, 4 * sb_row ) );
@@ -180,8 +189,9 @@ void Encoder::chroma_mb_intra_predict( VP8Raster::Macroblock & original_mb,
       frame_sb.calculate_has_nonzero();
     } );
 
-  frame_mb.V().forall_ij( [&] ( UVBlock & frame_sb,
-    unsigned int sb_column, unsigned int sb_row ) {
+  frame_mb.V().forall_ij(
+    [&] ( UVBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
+    {
       auto & original_sb = original_mb.V_sub.at( sb_column, sb_row );
       frame_sb.mutable_coefficients().subtract_dct( original_sb,
         TwoDSubRange< uint8_t, 4, 4 >( v_min_prediction, 4 * sb_column, 4 * sb_row ) );
@@ -195,7 +205,7 @@ pair< bmode, TwoD< uint8_t > > Encoder::luma_sb_intra_predict( VP8Raster::Block4
                                                                YBlock & /* frame_sb */,
                                                                Quantizer & quantizer )
 {
-  uint64_t min_energy = numeric_limits< uint64_t >::max();
+  uint32_t min_energy = numeric_limits< uint32_t >::max();
   bmode min_prediction_mode = B_DC_PRED;
   TwoD< uint8_t > min_prediction( 4, 4 );
 
@@ -203,12 +213,12 @@ pair< bmode, TwoD< uint8_t > > Encoder::luma_sb_intra_predict( VP8Raster::Block4
     TwoD< uint8_t > prediction( 4, 4 );
 
     constructed_sb.intra_predict( ( bmode )prediction_mode, prediction );
-    uint64_t energy = get_energy( original_sb, prediction, quantizer.y_dc, quantizer.y_ac );
+    uint32_t variance = get_variance( original_sb, prediction, quantizer.y_dc, quantizer.y_ac );
 
-    if ( energy < min_energy ) {
+    if ( variance < min_energy ) {
       min_prediction = move( prediction );
       min_prediction_mode = ( bmode )prediction_mode;
-      min_energy = energy;
+      min_energy = variance;
     }
   }
 
@@ -218,8 +228,8 @@ pair< bmode, TwoD< uint8_t > > Encoder::luma_sb_intra_predict( VP8Raster::Block4
 
 double Encoder::encode_as_keyframe( const VP8Raster & raster, double minimum_ssim )
 {
-  uint8_t y_ac_qi_min = 0;
-  uint8_t y_ac_qi_max = 127;
+  int y_ac_qi_min = 0;
+  int y_ac_qi_max = 127;
 
   unsigned int width = raster.display_width();
   unsigned int height = raster.display_height();
@@ -229,6 +239,10 @@ double Encoder::encode_as_keyframe( const VP8Raster & raster, double minimum_ssi
 
   while ( y_ac_qi_min < y_ac_qi_max ) {
     quant_indices.y_ac_qi = ( y_ac_qi_min + y_ac_qi_max ) / 2;
+    quant_indices.y_dc    = Signed< 4 >( 0 );
+    quant_indices.uv_dc   = Signed< 4 >( 15 );
+    quant_indices.uv_ac   = Signed< 4 >( 15 );
+
     pair< KeyFrame, double > frame_data = get_encoded_keyframe( raster, make_optional( true, quant_indices ) );
 
     if ( abs( frame_data.second - minimum_ssim ) < 0.005 ) {
@@ -244,6 +258,7 @@ double Encoder::encode_as_keyframe( const VP8Raster & raster, double minimum_ssi
     }
   }
 
+  quant_indices.y_ac_qi = ( y_ac_qi_min + y_ac_qi_max ) / 2;
   pair< KeyFrame, double > frame_data = get_encoded_keyframe( raster, make_optional( true, quant_indices ) );
   ivf_writer_.append_frame( frame_data.first.serialize( temp_state.probability_tables ) );
   return frame_data.second;

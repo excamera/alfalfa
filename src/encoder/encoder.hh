@@ -15,12 +15,12 @@ private:
   IVFWriter ivf_writer_;
 
   template<unsigned int size>
-  static uint64_t get_energy( const VP8Raster::Block< size > & block,
+  static uint32_t get_variance( const VP8Raster::Block< size > & block,
                               const TwoD< uint8_t > & prediction,
                               const uint16_t dc_factor, const uint16_t ac_factor );
 
   template<unsigned int size>
-  static uint64_t get_energy( const VP8Raster::Block< size > & block,
+  static uint32_t get_variance( const VP8Raster::Block< size > & block,
                               const TwoDSubRange< uint8_t, size, size > & prediction,
                               const uint16_t dc_factor, const uint16_t ac_factor );
 

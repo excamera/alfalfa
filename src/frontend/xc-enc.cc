@@ -114,7 +114,7 @@ int main( int argc, char *argv[] )
     while ( raster.initialized() ) {
       double result_ssim = encoder.encode_as_keyframe( raster.get(), ssim );
 
-      cout << "Frame #" << frame_index++ << ": ssim(" << result_ssim << ")" << endl;
+      cerr << "Frame #" << frame_index++ << ": ssim(" << result_ssim << ")" << endl;
 
       raster = input_reader->get_next_frame();
     }
