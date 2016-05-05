@@ -234,13 +234,13 @@ void VP8Raster::Block4::horizontal_smoothed_predict( TwoDSubRange< uint8_t, 4, 4
 template <>
 void VP8Raster::Block4::left_down_predict( TwoDSubRange< uint8_t, 4, 4 > & output )
 {
-  output.at( 0, 0 ) =                                                      avg3( above( 0 ), above( 1 ), above( 2 ) );
-  output.at( 1, 0 ) = output.at( 0, 1 ) =                                  avg3( above( 1 ), above( 2 ), above( 3 ) );
-  output.at( 2, 0 ) = output.at( 1, 1 ) = output.at( 0, 2 ) =              avg3( above( 2 ), above( 3 ), above( 4 ) );
-  output.at( 3, 0 ) = output.at( 2, 1 ) = output.at( 1, 2 ) = at( 0, 3 ) = avg3( above( 3 ), above( 4 ), above( 5 ) );
-  output.at( 3, 1 ) = output.at( 2, 2 ) = output.at( 1, 3 ) =              avg3( above( 4 ), above( 5 ), above( 6 ) );
-  output.at( 3, 2 ) = output.at( 2, 3 ) =                                  avg3( above( 5 ), above( 6 ), above( 7 ) );
-  output.at( 3, 3 ) =                                                      avg3( above( 6 ), above( 7 ), above( 7 ) );
+  output.at( 0, 0 ) =                                                             avg3( above( 0 ), above( 1 ), above( 2 ) );
+  output.at( 1, 0 ) = output.at( 0, 1 ) =                                         avg3( above( 1 ), above( 2 ), above( 3 ) );
+  output.at( 2, 0 ) = output.at( 1, 1 ) = output.at( 0, 2 ) =                     avg3( above( 2 ), above( 3 ), above( 4 ) );
+  output.at( 3, 0 ) = output.at( 2, 1 ) = output.at( 1, 2 ) = output.at( 0, 3 ) = avg3( above( 3 ), above( 4 ), above( 5 ) );
+  output.at( 3, 1 ) = output.at( 2, 2 ) = output.at( 1, 3 ) =                     avg3( above( 4 ), above( 5 ), above( 6 ) );
+  output.at( 3, 2 ) = output.at( 2, 3 ) =                                         avg3( above( 5 ), above( 6 ), above( 7 ) );
+  output.at( 3, 3 ) =                                                             avg3( above( 6 ), above( 7 ), above( 7 ) );
   /* last line is special because we don't use above( 8 ) */
 }
 
