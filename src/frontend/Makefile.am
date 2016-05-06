@@ -1,7 +1,7 @@
 AM_CPPFLAGS = -I$(srcdir)/../util -I$(srcdir)/../decoder -I$(srcdir)/../display -I$(srcdir)/../encoder $(GLU_CFLAGS) $(GLEW_CFLAGS) $(GLFW3_CFLAGS) $(X264_CFLAGS) $(CXX11_FLAGS)
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(NODEBUG_CXXFLAGS)
 
-bin_PROGRAMS = vp8decode vp8play collisions xc-enc
+bin_PROGRAMS = vp8decode vp8play collisions xc-enc xc-ssim
 
 vp8decode_SOURCES = vp8decode.cc
 vp8decode_LDADD = ../decoder/libalfalfadecoder.a ../util/libalfalfautil.a $(X264_LIBS)
@@ -14,3 +14,7 @@ collisions_LDADD = ../decoder/libalfalfadecoder.a ../util/libalfalfautil.a $(X26
 
 xc_enc_SOURCES = xc-enc.cc
 xc_enc_LDADD = ../encoder/libalfalfaencoder.a ../decoder/libalfalfadecoder.a ../display/libalfalfadisplay.a ../util/libalfalfautil.a $(X264_LIBS) $(GLU_LIBS) $(GLEW_LIBS) $(GLFW3_LIBS)
+
+xc_ssim_SOURCES = xc-ssim.cc
+xc_ssim_LDADD = ../encoder/libalfalfaencoder.a ../decoder/libalfalfadecoder.a ../util/libalfalfautil.a $(X264_LIBS)
+ 

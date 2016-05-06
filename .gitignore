@@ -27,6 +27,7 @@ Makefile.in
 /src/frontend/vp8decode
 /src/frontend/collisions
 /src/frontend/xc-enc
+/src/frontend/xc-ssim
 
 /src/tests/decode-to-stdout
 /src/tests/encode-loopback
