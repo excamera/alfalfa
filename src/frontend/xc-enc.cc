@@ -83,7 +83,7 @@ int main( int argc, char *argv[] )
     }
 
     string input_file = argv[ optind ];
-    shared_ptr< FrameInput > input_reader;
+    shared_ptr<FrameInput> input_reader;
 
     if ( input_format == "ivf" ) {
       if ( input_file == "-" ) {
@@ -114,7 +114,7 @@ int main( int argc, char *argv[] )
     while ( raster.initialized() ) {
       double result_ssim = encoder.encode_as_keyframe( raster.get(), ssim );
 
-      cerr << "Frame #" << frame_index++ << ": ssim(" << result_ssim << ")" << endl;
+      cerr << "Frame #" << frame_index++ << ": ssim=" << result_ssim << endl;
 
       raster = input_reader->get_next_frame();
     }
