@@ -1,0 +1,49 @@
+#!/usr/bin/python
+
+import os
+import sys
+import subprocess as sub
+
+TEST_VECTORS_DIR = "encoder_test_vectors/"
+ENCODER_OUTPUT_DIR = "encoder_output/"
+ENCODE_COMMAND = "../frontend/xc-enc --input-format=y4m --ssim={ssim} --output=\"{output_file}\" \"{input_file}\""
+SSIM_COMMAND = "../frontend/xc-ssim -1 ivf -2 y4m \"{input1_file}\" \"{input2_file}\""
+
+def check(input_file, ssim):
+    input_path = os.path.join(TEST_VECTORS_DIR, input_file)
+    output_path = os.path.join(ENCODER_OUTPUT_DIR, "{}-xcout.ivf".format(input_file))
+    encode_command = ENCODE_COMMAND.format(ssim=ssim, input_file=input_path, output_file=output_path)
+
+    if sub.call(encode_command, shell=True) != 0:
+        raise Exception("Encoding failed: {}".format(input_file))
+
+    ssim_command = SSIM_COMMAND.format(input1_file=output_path, input2_file=input_path)
+    res = float(sub.check_output(ssim_command, shell=True))
+
+    if res + 0.005 < ssim:
+        raise Exception("SSIM check failed: {}".format(input_file))
+
+def main():
+    os.system("mkdir {}".format(ENCODER_OUTPUT_DIR))
+
+    for input_file in os.listdir(TEST_VECTORS_DIR):
+        if not input_file.endswith('.y4m'):
+            continue
+
+        sys.stderr.write("Checking {}\n".format(input_file))
+
+        for ssim in [0.60, 0.70, 0.80, 0.90]:
+            sys.stderr.write('{}... '.format(ssim))
+            check(input_file, ssim)
+
+        sys.stderr.write('\n')
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as ex:
+        raise ex
+    finally:
+        os.system("rm -rf {}".format(ENCODER_OUTPUT_DIR))
+
+sys.exit(0)

@@ -14,10 +14,10 @@ void usage_error( const string & program_name )
   cerr << "Usage: " << program_name << " [options] <video1> <video2>" << endl
        << endl
        << "Options:" << endl
-       << " -y,       --y-plane                   Y-plane only"              << endl
-       << " -1 <arg>, --video1-format=<arg>       First video input format"  << endl
-       << " -2 <arg>, --video2-format=<arg>       Second video input format" << endl
-       << "                                         ivf (default), y4m"      << endl;
+       << " -a,       --all-planes                Output SSIM for all planes" << endl
+       << " -1 <arg>, --video1-format=<arg>       First video input format"   << endl
+       << " -2 <arg>, --video2-format=<arg>       Second video input format"  << endl
+       << "                                         ivf (default), y4m"       << endl;
 }
 
 

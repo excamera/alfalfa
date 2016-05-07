@@ -38,3 +38,4 @@ Makefile.in
 /src/tests/ivfcompare
 
 /src/tests/test_vectors/
+/src/tests/encoder_test_vectors/

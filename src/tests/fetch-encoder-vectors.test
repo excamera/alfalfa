@@ -1,0 +1,13 @@
+#!/usr/bin/perl -w
+
+my $target = q{encoder_test_vectors};
+
+if ( -d $target ) {
+  print STDERR "$0: test vectors already in place\n";
+  exit 0;
+}
+
+print STDERR "$0: fetching encoder test vectors from GitHub";
+
+system( qq{git clone https://github.com/alfalfa/xc_encoder_test_vectors $target} )
+  and die qq{Couldn't clone https://github.com/alfalfa/xc_encoder_test_vectors};
