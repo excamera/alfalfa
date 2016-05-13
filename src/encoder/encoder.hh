@@ -47,6 +47,9 @@ private:
   std::pair<KeyFrame, double> encode_with_quantizer( const VP8Raster & raster, const QuantIndices & quant_indices,
                                                      const DecoderState & decoder_state ) const;
 
+  template<class FrameType>
+  void optimize_coefficients( FrameType & frame ) const;
+
 public:
   Encoder( const std::string & output_filename, const uint16_t width, const uint16_t height );
   double encode_as_keyframe( const VP8Raster & raster, double minimum_ssim );

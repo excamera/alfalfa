@@ -5,6 +5,15 @@
 
 using namespace std;
 
+static unsigned calc_prob( unsigned false_count, unsigned total )
+{
+  if ( false_count == 0 ) {
+    return 0;
+  } else {
+    return max( 1u, min( 255u, 256 * false_count / total ) );
+  }
+}
+
 QuantIndices::QuantIndices()
   : y_ac_qi(), y_dc(), y2_dc(), y2_ac(), uv_dc(), uv_ac()
 {}
@@ -224,6 +233,37 @@ pair<bmode, TwoD<uint8_t>> Encoder::luma_sb_intra_predict( const VP8Raster::Bloc
   return make_pair( min_prediction_mode, move( min_prediction ) );
 }
 
+template<class FrameType>
+void Encoder::optimize_coefficients( FrameType & frame ) const
+{
+  TokenBranchCounts token_branch_counts;
+  frame.macroblocks().forall(
+    [&] ( KeyFrameMacroblock & frame_mb )
+    {
+      frame_mb.accumulate_token_branches( token_branch_counts );
+    }
+  );
+
+  for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
+    for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
+      for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
+        for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
+          const unsigned int false_count = token_branch_counts.at( i ).at( j ).at( k ).at( l ).first;
+          const unsigned int true_count = token_branch_counts.at( i ).at( j ).at( k ).at( l ).second;
+
+          const unsigned int prob = calc_prob( false_count, false_count + true_count );
+
+          assert( prob <= 255 );
+
+          if ( prob > 0 and prob != k_default_coeff_probs.at( i ).at( j ).at( k ).at( l ) ) {
+            frame.mutable_header().token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( true, prob );
+          }
+        }
+      }
+    }
+  }
+}
+
 template<>
 pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster & raster, const QuantIndices & quant_indices,
                                                                  const DecoderState & decoder_state ) const
@@ -241,20 +281,22 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
   raster.macroblocks().forall_ij(
     [&] ( VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
     {
-      auto & rereconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
+      auto & reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
       auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
 
       // Process Y and Y2
-      luma_mb_intra_predict( original_mb, rereconstructed_mb, frame_mb, quantizer );
-      chroma_mb_intra_predict( original_mb, rereconstructed_mb, frame_mb, quantizer );
+      luma_mb_intra_predict( original_mb, reconstructed_mb, frame_mb, quantizer );
+      chroma_mb_intra_predict( original_mb, reconstructed_mb, frame_mb, quantizer );
 
       frame.relink_y2_blocks();
       frame_mb.calculate_has_nonzero();
-      frame_mb.reconstruct_intra( quantizer, rereconstructed_mb );
-    } );
+      frame_mb.reconstruct_intra( quantizer, reconstructed_mb );
+    }
+  );
 
-    frame.loopfilter( decoder_state.segmentation, decoder_state.filter_adjustments, reconstructed_raster );
-    return make_pair( move( frame ), reconstructed_raster.quality( raster ) );
+  optimize_coefficients( frame );
+  frame.loopfilter( decoder_state.segmentation, decoder_state.filter_adjustments, reconstructed_raster );
+  return make_pair( move( frame ), reconstructed_raster.quality( raster ) );
 }
 
 

@@ -604,6 +604,9 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::accumulate_token_branche
 template
 void RefUpdateFrameMacroblock::accumulate_token_branches( TokenBranchCounts & ) const;
 
+template
+void KeyFrameMacroblock::accumulate_token_branches( TokenBranchCounts & ) const;
+
 template <BlockType initial_block_type, class PredictionMode>
 void Block< initial_block_type,
             PredictionMode >::serialize_tokens( BoolEncoder & encoder,
