@@ -36,7 +36,8 @@ void VP8Raster::Block<size>::intra_predict( const PredictionMode mb_mode, TwoD<u
 
 /* Encoder */
 Encoder::Encoder( const string & output_filename, const uint16_t width, const uint16_t height )
-  : ivf_writer_( output_filename, "VP80", width, height, 1, 1 ), width_( width ), height_( height )
+  : ivf_writer_( output_filename, "VP80", width, height, 1, 1 ),
+    width_( width ), height_( height ), decoder_state_( width, height )
 {}
 
 template<unsigned int size>
@@ -71,7 +72,8 @@ template <class MacroblockType>
 void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
                                      VP8Raster::Macroblock & reconstructed_mb,
                                      MacroblockType & frame_mb,
-                                     const Quantizer & quantizer ) const
+                                     const Quantizer & quantizer,
+                                     const EncoderPass encoder_pass ) const
 {
   // Select the best prediction mode
   uint32_t min_energy = numeric_limits<uint32_t>::max();
@@ -101,14 +103,21 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
           frame_sb.mutable_coefficients().subtract_dct( original_sb,
             TwoDSubRange<uint8_t, 4, 4>( sb_prediction.second, 0, 0 ) );
 
-          frame_sb.mutable_coefficients() = YBlock::quantize( quantizer, frame_sb.coefficients() );
+          if ( encoder_pass == FIRST_PASS ) {
+            frame_sb.mutable_coefficients() = YBlock::quantize( quantizer, frame_sb.coefficients() );
+          }
+          else {
+            trellis_quantize( original_sb, reconstructed_sb, frame_sb, quantizer );
+          }
+
           frame_sb.set_prediction_mode( sb_prediction.first );
           frame_sb.set_Y_without_Y2();
           frame_sb.calculate_has_nonzero();
 
           reconstructed_sb.intra_predict( sb_prediction.first );
           frame_sb.dequantize( quantizer ).idct_add( reconstructed_sb );
-        } );
+        }
+      );
     }
     else {
       reconstructed_mb.Y.intra_predict( ( mbmode )prediction_mode, prediction );
@@ -132,6 +141,7 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
       [&] ( YBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
       {
         auto & original_sb = original_mb.Y_sub.at( sb_column, sb_row );
+        auto & reconstructed_sb = reconstructed_mb.Y_sub.at( sb_column, sb_row );
         frame_sb.set_prediction_mode( KeyFrameMacroblock::implied_subblock_mode( min_prediction_mode ) );
 
         frame_sb.mutable_coefficients().subtract_dct( original_sb,
@@ -139,13 +149,22 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
 
         walsh_input.at( sb_column + 4 * sb_row ) = frame_sb.coefficients().at( 0 );
         frame_sb.set_dc_coefficient( 0 );
-        frame_sb.mutable_coefficients() = YBlock::quantize( quantizer, frame_sb.coefficients() );
         frame_sb.set_Y_after_Y2();
+
+        if ( encoder_pass == FIRST_PASS ) {
+          frame_sb.mutable_coefficients() = YBlock::quantize( quantizer, frame_sb.coefficients() );
+        }
+        else {
+          trellis_quantize( original_sb, reconstructed_sb, frame_sb, quantizer );
+        }
+
         frame_sb.calculate_has_nonzero();
-      } );
+      }
+    );
 
     frame_mb.Y2().set_coded( true );
     frame_mb.Y2().mutable_coefficients().wht( walsh_input );
+    check_reset_y2( frame_mb.Y2(), quantizer );
     frame_mb.Y2().mutable_coefficients() = Y2Block::quantize( quantizer, frame_mb.Y2().coefficients() );
     frame_mb.Y2().calculate_has_nonzero();
   }
@@ -154,11 +173,37 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
   }
 }
 
+/*
+ * Based on libvpx:vp8/encoder/encodemb.c:413
+ */
+void Encoder::check_reset_y2( Y2Block & y2, const Quantizer & quantizer ) const
+{
+  int sum = 0;
+
+  if ( quantizer.y2_dc >= 35 and quantizer.y2_ac >= 35 ) {
+    return;
+  }
+
+  for ( size_t i = 0; i < 16; i++ ) {
+    sum += abs( y2.coefficients().at( i ) );
+
+    if ( sum >= 35 ) {
+      return;
+    }
+  }
+
+  // sum < 35
+  for ( int i = 0; i < 16; i++ ) {
+    y2.mutable_coefficients().at( i ) = 0;
+  }
+}
+
 template <class MacroblockType>
 void Encoder::chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
                                        VP8Raster::Macroblock & reconstructed_mb,
                                        MacroblockType & frame_mb,
-                                       const Quantizer & quantizer ) const
+                                       const Quantizer & quantizer,
+                                       const EncoderPass encoder_pass ) const
 {
   // Select the best prediction mode
   uint32_t min_energy = numeric_limits<uint32_t>::max();
@@ -191,27 +236,47 @@ void Encoder::chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb
     [&] ( UVBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
     {
       auto & original_sb = original_mb.U_sub.at( sb_column, sb_row );
+      auto & reconstructed_sb = reconstructed_mb.V_sub.at( sb_column, sb_row );
+
       frame_sb.mutable_coefficients().subtract_dct( original_sb,
         TwoDSubRange<uint8_t, 4, 4>( u_min_prediction, 4 * sb_column, 4 * sb_row ) );
-      frame_sb.mutable_coefficients() = UVBlock::quantize( quantizer, frame_sb.coefficients() );
+
+        if ( encoder_pass == FIRST_PASS ) {
+          frame_sb.mutable_coefficients() = UVBlock::quantize( quantizer, frame_sb.coefficients() );
+        }
+        else {
+          trellis_quantize( original_sb, reconstructed_sb, frame_sb, quantizer );
+        }
+
       frame_sb.calculate_has_nonzero();
-    } );
+    }
+  );
 
   frame_mb.V().forall_ij(
     [&] ( UVBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
     {
       auto & original_sb = original_mb.V_sub.at( sb_column, sb_row );
+      auto & reconstructed_sb = reconstructed_mb.V_sub.at( sb_column, sb_row );
+
       frame_sb.mutable_coefficients().subtract_dct( original_sb,
         TwoDSubRange<uint8_t, 4, 4>( v_min_prediction, 4 * sb_column, 4 * sb_row ) );
-      frame_sb.mutable_coefficients() = UVBlock::quantize( quantizer, frame_sb.coefficients() );
+
+      if ( encoder_pass == FIRST_PASS ) {
+        frame_sb.mutable_coefficients() = UVBlock::quantize( quantizer, frame_sb.coefficients() );
+      }
+      else {
+        trellis_quantize( original_sb, reconstructed_sb, frame_sb, quantizer );
+      }
+
       frame_sb.calculate_has_nonzero();
-    } );
+    }
+  );
 }
 
 pair<bmode, TwoD<uint8_t>> Encoder::luma_sb_intra_predict( const VP8Raster::Block4 & original_sb,
-                                                               VP8Raster::Block4 & reconstructed_sb,
-                                                               YBlock & /* frame_sb */,
-                                                               const Quantizer & quantizer ) const
+                                                           VP8Raster::Block4 & reconstructed_sb,
+                                                           YBlock & /* frame_sb */,
+                                                           const Quantizer & quantizer ) const
 {
   uint32_t min_energy = numeric_limits<uint32_t>::max();
   bmode min_prediction_mode = B_DC_PRED;
@@ -233,17 +298,74 @@ pair<bmode, TwoD<uint8_t>> Encoder::luma_sb_intra_predict( const VP8Raster::Bloc
   return make_pair( min_prediction_mode, move( min_prediction ) );
 }
 
-template<class FrameType>
-void Encoder::optimize_coefficients( FrameType & frame ) const
+template<class FrameSubblockType>
+void Encoder::trellis_quantize( const VP8Raster::Block4 & /* original_sb */,
+                                VP8Raster::Block4 & /* reconstructed_sb */,
+                                FrameSubblockType & frame_sb,
+                                const Quantizer & /* quantizer */ ) const
 {
-  TokenBranchCounts token_branch_counts;
-  frame.macroblocks().forall(
-    [&] ( KeyFrameMacroblock & frame_mb )
-    {
-      frame_mb.accumulate_token_branches( token_branch_counts );
-    }
-  );
+  struct TrellisNode
+  {
+    uint32_t rate, distortion;
+    int16_t final_coeff;
+  };
 
+  uint16_t ac_factor;
+  uint16_t dc_factor;
+
+  switch ( frame_sb.type() ) {
+  case BlockType::UV:
+    dc_factor = quantizer.uv_dc;
+    ac_factor = quantizer.uv_ac;
+    break;
+
+  case BlockType::Y2:
+    dc_factor = quantizer.y2_dc;
+    ac_factor = quantizer.y2_ac;
+    break;
+
+  default: // Y block
+    dc_factor = quantizer.y_dc;
+    ac_factor = quantizer.y_ac;
+  }
+
+  const size_t quant_choices = 2;
+  SafeArray< SafeArray< TrellisNode, quant_choices >, 17 > trellis;
+
+  uint8_t coded_length = 0;
+
+  /* how many tokens are we going to encode? */
+  for ( unsigned int index = (frame_sb.type() == BlockType::Y_after_Y2) ? 1 : 0;
+        index < 16;
+        index++ ) {
+    if ( frame_sb.coefficients().at( zigzag.at( index ) ) ) {
+      coded_length = index + 1;
+    }
+  }
+
+  unsigned int first_coded_index = ( frame_sb.type() == BlockType::Y_after_Y2 );
+
+  for ( unsigned int coeff_index = coded_length - 1; coeff_index-- > first_coded_index; ) {
+    int16_t original_coeff = frame_sb.at( zigzag.at( coeff_index ) );
+
+    if ( original_coeff != 0 ) {
+      int16_t quantized_coeff = original_coeff / ( coeff_index == 0 ) ? dc_factor : ac_factor;
+
+      for ( size_t i = 0; i < quant_choices; i++ ) {
+        int16_t level = max( quantized_coeff - i, 0 );
+        int16_t diff = original_coeff - level * ( coeff_index == 0 ) ? dc_factor : ac_factor;
+        int16_t sse = diff * diff;
+
+      }
+    }
+    else { // original_coeff == 0
+    }
+  }
+}
+
+template<class FrameType>
+void Encoder::optimize_probability_tables( FrameType & frame, const TokenBranchCounts & token_branch_counts )
+{
   for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
     for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
       for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
@@ -262,11 +384,13 @@ void Encoder::optimize_coefficients( FrameType & frame ) const
       }
     }
   }
+
+  decoder_state_.probability_tables.coeff_prob_update( frame.header() );
 }
 
 template<>
-pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster & raster, const QuantIndices & quant_indices,
-                                                                 const DecoderState & decoder_state ) const
+pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster & raster,
+                                                                 const QuantIndices & quant_indices )
 {
   const uint16_t width = raster.display_width();
   const uint16_t height = raster.display_height();
@@ -278,6 +402,9 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
   MutableRasterHandle reconstructed_raster_handle { width, height };
   VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
 
+  TokenBranchCounts token_branch_counts;
+
+  // First pass
   raster.macroblocks().forall_ij(
     [&] ( VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
     {
@@ -285,20 +412,66 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
       auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
 
       // Process Y and Y2
-      luma_mb_intra_predict( original_mb, reconstructed_mb, frame_mb, quantizer );
-      chroma_mb_intra_predict( original_mb, reconstructed_mb, frame_mb, quantizer );
+      luma_mb_intra_predict( original_mb, reconstructed_mb, frame_mb, quantizer, FIRST_PASS );
+      chroma_mb_intra_predict( original_mb, reconstructed_mb, frame_mb, quantizer, FIRST_PASS );
 
       frame.relink_y2_blocks();
       frame_mb.calculate_has_nonzero();
       frame_mb.reconstruct_intra( quantizer, reconstructed_mb );
+
+      frame_mb.accumulate_token_branches( token_branch_counts );
     }
   );
 
-  optimize_coefficients( frame );
-  frame.loopfilter( decoder_state.segmentation, decoder_state.filter_adjustments, reconstructed_raster );
+  optimize_probability_tables( frame, token_branch_counts );
+
+  // Second pass
+  raster.macroblocks().forall_ij(
+    [&] ( VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
+    {
+      auto & reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
+      auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
+
+      // Process Y and Y2
+      luma_mb_intra_predict( original_mb, reconstructed_mb, frame_mb, quantizer, SECOND_PASS );
+      chroma_mb_intra_predict( original_mb, reconstructed_mb, frame_mb, quantizer, SECOND_PASS );
+
+      frame.relink_y2_blocks();
+      frame_mb.calculate_has_nonzero();
+      frame_mb.reconstruct_intra( quantizer, reconstructed_mb );
+
+      frame_mb.accumulate_token_branches( token_branch_counts );
+    }
+  );
+
+  optimize_probability_tables( frame, token_branch_counts );
+  frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed_raster );
   return make_pair( move( frame ), reconstructed_raster.quality( raster ) );
 }
 
+ProbabilityTables Encoder::make_probability_tables( const TokenBranchCounts & token_branch_counts )
+{
+  ProbabilityTables probability_tables;
+
+  // update probability tables based on token branch counts
+  for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
+    for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
+      for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
+        for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
+          const unsigned int false_count = token_branch_counts.at( i ).at( j ).at( k ).at( l ).first;
+          const unsigned int true_count = token_branch_counts.at( i ).at( j ).at( k ).at( l ).second;
+          const unsigned int prob = calc_prob( false_count, false_count + true_count );
+
+          if ( prob > 0 ) {
+            probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l ) = prob;
+          }
+        }
+      }
+    }
+  }
+
+  return probability_tables;
+}
 
 double Encoder::encode_as_keyframe( const VP8Raster & raster, const double minimum_ssim )
 {
@@ -312,6 +485,8 @@ double Encoder::encode_as_keyframe( const VP8Raster & raster, const double minim
     throw runtime_error( "scaling is not supported." );
   }
 
+  decoder_state_ = DecoderState( width_, height_ );
+
   DecoderState temp_state { width, height };
   QuantIndices quant_indices;
   quant_indices.y_dc  = Signed<4>( 0 );
@@ -322,7 +497,7 @@ double Encoder::encode_as_keyframe( const VP8Raster & raster, const double minim
 
   while ( y_ac_qi_min <= y_ac_qi_max ) {
     quant_indices.y_ac_qi = ( y_ac_qi_min + y_ac_qi_max ) / 2;
-    encoded_frame = encode_with_quantizer<KeyFrame>( raster, quant_indices, temp_state );
+    encoded_frame = encode_with_quantizer<KeyFrame>( raster, quant_indices );
 
     if ( abs( encoded_frame.second - minimum_ssim ) < 0.005
          or y_ac_qi_min == y_ac_qi_max) {
@@ -330,14 +505,14 @@ double Encoder::encode_as_keyframe( const VP8Raster & raster, const double minim
     }
 
     if ( encoded_frame.second < minimum_ssim ) {
-      y_ac_qi_max = ( y_ac_qi_min + y_ac_qi_max ) / 2 - 1;
+      y_ac_qi_max = quant_indices.y_ac_qi - 1;
     }
     else {
-      y_ac_qi_min = ( y_ac_qi_min + y_ac_qi_max ) / 2 + 1;
+      y_ac_qi_min = quant_indices.y_ac_qi + 1;
     }
   }
 
-  ivf_writer_.append_frame( encoded_frame.first.serialize( temp_state.probability_tables ) );
+  ivf_writer_.append_frame( encoded_frame.first.serialize( decoder_state_.probability_tables ) );
 
   return encoded_frame.second;
 }
