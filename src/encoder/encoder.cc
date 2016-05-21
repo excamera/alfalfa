@@ -37,7 +37,8 @@ void VP8Raster::Block<size>::intra_predict( const PredictionMode mb_mode, TwoD<u
 /* Encoder */
 Encoder::Encoder( const string & output_filename, const uint16_t width, const uint16_t height )
   : ivf_writer_( output_filename, "VP80", width, height, 1, 1 ),
-    width_( width ), height_( height ), decoder_state_( width, height )
+    width_( width ), height_( height ), decoder_state_( width, height ),
+    token_costs_()
 {}
 
 template<unsigned int size>
@@ -301,67 +302,9 @@ pair<bmode, TwoD<uint8_t>> Encoder::luma_sb_intra_predict( const VP8Raster::Bloc
 template<class FrameSubblockType>
 void Encoder::trellis_quantize( const VP8Raster::Block4 & /* original_sb */,
                                 VP8Raster::Block4 & /* reconstructed_sb */,
-                                FrameSubblockType & frame_sb,
+                                FrameSubblockType & /* frame_sb */,
                                 const Quantizer & /* quantizer */ ) const
-{
-  struct TrellisNode
-  {
-    uint32_t rate, distortion;
-    int16_t final_coeff;
-  };
-
-  uint16_t ac_factor;
-  uint16_t dc_factor;
-
-  switch ( frame_sb.type() ) {
-  case BlockType::UV:
-    dc_factor = quantizer.uv_dc;
-    ac_factor = quantizer.uv_ac;
-    break;
-
-  case BlockType::Y2:
-    dc_factor = quantizer.y2_dc;
-    ac_factor = quantizer.y2_ac;
-    break;
-
-  default: // Y block
-    dc_factor = quantizer.y_dc;
-    ac_factor = quantizer.y_ac;
-  }
-
-  const size_t quant_choices = 2;
-  SafeArray< SafeArray< TrellisNode, quant_choices >, 17 > trellis;
-
-  uint8_t coded_length = 0;
-
-  /* how many tokens are we going to encode? */
-  for ( unsigned int index = (frame_sb.type() == BlockType::Y_after_Y2) ? 1 : 0;
-        index < 16;
-        index++ ) {
-    if ( frame_sb.coefficients().at( zigzag.at( index ) ) ) {
-      coded_length = index + 1;
-    }
-  }
-
-  unsigned int first_coded_index = ( frame_sb.type() == BlockType::Y_after_Y2 );
-
-  for ( unsigned int coeff_index = coded_length - 1; coeff_index-- > first_coded_index; ) {
-    int16_t original_coeff = frame_sb.at( zigzag.at( coeff_index ) );
-
-    if ( original_coeff != 0 ) {
-      int16_t quantized_coeff = original_coeff / ( coeff_index == 0 ) ? dc_factor : ac_factor;
-
-      for ( size_t i = 0; i < quant_choices; i++ ) {
-        int16_t level = max( quantized_coeff - i, 0 );
-        int16_t diff = original_coeff - level * ( coeff_index == 0 ) ? dc_factor : ac_factor;
-        int16_t sse = diff * diff;
-
-      }
-    }
-    else { // original_coeff == 0
-    }
-  }
-}
+{}
 
 template<class FrameType>
 void Encoder::optimize_probability_tables( FrameType & frame, const TokenBranchCounts & token_branch_counts )
@@ -424,27 +367,8 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
   );
 
   optimize_probability_tables( frame, token_branch_counts );
+  token_costs_.fill_costs( decoder_state_.probability_tables );
 
-  // Second pass
-  raster.macroblocks().forall_ij(
-    [&] ( VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
-    {
-      auto & reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
-      auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
-
-      // Process Y and Y2
-      luma_mb_intra_predict( original_mb, reconstructed_mb, frame_mb, quantizer, SECOND_PASS );
-      chroma_mb_intra_predict( original_mb, reconstructed_mb, frame_mb, quantizer, SECOND_PASS );
-
-      frame.relink_y2_blocks();
-      frame_mb.calculate_has_nonzero();
-      frame_mb.reconstruct_intra( quantizer, reconstructed_mb );
-
-      frame_mb.accumulate_token_branches( token_branch_counts );
-    }
-  );
-
-  optimize_probability_tables( frame, token_branch_counts );
   frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed_raster );
   return make_pair( move( frame ), reconstructed_raster.quality( raster ) );
 }

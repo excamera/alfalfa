@@ -5,9 +5,10 @@
 #include <string>
 #include <tuple>
 
-#include "vp8_raster.hh"
 #include "frame.hh"
+#include "vp8_raster.hh"
 #include "ivf_writer.hh"
+#include "token_costs.hh"
 
 enum EncoderPass
 {
@@ -22,6 +23,7 @@ private:
   uint16_t width_;
   uint16_t height_;
   DecoderState decoder_state_;
+  TokenCosts token_costs_;
 
   template<unsigned int size>
   static uint32_t variance( const VP8Raster::Block<size> & block,
