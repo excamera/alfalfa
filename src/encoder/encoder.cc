@@ -409,8 +409,6 @@ double Encoder::encode_as_keyframe( const VP8Raster & raster, const double minim
     throw runtime_error( "scaling is not supported." );
   }
 
-  decoder_state_ = DecoderState( width_, height_ );
-
   DecoderState temp_state { width, height };
   QuantIndices quant_indices;
   quant_indices.y_dc  = Signed<4>( 0 );
@@ -420,6 +418,8 @@ double Encoder::encode_as_keyframe( const VP8Raster & raster, const double minim
   pair<KeyFrame, double> encoded_frame = make_pair( move( make_empty_frame( width, height ) ), 0 );
 
   while ( y_ac_qi_min <= y_ac_qi_max ) {
+    decoder_state_ = DecoderState( width_, height_ );
+
     quant_indices.y_ac_qi = ( y_ac_qi_min + y_ac_qi_max ) / 2;
     encoded_frame = encode_with_quantizer<KeyFrame>( raster, quant_indices );
 
