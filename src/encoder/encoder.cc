@@ -1,4 +1,5 @@
 #include <limits>
+#include <algorithm>
 
 #include "encoder.hh"
 #include "frame_header.hh"
@@ -299,12 +300,205 @@ pair<bmode, TwoD<uint8_t>> Encoder::luma_sb_intra_predict( const VP8Raster::Bloc
   return make_pair( min_prediction_mode, move( min_prediction ) );
 }
 
+uint8_t Encoder::token_for_coeff( int16_t coeff )
+{
+  coeff = abs( coeff );
+
+  switch( coeff ) {
+  case 0: return ZERO_TOKEN;
+  case 1: return ONE_TOKEN;
+  case 2: return TWO_TOKEN;
+  case 3: return THREE_TOKEN;
+  case 4: return FOUR_TOKEN;
+  }
+
+  if ( coeff <= 6 )   return DCT_VAL_CATEGORY1;
+  if ( coeff <= 10 ) return DCT_VAL_CATEGORY2;
+  if ( coeff <= 18 ) return DCT_VAL_CATEGORY3;
+  if ( coeff <= 34 ) return DCT_VAL_CATEGORY4;
+  if ( coeff <= 66 ) return DCT_VAL_CATEGORY5;
+
+  return DCT_VAL_CATEGORY6;
+}
+
+/*
+ * Taken from: libvpx:vp8/encoder/entropy.c:38-42
+ */
+uint8_t vp8_coef_bands[ 16 ] =
+  { 0, 1, 2, 3, 6, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 7 };
+
+uint8_t vp8_prev_token_class[ MAX_ENTROPY_TOKENS ] =
+  { 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0 };
+
 template<class FrameSubblockType>
 void Encoder::trellis_quantize( const VP8Raster::Block4 & /* original_sb */,
                                 VP8Raster::Block4 & /* reconstructed_sb */,
-                                FrameSubblockType & /* frame_sb */,
-                                const Quantizer & /* quantizer */ ) const
-{}
+                                FrameSubblockType & frame_sb,
+                                const Quantizer & quantizer ) const
+{
+  struct TrellisNode
+  {
+    uint32_t rate;
+    uint32_t distortion;
+    uint32_t cost;
+    int16_t coeff;
+
+    uint8_t token;
+    uint8_t next;
+  };
+
+  uint16_t dc_factor;
+  uint16_t ac_factor;
+
+  // select quantization factors based on macroblock type
+  switch( frame_sb.type() ) {
+  case BlockType::UV:
+    dc_factor = quantizer.uv_dc;
+    ac_factor = quantizer.uv_ac;
+    break;
+
+  case BlockType::Y2:
+    dc_factor = quantizer.y2_dc;
+    ac_factor = quantizer.y2_ac;
+    break;
+
+  default:
+    dc_factor = quantizer.y_dc;
+    ac_factor = quantizer.y_ac;
+  }
+
+  size_t first_index = ( frame_sb.type() == BlockType::Y_after_Y2 ) ? 1 : 0;
+  uint8_t coded_length = 0;
+
+  /* how many tokens are we going to encode? */
+  for ( size_t index = first_index; index < 16; index++ ) {
+    if ( frame_sb.coefficients().at( zigzag.at( index ) ) ) {
+      coded_length = index + 1;
+    }
+  }
+
+  if ( coded_length == 0 ) {
+    // everything is zero. our work is done here.
+    for ( size_t i = 0; i < 16; i++ ) {
+      frame_sb.mutable_coefficients().at( i ) = 0;
+    }
+
+    return;
+  }
+
+  const uint8_t LEVELS = 2;
+  SafeArray<SafeArray<TrellisNode, LEVELS>, 17> trellis;
+
+  // setting up the sentinel node for the trellis
+  for ( size_t i = 0; i < LEVELS; i++ ) {
+    TrellisNode & sentinel_node = trellis.at( coded_length ).at( i );
+    sentinel_node.rate = 0;
+    sentinel_node.distortion = 0;
+    sentinel_node.token = DCT_EOB_TOKEN;
+    sentinel_node.coeff = 0;
+    sentinel_node.next = numeric_limits<uint8_t>::max();
+  }
+
+  /* These multipliers must change based on the block type, quantizer, ... */
+  const uint32_t RATE_MULTIPLIER = 20;
+  const uint32_t DISTORTION_MULTIPLIER = 1;
+
+  // building the trellis first
+  for ( uint8_t idx = coded_length; idx-- > first_index; ) {
+    const int16_t original_coeff = frame_sb.coefficients().at( zigzag.at( idx ) );
+    const int16_t quantized_coeff = original_coeff /
+                                    ( idx == 0 ? dc_factor : ac_factor );
+
+    // evaluate two quantizer levels: {q, q - 1}
+    // it's possible to explore more
+    for ( size_t q_shift = 0; q_shift < LEVELS; q_shift++ ) {
+      TrellisNode & current_node = trellis.at( idx ).at( q_shift );
+
+      int16_t candidate_coeff = quantized_coeff;
+
+      if ( candidate_coeff < 0 ) {
+        candidate_coeff += q_shift;
+        candidate_coeff = min( ( int16_t )0, candidate_coeff );
+      }
+      else  {
+        candidate_coeff -= q_shift;
+        candidate_coeff = max( ( int16_t )0, candidate_coeff );
+      }
+
+      int16_t diff = ( original_coeff - candidate_coeff * ( idx == 0 ? dc_factor : ac_factor ) );
+      uint32_t sse = diff * diff;
+
+      current_node.coeff = candidate_coeff;
+      current_node.token = token_for_coeff( candidate_coeff );
+
+      uint32_t distortions[ LEVELS ];
+      uint32_t       rates[ LEVELS ];
+      uint32_t    rd_costs[ LEVELS ];
+
+      // fill the trellis for current coeff index and select the best
+      uint8_t best_next = numeric_limits<uint8_t>::max();
+      uint32_t best_cost = numeric_limits<uint32_t>::max();
+
+      for ( size_t next = 0; next < LEVELS; next++ ) {
+        const TrellisNode & next_node = trellis.at( idx + 1 ).at( next );
+
+        distortions[ next ] = trellis.at( idx + 1 ).at( next ).distortion;
+              rates[ next ] = trellis.at( idx + 1 ).at( next ).rate;
+
+        distortions[ next ] += sse;
+
+        if ( idx < 15 ) {
+          size_t next_band = vp8_coef_bands[ idx + 1 ];
+          size_t current_context = vp8_prev_token_class[ current_node.token ];
+
+          // cost of the next token based on the *current* context
+          rates[ next ] += token_costs_.costs.at( frame_sb.type() ).at( next_band )
+                                             .at( current_context )
+                                             .at( next_node.token );
+        }
+
+        rd_costs[ next ] = rdcost( rates[ next ], distortions[ next ],
+                                   RATE_MULTIPLIER, DISTORTION_MULTIPLIER );
+
+        if ( rd_costs[ next ] < best_cost ) {
+          best_cost = rd_costs[ next ];
+          best_next = next;
+        }
+      }
+
+      current_node.rate = rates[ best_next ] + TokenCosts::coeff_base_cost( current_node.coeff );
+      current_node.distortion = distortions[ best_next ];
+      current_node.cost = rd_costs[ best_next ];
+      current_node.next = best_next;
+    }
+  }
+
+  // walking the minium path through trellis
+  uint32_t min_cost = numeric_limits<uint32_t>::max();
+  size_t min_choice;
+
+  for ( size_t i = 0; i < LEVELS; i++ ) {
+    if ( trellis.at( first_index ).at( i ).cost < min_cost ) {
+      min_cost = trellis.at( first_index ).at( i ).cost;
+      min_choice = i;
+    }
+  }
+
+  frame_sb.mutable_coefficients().at( first_index ) = trellis.at( first_index ).at( min_choice ).coeff;
+
+  for ( size_t i = first_index + 1; i < coded_length; i++ ) {
+    min_choice = trellis.at( i - 1 ).at( min_choice ).next;
+    frame_sb.mutable_coefficients().at( zigzag.at( i ) ) = trellis.at( i ).at( min_choice ).coeff;
+  }
+}
+
+uint32_t Encoder::rdcost( uint32_t rate, uint32_t distortion,
+                          uint32_t rate_multiplier,
+                          uint32_t distortion_multiplier )
+{
+  return ( ( 128 + rate * rate_multiplier ) >> 8 )
+         + distortion * distortion_multiplier;
+}
 
 template<class FrameType>
 void Encoder::optimize_probability_tables( FrameType & frame, const TokenBranchCounts & token_branch_counts )
@@ -368,6 +562,29 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
 
   optimize_probability_tables( frame, token_branch_counts );
   token_costs_.fill_costs( decoder_state_.probability_tables );
+
+  token_branch_counts = TokenBranchCounts();
+
+  // Second pass
+  raster.macroblocks().forall_ij(
+    [&] ( VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
+    {
+      auto & reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
+      auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
+
+      // Process Y and Y2
+      luma_mb_intra_predict( original_mb, reconstructed_mb, frame_mb, quantizer, SECOND_PASS );
+      chroma_mb_intra_predict( original_mb, reconstructed_mb, frame_mb, quantizer, SECOND_PASS );
+
+      frame.relink_y2_blocks();
+      frame_mb.calculate_has_nonzero();
+      frame_mb.reconstruct_intra( quantizer, reconstructed_mb );
+
+      frame_mb.accumulate_token_branches( token_branch_counts );
+    }
+  );
+
+  optimize_probability_tables( frame, token_branch_counts );
 
   frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed_raster );
   return make_pair( move( frame ), reconstructed_raster.quality( raster ) );

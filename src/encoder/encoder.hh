@@ -25,6 +25,14 @@ private:
   DecoderState decoder_state_;
   TokenCosts token_costs_;
 
+  static ProbabilityTables make_probability_tables( const TokenBranchCounts & token_branch_counts );
+
+  static uint8_t token_for_coeff( int16_t coeff );
+
+  static uint32_t rdcost( uint32_t rate, uint32_t distortion,
+                          uint32_t rate_multiplier,
+                          uint32_t distortion_multiplier );
+
   template<unsigned int size>
   static uint32_t variance( const VP8Raster::Block<size> & block,
                             const TwoD<uint8_t> & prediction,
@@ -60,7 +68,6 @@ private:
   template<class FrameType>
   void optimize_probability_tables( FrameType & frame, const TokenBranchCounts & token_branch_counts );
 
-  static ProbabilityTables make_probability_tables( const TokenBranchCounts & token_branch_counts );
 
   template<class FrameSubblockType>
   void trellis_quantize( const VP8Raster::Block4 & original_sb, VP8Raster::Block4 & reconstructed_sb,

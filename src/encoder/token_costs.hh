@@ -16,6 +16,7 @@ private:
   static uint16_t inline cost_one( uint8_t prob );
   static uint16_t inline cost_bit( uint8_t prob, bool b );
 
+
 public:
   SafeArray<SafeArray<SafeArray<SafeArray<uint16_t,
                                           MAX_ENTROPY_TOKENS>,
@@ -24,6 +25,8 @@ public:
             BLOCK_TYPES> costs;
 
   void fill_costs( const ProbabilityTables & probability_tables );
+  
+  static uint16_t coeff_base_cost( int16_t coeff );
 };
 
 #endif /* TOKEN_COSTS_HH */
