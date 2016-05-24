@@ -77,7 +77,7 @@ void TokenCosts::fill_costs( const ProbabilityTables & probability_tables )
         auto & costs_array = costs.at( i ).at( j ).at( k );
         auto & probabilities = probability_tables.coeff_probs.at( i ).at( j ).at( k );
 
-        if ( k == 0 && j > ( i == 0 ) ) {
+        if ( k == 0 and j > ( i == 0 ) ) {
           compute_cost( costs_array, probabilities, 2 );
         }
         else {

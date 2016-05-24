@@ -427,7 +427,7 @@ void Encoder::trellis_quantize( FrameSubblockType & frame_sb,
         candidate_coeff = max( ( int16_t )0, candidate_coeff );
       }
       else { // candidate_coeff == 0 and q_shift != 0
-        current_node = trellis.at( idx ).at( q_shift - 1);
+        current_node = trellis.at( idx ).at( q_shift - 1 );
         continue;
       }
 
@@ -448,10 +448,8 @@ void Encoder::trellis_quantize( FrameSubblockType & frame_sb,
       for ( size_t next = 0; next < LEVELS; next++ ) {
         const TrellisNode & next_node = trellis.at( idx + 1 ).at( next );
 
-        distortions[ next ] = trellis.at( idx + 1 ).at( next ).distortion;
+        distortions[ next ] = trellis.at( idx + 1 ).at( next ).distortion + sse;
               rates[ next ] = trellis.at( idx + 1 ).at( next ).rate;
-
-        distortions[ next ] += sse;
 
         if ( idx < 15 ) {
           size_t next_band = vp8_coef_bands[ idx + 1 ];
@@ -479,10 +477,20 @@ void Encoder::trellis_quantize( FrameSubblockType & frame_sb,
     }
   }
 
+  for ( size_t i = 0; i < LEVELS; i++ ) {
+    TrellisNode & node = trellis.at( first_index ).at( i );
+    node.rate += token_costs_.costs.at( frame_sb.type() )
+                                   .at( vp8_coef_bands[ first_index ] )
+                                   .at( 0 )
+                                   .at( node.token );
+
+    node.cost = rdcost( node.rate, node.distortion, RATE_MULTIPLIER,
+                        DISTORTION_MULTIPLIER );
+  }
+
   // walking the minium path through trellis
   uint32_t min_cost = numeric_limits<uint32_t>::max();
   size_t min_choice;
-
   for ( size_t i = 0; i < LEVELS; i++ ) {
     if ( trellis.at( first_index ).at( i ).cost < min_cost ) {
       min_cost = trellis.at( first_index ).at( i ).cost;
@@ -590,7 +598,7 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
     }
   );
 
-  // optimize_probability_tables( frame, token_branch_counts );
+  optimize_probability_tables( frame, token_branch_counts );
 
   frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed_raster );
   return make_pair( move( frame ), reconstructed_raster.quality( raster ) );
