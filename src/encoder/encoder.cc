@@ -316,7 +316,7 @@ uint8_t Encoder::token_for_coeff( int16_t coeff )
   case 4: return FOUR_TOKEN;
   }
 
-  if ( coeff <= 6 )  return DCT_VAL_CATEGORY1;
+  if ( coeff <=  6 ) return DCT_VAL_CATEGORY1;
   if ( coeff <= 10 ) return DCT_VAL_CATEGORY2;
   if ( coeff <= 18 ) return DCT_VAL_CATEGORY3;
   if ( coeff <= 34 ) return DCT_VAL_CATEGORY4;
@@ -328,10 +328,10 @@ uint8_t Encoder::token_for_coeff( int16_t coeff )
 /*
  * Taken from: libvpx:vp8/encoder/entropy.c:38-42
  */
-uint8_t vp8_coef_bands[ 16 ] =
+const uint8_t vp8_coef_bands[ 16 ] =
   { 0, 1, 2, 3, 6, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 7 };
 
-uint8_t vp8_prev_token_class[ MAX_ENTROPY_TOKENS ] =
+const uint8_t vp8_prev_token_class[ MAX_ENTROPY_TOKENS ] =
   { 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0 };
 
 template<class FrameSubblockType>
@@ -422,9 +422,13 @@ void Encoder::trellis_quantize( FrameSubblockType & frame_sb,
         candidate_coeff += q_shift;
         candidate_coeff = min( ( int16_t )0, candidate_coeff );
       }
-      else  {
+      else if ( candidate_coeff > 0 or q_shift == 0 )  {
         candidate_coeff -= q_shift;
         candidate_coeff = max( ( int16_t )0, candidate_coeff );
+      }
+      else { // candidate_coeff == 0 and q_shift != 0
+        current_node = trellis.at( idx ).at( q_shift - 1);
+        continue;
       }
 
       int16_t diff = ( original_coeff - candidate_coeff * ( idx == 0 ? dc_factor : ac_factor ) );
@@ -586,7 +590,7 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
     }
   );
 
-  optimize_probability_tables( frame, token_branch_counts );
+  // optimize_probability_tables( frame, token_branch_counts );
 
   frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed_raster );
   return make_pair( move( frame ), reconstructed_raster.quality( raster ) );
