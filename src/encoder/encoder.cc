@@ -109,7 +109,7 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
             frame_sb.mutable_coefficients() = YBlock::quantize( quantizer, frame_sb.coefficients() );
           }
           else {
-            trellis_quantize( original_sb, reconstructed_sb, frame_sb, quantizer );
+            trellis_quantize( frame_sb, quantizer );
           }
 
           frame_sb.set_prediction_mode( sb_prediction.first );
@@ -143,7 +143,6 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
       [&] ( YBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
       {
         auto & original_sb = original_mb.Y_sub.at( sb_column, sb_row );
-        auto & reconstructed_sb = reconstructed_mb.Y_sub.at( sb_column, sb_row );
         frame_sb.set_prediction_mode( KeyFrameMacroblock::implied_subblock_mode( min_prediction_mode ) );
 
         frame_sb.mutable_coefficients().subtract_dct( original_sb,
@@ -157,7 +156,7 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
           frame_sb.mutable_coefficients() = YBlock::quantize( quantizer, frame_sb.coefficients() );
         }
         else {
-          trellis_quantize( original_sb, reconstructed_sb, frame_sb, quantizer );
+          trellis_quantize( frame_sb, quantizer );
         }
 
         frame_sb.calculate_has_nonzero();
@@ -166,8 +165,15 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
 
     frame_mb.Y2().set_coded( true );
     frame_mb.Y2().mutable_coefficients().wht( walsh_input );
-    check_reset_y2( frame_mb.Y2(), quantizer );
-    frame_mb.Y2().mutable_coefficients() = Y2Block::quantize( quantizer, frame_mb.Y2().coefficients() );
+
+    if ( encoder_pass == FIRST_PASS ) {
+      frame_mb.Y2().mutable_coefficients() = Y2Block::quantize( quantizer, frame_mb.Y2().coefficients() );
+    }
+    else {
+      check_reset_y2( frame_mb.Y2(), quantizer );
+      trellis_quantize( frame_mb.Y2(), quantizer );
+    }
+
     frame_mb.Y2().calculate_has_nonzero();
   }
   else {
@@ -238,7 +244,6 @@ void Encoder::chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb
     [&] ( UVBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
     {
       auto & original_sb = original_mb.U_sub.at( sb_column, sb_row );
-      auto & reconstructed_sb = reconstructed_mb.V_sub.at( sb_column, sb_row );
 
       frame_sb.mutable_coefficients().subtract_dct( original_sb,
         TwoDSubRange<uint8_t, 4, 4>( u_min_prediction, 4 * sb_column, 4 * sb_row ) );
@@ -247,7 +252,7 @@ void Encoder::chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb
           frame_sb.mutable_coefficients() = UVBlock::quantize( quantizer, frame_sb.coefficients() );
         }
         else {
-          trellis_quantize( original_sb, reconstructed_sb, frame_sb, quantizer );
+          trellis_quantize( frame_sb, quantizer );
         }
 
       frame_sb.calculate_has_nonzero();
@@ -258,7 +263,6 @@ void Encoder::chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb
     [&] ( UVBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
     {
       auto & original_sb = original_mb.V_sub.at( sb_column, sb_row );
-      auto & reconstructed_sb = reconstructed_mb.V_sub.at( sb_column, sb_row );
 
       frame_sb.mutable_coefficients().subtract_dct( original_sb,
         TwoDSubRange<uint8_t, 4, 4>( v_min_prediction, 4 * sb_column, 4 * sb_row ) );
@@ -267,7 +271,7 @@ void Encoder::chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb
         frame_sb.mutable_coefficients() = UVBlock::quantize( quantizer, frame_sb.coefficients() );
       }
       else {
-        trellis_quantize( original_sb, reconstructed_sb, frame_sb, quantizer );
+        trellis_quantize( frame_sb, quantizer );
       }
 
       frame_sb.calculate_has_nonzero();
@@ -312,7 +316,7 @@ uint8_t Encoder::token_for_coeff( int16_t coeff )
   case 4: return FOUR_TOKEN;
   }
 
-  if ( coeff <= 6 )   return DCT_VAL_CATEGORY1;
+  if ( coeff <= 6 )  return DCT_VAL_CATEGORY1;
   if ( coeff <= 10 ) return DCT_VAL_CATEGORY2;
   if ( coeff <= 18 ) return DCT_VAL_CATEGORY3;
   if ( coeff <= 34 ) return DCT_VAL_CATEGORY4;
@@ -331,9 +335,7 @@ uint8_t vp8_prev_token_class[ MAX_ENTROPY_TOKENS ] =
   { 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0 };
 
 template<class FrameSubblockType>
-void Encoder::trellis_quantize( const VP8Raster::Block4 & /* original_sb */,
-                                VP8Raster::Block4 & /* reconstructed_sb */,
-                                FrameSubblockType & frame_sb,
+void Encoder::trellis_quantize( FrameSubblockType & frame_sb,
                                 const Quantizer & quantizer ) const
 {
   struct TrellisNode

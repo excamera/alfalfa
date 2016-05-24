@@ -70,8 +70,8 @@ private:
 
 
   template<class FrameSubblockType>
-  void trellis_quantize( const VP8Raster::Block4 & original_sb, VP8Raster::Block4 & reconstructed_sb,
-                         FrameSubblockType & frame_sb, const Quantizer & quantizer ) const;
+  void trellis_quantize( FrameSubblockType & frame_sb,
+                         const Quantizer & quantizer ) const;
 
   void check_reset_y2( Y2Block & y2, const Quantizer & quantizer ) const;
 
