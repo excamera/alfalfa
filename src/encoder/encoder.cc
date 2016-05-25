@@ -1,3 +1,4 @@
+#include <array>
 #include <limits>
 #include <algorithm>
 
@@ -369,7 +370,7 @@ void Encoder::trellis_quantize( FrameSubblockType & frame_sb,
     ac_factor = quantizer.y_ac;
   }
 
-  size_t first_index = ( frame_sb.type() == BlockType::Y_after_Y2 ) ? 1 : 0;
+  const size_t first_index = ( frame_sb.type() == BlockType::Y_after_Y2 ) ? 1 : 0;
   uint8_t coded_length = 0;
 
   /* how many tokens are we going to encode? */
@@ -437,9 +438,9 @@ void Encoder::trellis_quantize( FrameSubblockType & frame_sb,
       current_node.coeff = candidate_coeff;
       current_node.token = token_for_coeff( candidate_coeff );
 
-      uint32_t distortions[ LEVELS ];
-      uint32_t       rates[ LEVELS ];
-      uint32_t    rd_costs[ LEVELS ];
+      array<uint32_t, LEVELS> distortions;
+      array<uint32_t, LEVELS> rates;
+      array<uint32_t, LEVELS> rd_costs;
 
       // fill the trellis for current coeff index and select the best
       uint8_t best_next = numeric_limits<uint8_t>::max();
@@ -456,7 +457,8 @@ void Encoder::trellis_quantize( FrameSubblockType & frame_sb,
           size_t current_context = vp8_prev_token_class[ current_node.token ];
 
           // cost of the next token based on the *current* context
-          rates[ next ] += token_costs_.costs.at( frame_sb.type() ).at( next_band )
+          rates[ next ] += token_costs_.costs.at( frame_sb.type() )
+                                             .at( next_band )
                                              .at( current_context )
                                              .at( next_node.token );
         }
@@ -470,10 +472,21 @@ void Encoder::trellis_quantize( FrameSubblockType & frame_sb,
         }
       }
 
-      current_node.rate = rates[ best_next ] + TokenCosts::coeff_base_cost( current_node.coeff );
-      current_node.distortion = distortions[ best_next ];
-      current_node.cost = rd_costs[ best_next ];
-      current_node.next = best_next;
+      if ( current_node.coeff != 0 or trellis.at( idx + 1 ).at( best_next ).token != DCT_EOB_TOKEN ) {
+        current_node.rate = rates[ best_next ] + TokenCosts::coeff_base_cost( current_node.coeff );
+        current_node.distortion = distortions[ best_next ];
+        current_node.cost = rd_costs[ best_next ];
+        current_node.next = best_next;
+      }
+      else {
+        // this token is zero and the next one is EOB, so let's move EOB back here
+        current_node.coeff = 0;
+        current_node.rate = 0;
+        current_node.distortion = sse;
+        current_node.cost = rdcost( 0, sse, RATE_MULTIPLIER, DISTORTION_MULTIPLIER);
+        current_node.next = numeric_limits<uint8_t>::max();
+        current_node.token = DCT_EOB_TOKEN;
+      }
     }
   }
 
@@ -498,11 +511,18 @@ void Encoder::trellis_quantize( FrameSubblockType & frame_sb,
     }
   }
 
-  frame_sb.mutable_coefficients().at( first_index ) = trellis.at( first_index ).at( min_choice ).coeff;
+  size_t i;
+  for ( i = first_index; i < 16; i++ ) {
+    if ( trellis.at( i ).at( min_choice ).token == DCT_EOB_TOKEN ) {
+      break;
+    }
 
-  for ( size_t i = first_index + 1; i < coded_length; i++ ) {
-    min_choice = trellis.at( i - 1 ).at( min_choice ).next;
     frame_sb.mutable_coefficients().at( zigzag.at( i ) ) = trellis.at( i ).at( min_choice ).coeff;
+    min_choice = trellis.at( i ).at( min_choice ).next;
+  }
+
+  for ( ; i < 16; i++ ) {
+    frame_sb.mutable_coefficients().at( zigzag.at( i ) ) = 0;
   }
 }
 
