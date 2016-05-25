@@ -27,7 +27,8 @@ void usage_error( const string & program_name )
        << " -o <arg>, --output=<arg>              Output file name (default: output.ivf)" << endl
        << " -s <arg>, --ssim=<arg>                SSIM for the output" << endl
        << " -i <arg>, --input-format=<arg>        Input file format" << endl
-       << "                                         ivf (default), y4m" << endl;
+       << "                                         ivf (default), y4m" << endl
+       << " --one-pass                            Skip the second pass" << endl;
 }
 
 int main( int argc, char *argv[] )
@@ -45,11 +46,13 @@ int main( int argc, char *argv[] )
     string output_file = "output.ivf";
     string input_format = "ivf";
     double ssim = 0.99;
+    bool two_pass = true;
 
     const option command_line_options[] = {
       { "output",       required_argument, nullptr, 'o' },
       { "input-format", required_argument, nullptr, 'i' },
       { "ssim",         required_argument, nullptr, 's' },
+      { "one-pass",     no_argument,       nullptr, '1' },
       { 0, 0, nullptr, 0 }
     };
 
@@ -71,6 +74,10 @@ int main( int argc, char *argv[] )
 
       case 's':
         ssim = stod( optarg );
+        break;
+
+      case '1':
+        two_pass = false;
         break;
 
       default:
@@ -105,7 +112,10 @@ int main( int argc, char *argv[] )
       throw runtime_error( "unsupported input format" );
     }
 
-    Encoder encoder( output_file, input_reader->display_width(), input_reader->display_height() );
+    Encoder encoder( output_file,
+                     input_reader->display_width(),
+                     input_reader->display_height(),
+                     two_pass );
 
     Optional<RasterHandle> raster = input_reader->get_next_frame();
 

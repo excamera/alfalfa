@@ -37,10 +37,11 @@ void VP8Raster::Block<size>::intra_predict( const PredictionMode mb_mode, TwoD<u
 }
 
 /* Encoder */
-Encoder::Encoder( const string & output_filename, const uint16_t width, const uint16_t height )
+Encoder::Encoder( const string & output_filename, const uint16_t width,
+                  const uint16_t height, const bool two_pass )
   : ivf_writer_( output_filename, "VP80", width, height, 1, 1 ),
     width_( width ), height_( height ), decoder_state_( width, height ),
-    token_costs_()
+    token_costs_(), two_pass_encoder_( two_pass )
 {}
 
 template<unsigned int size>
@@ -595,30 +596,32 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
   );
 
   optimize_probability_tables( frame, token_branch_counts );
-  token_costs_.fill_costs( decoder_state_.probability_tables );
 
-  token_branch_counts = TokenBranchCounts();
+  if ( two_pass_encoder_ ) {
+    token_costs_.fill_costs( decoder_state_.probability_tables );
+    token_branch_counts = TokenBranchCounts();
 
-  // Second pass
-  raster.macroblocks().forall_ij(
-    [&] ( VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
-    {
-      auto & reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
-      auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
+    // Second pass
+    raster.macroblocks().forall_ij(
+      [&] ( VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
+      {
+        auto & reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
+        auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
 
-      // Process Y and Y2
-      luma_mb_intra_predict( original_mb, reconstructed_mb, frame_mb, quantizer, SECOND_PASS );
-      chroma_mb_intra_predict( original_mb, reconstructed_mb, frame_mb, quantizer, SECOND_PASS );
+        // Process Y and Y2
+        luma_mb_intra_predict( original_mb, reconstructed_mb, frame_mb, quantizer, SECOND_PASS );
+        chroma_mb_intra_predict( original_mb, reconstructed_mb, frame_mb, quantizer, SECOND_PASS );
 
-      frame.relink_y2_blocks();
-      frame_mb.calculate_has_nonzero();
-      frame_mb.reconstruct_intra( quantizer, reconstructed_mb );
+        frame.relink_y2_blocks();
+        frame_mb.calculate_has_nonzero();
+        frame_mb.reconstruct_intra( quantizer, reconstructed_mb );
 
-      frame_mb.accumulate_token_branches( token_branch_counts );
-    }
-  );
+        frame_mb.accumulate_token_branches( token_branch_counts );
+      }
+    );
 
-  optimize_probability_tables( frame, token_branch_counts );
+    optimize_probability_tables( frame, token_branch_counts );
+  }
 
   frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed_raster );
   return make_pair( move( frame ), reconstructed_raster.quality( raster ) );

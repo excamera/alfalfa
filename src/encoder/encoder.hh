@@ -25,6 +25,8 @@ private:
   DecoderState decoder_state_;
   TokenCosts token_costs_;
 
+  bool two_pass_encoder_ { true };
+
   static ProbabilityTables make_probability_tables( const TokenBranchCounts & token_branch_counts );
 
   static uint8_t token_for_coeff( int16_t coeff );
@@ -76,7 +78,8 @@ private:
   void check_reset_y2( Y2Block & y2, const Quantizer & quantizer ) const;
 
 public:
-  Encoder( const std::string & output_filename, const uint16_t width, const uint16_t height );
+  Encoder( const std::string & output_filename, const uint16_t width,
+           const uint16_t height, const bool two_pass );
   double encode_as_keyframe( const VP8Raster & raster, double minimum_ssim );
 
   static KeyFrame make_empty_frame( const uint16_t width, const uint16_t height );
