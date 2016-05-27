@@ -57,7 +57,10 @@ public:
   friend std::ostream &operator<<( std::ostream & output, const DCTCoefficients & dctc )
   {
     for ( int i = 0; i < 16; i++ ) {
-      output << dctc.at( i ) <<  " ";
+      output << dctc.at( i );
+      if ( i != 15 ) {
+        output << ", ";
+      }
     }
 
     return output;

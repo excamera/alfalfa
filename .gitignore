@@ -28,6 +28,7 @@ Makefile.in
 /src/frontend/collisions
 /src/frontend/xc-enc
 /src/frontend/xc-ssim
+/src/frontend/xc-dissect
 
 /src/tests/decode-to-stdout
 /src/tests/encode-loopback
