@@ -41,8 +41,10 @@ Encoder::Encoder( const string & output_filename, const uint16_t width,
                   const uint16_t height, const bool two_pass )
   : ivf_writer_( output_filename, "VP80", width, height, 1, 1 ),
     width_( width ), height_( height ), decoder_state_( width, height ),
-    token_costs_(), two_pass_encoder_( two_pass )
-{}
+    costs_(), two_pass_encoder_( two_pass )
+{
+  costs_.fill_mode_costs();
+}
 
 template<unsigned int size>
 uint32_t Encoder::variance( const VP8Raster::Block<size> & block,
@@ -72,6 +74,9 @@ uint32_t Encoder::variance( const VP8Raster::Block<size> & block,
   return sse - ( ( int64_t )sum * sum ) / ( size * size );
 }
 
+const uint32_t Rc = 5;
+const uint32_t Dc = 1;
+
 template <class MacroblockType>
 void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
                                      VP8Raster::Macroblock & reconstructed_mb,
@@ -92,16 +97,24 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
       prediction.fill( 0 );
       variance_val = 0;
 
+      uint32_t cost = 0;
+      uint32_t distortion = 0;
+
       reconstructed_mb.Y_sub.forall_ij(
         [&] ( VP8Raster::Block4 & reconstructed_sb, unsigned int sb_column, unsigned int sb_row )
         {
           auto & original_sb = original_mb.Y_sub.at( sb_column, sb_row );
           auto & frame_sb = frame_mb.Y().at( sb_column, sb_row );
 
-          pair<bmode, TwoD<uint8_t>> sb_prediction = luma_sb_intra_predict( original_sb,
-            reconstructed_sb, frame_sb, quantizer );
+          const auto above_mode = frame_sb.context().above.initialized()
+            ? frame_sb.context().above.get()->prediction_mode() : B_DC_PRED;
+          const auto left_mode = frame_sb.context().left.initialized()
+            ? frame_sb.context().left.get()->prediction_mode() : B_DC_PRED;
 
-          variance_val += variance( original_sb, sb_prediction.second,
+          pair<bmode, TwoD<uint8_t>> sb_prediction = luma_sb_intra_predict( original_sb,
+            reconstructed_sb, frame_sb, costs_.bmode_costs.at( above_mode ).at( left_mode ), quantizer );
+
+          distortion += variance( original_sb, sb_prediction.second,
             quantizer.y_dc, quantizer.y_ac );
 
           frame_sb.mutable_coefficients().subtract_dct( original_sb,
@@ -120,12 +133,19 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
 
           reconstructed_sb.intra_predict( sb_prediction.first );
           frame_sb.dequantize( quantizer ).idct_add( reconstructed_sb );
+
+          cost += costs_.bmode_costs.at( above_mode ).at( left_mode ).at( sb_prediction.first );
         }
       );
+
+      variance_val = rdcost( cost, distortion, Rc, Dc );
     }
     else {
       reconstructed_mb.Y.intra_predict( ( mbmode )prediction_mode, prediction );
       variance_val = variance( original_mb.Y, prediction, quantizer.y_dc, quantizer.y_ac );
+
+      uint16_t bit_cost = costs_.mbmode_costs.at( 0 ).at( prediction_mode );
+      variance_val = rdcost( bit_cost, variance_val, Rc, Dc );
     }
 
     if ( variance_val < min_energy ) {
@@ -284,6 +304,7 @@ void Encoder::chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb
 pair<bmode, TwoD<uint8_t>> Encoder::luma_sb_intra_predict( const VP8Raster::Block4 & original_sb,
                                                            VP8Raster::Block4 & reconstructed_sb,
                                                            YBlock & /* frame_sb */,
+                                                           const SafeArray<uint16_t, num_intra_b_modes> & mode_costs,
                                                            const Quantizer & quantizer ) const
 {
   uint32_t min_energy = numeric_limits<uint32_t>::max();
@@ -294,7 +315,9 @@ pair<bmode, TwoD<uint8_t>> Encoder::luma_sb_intra_predict( const VP8Raster::Bloc
     TwoD<uint8_t> prediction( 4, 4 );
 
     reconstructed_sb.intra_predict( ( bmode )prediction_mode, prediction );
-    uint32_t variance_val = variance( original_sb, prediction, quantizer.y_dc, quantizer.y_ac );
+    uint32_t distortion = variance( original_sb, prediction, quantizer.y_dc, quantizer.y_ac );
+
+    uint32_t variance_val = rdcost( mode_costs.at( prediction_mode ), distortion, Rc, Dc );
 
     if ( variance_val < min_energy ) {
       min_prediction = move( prediction );
@@ -458,7 +481,7 @@ void Encoder::trellis_quantize( FrameSubblockType & frame_sb,
           size_t current_context = vp8_prev_token_class[ current_node.token ];
 
           // cost of the next token based on the *current* context
-          rates[ next ] += token_costs_.costs.at( frame_sb.type() )
+          rates[ next ] += costs_.token_costs.at( frame_sb.type() )
                                              .at( next_band )
                                              .at( current_context )
                                              .at( next_node.token );
@@ -474,7 +497,7 @@ void Encoder::trellis_quantize( FrameSubblockType & frame_sb,
       }
 
       if ( current_node.coeff != 0 or trellis.at( idx + 1 ).at( best_next ).token != DCT_EOB_TOKEN ) {
-        current_node.rate = rates[ best_next ] + TokenCosts::coeff_base_cost( current_node.coeff );
+        current_node.rate = rates[ best_next ] + Costs::coeff_base_cost( current_node.coeff );
         current_node.distortion = distortions[ best_next ];
         current_node.cost = rd_costs[ best_next ];
         current_node.next = best_next;
@@ -493,7 +516,7 @@ void Encoder::trellis_quantize( FrameSubblockType & frame_sb,
 
   for ( size_t i = 0; i < LEVELS; i++ ) {
     TrellisNode & node = trellis.at( first_index ).at( i );
-    node.rate += token_costs_.costs.at( frame_sb.type() )
+    node.rate += costs_.token_costs.at( frame_sb.type() )
                                    .at( vp8_coef_bands[ first_index ] )
                                    .at( 0 )
                                    .at( node.token );
@@ -531,7 +554,7 @@ uint32_t Encoder::rdcost( uint32_t rate, uint32_t distortion,
                           uint32_t rate_multiplier,
                           uint32_t distortion_multiplier )
 {
-  return ( ( 128 + rate * rate_multiplier ) >> 8 )
+  return ( ( 128 + rate * rate_multiplier ) / 256 )
          + distortion * distortion_multiplier;
 }
 
@@ -598,7 +621,7 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
   optimize_probability_tables( frame, token_branch_counts );
 
   if ( two_pass_encoder_ ) {
-    token_costs_.fill_costs( decoder_state_.probability_tables );
+    costs_.fill_token_costs( decoder_state_.probability_tables );
     token_branch_counts = TokenBranchCounts();
 
     // Second pass
@@ -665,9 +688,6 @@ double Encoder::encode_as_keyframe( const VP8Raster & raster, const double minim
 
   DecoderState temp_state { width, height };
   QuantIndices quant_indices;
-  quant_indices.y_dc  = Signed<4>( 0 );
-  quant_indices.uv_dc = Signed<4>( 15 );
-  quant_indices.uv_ac = Signed<4>( 15 );
 
   pair<KeyFrame, double> encoded_frame = make_pair( move( make_empty_frame( width, height ) ), 0 );
 

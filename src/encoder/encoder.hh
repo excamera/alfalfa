@@ -8,7 +8,7 @@
 #include "frame.hh"
 #include "vp8_raster.hh"
 #include "ivf_writer.hh"
-#include "token_costs.hh"
+#include "costs.hh"
 
 enum EncoderPass
 {
@@ -23,7 +23,7 @@ private:
   uint16_t width_;
   uint16_t height_;
   DecoderState decoder_state_;
-  TokenCosts token_costs_;
+  Costs costs_;
 
   bool two_pass_encoder_ { true };
 
@@ -62,6 +62,7 @@ private:
   std::pair<bmode, TwoD<uint8_t>> luma_sb_intra_predict( const VP8Raster::Block4 & original_sb,
                                                          VP8Raster::Block4 & constructed_sb,
                                                          YBlock & frame_sb,
+                                                         const SafeArray<uint16_t, num_intra_b_modes> & mode_costs,
                                                          const Quantizer & quantizer ) const;
 
   template<class FrameType>
