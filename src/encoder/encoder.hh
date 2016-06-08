@@ -28,8 +28,8 @@ private:
   bool two_pass_encoder_ { false };
 
   // TODO: Where did these come from? Are these the possible values?
-  static const uint32_t RATE_MULTIPLIER = 300;
-  static const uint32_t DISTORTION_MULTIPLIER = 1;
+  uint32_t RATE_MULTIPLIER { 300 };
+  uint32_t DISTORTION_MULTIPLIER { 1 };
 
   static ProbabilityTables make_probability_tables( const TokenBranchCounts & token_branch_counts );
 
