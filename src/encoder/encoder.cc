@@ -47,35 +47,53 @@ Encoder::Encoder( const string & output_filename, const uint16_t width,
 }
 
 template<unsigned int size>
-uint32_t Encoder::variance( const VP8Raster::Block<size> & block,
-                            const TwoD<uint8_t> & prediction,
-                            const uint16_t dc_factor, const uint16_t ac_factor )
+uint32_t Encoder::sse( const VP8Raster::Block<size> & block,
+                       const TwoD<uint8_t> & prediction )
 {
-  return Encoder::variance( block, TwoDSubRange<uint8_t, size, size>( prediction, 0, 0 ),
-                            dc_factor, ac_factor );
+  return Encoder::sse( block, TwoDSubRange<uint8_t, size, size>( prediction, 0, 0 ) );
+}
+
+template<unsigned int size>
+uint32_t Encoder::sse( const VP8Raster::Block<size> & block,
+                       const TwoDSubRange<uint8_t, size, size> & prediction )
+{
+  uint32_t res = 0;
+
+  for ( size_t i = 0; i < size; i++ ) {
+    for ( size_t j = 0; j < size; j++ ) {
+      int16_t diff = ( block.at( i, j ) - prediction.at( i, j ) );
+      res += diff * diff;
+    }
+  }
+
+  return res;
 }
 
 template<unsigned int size>
 uint32_t Encoder::variance( const VP8Raster::Block<size> & block,
-                            const TwoDSubRange<uint8_t, size, size> & prediction,
-                            const uint16_t dc_factor, const uint16_t ac_factor )
+                            const TwoD<uint8_t> & prediction )
 {
-  uint32_t sse = 0;
+  return Encoder::variance( block, TwoDSubRange<uint8_t, size, size>( prediction, 0, 0 ) );
+}
+
+template<unsigned int size>
+uint32_t Encoder::variance( const VP8Raster::Block<size> & block,
+                            const TwoDSubRange<uint8_t, size, size> & prediction )
+{
+  uint32_t res = 0;
   int32_t sum = 0;
 
   for ( size_t i = 0; i < size; i++ ) {
     for ( size_t j = 0; j < size; j++ ) {
-      int16_t diff = ( block.at( i, j ) - prediction.at( i, j ) ) / ( ( i + j == 0 ) ? dc_factor : ac_factor );
+      int16_t diff = ( block.at( i, j ) - prediction.at( i, j ) );
+
       sum += diff;
-      sse += diff * diff;
+      res += diff * diff;
     }
   }
 
-  return sse - ( ( int64_t )sum * sum ) / ( size * size );
+  return res - ( ( int64_t)sum * sum ) / ( size * size );
 }
-
-const uint32_t Rc = 5;
-const uint32_t Dc = 1;
 
 template <class MacroblockType>
 void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
@@ -85,17 +103,17 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
                                      const EncoderPass encoder_pass ) const
 {
   // Select the best prediction mode
-  uint32_t min_energy = numeric_limits<uint32_t>::max();
+  uint32_t min_error = numeric_limits<uint32_t>::max();
   mbmode min_prediction_mode = DC_PRED;
   TwoD<uint8_t> min_prediction( 16, 16 );
 
   for ( unsigned int prediction_mode = 0; prediction_mode < num_y_modes; prediction_mode++ ) {
     TwoD<uint8_t> prediction( 16, 16 );
-    uint32_t variance_val = numeric_limits<uint32_t>::max();
+    uint32_t error_val = numeric_limits<uint32_t>::max();
 
     if ( prediction_mode == B_PRED ) {
       prediction.fill( 0 );
-      variance_val = 0;
+      error_val = 0;
 
       uint32_t cost = 0;
       uint32_t distortion = 0;
@@ -112,10 +130,9 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
             ? frame_sb.context().left.get()->prediction_mode() : B_DC_PRED;
 
           pair<bmode, TwoD<uint8_t>> sb_prediction = luma_sb_intra_predict( original_sb,
-            reconstructed_sb, frame_sb, costs_.bmode_costs.at( above_mode ).at( left_mode ), quantizer );
+            reconstructed_sb, costs_.bmode_costs.at( above_mode ).at( left_mode ) );
 
-          distortion += variance( original_sb, sb_prediction.second,
-            quantizer.y_dc, quantizer.y_ac );
+          distortion += sse( original_sb, sb_prediction.second );
 
           frame_sb.mutable_coefficients().subtract_dct( original_sb,
             TwoDSubRange<uint8_t, 4, 4>( sb_prediction.second, 0, 0 ) );
@@ -138,20 +155,25 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
         }
       );
 
-      variance_val = rdcost( cost, distortion, Rc, Dc );
+      error_val = rdcost( cost, distortion,
+                                        RATE_MULTIPLIER, DISTORTION_MULTIPLIER );
     }
     else {
       reconstructed_mb.Y.intra_predict( ( mbmode )prediction_mode, prediction );
-      variance_val = variance( original_mb.Y, prediction, quantizer.y_dc, quantizer.y_ac );
 
-      uint16_t bit_cost = costs_.mbmode_costs.at( 0 ).at( prediction_mode );
-      variance_val = rdcost( bit_cost, variance_val, Rc, Dc );
+      /* Here we compute variance, instead of SSE, because in this case
+       * the average will be taken out from Y2 block into the Y2 block. */
+      uint32_t distortion = variance( original_mb.Y, prediction );
+
+      uint16_t bit_cost = costs_.mbmode_costs.at( 0 /* keyframe */ ).at( prediction_mode );
+      error_val = rdcost( bit_cost, distortion, RATE_MULTIPLIER,
+                          DISTORTION_MULTIPLIER );
     }
 
-    if ( variance_val < min_energy ) {
+    if ( error_val < min_error ) {
       min_prediction = move( prediction );
       min_prediction_mode = ( mbmode )prediction_mode;
-      min_energy = variance_val;
+      min_error = error_val;
     }
   }
 
@@ -236,7 +258,7 @@ void Encoder::chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb
                                        const EncoderPass encoder_pass ) const
 {
   // Select the best prediction mode
-  uint32_t min_energy = numeric_limits<uint32_t>::max();
+  uint32_t min_error = numeric_limits<uint32_t>::max();
   mbmode min_prediction_mode = DC_PRED;
   TwoD<uint8_t> u_min_prediction( 8, 8 );
   TwoD<uint8_t> v_min_prediction( 8, 8 );
@@ -248,14 +270,14 @@ void Encoder::chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb
     reconstructed_mb.U.intra_predict( ( mbmode )prediction_mode, u_prediction );
     reconstructed_mb.V.intra_predict( ( mbmode )prediction_mode, v_prediction );
 
-    uint32_t variance_val = variance( original_mb.U, u_prediction, quantizer.uv_dc, quantizer.uv_ac );
-    variance_val += variance( original_mb.V, v_prediction, quantizer.uv_dc, quantizer.uv_ac );
+    uint32_t error_val = sse( original_mb.U, u_prediction )
+                       + sse( original_mb.V, v_prediction );
 
-    if ( variance_val < min_energy ) {
+    if ( error_val < min_error ) {
       u_min_prediction = move( u_prediction );
       v_min_prediction = move( v_prediction );
       min_prediction_mode = ( mbmode )prediction_mode;
-      min_energy = variance_val;
+      min_error = error_val;
     }
   }
 
@@ -303,11 +325,9 @@ void Encoder::chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb
 
 pair<bmode, TwoD<uint8_t>> Encoder::luma_sb_intra_predict( const VP8Raster::Block4 & original_sb,
                                                            VP8Raster::Block4 & reconstructed_sb,
-                                                           YBlock & /* frame_sb */,
-                                                           const SafeArray<uint16_t, num_intra_b_modes> & mode_costs,
-                                                           const Quantizer & quantizer ) const
+                                                           const SafeArray<uint16_t, num_intra_b_modes> & mode_costs ) const
 {
-  uint32_t min_energy = numeric_limits<uint32_t>::max();
+  uint32_t min_error = numeric_limits<uint32_t>::max();
   bmode min_prediction_mode = B_DC_PRED;
   TwoD<uint8_t> min_prediction( 4, 4 );
 
@@ -315,14 +335,15 @@ pair<bmode, TwoD<uint8_t>> Encoder::luma_sb_intra_predict( const VP8Raster::Bloc
     TwoD<uint8_t> prediction( 4, 4 );
 
     reconstructed_sb.intra_predict( ( bmode )prediction_mode, prediction );
-    uint32_t distortion = variance( original_sb, prediction, quantizer.y_dc, quantizer.y_ac );
+    uint32_t distortion = sse( original_sb, prediction );
 
-    uint32_t variance_val = rdcost( mode_costs.at( prediction_mode ), distortion, Rc, Dc );
+    uint32_t error_val = rdcost( mode_costs.at( prediction_mode ), distortion,
+                                    RATE_MULTIPLIER, DISTORTION_MULTIPLIER );
 
-    if ( variance_val < min_energy ) {
+    if ( error_val < min_error ) {
       min_prediction = move( prediction );
       min_prediction_mode = ( bmode )prediction_mode;
-      min_energy = variance_val;
+      min_error = error_val;
     }
   }
 

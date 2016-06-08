@@ -28,7 +28,7 @@ void usage_error( const string & program_name )
        << " -s <arg>, --ssim=<arg>                SSIM for the output" << endl
        << " -i <arg>, --input-format=<arg>        Input file format" << endl
        << "                                         ivf (default), y4m" << endl
-       << " --one-pass                            Skip the second pass" << endl;
+       << " --two-pass                            Do the second encoding pass" << endl;
 }
 
 int main( int argc, char *argv[] )
@@ -46,13 +46,13 @@ int main( int argc, char *argv[] )
     string output_file = "output.ivf";
     string input_format = "ivf";
     double ssim = 0.99;
-    bool two_pass = true;
+    bool two_pass = false;
 
     const option command_line_options[] = {
       { "output",       required_argument, nullptr, 'o' },
       { "input-format", required_argument, nullptr, 'i' },
       { "ssim",         required_argument, nullptr, 's' },
-      { "one-pass",     no_argument,       nullptr, '1' },
+      { "two-pass",     no_argument,       nullptr, '2' },
       { 0, 0, nullptr, 0 }
     };
 
@@ -76,8 +76,8 @@ int main( int argc, char *argv[] )
         ssim = stod( optarg );
         break;
 
-      case '1':
-        two_pass = false;
+      case '2':
+        two_pass = true;
         break;
 
       default:
