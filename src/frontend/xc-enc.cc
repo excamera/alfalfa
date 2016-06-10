@@ -28,7 +28,8 @@ void usage_error( const string & program_name )
        << " -s <arg>, --ssim=<arg>                SSIM for the output" << endl
        << " -i <arg>, --input-format=<arg>        Input file format" << endl
        << "                                         ivf (default), y4m" << endl
-       << " --two-pass                            Do the second encoding pass" << endl;
+       << " --two-pass                            Do the second encoding pass" << endl
+       << " --y-ac-qi <arg>                       Quantization index for Y" << endl;
 }
 
 int main( int argc, char *argv[] )
@@ -48,11 +49,14 @@ int main( int argc, char *argv[] )
     double ssim = 0.99;
     bool two_pass = false;
 
+    size_t y_ac_qi = numeric_limits<size_t>::max();
+
     const option command_line_options[] = {
       { "output",       required_argument, nullptr, 'o' },
       { "input-format", required_argument, nullptr, 'i' },
       { "ssim",         required_argument, nullptr, 's' },
       { "two-pass",     no_argument,       nullptr, '2' },
+      { "y-ac-qi",      required_argument, nullptr, 'y' },
       { 0, 0, nullptr, 0 }
     };
 
@@ -78,6 +82,10 @@ int main( int argc, char *argv[] )
 
       case '2':
         two_pass = true;
+        break;
+
+      case 'y':
+        y_ac_qi = stoul( optarg );
         break;
 
       default:
@@ -122,7 +130,7 @@ int main( int argc, char *argv[] )
     size_t frame_index = 0;
 
     while ( raster.initialized() ) {
-      double result_ssim = encoder.encode_as_keyframe( raster.get(), ssim );
+      double result_ssim = encoder.encode_as_keyframe( raster.get(), ssim, y_ac_qi );
 
       cerr << "Frame #" << frame_index++ << ": ssim=" << result_ssim << endl;
 

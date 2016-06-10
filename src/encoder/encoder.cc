@@ -447,10 +447,6 @@ void Encoder::trellis_quantize( FrameSubblockType & frame_sb,
     sentinel_node.next = numeric_limits<uint8_t>::max();
   }
 
-  /* These multipliers must change based on the block type, quantizer, ... */
-  const uint32_t RATE_MULTIPLIER = 20;
-  const uint32_t DISTORTION_MULTIPLIER = 1;
-
   // building the trellis first
   for ( uint8_t idx = coded_length; idx-- > first_index; ) {
     const int16_t original_coeff = frame_sb.coefficients().at( zigzag.at( idx ) );
@@ -685,34 +681,21 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
   return make_pair( move( frame ), reconstructed_raster.quality( raster ) );
 }
 
-ProbabilityTables Encoder::make_probability_tables( const TokenBranchCounts & token_branch_counts )
-{
-  ProbabilityTables probability_tables;
-
-  // update probability tables based on token branch counts
-  for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
-    for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
-      for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
-        for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
-          const unsigned int false_count = token_branch_counts.at( i ).at( j ).at( k ).at( l ).first;
-          const unsigned int true_count = token_branch_counts.at( i ).at( j ).at( k ).at( l ).second;
-          const unsigned int prob = calc_prob( false_count, false_count + true_count );
-
-          if ( prob > 0 ) {
-            probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l ) = prob;
-          }
-        }
-      }
-    }
-  }
-
-  return probability_tables;
-}
-
-double Encoder::encode_as_keyframe( const VP8Raster & raster, const double minimum_ssim )
+double Encoder::encode_as_keyframe( const VP8Raster & raster,
+                                    const double minimum_ssim,
+                                    const uint8_t y_ac_qi )
 {
   int y_ac_qi_min = 0;
   int y_ac_qi_max = 127;
+
+  if ( y_ac_qi != numeric_limits<uint8_t>::max() ) {
+    if ( y_ac_qi > 127 ) {
+      throw runtime_error( "y_ac_qi should be less than or equal to 127" );
+    }
+
+    y_ac_qi_min = y_ac_qi;
+    y_ac_qi_max = y_ac_qi;
+  }
 
   const uint16_t width = raster.display_width();
   const uint16_t height = raster.display_height();

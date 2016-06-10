@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <tuple>
+#include <limits>
 
 #include "frame.hh"
 #include "vp8_raster.hh"
@@ -25,13 +26,12 @@ private:
   DecoderState decoder_state_;
   Costs costs_;
 
+  double minimum_ssim_ { 0.8 };
   bool two_pass_encoder_ { false };
 
   // TODO: Where did these come from? Are these the possible values?
   uint32_t RATE_MULTIPLIER { 300 };
   uint32_t DISTORTION_MULTIPLIER { 1 };
-
-  static ProbabilityTables make_probability_tables( const TokenBranchCounts & token_branch_counts );
 
   static uint8_t token_for_coeff( int16_t coeff );
 
@@ -79,7 +79,6 @@ private:
   template<class FrameType>
   void optimize_probability_tables( FrameType & frame, const TokenBranchCounts & token_branch_counts );
 
-
   template<class FrameSubblockType>
   void trellis_quantize( FrameSubblockType & frame_sb,
                          const Quantizer & quantizer ) const;
@@ -90,7 +89,9 @@ public:
   Encoder( const std::string & output_filename, const uint16_t width,
            const uint16_t height, const bool two_pass );
 
-  double encode_as_keyframe( const VP8Raster & raster, double minimum_ssim );
+  double encode_as_keyframe( const VP8Raster & raster,
+                             const double minimum_ssim,
+                             const uint8_t y_ac_qi = std::numeric_limits<uint8_t>::max() );
 
   static KeyFrame make_empty_frame( const uint16_t width, const uint16_t height );
 };
