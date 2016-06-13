@@ -2,6 +2,7 @@
 #include <iostream>
 #include <array>
 #include <string>
+#include <iomanip>
 
 #include "frame.hh"
 #include "decoder.hh"
@@ -14,6 +15,7 @@ void usage_error( const string & program_name )
   cerr << "Usage: " << program_name << " [options] <ivf>" << endl
        << endl
        << "Options:" << endl
+       << " -m, --macroblocks              Print per-macroblock information" << endl
        << " -p, --probability-tables       Print the prob tables for each frame" << endl
        << " -c, --coefficients             Print DCT coefficients for each block" << endl
        << endl;
@@ -64,8 +66,10 @@ int main( int argc, char *argv[] )
 
   bool probability_tables = false;
   bool coefficients = false;
+  bool macroblocks = false;
 
   const option command_line_options[] = {
+    { "macroblocks",               no_argument, nullptr, 'm' },
     { "probability-tables",        no_argument, nullptr, 'p' },
     { "coefficients",              no_argument, nullptr, 'c' },
     { 0, 0, nullptr, 0 }
@@ -79,6 +83,9 @@ int main( int argc, char *argv[] )
     }
 
     switch ( opt ) {
+    case 'm':
+      macroblocks = true;
+
     case 'p':
       probability_tables = true;
       break;
@@ -119,12 +126,60 @@ int main( int argc, char *argv[] )
 
     decoder_state = DecoderState{ width, height }; // reset the decoder state for keyframe
     KeyFrame frame = decoder_state.parse_and_apply<KeyFrame>( uncompressed_chunk );
+    auto & header = frame.header();
 
     if ( probability_tables ) {
       cout << "[Probability Tables]" << endl;
       print_probability_tables( frame, decoder_state );
       cout << endl;
     }
+
+    cout << "[Keyframe Header]" << endl;
+    cout << "color_space:         " << header.color_space << endl;
+    cout << "clamping_type:       " << header.clamping_type << endl;
+    cout << "update_segmentation: " << header.update_segmentation.initialized() << endl;
+    cout << "filter_type:         " << header.filter_type << endl;
+    cout << "mode_lf_adjustments: " << header.mode_lf_adjustments.initialized() << endl;
+
+    if (  header.mode_lf_adjustments.initialized() ) {
+    auto mode_ref_lf_delta_update = header.mode_lf_adjustments.get();
+    cout << "  lf_delta_update:   " << mode_ref_lf_delta_update.initialized() << endl;
+
+      if ( mode_ref_lf_delta_update.initialized() ) {
+        cout << "    ref_update:      ";
+        for ( size_t i = 0; i < 4; i++ ) {
+          auto & ref_update = mode_ref_lf_delta_update.get().ref_update.at( i );
+
+          cout << setw( 6 ) << right;
+          if ( ref_update.initialized() ) {
+            cout << (int)ref_update.get();
+          }
+          else {
+            cout << "X";
+          }
+        }
+        cout << endl;
+
+        cout << "    mode_update:     ";
+        for ( size_t i = 0; i < 4; i++ ) {
+          auto & mode_update = mode_ref_lf_delta_update.get().mode_update.at( i );
+
+          cout << setw( 6 ) << right;
+          if ( mode_update.initialized() ) {
+            cout << (int)mode_update.get();
+          }
+          else {
+            cout << "X";
+          }
+        }
+        cout << endl;
+      }
+    }
+
+    cout << "loop_filter_level:   " << (int)header.loop_filter_level << endl;
+    cout << "sharpness_level:     " << (int)header.sharpness_level << endl;
+
+    cout << endl;
 
     cout << "[Quantizer]" << endl;
     cout << "y_ac_qi = " << ( int )frame.header().quant_indices.y_ac_qi << endl;
@@ -150,73 +205,74 @@ int main( int argc, char *argv[] )
     }
 
     cout << endl;
-    cout << "[Macroblocks]" << endl;
 
-    frame.macroblocks().forall_ij(
-      [&] ( KeyFrameMacroblock & macroblock, unsigned int mb_column, unsigned int mb_row )
-      {
-        cout << "Macroblock [ " << mb_column << ", " << mb_row << " ]" << endl;
-        cout << "<Y>" << endl;
-        cout << "Prediction Mode: " << mbmode_names[ macroblock.y_prediction_mode() ] << endl;
-        cout << endl;
+    if ( macroblocks ) {
+      cout << "[Macroblocks]" << endl;
 
-        macroblock.Y().forall_ij(
-          [&] ( const YBlock & yblock, unsigned int sb_column, unsigned sb_row ) {
-            cout << "Y Subblock [ " << sb_column << ", " << sb_row << " ]" << endl;
-            cout << "Prediction Mode: " << bmode_names[ yblock.prediction_mode() ] << endl;
+      frame.macroblocks().forall_ij(
+        [&] ( KeyFrameMacroblock & macroblock, unsigned int mb_column, unsigned int mb_row )
+        {
+          cout << "Macroblock [ " << mb_column << ", " << mb_row << " ]" << endl;
+          cout << "<Y>" << endl;
+          cout << "Prediction Mode: " << mbmode_names[ macroblock.y_prediction_mode() ] << endl;
+          cout << endl;
 
-            if ( coefficients ) {
-              cout << "DCT coeffs: { " << yblock.coefficients() << " }" << endl;
-              cout << endl;
+          macroblock.Y().forall_ij(
+            [&] ( const YBlock & yblock, unsigned int sb_column, unsigned sb_row ) {
+              cout << "Y Subblock [ " << sb_column << ", " << sb_row << " ]" << endl;
+              cout << "Prediction Mode: " << bmode_names[ yblock.prediction_mode() ] << endl;
+
+              if ( coefficients ) {
+                cout << "DCT coeffs: { " << yblock.coefficients() << " }" << endl;
+                cout << endl;
+              }
             }
-          }
-        );
+          );
 
-        if ( macroblock.Y2().coded() ) {
-          cout << "<Y2>" << endl;
-          cout << "DCT coeffs: { " << macroblock.Y2().coefficients() << " }" << endl;
+          if ( macroblock.Y2().coded() ) {
+            cout << "<Y2>" << endl;
+            cout << "DCT coeffs: { " << macroblock.Y2().coefficients() << " }" << endl;
+            cout << endl;
+          }
+
+          cout << endl;
+
+          cout << "<U>" << endl;
+          cout << "Prediction Mode: " << mbmode_names[ macroblock.uv_prediction_mode() ] << endl;
+          cout << endl;
+
+          macroblock.U().forall_ij(
+            [&] ( const UVBlock & ublock, unsigned int sb_column, unsigned sb_row ) {
+              cout << "U Subblock [ " << sb_column << ", " << sb_row << " ]" << endl;
+
+              if ( coefficients ) {
+                cout << "DCT coeffs: { " << ublock.coefficients() << " }" << endl;
+                cout << endl;
+              }
+            }
+          );
+
+          cout << endl;
+
+          cout << "<V>" << endl;
+          cout << "Prediction Mode: " << mbmode_names[ macroblock.uv_prediction_mode() ] << endl;
+          cout << endl;
+
+          macroblock.V().forall_ij(
+            [&] ( const UVBlock & vblock, unsigned int sb_column, unsigned sb_row ) {
+              cout << "V Subblock [ " << sb_column << ", " << sb_row << " ]" << endl;
+
+              if ( coefficients ) {
+                cout << "DCT coeffs: { " << vblock.coefficients() << " }" << endl;
+                cout << endl;
+              }
+            }
+          );
+
           cout << endl;
         }
-
-        cout << endl;
-
-        cout << "<U>" << endl;
-        cout << "Prediction Mode: " << mbmode_names[ macroblock.uv_prediction_mode() ] << endl;
-        cout << endl;
-
-        macroblock.U().forall_ij(
-          [&] ( const UVBlock & ublock, unsigned int sb_column, unsigned sb_row ) {
-            cout << "U Subblock [ " << sb_column << ", " << sb_row << " ]" << endl;
-
-            if ( coefficients ) {
-              cout << "DCT coeffs: { " << ublock.coefficients() << " }" << endl;
-              cout << endl;
-            }
-          }
-        );
-
-        cout << endl;
-
-        cout << "<V>" << endl;
-        cout << "Prediction Mode: " << mbmode_names[ macroblock.uv_prediction_mode() ] << endl;
-        cout << endl;
-
-        macroblock.V().forall_ij(
-          [&] ( const UVBlock & vblock, unsigned int sb_column, unsigned sb_row ) {
-            cout << "V Subblock [ " << sb_column << ", " << sb_row << " ]" << endl;
-
-            if ( coefficients ) {
-              cout << "DCT coeffs: { " << vblock.coefficients() << " }" << endl;
-              cout << endl;
-            }
-          }
-        );
-
-        cout << endl;
-      }
-    );
-
-    if ( coefficients ) {}
+      );
+    } // end of macroblocks
 
     cout << endl;
   }
