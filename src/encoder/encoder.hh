@@ -34,23 +34,13 @@ private:
   uint32_t RATE_MULTIPLIER { 300 };
   uint32_t DISTORTION_MULTIPLIER { 1 };
 
-  static uint8_t token_for_coeff( int16_t coeff );
-
   static uint32_t rdcost( uint32_t rate, uint32_t distortion,
                           uint32_t rate_multiplier,
                           uint32_t distortion_multiplier );
 
   template<unsigned int size>
   static uint32_t sse( const VP8Raster::Block<size> & block,
-                       const TwoD<uint8_t> & prediction );
-
-  template<unsigned int size>
-  static uint32_t sse( const VP8Raster::Block<size> & block,
                        const TwoDSubRange<uint8_t, size, size> & prediction );
-
-  template<unsigned int size>
-  static uint32_t variance( const VP8Raster::Block<size> & block,
-                            const TwoD<uint8_t> & prediction );
 
   template<unsigned int size>
   static uint32_t variance( const VP8Raster::Block<size> & block,

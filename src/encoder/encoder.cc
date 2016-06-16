@@ -7,6 +7,15 @@
 
 using namespace std;
 
+/*
+ * Taken from: libvpx:vp8/encoder/entropy.c:38-42
+ */
+const uint8_t vp8_coef_bands[ 16 ] =
+  { 0, 1, 2, 3, 6, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 7 };
+
+const uint8_t vp8_prev_token_class[ MAX_ENTROPY_TOKENS ] =
+  { 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0 };
+
 static unsigned calc_prob( unsigned false_count, unsigned total )
 {
   if ( false_count == 0 ) {
@@ -14,6 +23,27 @@ static unsigned calc_prob( unsigned false_count, unsigned total )
   } else {
     return max( 1u, min( 255u, 256 * false_count / total ) );
   }
+}
+
+uint8_t token_for_coeff( int16_t coeff )
+{
+  coeff = abs( coeff );
+
+  switch( coeff ) {
+  case 0: return ZERO_TOKEN;
+  case 1: return ONE_TOKEN;
+  case 2: return TWO_TOKEN;
+  case 3: return THREE_TOKEN;
+  case 4: return FOUR_TOKEN;
+  }
+
+  if ( coeff <=  6 ) return DCT_VAL_CATEGORY1;
+  if ( coeff <= 10 ) return DCT_VAL_CATEGORY2;
+  if ( coeff <= 18 ) return DCT_VAL_CATEGORY3;
+  if ( coeff <= 34 ) return DCT_VAL_CATEGORY4;
+  if ( coeff <= 66 ) return DCT_VAL_CATEGORY5;
+
+  return DCT_VAL_CATEGORY6;
 }
 
 QuantIndices::QuantIndices()
@@ -41,17 +71,9 @@ Encoder::Encoder( const string & output_filename, const uint16_t width,
                   const uint16_t height, const bool two_pass )
   : ivf_writer_( output_filename, "VP80", width, height, 1, 1 ),
     width_( width ), height_( height ), temp_raster_handle_( width, height ),
-    decoder_state_( width, height ),
-    costs_(), two_pass_encoder_( two_pass )
+    decoder_state_( width, height ), costs_(), two_pass_encoder_( two_pass )
 {
   costs_.fill_mode_costs();
-}
-
-template<unsigned int size>
-uint32_t Encoder::sse( const VP8Raster::Block<size> & block,
-                       const TwoD<uint8_t> & prediction )
-{
-  return Encoder::sse( block, TwoDSubRange<uint8_t, size, size>( prediction, 0, 0 ) );
 }
 
 template<unsigned int size>
@@ -68,13 +90,6 @@ uint32_t Encoder::sse( const VP8Raster::Block<size> & block,
   }
 
   return res;
-}
-
-template<unsigned int size>
-uint32_t Encoder::variance( const VP8Raster::Block<size> & block,
-                            const TwoD<uint8_t> & prediction )
-{
-  return Encoder::variance( block, TwoDSubRange<uint8_t, size, size>( prediction, 0, 0 ) );
 }
 
 template<unsigned int size>
@@ -341,7 +356,7 @@ bmode Encoder::luma_sb_intra_predict( const VP8Raster::Block4 & original_sb,
 
     uint32_t distortion = sse( original_sb, prediction );
     uint32_t error_val = rdcost( mode_costs.at( prediction_mode ), distortion,
-                                    RATE_MULTIPLIER, DISTORTION_MULTIPLIER );
+                                 RATE_MULTIPLIER, DISTORTION_MULTIPLIER );
 
     if ( error_val < min_error ) {
       reconstructed_sb.mutable_contents().copy_from( prediction );
@@ -352,36 +367,6 @@ bmode Encoder::luma_sb_intra_predict( const VP8Raster::Block4 & original_sb,
 
   return min_prediction_mode;
 }
-
-uint8_t Encoder::token_for_coeff( int16_t coeff )
-{
-  coeff = abs( coeff );
-
-  switch( coeff ) {
-  case 0: return ZERO_TOKEN;
-  case 1: return ONE_TOKEN;
-  case 2: return TWO_TOKEN;
-  case 3: return THREE_TOKEN;
-  case 4: return FOUR_TOKEN;
-  }
-
-  if ( coeff <=  6 ) return DCT_VAL_CATEGORY1;
-  if ( coeff <= 10 ) return DCT_VAL_CATEGORY2;
-  if ( coeff <= 18 ) return DCT_VAL_CATEGORY3;
-  if ( coeff <= 34 ) return DCT_VAL_CATEGORY4;
-  if ( coeff <= 66 ) return DCT_VAL_CATEGORY5;
-
-  return DCT_VAL_CATEGORY6;
-}
-
-/*
- * Taken from: libvpx:vp8/encoder/entropy.c:38-42
- */
-const uint8_t vp8_coef_bands[ 16 ] =
-  { 0, 1, 2, 3, 6, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 7 };
-
-const uint8_t vp8_prev_token_class[ MAX_ENTROPY_TOKENS ] =
-  { 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0 };
 
 template<class FrameSubblockType>
 void Encoder::trellis_quantize( FrameSubblockType & frame_sb,
@@ -677,7 +662,6 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
   frame.mutable_header().mode_lf_adjustments.get().get().mode_update.at( 2 ).initialize( 0 );
   frame.mutable_header().mode_lf_adjustments.get().get().mode_update.at( 3 ).initialize( 0 );
 
-  // size_t best_mode_update = 0;
   size_t best_lf_level = 0;
   double best_ssim = -1.0;
 
