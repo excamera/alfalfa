@@ -704,23 +704,30 @@ double Encoder::encode_as_keyframe( const VP8Raster & raster,
     throw runtime_error( "scaling is not supported." );
   }
 
-  DecoderState temp_state { width, height };
   QuantIndices quant_indices;
 
-  pair<KeyFrame, double> encoded_frame = make_pair( move( make_empty_frame( width, height ) ), 0 );
+  bool found = false;
+  size_t best_y_ac_qi = 0;
 
   while ( y_ac_qi_min <= y_ac_qi_max ) {
     decoder_state_ = DecoderState( width_, height_ );
 
     quant_indices.y_ac_qi = ( y_ac_qi_min + y_ac_qi_max ) / 2;
-    encoded_frame = encode_with_quantizer<KeyFrame>( raster, quant_indices );
+    pair<KeyFrame, double> encoded_frame = encode_with_quantizer<KeyFrame>( raster, quant_indices );
 
-    if ( abs( encoded_frame.second - minimum_ssim ) < 0.005
-         or y_ac_qi_min == y_ac_qi_max) {
+    double current_ssim = encoded_frame.second;
+
+    if ( current_ssim >= minimum_ssim || ( y_ac_qi_min == y_ac_qi_max && not found ) ) {
+      // this is a potential answer, let's save it
+      found = true;
+      best_y_ac_qi = quant_indices.y_ac_qi;
+    }
+
+    if ( y_ac_qi_min == y_ac_qi_max ) {
       break; // "I believe the search is over."
     }
 
-    if ( encoded_frame.second < minimum_ssim ) {
+    if ( current_ssim < minimum_ssim ) {
       y_ac_qi_max = quant_indices.y_ac_qi - 1;
     }
     else {
@@ -728,7 +735,10 @@ double Encoder::encode_as_keyframe( const VP8Raster & raster,
     }
   }
 
-  ivf_writer_.append_frame( encoded_frame.first.serialize( decoder_state_.probability_tables ) );
+  quant_indices.y_ac_qi = best_y_ac_qi;
+  decoder_state_ = DecoderState( width_, height_ );
+  pair<KeyFrame, double> encoded_frame = encode_with_quantizer<KeyFrame>( raster, quant_indices );
 
+  ivf_writer_.append_frame( encoded_frame.first.serialize( decoder_state_.probability_tables ) );
   return encoded_frame.second;
 }
