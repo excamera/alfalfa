@@ -23,6 +23,7 @@ private:
   IVFWriter ivf_writer_;
   uint16_t width_;
   uint16_t height_;
+  MutableRasterHandle temp_raster_handle_;
   DecoderState decoder_state_;
   Costs costs_;
 
@@ -58,6 +59,7 @@ private:
   template <class MacroblockType>
   void luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
                               VP8Raster::Macroblock & constructed_mb,
+                              VP8Raster::Macroblock & temp_mb,
                               MacroblockType & frame_mb,
                               const Quantizer & quantizer,
                               const EncoderPass encoder_pass = FIRST_PASS ) const;
@@ -65,13 +67,15 @@ private:
   template <class MacroblockType>
   void chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
                                 VP8Raster::Macroblock & constructed_mb,
+                                VP8Raster::Macroblock & temp_mb,
                                 MacroblockType & frame_mb,
                                 const Quantizer & quantizer,
                                 const EncoderPass encoder_pass = FIRST_PASS ) const;
 
-  std::pair<bmode, TwoD<uint8_t>> luma_sb_intra_predict( const VP8Raster::Block4 & original_sb,
-                                                         VP8Raster::Block4 & constructed_sb,
-                                                         const SafeArray<uint16_t, num_intra_b_modes> & mode_costs ) const;
+  bmode luma_sb_intra_predict( const VP8Raster::Block4 & original_sb,
+                               VP8Raster::Block4 & constructed_sb,
+                               VP8Raster::Block4 & temp_sb,
+                               const SafeArray<uint16_t, num_intra_b_modes> & mode_costs ) const;
 
   template<class FrameType>
   std::pair<KeyFrame, double> encode_with_quantizer( const VP8Raster & raster, const QuantIndices & quant_indices );
@@ -84,6 +88,8 @@ private:
                          const Quantizer & quantizer ) const;
 
   void check_reset_y2( Y2Block & y2, const Quantizer & quantizer ) const;
+
+  VP8Raster & temp_raster() { return temp_raster_handle_.get(); }
 
 public:
   Encoder( const std::string & output_filename, const uint16_t width,

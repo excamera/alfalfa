@@ -40,7 +40,8 @@ void VP8Raster::Block<size>::intra_predict( const PredictionMode mb_mode, TwoD<u
 Encoder::Encoder( const string & output_filename, const uint16_t width,
                   const uint16_t height, const bool two_pass )
   : ivf_writer_( output_filename, "VP80", width, height, 1, 1 ),
-    width_( width ), height_( height ), decoder_state_( width, height ),
+    width_( width ), height_( height ), temp_raster_handle_( width, height ),
+    decoder_state_( width, height ),
     costs_(), two_pass_encoder_( two_pass )
 {
   costs_.fill_mode_costs();
@@ -98,6 +99,7 @@ uint32_t Encoder::variance( const VP8Raster::Block<size> & block,
 template <class MacroblockType>
 void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
                                      VP8Raster::Macroblock & reconstructed_mb,
+                                     VP8Raster::Macroblock & temp_mb,
                                      MacroblockType & frame_mb,
                                      const Quantizer & quantizer,
                                      const EncoderPass encoder_pass ) const
@@ -105,14 +107,13 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
   // Select the best prediction mode
   uint32_t min_error = numeric_limits<uint32_t>::max();
   mbmode min_prediction_mode = DC_PRED;
-  TwoD<uint8_t> min_prediction( 16, 16 );
+
+  TwoDSubRange<uint8_t, 16, 16> & prediction = temp_mb.Y.mutable_contents();
 
   for ( unsigned int prediction_mode = 0; prediction_mode < num_y_modes; prediction_mode++ ) {
-    TwoD<uint8_t> prediction( 16, 16 );
     uint32_t error_val = numeric_limits<uint32_t>::max();
 
     if ( prediction_mode == B_PRED ) {
-      prediction.fill( 0 );
       error_val = 0;
 
       uint32_t cost = 0;
@@ -122,6 +123,7 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
         [&] ( VP8Raster::Block4 & reconstructed_sb, unsigned int sb_column, unsigned int sb_row )
         {
           auto & original_sb = original_mb.Y_sub.at( sb_column, sb_row );
+          auto & temp_sb = temp_mb.Y_sub.at( sb_column, sb_row );
           auto & frame_sb = frame_mb.Y().at( sb_column, sb_row );
 
           const auto above_mode = frame_sb.context().above.initialized()
@@ -129,13 +131,13 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
           const auto left_mode = frame_sb.context().left.initialized()
             ? frame_sb.context().left.get()->prediction_mode() : B_DC_PRED;
 
-          pair<bmode, TwoD<uint8_t>> sb_prediction = luma_sb_intra_predict( original_sb,
-            reconstructed_sb, costs_.bmode_costs.at( above_mode ).at( left_mode ) );
+          bmode sb_prediction_mode = luma_sb_intra_predict( original_sb,
+            reconstructed_sb, temp_sb, costs_.bmode_costs.at( above_mode ).at( left_mode ) );
 
-          distortion += sse( original_sb, sb_prediction.second );
+          distortion += sse( original_sb, reconstructed_sb.contents() );
 
           frame_sb.mutable_coefficients().subtract_dct( original_sb,
-            TwoDSubRange<uint8_t, 4, 4>( sb_prediction.second, 0, 0 ) );
+            reconstructed_sb.contents() );
 
           if ( encoder_pass == FIRST_PASS ) {
             frame_sb.mutable_coefficients() = YBlock::quantize( quantizer, frame_sb.coefficients() );
@@ -144,19 +146,19 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
             trellis_quantize( frame_sb, quantizer );
           }
 
-          frame_sb.set_prediction_mode( sb_prediction.first );
+          frame_sb.set_prediction_mode( sb_prediction_mode );
           frame_sb.set_Y_without_Y2();
           frame_sb.calculate_has_nonzero();
 
-          reconstructed_sb.intra_predict( sb_prediction.first );
+          reconstructed_sb.intra_predict( sb_prediction_mode );
           frame_sb.dequantize( quantizer ).idct_add( reconstructed_sb );
 
-          cost += costs_.bmode_costs.at( above_mode ).at( left_mode ).at( sb_prediction.first );
+          cost += costs_.bmode_costs.at( above_mode ).at( left_mode ).at( sb_prediction_mode );
         }
       );
 
       error_val = rdcost( cost, distortion,
-                                        RATE_MULTIPLIER, DISTORTION_MULTIPLIER );
+                          RATE_MULTIPLIER, DISTORTION_MULTIPLIER );
     }
     else {
       reconstructed_mb.Y.intra_predict( ( mbmode )prediction_mode, prediction );
@@ -171,7 +173,7 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
     }
 
     if ( error_val < min_error ) {
-      min_prediction = move( prediction );
+      reconstructed_mb.Y.mutable_contents().copy_from( prediction );
       min_prediction_mode = ( mbmode )prediction_mode;
       min_error = error_val;
     }
@@ -190,7 +192,7 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
         frame_sb.set_prediction_mode( KeyFrameMacroblock::implied_subblock_mode( min_prediction_mode ) );
 
         frame_sb.mutable_coefficients().subtract_dct( original_sb,
-          TwoDSubRange<uint8_t, 4, 4>( min_prediction, 4 * sb_column, 4 * sb_row ) );
+          reconstructed_mb.Y_sub.at( sb_column, sb_row ).contents() );
 
         walsh_input.at( sb_column + 4 * sb_row ) = frame_sb.coefficients().at( 0 );
         frame_sb.set_dc_coefficient( 0 );
@@ -253,6 +255,7 @@ void Encoder::check_reset_y2( Y2Block & y2, const Quantizer & quantizer ) const
 template <class MacroblockType>
 void Encoder::chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
                                        VP8Raster::Macroblock & reconstructed_mb,
+                                       VP8Raster::Macroblock & temp_mb,
                                        MacroblockType & frame_mb,
                                        const Quantizer & quantizer,
                                        const EncoderPass encoder_pass ) const
@@ -260,13 +263,11 @@ void Encoder::chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb
   // Select the best prediction mode
   uint32_t min_error = numeric_limits<uint32_t>::max();
   mbmode min_prediction_mode = DC_PRED;
-  TwoD<uint8_t> u_min_prediction( 8, 8 );
-  TwoD<uint8_t> v_min_prediction( 8, 8 );
+
+  TwoDSubRange<uint8_t, 8, 8> & u_prediction = temp_mb.U.mutable_contents();
+  TwoDSubRange<uint8_t, 8, 8> & v_prediction = temp_mb.V.mutable_contents();
 
   for ( unsigned int prediction_mode = 0; prediction_mode < num_uv_modes; prediction_mode++ ) {
-    TwoD<uint8_t> u_prediction( 8, 8 );
-    TwoD<uint8_t> v_prediction( 8, 8 );
-
     reconstructed_mb.U.intra_predict( ( mbmode )prediction_mode, u_prediction );
     reconstructed_mb.V.intra_predict( ( mbmode )prediction_mode, v_prediction );
 
@@ -274,8 +275,8 @@ void Encoder::chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb
                        + sse( original_mb.V, v_prediction );
 
     if ( error_val < min_error ) {
-      u_min_prediction = move( u_prediction );
-      v_min_prediction = move( v_prediction );
+      reconstructed_mb.U.mutable_contents().copy_from( u_prediction );
+      reconstructed_mb.V.mutable_contents().copy_from( v_prediction );
       min_prediction_mode = ( mbmode )prediction_mode;
       min_error = error_val;
     }
@@ -290,7 +291,7 @@ void Encoder::chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb
       auto & original_sb = original_mb.U_sub.at( sb_column, sb_row );
 
       frame_sb.mutable_coefficients().subtract_dct( original_sb,
-        TwoDSubRange<uint8_t, 4, 4>( u_min_prediction, 4 * sb_column, 4 * sb_row ) );
+        reconstructed_mb.U_sub.at( sb_column, sb_row ).contents() );
 
         if ( encoder_pass == FIRST_PASS ) {
           frame_sb.mutable_coefficients() = UVBlock::quantize( quantizer, frame_sb.coefficients() );
@@ -309,7 +310,7 @@ void Encoder::chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb
       auto & original_sb = original_mb.V_sub.at( sb_column, sb_row );
 
       frame_sb.mutable_coefficients().subtract_dct( original_sb,
-        TwoDSubRange<uint8_t, 4, 4>( v_min_prediction, 4 * sb_column, 4 * sb_row ) );
+        reconstructed_mb.V_sub.at( sb_column, sb_row ).contents() );
 
       if ( encoder_pass == FIRST_PASS ) {
         frame_sb.mutable_coefficients() = UVBlock::quantize( quantizer, frame_sb.coefficients() );
@@ -323,31 +324,33 @@ void Encoder::chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb
   );
 }
 
-pair<bmode, TwoD<uint8_t>> Encoder::luma_sb_intra_predict( const VP8Raster::Block4 & original_sb,
-                                                           VP8Raster::Block4 & reconstructed_sb,
-                                                           const SafeArray<uint16_t, num_intra_b_modes> & mode_costs ) const
+/* This function outputs the prediction values to 'reconstructed_sb'
+ * and returns the prediction mode.
+ */
+bmode Encoder::luma_sb_intra_predict( const VP8Raster::Block4 & original_sb,
+                                      VP8Raster::Block4 & reconstructed_sb,
+                                      VP8Raster::Block4 & temp_sb,
+                                      const SafeArray<uint16_t, num_intra_b_modes> & mode_costs ) const
 {
   uint32_t min_error = numeric_limits<uint32_t>::max();
   bmode min_prediction_mode = B_DC_PRED;
-  TwoD<uint8_t> min_prediction( 4, 4 );
+  TwoDSubRange<uint8_t, 4, 4> & prediction = temp_sb.mutable_contents();
 
   for ( unsigned int prediction_mode = 0; prediction_mode < num_intra_b_modes; prediction_mode++ ) {
-    TwoD<uint8_t> prediction( 4, 4 );
-
     reconstructed_sb.intra_predict( ( bmode )prediction_mode, prediction );
-    uint32_t distortion = sse( original_sb, prediction );
 
+    uint32_t distortion = sse( original_sb, prediction );
     uint32_t error_val = rdcost( mode_costs.at( prediction_mode ), distortion,
                                     RATE_MULTIPLIER, DISTORTION_MULTIPLIER );
 
     if ( error_val < min_error ) {
-      min_prediction = move( prediction );
+      reconstructed_sb.mutable_contents().copy_from( prediction );
       min_prediction_mode = ( bmode )prediction_mode;
       min_error = error_val;
     }
   }
 
-  return make_pair( min_prediction_mode, move( min_prediction ) );
+  return min_prediction_mode;
 }
 
 uint8_t Encoder::token_for_coeff( int16_t coeff )
@@ -630,41 +633,25 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
 
   TokenBranchCounts token_branch_counts;
 
-  // First pass
-  raster.macroblocks().forall_ij(
-    [&] ( VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
-    {
-      auto & reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
-      auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
+  for ( size_t pass = FIRST_PASS;
+        pass <= ( two_pass_encoder_? SECOND_PASS : FIRST_PASS );
+        pass++ ) {
 
-      // Process Y and Y2
-      luma_mb_intra_predict( original_mb, reconstructed_mb, frame_mb, quantizer, FIRST_PASS );
-      chroma_mb_intra_predict( original_mb, reconstructed_mb, frame_mb, quantizer, FIRST_PASS );
-
-      frame.relink_y2_blocks();
-      frame_mb.calculate_has_nonzero();
-      frame_mb.reconstruct_intra( quantizer, reconstructed_mb );
-
-      frame_mb.accumulate_token_branches( token_branch_counts );
+    if ( pass == SECOND_PASS ) {
+      costs_.fill_token_costs( decoder_state_.probability_tables );
+      token_branch_counts = TokenBranchCounts();
     }
-  );
 
-  optimize_probability_tables( frame, token_branch_counts );
-
-  if ( two_pass_encoder_ ) {
-    costs_.fill_token_costs( decoder_state_.probability_tables );
-    token_branch_counts = TokenBranchCounts();
-
-    // Second pass
     raster.macroblocks().forall_ij(
       [&] ( VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
       {
         auto & reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
+        auto & temp_mb = temp_raster().macroblock( mb_column, mb_row );
         auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
 
         // Process Y and Y2
-        luma_mb_intra_predict( original_mb, reconstructed_mb, frame_mb, quantizer, SECOND_PASS );
-        chroma_mb_intra_predict( original_mb, reconstructed_mb, frame_mb, quantizer, SECOND_PASS );
+        luma_mb_intra_predict( original_mb, reconstructed_mb, temp_mb, frame_mb, quantizer, FIRST_PASS );
+        chroma_mb_intra_predict( original_mb, reconstructed_mb, temp_mb, frame_mb, quantizer, FIRST_PASS );
 
         frame.relink_y2_blocks();
         frame_mb.calculate_has_nonzero();
