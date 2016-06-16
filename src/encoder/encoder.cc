@@ -125,7 +125,10 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
 
   TwoDSubRange<uint8_t, 16, 16> & prediction = temp_mb.Y.mutable_contents();
 
-  for ( unsigned int prediction_mode = 0; prediction_mode < num_y_modes; prediction_mode++ ) {
+  /* Because of the way that reconstructed_mb is used as a buffer to store the
+   * best prediction result, it is necessary to first examine the B_PRED and
+   * then the other prediction modes. */
+  for ( unsigned int prediction_mode = B_PRED; prediction_mode < num_y_modes; prediction_mode-- ) {
     uint32_t error_val = numeric_limits<uint32_t>::max();
 
     if ( prediction_mode == B_PRED ) {
