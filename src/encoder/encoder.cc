@@ -664,6 +664,48 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
     optimize_probability_tables( frame, token_branch_counts );
   }
 
+  // This is bad, I know!
+  frame.mutable_header().mode_lf_adjustments.initialize();
+  frame.mutable_header().mode_lf_adjustments.get().initialize();
+  frame.mutable_header().mode_lf_adjustments.get().get().ref_update.at( 0 ).initialize( 0 );
+  frame.mutable_header().mode_lf_adjustments.get().get().ref_update.at( 1 ).initialize( 0 );
+  frame.mutable_header().mode_lf_adjustments.get().get().ref_update.at( 2 ).initialize( 0 );
+  frame.mutable_header().mode_lf_adjustments.get().get().ref_update.at( 3 ).initialize( 0 );
+
+  frame.mutable_header().mode_lf_adjustments.get().get().mode_update.at( 0 ).initialize( 0 );
+  frame.mutable_header().mode_lf_adjustments.get().get().mode_update.at( 1 ).initialize( 0 );
+  frame.mutable_header().mode_lf_adjustments.get().get().mode_update.at( 2 ).initialize( 0 );
+  frame.mutable_header().mode_lf_adjustments.get().get().mode_update.at( 3 ).initialize( 0 );
+
+  // size_t best_mode_update = 0;
+  size_t best_lf_level = 0;
+  double best_ssim = -1.0;
+
+  for ( size_t lf_level = 0; lf_level < 64; lf_level++ ) {
+    temp_raster().copy_from( reconstructed_raster );
+
+    frame.mutable_header().loop_filter_level = lf_level;
+
+    decoder_state_.filter_adjustments.clear();
+    decoder_state_.filter_adjustments.initialize( frame.header() );
+
+    frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, temp_raster() );
+
+    double ssim = temp_raster().quality( raster );
+
+    if ( ssim > best_ssim ) {
+      best_ssim = ssim;
+      best_lf_level = lf_level;
+    }
+    else {
+      break;
+    }
+  }
+
+  frame.mutable_header().loop_filter_level = best_lf_level;
+  decoder_state_.filter_adjustments.clear();
+  decoder_state_.filter_adjustments.initialize( frame.header() );
+
   frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed_raster );
   return make_pair( move( frame ), reconstructed_raster.quality( raster ) );
 }
