@@ -25,6 +25,7 @@ private:
   uint16_t height_;
   MutableRasterHandle temp_raster_handle_;
   DecoderState decoder_state_;
+  References references_;
   Costs costs_;
 
   double minimum_ssim_ { 0.8 };

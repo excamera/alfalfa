@@ -71,7 +71,8 @@ Encoder::Encoder( const string & output_filename, const uint16_t width,
                   const uint16_t height, const bool two_pass )
   : ivf_writer_( output_filename, "VP80", width, height, 1, 1 ),
     width_( width ), height_( height ), temp_raster_handle_( width, height ),
-    decoder_state_( width, height ), costs_(), two_pass_encoder_( two_pass )
+    decoder_state_( width, height ), references_( width, height ), costs_(),
+    two_pass_encoder_( two_pass )
 {
   costs_.fill_mode_costs();
 }
@@ -655,15 +656,11 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
   // This is bad, I know!
   frame.mutable_header().mode_lf_adjustments.initialize();
   frame.mutable_header().mode_lf_adjustments.get().initialize();
-  frame.mutable_header().mode_lf_adjustments.get().get().ref_update.at( 0 ).initialize( 0 );
-  frame.mutable_header().mode_lf_adjustments.get().get().ref_update.at( 1 ).initialize( 0 );
-  frame.mutable_header().mode_lf_adjustments.get().get().ref_update.at( 2 ).initialize( 0 );
-  frame.mutable_header().mode_lf_adjustments.get().get().ref_update.at( 3 ).initialize( 0 );
 
-  frame.mutable_header().mode_lf_adjustments.get().get().mode_update.at( 0 ).initialize( 0 );
-  frame.mutable_header().mode_lf_adjustments.get().get().mode_update.at( 1 ).initialize( 0 );
-  frame.mutable_header().mode_lf_adjustments.get().get().mode_update.at( 2 ).initialize( 0 );
-  frame.mutable_header().mode_lf_adjustments.get().get().mode_update.at( 3 ).initialize( 0 );
+  for ( size_t i = 0; i < 4; i++ ) {
+    frame.mutable_header().mode_lf_adjustments.get().get().ref_update.at( i ).initialize( 0 );
+    frame.mutable_header().mode_lf_adjustments.get().get().mode_update.at( i ).initialize( 0 );
+  }
 
   size_t best_lf_level = 0;
   double best_ssim = -1.0;
