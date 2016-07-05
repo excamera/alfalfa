@@ -50,10 +50,11 @@ QuantIndices::QuantIndices()
   : y_ac_qi(), y_dc(), y2_dc(), y2_ac(), uv_dc(), uv_ac()
 {}
 
-KeyFrame Encoder::make_empty_frame( const uint16_t width, const uint16_t height )
+template<class FrameType>
+FrameType Encoder::make_empty_frame( const uint16_t width, const uint16_t height )
 {
   BoolDecoder data { { nullptr, 0 } };
-  KeyFrame frame { true, width, height, data };
+  FrameType frame { true, width, height, data };
   frame.parse_macroblock_headers( data, ProbabilityTables {} );
   return frame;
 }
@@ -593,13 +594,30 @@ void Encoder::optimize_probability_tables( FrameType & frame, const TokenBranchC
 }
 
 template<>
+pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Raster & raster,
+                                                                     const QuantIndices & quant_indices )
+{
+  const uint16_t width = raster.display_width();
+  const uint16_t height = raster.display_height();
+
+  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width, height );
+  frame.mutable_header().quant_indices = quant_indices;
+
+  Quantizer quantizer( frame.header().quant_indices );
+  MutableRasterHandle reconstructed_raster_handle { width, height };
+  VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
+
+  return make_pair( move( frame ), reconstructed_raster.quality( raster ) );
+}
+
+template<>
 pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster & raster,
                                                                  const QuantIndices & quant_indices )
 {
   const uint16_t width = raster.display_width();
   const uint16_t height = raster.display_height();
 
-  KeyFrame frame = Encoder::make_empty_frame( width, height );
+  KeyFrame frame = Encoder::make_empty_frame<KeyFrame>( width, height );
   frame.mutable_header().quant_indices = quant_indices;
 
   Quantizer quantizer( frame.header().quant_indices );
@@ -694,9 +712,10 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
   return make_pair( move( frame ), reconstructed_raster.quality( raster ) );
 }
 
-double Encoder::encode_as_keyframe( const VP8Raster & raster,
-                                    const double minimum_ssim,
-                                    const uint8_t y_ac_qi )
+template<class FrameType>
+double Encoder::encode_raster( const VP8Raster & raster,
+                               const double minimum_ssim,
+                               const uint8_t y_ac_qi )
 {
   int y_ac_qi_min = 0;
   int y_ac_qi_max = 127;
@@ -726,7 +745,7 @@ double Encoder::encode_as_keyframe( const VP8Raster & raster,
     decoder_state_ = DecoderState( width_, height_ );
 
     quant_indices.y_ac_qi = ( y_ac_qi_min + y_ac_qi_max ) / 2;
-    pair<KeyFrame, double> encoded_frame = encode_with_quantizer<KeyFrame>( raster, quant_indices );
+    pair<FrameType, double> encoded_frame = encode_with_quantizer<FrameType>( raster, quant_indices );
 
     double current_ssim = encoded_frame.second;
 
@@ -750,8 +769,19 @@ double Encoder::encode_as_keyframe( const VP8Raster & raster,
 
   quant_indices.y_ac_qi = best_y_ac_qi;
   decoder_state_ = DecoderState( width_, height_ );
-  pair<KeyFrame, double> encoded_frame = encode_with_quantizer<KeyFrame>( raster, quant_indices );
+  pair<FrameType, double> encoded_frame = encode_with_quantizer<FrameType>( raster, quant_indices );
 
   ivf_writer_.append_frame( encoded_frame.first.serialize( decoder_state_.probability_tables ) );
   return encoded_frame.second;
+}
+
+double Encoder::encode( const VP8Raster & raster, const double minimum_ssim,
+                        const uint8_t y_ac_qi )
+{
+  if ( true /* condition for enconding as a keyframe */ ) {
+    return encode_raster<KeyFrame>( raster, minimum_ssim, y_ac_qi );
+  }
+  else {
+    return encode_raster<InterFrame>( raster, minimum_ssim, y_ac_qi );
+  }
 }

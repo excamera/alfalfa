@@ -29,7 +29,8 @@ void usage_error( const string & program_name )
        << " -i <arg>, --input-format=<arg>        Input file format" << endl
        << "                                         ivf (default), y4m" << endl
        << " --two-pass                            Do the second encoding pass" << endl
-       << " --y-ac-qi <arg>                       Quantization index for Y" << endl;
+       << " --y-ac-qi <arg>                       Quantization index for Y" << endl
+       << endl;
 }
 
 int main( int argc, char *argv[] )
@@ -130,7 +131,7 @@ int main( int argc, char *argv[] )
     size_t frame_index = 0;
 
     while ( raster.initialized() ) {
-      double result_ssim = encoder.encode_as_keyframe( raster.get(), ssim, y_ac_qi );
+      double result_ssim = encoder.encode( raster.get(), ssim, y_ac_qi );
 
       cerr << "Frame #" << frame_index++ << ": ssim=" << result_ssim << endl;
 

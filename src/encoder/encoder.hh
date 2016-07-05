@@ -23,9 +23,12 @@ private:
   IVFWriter ivf_writer_;
   uint16_t width_;
   uint16_t height_;
+
   MutableRasterHandle temp_raster_handle_;
+
   DecoderState decoder_state_;
   References references_;
+
   Costs costs_;
 
   double minimum_ssim_ { 0.8 };
@@ -69,7 +72,11 @@ private:
                                const SafeArray<uint16_t, num_intra_b_modes> & mode_costs ) const;
 
   template<class FrameType>
-  std::pair<KeyFrame, double> encode_with_quantizer( const VP8Raster & raster, const QuantIndices & quant_indices );
+  std::pair<FrameType, double> encode_with_quantizer( const VP8Raster & raster, const QuantIndices & quant_indices );
+
+  template<class FrameType>
+  double encode_raster( const VP8Raster & raster, const double minimum_ssim,
+                        const uint8_t y_ac_qi = std::numeric_limits<uint8_t>::max() );
 
   template<class FrameType>
   void optimize_probability_tables( FrameType & frame, const TokenBranchCounts & token_branch_counts );
@@ -86,11 +93,16 @@ public:
   Encoder( const std::string & output_filename, const uint16_t width,
            const uint16_t height, const bool two_pass );
 
-  double encode_as_keyframe( const VP8Raster & raster,
-                             const double minimum_ssim,
-                             const uint8_t y_ac_qi = std::numeric_limits<uint8_t>::max() );
+  /*
+   * This function decides that the current raster should be encoded as a
+   * keyframe or as an interframe.
+   */
+  double encode( const VP8Raster & raster,
+                 const double minimum_ssim,
+                 const uint8_t y_ac_qi = std::numeric_limits<uint8_t>::max() );
 
-  static KeyFrame make_empty_frame( const uint16_t width, const uint16_t height );
+  template<class FrameType>
+  static FrameType make_empty_frame( const uint16_t width, const uint16_t height );
 };
 
 #endif /* ENCODER_HH */
