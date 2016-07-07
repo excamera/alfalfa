@@ -67,12 +67,42 @@ void VP8Raster::Block<size>::intra_predict( const PredictionMode mb_mode, TwoD<u
   intra_predict( mb_mode, subrange );
 }
 
+/* Encoder-specific Macroblock Methods */
+void InterFrameMacroblockHeader::set_reference( const reference_frame ref )
+{
+  is_inter_mb = true;
+
+  switch ( ref ) {
+  case CURRENT_FRAME:
+    is_inter_mb = false;
+    mb_ref_frame_sel1.clear();
+    mb_ref_frame_sel2.clear();
+    break;
+
+  case LAST_FRAME:
+    mb_ref_frame_sel1 = false;
+    mb_ref_frame_sel2.clear();
+    break;
+
+  case GOLDEN_FRAME:
+    mb_ref_frame_sel1 = true;
+    mb_ref_frame_sel2 = false;
+    break;
+
+  case ALTREF_FRAME:
+    mb_ref_frame_sel1 = true;
+    mb_ref_frame_sel2 = true;
+    break;
+  }
+}
+
+
 /* Encoder */
 Encoder::Encoder( const string & output_filename, const uint16_t width,
                   const uint16_t height, const bool two_pass )
   : ivf_writer_( output_filename, "VP80", width, height, 1, 1 ),
     width_( width ), height_( height ), temp_raster_handle_( width, height ),
-    decoder_state_( width, height ), references_( width, height ), costs_(),
+    decoder_state_( width, height ), references_(), costs_(),
     two_pass_encoder_( two_pass )
 {
   costs_.fill_mode_costs();
@@ -607,6 +637,26 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
   MutableRasterHandle reconstructed_raster_handle { width, height };
   VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
 
+  raster.macroblocks().forall_ij(
+    [&] ( VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
+    {
+      auto & reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
+      auto & temp_mb = temp_raster().macroblock( mb_column, mb_row );
+      auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
+
+      // Process Y and Y2
+      luma_mb_intra_predict( original_mb, reconstructed_mb, temp_mb, frame_mb, quantizer, FIRST_PASS );
+      chroma_mb_intra_predict( original_mb, reconstructed_mb, temp_mb, frame_mb, quantizer, FIRST_PASS );
+
+      frame_mb.mutable_header().is_inter_mb = false;
+      frame_mb.mutable_header().set_reference( LAST_FRAME );
+
+      frame.relink_y2_blocks();
+      frame_mb.calculate_has_nonzero();
+      frame_mb.reconstruct_intra( quantizer, reconstructed_mb );
+    }
+  );
+
   return make_pair( move( frame ), reconstructed_raster.quality( raster ) );
 }
 
@@ -671,7 +721,6 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
     optimize_probability_tables( frame, token_branch_counts );
   }
 
-  // This is bad, I know!
   frame.mutable_header().mode_lf_adjustments.initialize();
   frame.mutable_header().mode_lf_adjustments.get().initialize();
 
@@ -775,10 +824,18 @@ double Encoder::encode_raster( const VP8Raster & raster,
   return encoded_frame.second;
 }
 
+bool Encoder::should_encode_as_keyframe( const VP8Raster & )
+{
+  return not ( references_.last.initialized()
+               or references_.golden.initialized()
+               or references_.alternative_reference.initialized() );
+}
+
 double Encoder::encode( const VP8Raster & raster, const double minimum_ssim,
                         const uint8_t y_ac_qi )
 {
-  if ( true /* condition for enconding as a keyframe */ ) {
+  if ( should_encode_as_keyframe( raster ) ) {
+    references_.clear_all();
     return encode_raster<KeyFrame>( raster, minimum_ssim, y_ac_qi );
   }
   else {

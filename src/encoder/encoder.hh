@@ -17,24 +17,36 @@ enum EncoderPass
   SECOND_PASS
 };
 
+struct EncoderReferences
+{
+  Optional<RasterHandle> last {};
+  Optional<RasterHandle> golden {};
+  Optional<RasterHandle> alternative_reference {};
+
+  void clear_all()
+  {
+    last.clear();
+    golden.clear();
+    alternative_reference.clear();
+  }
+};
+
 class Encoder
 {
 private:
   IVFWriter ivf_writer_;
   uint16_t width_;
   uint16_t height_;
-
   MutableRasterHandle temp_raster_handle_;
-
   DecoderState decoder_state_;
-  References references_;
+  EncoderReferences references_;
 
   Costs costs_;
 
   double minimum_ssim_ { 0.8 };
   bool two_pass_encoder_ { false };
 
-  // TODO: Where did these come from? Are these the possible values?
+  // TODO: Where did these come from?
   uint32_t RATE_MULTIPLIER { 300 };
   uint32_t DISTORTION_MULTIPLIER { 1 };
 
@@ -88,6 +100,8 @@ private:
   void check_reset_y2( Y2Block & y2, const Quantizer & quantizer ) const;
 
   VP8Raster & temp_raster() { return temp_raster_handle_.get(); }
+
+  bool should_encode_as_keyframe( const VP8Raster & raster );
 
 public:
   Encoder( const std::string & output_filename, const uint16_t width,
