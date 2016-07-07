@@ -648,8 +648,7 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
       luma_mb_intra_predict( original_mb, reconstructed_mb, temp_mb, frame_mb, quantizer, FIRST_PASS );
       chroma_mb_intra_predict( original_mb, reconstructed_mb, temp_mb, frame_mb, quantizer, FIRST_PASS );
 
-      frame_mb.mutable_header().is_inter_mb = false;
-      frame_mb.mutable_header().set_reference( LAST_FRAME );
+      frame_mb.mutable_header().set_reference( CURRENT_FRAME );
 
       frame.relink_y2_blocks();
       frame_mb.calculate_has_nonzero();
@@ -658,6 +657,10 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
   );
 
   apply_best_loopfilter_settings( raster, reconstructed_raster, frame );
+
+  /* Updating the reference rasters */
+  references_.last.clear();
+  references_.last.initialize( move( reconstructed_raster_handle ) );
 
   return make_pair( move( frame ), reconstructed_raster.quality( raster ) );
 }
@@ -724,6 +727,10 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
   }
 
   apply_best_loopfilter_settings( raster, reconstructed_raster, frame );
+
+  /* Updating the reference rasters */
+  references_.last.clear();
+  references_.last.initialize( move( reconstructed_raster_handle ) );
 
   return make_pair( move( frame ), reconstructed_raster.quality( raster ) );
 }
