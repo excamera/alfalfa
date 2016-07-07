@@ -103,6 +103,11 @@ private:
 
   bool should_encode_as_keyframe( const VP8Raster & raster );
 
+  template<class FrameType>
+  void apply_best_loopfilter_settings( const VP8Raster & original,
+                                       VP8Raster & reconstructed,
+                                       FrameType & frame );
+
 public:
   Encoder( const std::string & output_filename, const uint16_t width,
            const uint16_t height, const bool two_pass );

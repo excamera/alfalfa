@@ -657,6 +657,8 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
     }
   );
 
+  apply_best_loopfilter_settings( raster, reconstructed_raster, frame );
+
   return make_pair( move( frame ), reconstructed_raster.quality( raster ) );
 }
 
@@ -721,6 +723,16 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
     optimize_probability_tables( frame, token_branch_counts );
   }
 
+  apply_best_loopfilter_settings( raster, reconstructed_raster, frame );
+
+  return make_pair( move( frame ), reconstructed_raster.quality( raster ) );
+}
+
+template<class FrameType>
+void Encoder::apply_best_loopfilter_settings( const VP8Raster & original,
+                                              VP8Raster & reconstructed,
+                                              FrameType & frame )
+{
   frame.mutable_header().mode_lf_adjustments.initialize();
   frame.mutable_header().mode_lf_adjustments.get().initialize();
 
@@ -733,7 +745,7 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
   double best_ssim = -1.0;
 
   for ( size_t lf_level = 0; lf_level < 64; lf_level++ ) {
-    temp_raster().copy_from( reconstructed_raster );
+    temp_raster().copy_from( reconstructed );
 
     frame.mutable_header().loop_filter_level = lf_level;
 
@@ -742,7 +754,7 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
 
     frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, temp_raster() );
 
-    double ssim = temp_raster().quality( raster );
+    double ssim = temp_raster().quality( original );
 
     if ( ssim > best_ssim ) {
       best_ssim = ssim;
@@ -757,8 +769,7 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
   decoder_state_.filter_adjustments.clear();
   decoder_state_.filter_adjustments.initialize( frame.header() );
 
-  frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed_raster );
-  return make_pair( move( frame ), reconstructed_raster.quality( raster ) );
+  frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed );
 }
 
 template<class FrameType>
