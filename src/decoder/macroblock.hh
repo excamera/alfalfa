@@ -14,10 +14,10 @@ class BoolEncoder;
 class ReferenceUpdater;
 
 typedef SafeArray< SafeArray< SafeArray< SafeArray< std::pair< uint32_t, uint32_t >,
-						    ENTROPY_NODES >,
-					 PREV_COEF_CONTEXTS >,
-			      COEF_BANDS >,
-		   BLOCK_TYPES > TokenBranchCounts;
+                                                    ENTROPY_NODES >,
+                                         PREV_COEF_CONTEXTS >,
+                              COEF_BANDS >,
+                   BLOCK_TYPES > TokenBranchCounts;
 
 template <class FrameHeaderType, class MacroblockHeaderType>
 class Macroblock
@@ -39,10 +39,10 @@ private:
   bool has_nonzero_ { false };
 
   void decode_prediction_modes( BoolDecoder & data,
-				const ProbabilityTables & probability_tables );
+                                const ProbabilityTables & probability_tables );
 
   void encode_prediction_modes( BoolEncoder & encoder,
-				const ProbabilityTables & probability_tables ) const;
+                                const ProbabilityTables & probability_tables ) const;
 
   void set_base_motion_vector( const MotionVector & mv );
 
@@ -50,22 +50,22 @@ private:
 
 public:
   Macroblock( const typename TwoD< Macroblock >::Context & c,
-	      BoolDecoder & data,
-	      const FrameHeaderType & key_frame_header,
-	      const ProbabilityArray< num_segments > & mb_segment_tree_probs,
-	      const ProbabilityTables & probability_tables,
-	      TwoD< Y2Block > & frame_Y2,
-	      TwoD< YBlock > & frame_Y,
-	      TwoD< UVBlock > & frame_U,
-	      TwoD< UVBlock > & frame_V );
+              BoolDecoder & data,
+              const FrameHeaderType & key_frame_header,
+              const ProbabilityArray< num_segments > & mb_segment_tree_probs,
+              const ProbabilityTables & probability_tables,
+              TwoD< Y2Block > & frame_Y2,
+              TwoD< YBlock > & frame_Y,
+              TwoD< UVBlock > & frame_U,
+              TwoD< UVBlock > & frame_V );
 
   /* Partial Reference Update */
   Macroblock( const typename TwoD< Macroblock >::Context & c,
               const ReferenceUpdater & ref_update,
-	      TwoD< Y2Block > & frame_Y2,
-	      TwoD< YBlock > & frame_Y,
-	      TwoD< UVBlock > & frame_U,
-	      TwoD< UVBlock > & frame_V );
+              TwoD< Y2Block > & frame_Y2,
+              TwoD< YBlock > & frame_Y,
+              TwoD< UVBlock > & frame_U,
+              TwoD< UVBlock > & frame_V );
 
   /* Copy */
   Macroblock( const typename TwoD< Macroblock >::Context & c,
@@ -78,22 +78,24 @@ public:
   void update_segmentation( SegmentationMap & mutable_segmentation_map );
 
   void parse_tokens( BoolDecoder & data,
-		     const ProbabilityTables & probability_tables );
+                     const ProbabilityTables & probability_tables );
 
   void reconstruct_intra( const Quantizer & quantizer, VP8Raster::Macroblock & raster ) const;
   void reconstruct_inter( const Quantizer & quantizer,
-			  const References & references,
-			  VP8Raster::Macroblock & raster ) const;
+                          const References & references,
+                          VP8Raster::Macroblock & raster ) const;
   void reconstruct_continuation( const VP8Raster & continuation, VP8Raster::Macroblock & raster ) const;
 
   /* list of coordinates for macroblocks that inter prediction needs */
   void record_dependencies( std::vector<std::vector<bool>> & required ) const;
 
   void loopfilter( const Optional< FilterAdjustments > & filter_adjustments,
-		   const FilterParameters & loopfilter,
-		   VP8Raster::Macroblock & raster ) const;
+                   const FilterParameters & loopfilter,
+                   VP8Raster::Macroblock & raster ) const;
 
   const MacroblockHeaderType & header( void ) const { return header_; }
+        MacroblockHeaderType & mutable_header( void ) { return header_; }
+
   const MotionVector & base_motion_vector( void ) const;
 
   const mbmode & uv_prediction_mode( void ) const { return U_.at( 0, 0 ).prediction_mode(); }
@@ -105,12 +107,12 @@ public:
   uint8_t segment_id() const { return segment_id_; }
 
   void serialize( BoolEncoder & encoder,
-		  const FrameHeaderType & frame_header,
-		  const ProbabilityArray< num_segments > & mb_segment_tree_probs,
-		  const ProbabilityTables & probability_tables ) const;
+                  const FrameHeaderType & frame_header,
+                  const ProbabilityArray< num_segments > & mb_segment_tree_probs,
+                  const ProbabilityTables & probability_tables ) const;
 
   void serialize_tokens( BoolEncoder & encoder,
-			 const ProbabilityTables & probability_tables ) const;
+                         const ProbabilityTables & probability_tables ) const;
 
   void accumulate_token_branches( TokenBranchCounts & counts ) const;
 
@@ -139,7 +141,7 @@ public:
   }
 
 
-	/* Encoding */
+        /* Encoding */
   Y2Block & Y2()                      { return Y2_; }
   TwoDSubRange< YBlock, 4, 4 >  & Y() { return Y_; }
   TwoDSubRange< UVBlock, 2, 2 > & U() { return U_; }
@@ -170,6 +172,7 @@ struct InterFrameMacroblockHeader
   InterFrameMacroblockHeader( BoolDecoder & data, const InterFrameHeader & frame_header );
 
   reference_frame reference( void ) const;
+        void set_reference( const reference_frame ref );
 };
 
 /* State update frames don't actually have macroblocks, so this does nothing */
