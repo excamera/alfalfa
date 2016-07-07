@@ -8,7 +8,7 @@ using namespace std;
 
 template <unsigned int size>
 VP8Raster::Block<size>::Block( const typename TwoD< Block >::Context & c,
-			    TwoD< uint8_t > & raster_component )
+                            TwoD< uint8_t > & raster_component )
   : contents_( raster_component, size * c.column, size * c.row ),
     context_( c ),
     predictors_( context_ )
@@ -61,23 +61,23 @@ const typename VP8Raster::Block<size>::Column & VP8Raster::Block<size>::Predicto
 template <unsigned int size>
 VP8Raster::Block<size>::Predictors::Predictors( const typename TwoD< Block >::Context & context )
   : above_row( context.above.initialized()
-	       ? context.above.get()->contents().row( size - 1 )
-	       : row127() ),
+               ? context.above.get()->contents().row( size - 1 )
+               : row127() ),
     left_column( context.left.initialized()
-		 ? context.left.get()->contents().column( size - 1 )
-		 : col129() ),
+                 ? context.left.get()->contents().column( size - 1 )
+                 : col129() ),
     above_left( context.above_left.initialized()
-		? context.above_left.get()->at( size - 1, size - 1 )
-		: ( context.above.initialized()
-		    ? col129().at( 0, 0 )
-		    : row127().at( 0, 0 ) ) ),
+                ? context.above_left.get()->at( size - 1, size - 1 )
+                : ( context.above.initialized()
+                    ? col129().at( 0, 0 )
+                    : row127().at( 0, 0 ) ) ),
     above_right_bottom_row_predictor( { context.above_right.initialized()
-	  ? context.above_right.get()->contents().row( size - 1 )
-	  : row127(),
-	  context.above.initialized()
-	  ? &context.above.get()->at( size - 1, size - 1 )
-	  : &row127().at( 0, 0 ),
-	  context.above_right.initialized() } )
+          ? context.above_right.get()->contents().row( size - 1 )
+          : row127(),
+          context.above.initialized()
+          ? &context.above.get()->at( size - 1, size - 1 )
+          : &row127().at( 0, 0 ),
+          context.above_right.initialized() } )
 {}
 
 template <unsigned int size>
@@ -145,9 +145,9 @@ void VP8Raster::Block<size>::dc_predict_simple( TwoDSubRange< uint8_t, size, siz
   static_assert( size == 4 or size == 8 or size == 16, "invalid Block size" );
   static constexpr uint8_t log2size = size == 4 ? 2 : size == 8 ? 3 : size == 16 ? 4 : 0;
 
-	uint8_t value = ((predictors().above_row.sum(int16_t())
-		    + predictors().left_column.sum(int16_t())) + (1 << log2size))
-		  >> (log2size+1);
+        uint8_t value = ((predictors().above_row.sum(int16_t())
+                    + predictors().left_column.sum(int16_t())) + (1 << log2size))
+                  >> (log2size+1);
 
   output.fill( value );
 }
@@ -370,81 +370,81 @@ void VP8Raster::Block<size>::inter_predict( const MotionVector & mv, const TwoD<
 #ifdef HAVE_SSE2
 template <>
 void VP8Raster::Block<4>::sse_horiz_inter_predict( const uint8_t * src,
-						   const unsigned int pixels_per_line,
-						   const uint8_t * dst,
-						   const unsigned int dst_pitch,
-						   const unsigned int dst_height,
-						   const unsigned int filter_idx)
+                                                   const unsigned int pixels_per_line,
+                                                   const uint8_t * dst,
+                                                   const unsigned int dst_pitch,
+                                                   const unsigned int dst_height,
+                                                   const unsigned int filter_idx )
 {
   vp8_filter_block1d4_h6_ssse3( src, pixels_per_line, dst, dst_pitch, dst_height,
-				filter_idx );
+                                filter_idx );
 }
 
 template <>
 void VP8Raster::Block<8>::sse_horiz_inter_predict( const uint8_t * src,
-						   const unsigned int pixels_per_line,
-						   const uint8_t * dst,
-						   const unsigned int dst_pitch,
-						   const unsigned int dst_height,
-						   const unsigned int filter_idx)
+                                                   const unsigned int pixels_per_line,
+                                                   const uint8_t * dst,
+                                                   const unsigned int dst_pitch,
+                                                   const unsigned int dst_height,
+                                                   const unsigned int filter_idx )
 {
   vp8_filter_block1d8_h6_ssse3( src, pixels_per_line, dst, dst_pitch, dst_height,
-				filter_idx );
+                                filter_idx );
 }
 
 template <>
 void VP8Raster::Block<16>::sse_horiz_inter_predict( const uint8_t * src,
-						    const unsigned int pixels_per_line,
-						    const uint8_t * dst,
-						    const unsigned int dst_pitch,
-						    const unsigned int dst_height,
-						    const unsigned int filter_idx)
+                                                    const unsigned int pixels_per_line,
+                                                    const uint8_t * dst,
+                                                    const unsigned int dst_pitch,
+                                                    const unsigned int dst_height,
+                                                    const unsigned int filter_idx )
 {
   vp8_filter_block1d16_h6_ssse3( src, pixels_per_line, dst, dst_pitch, dst_height,
-				filter_idx );
+                                filter_idx );
 }
 
 template <>
 void VP8Raster::Block<4>::sse_vert_inter_predict( const uint8_t * src,
-						  const unsigned int pixels_per_line,
-						  const uint8_t * dst,
-						  const unsigned int dst_pitch,
-						  const unsigned int dst_height,
-						  const unsigned int filter_idx)
+                                                  const unsigned int pixels_per_line,
+                                                  const uint8_t * dst,
+                                                  const unsigned int dst_pitch,
+                                                  const unsigned int dst_height,
+                                                  const unsigned int filter_idx )
 {
   vp8_filter_block1d4_v6_ssse3( src, pixels_per_line, dst, dst_pitch, dst_height,
-				filter_idx );
+                                filter_idx );
 }
 
 template <>
 void VP8Raster::Block<8>::sse_vert_inter_predict( const uint8_t * src,
-						  const unsigned int pixels_per_line,
-						  const uint8_t * dst,
-						  const unsigned int dst_pitch,
-						  const unsigned int dst_height,
-						  const unsigned int filter_idx)
+                                                  const unsigned int pixels_per_line,
+                                                  const uint8_t * dst,
+                                                  const unsigned int dst_pitch,
+                                                  const unsigned int dst_height,
+                                                  const unsigned int filter_idx )
 {
   vp8_filter_block1d8_v6_ssse3( src, pixels_per_line, dst, dst_pitch, dst_height,
-				filter_idx );
+                                filter_idx );
 }
 
 template <>
 void VP8Raster::Block<16>::sse_vert_inter_predict( const uint8_t * src,
-						   const unsigned int pixels_per_line,
-						   const uint8_t * dst,
-						   const unsigned int dst_pitch,
-						   const unsigned int dst_height,
-						   const unsigned int filter_idx)
+                                                   const unsigned int pixels_per_line,
+                                                   const uint8_t * dst,
+                                                   const unsigned int dst_pitch,
+                                                   const unsigned int dst_height,
+                                                   const unsigned int filter_idx )
 {
   vp8_filter_block1d16_v6_ssse3( src, pixels_per_line, dst, dst_pitch, dst_height,
-				filter_idx );
+                                filter_idx );
 }
 
 #endif
 
 template <unsigned int size>
 void VP8Raster::Block<size>::unsafe_inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference,
-						   const int source_column, const int source_row )
+                                                   const int source_column, const int source_row )
 {
   assert( contents_.stride() == reference.width() );
 
@@ -473,9 +473,9 @@ void VP8Raster::Block<size>::unsafe_inter_predict( const MotionVector & mv, cons
   if ( mx ) {
     if ( my ) {
       sse_horiz_inter_predict( src_ptr - 2 * stride, stride, intermediate_ptr,
-			       size, size + 5, mx );
+                               size, size + 5, mx );
       sse_vert_inter_predict( intermediate_ptr, size, dst_ptr, stride,
-			      size, my );
+                              size, my );
     }
     else {
       /* First pass only */
@@ -485,7 +485,7 @@ void VP8Raster::Block<size>::unsafe_inter_predict( const MotionVector & mv, cons
   else {
     /* Second pass only */
     sse_vert_inter_predict( src_ptr - 2 * stride, stride, dst_ptr, stride,
-			    size, my );
+                            size, my );
   }
 
 #else
@@ -502,17 +502,17 @@ void VP8Raster::Block<size>::unsafe_inter_predict( const MotionVector & mv, cons
       const uint8_t *intermediate_row_end = intermediate_row_start + size;
 
       while ( intermediate_row_start != intermediate_row_end ) {
-	*( intermediate_row_start ) =
-	  clamp255( ( (   *( src_row_start )     * horizontal_filter.at( 0 ) )
-		      + ( *( src_row_start + 1 ) * horizontal_filter.at( 1 ) )
-		      + ( *( src_row_start + 2 ) * horizontal_filter.at( 2 ) )
-		      + ( *( src_row_start + 3 ) * horizontal_filter.at( 3 ) )
-		      + ( *( src_row_start + 4 ) * horizontal_filter.at( 4 ) )
-		      + ( *( src_row_start + 5 ) * horizontal_filter.at( 5 ) )
-		      + 64 ) >> 7 );
+        *( intermediate_row_start ) =
+          clamp255( ( (   *( src_row_start )     * horizontal_filter.at( 0 ) )
+                      + ( *( src_row_start + 1 ) * horizontal_filter.at( 1 ) )
+                      + ( *( src_row_start + 2 ) * horizontal_filter.at( 2 ) )
+                      + ( *( src_row_start + 3 ) * horizontal_filter.at( 3 ) )
+                      + ( *( src_row_start + 4 ) * horizontal_filter.at( 4 ) )
+                      + ( *( src_row_start + 5 ) * horizontal_filter.at( 5 ) )
+                      + 64 ) >> 7 );
 
-	intermediate_row_start++;
-	src_row_start++;
+        intermediate_row_start++;
+        src_row_start++;
       }
       src_row_start += stride - size;
     }
@@ -529,17 +529,17 @@ void VP8Raster::Block<size>::unsafe_inter_predict( const MotionVector & mv, cons
       const uint8_t *dest_row_end = dest_row_start + size;
 
       while ( dest_row_start != dest_row_end ) {
-	*dest_row_start =
-	  clamp255( ( (   *( intermediate_row_start )            * vertical_filter.at( 0 ) )
-		      + ( *( intermediate_row_start + size )     * vertical_filter.at( 1 ) )
-		      + ( *( intermediate_row_start + size * 2 ) * vertical_filter.at( 2 ) )
-		      + ( *( intermediate_row_start + size * 3 ) * vertical_filter.at( 3 ) )
-		      + ( *( intermediate_row_start + size * 4 ) * vertical_filter.at( 4 ) )
-		      + ( *( intermediate_row_start + size * 5 ) * vertical_filter.at( 5 ) )
-		      + 64 ) >> 7 );
+        *dest_row_start =
+          clamp255( ( (   *( intermediate_row_start )            * vertical_filter.at( 0 ) )
+                      + ( *( intermediate_row_start + size )     * vertical_filter.at( 1 ) )
+                      + ( *( intermediate_row_start + size * 2 ) * vertical_filter.at( 2 ) )
+                      + ( *( intermediate_row_start + size * 3 ) * vertical_filter.at( 3 ) )
+                      + ( *( intermediate_row_start + size * 4 ) * vertical_filter.at( 4 ) )
+                      + ( *( intermediate_row_start + size * 5 ) * vertical_filter.at( 5 ) )
+                      + 64 ) >> 7 );
 
-	dest_row_start++;
-	intermediate_row_start++;
+        dest_row_start++;
+        intermediate_row_start++;
       }
       dest_row_start += stride - size;
     }
@@ -550,12 +550,12 @@ void VP8Raster::Block<size>::unsafe_inter_predict( const MotionVector & mv, cons
 template <unsigned int size>
 template <class ReferenceType>
 void VP8Raster::Block<size>::safe_inter_predict( const MotionVector & mv, const ReferenceType & reference,
-					         const int source_column, const int source_row )
+                                                 const int source_column, const int source_row )
 {
   if ( (mv.x() & 7) == 0 and (mv.y() & 7) == 0 ) {
     contents_.forall_ij( [&] ( uint8_t & val, unsigned int column, unsigned int row )
-			 { val = reference.at( source_column + column,
-					       source_row + row ); } );
+                         { val = reference.at( source_column + column,
+                                               source_row + row ); } );
     return;
   }
 
@@ -569,13 +569,13 @@ void VP8Raster::Block<size>::safe_inter_predict( const MotionVector & mv, const 
       const int real_row = source_row + row - 2;
       const int real_column = source_column + column;
       intermediate.at( row ).at( column ) =
-	clamp255( ( ( reference.at( real_column - 2,   real_row ) * horizontal_filter.at( 0 ) )
-		    + ( reference.at( real_column - 1, real_row ) * horizontal_filter.at( 1 ) )
-		    + ( reference.at( real_column,     real_row ) * horizontal_filter.at( 2 ) )
-		    + ( reference.at( real_column + 1, real_row ) * horizontal_filter.at( 3 ) )
-		    + ( reference.at( real_column + 2, real_row ) * horizontal_filter.at( 4 ) )
-		    + ( reference.at( real_column + 3, real_row ) * horizontal_filter.at( 5 ) )
-		    + 64 ) >> 7 );
+        clamp255( ( ( reference.at( real_column - 2,   real_row ) * horizontal_filter.at( 0 ) )
+                    + ( reference.at( real_column - 1, real_row ) * horizontal_filter.at( 1 ) )
+                    + ( reference.at( real_column,     real_row ) * horizontal_filter.at( 2 ) )
+                    + ( reference.at( real_column + 1, real_row ) * horizontal_filter.at( 3 ) )
+                    + ( reference.at( real_column + 2, real_row ) * horizontal_filter.at( 4 ) )
+                    + ( reference.at( real_column + 3, real_row ) * horizontal_filter.at( 5 ) )
+                    + 64 ) >> 7 );
     }
   }
 
@@ -585,13 +585,13 @@ void VP8Raster::Block<size>::safe_inter_predict( const MotionVector & mv, const 
   for ( uint8_t row = 0; row < size; row++ ) {
     for ( uint8_t column = 0; column < size; column++ ) {
       contents_.at( column, row ) =
-	clamp255( ( ( intermediate.at( row ).at( column ) * vertical_filter.at( 0 ) )
-		    + ( intermediate.at( row + 1 ).at( column ) * vertical_filter.at( 1 ) )
-		    + ( intermediate.at( row + 2 ).at( column ) * vertical_filter.at( 2 ) )
-		    + ( intermediate.at( row + 3 ).at( column ) * vertical_filter.at( 3 ) )
-		    + ( intermediate.at( row + 4 ).at( column ) * vertical_filter.at( 4 ) )
-		    + ( intermediate.at( row + 5 ).at( column ) * vertical_filter.at( 5 ) )
-		    + 64 ) >> 7 );
+        clamp255( ( ( intermediate.at( row ).at( column ) * vertical_filter.at( 0 ) )
+                    + ( intermediate.at( row + 1 ).at( column ) * vertical_filter.at( 1 ) )
+                    + ( intermediate.at( row + 2 ).at( column ) * vertical_filter.at( 2 ) )
+                    + ( intermediate.at( row + 3 ).at( column ) * vertical_filter.at( 3 ) )
+                    + ( intermediate.at( row + 4 ).at( column ) * vertical_filter.at( 4 ) )
+                    + ( intermediate.at( row + 5 ).at( column ) * vertical_filter.at( 5 ) )
+                    + 64 ) >> 7 );
     }
   }
 }
