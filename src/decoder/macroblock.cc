@@ -13,21 +13,21 @@ using namespace std;
 
 template <class FrameHeaderType, class MacroblockHeaderType>
 Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename TwoD<Macroblock>::Context & c,
-							       BoolDecoder & data,
-							       const FrameHeaderType & frame_header,
-							       const ProbabilityArray<num_segments> & mb_segment_tree_probs,
-							       const ProbabilityTables & probability_tables,
-							       TwoD<Y2Block> & frame_Y2,
-							       TwoD<YBlock> & frame_Y,
-							       TwoD<UVBlock> & frame_U,
-							       TwoD<UVBlock> & frame_V )
+                                                               BoolDecoder & data,
+                                                               const FrameHeaderType & frame_header,
+                                                               const ProbabilityArray<num_segments> & mb_segment_tree_probs,
+                                                               const ProbabilityTables & probability_tables,
+                                                               TwoD<Y2Block> & frame_Y2,
+                                                               TwoD<YBlock> & frame_Y,
+                                                               TwoD<UVBlock> & frame_U,
+                                                               TwoD<UVBlock> & frame_V )
   : context_( c ),
     segment_id_update_( frame_header.update_segmentation.initialized() and
-			frame_header.update_segmentation.get().update_mb_segmentation_map,
-			data, mb_segment_tree_probs ),
+                        frame_header.update_segmentation.get().update_mb_segmentation_map,
+                        data, mb_segment_tree_probs ),
     segment_id_( 0 ),
     mb_skip_coeff_( frame_header.prob_skip_false.initialized(),
-		    data, frame_header.prob_skip_false.get_or( 0 ) ),
+                    data, frame_header.prob_skip_false.get_or( 0 ) ),
     header_( data, frame_header ),
     Y2_( frame_Y2.at( c.column, c.row ) ),
     Y_( frame_Y, c.column * 4, c.row * 4 ),
@@ -39,11 +39,11 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
 
 template<>
 InterFrameMacroblock::Macroblock( const typename TwoD< Macroblock >::Context & c,
-				  const TwoD< InterFrameMacroblock > & old_macroblocks,
-	      			  TwoD< Y2Block > & frame_Y2,
-	      			  TwoD< YBlock > & frame_Y,
-	      			  TwoD< UVBlock > & frame_U,
-	      			  TwoD< UVBlock > & frame_V )
+                                  const TwoD< InterFrameMacroblock > & old_macroblocks,
+                                        TwoD< Y2Block > & frame_Y2,
+                                        TwoD< YBlock > & frame_Y,
+                                        TwoD< UVBlock > & frame_U,
+                                        TwoD< UVBlock > & frame_V )
   : context_( c ),
     segment_id_update_( old_macroblocks.at( c.column, c.row ).segment_id_update_ ),
     segment_id_( old_macroblocks.at( c.column, c.row ).segment_id_ ),
@@ -69,7 +69,7 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::update_segmentation( Seg
 
 template <>
 void KeyFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
-						  const ProbabilityTables & )
+                                                  const ProbabilityTables & )
 {
   /* Set Y prediction mode */
   Y2_.set_prediction_mode( Tree< mbmode, num_y_modes, kf_y_mode_tree >( data, kf_y_mode_probs ) );
@@ -77,19 +77,19 @@ void KeyFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 
   /* Set subblock prediction modes */
   Y_.forall( [&]( YBlock & block )
-	     {
-	       if ( Y2_.prediction_mode() == B_PRED ) {
-		 const auto above_mode = block.context().above.initialized()
-		   ? block.context().above.get()->prediction_mode() : B_DC_PRED;
-		 const auto left_mode = block.context().left.initialized()
-		   ? block.context().left.get()->prediction_mode() : B_DC_PRED;
-		 block.set_Y_without_Y2();
-		 block.set_prediction_mode( Tree< bmode, num_intra_b_modes, b_mode_tree >( data,
-											   kf_b_mode_probs.at( above_mode ).at( left_mode ) ) );
-	       } else {
-		 block.set_prediction_mode( implied_subblock_mode( Y2_.prediction_mode() ) );
-	       }
-	     } );
+             {
+               if ( Y2_.prediction_mode() == B_PRED ) {
+                 const auto above_mode = block.context().above.initialized()
+                   ? block.context().above.get()->prediction_mode() : B_DC_PRED;
+                 const auto left_mode = block.context().left.initialized()
+                   ? block.context().left.get()->prediction_mode() : B_DC_PRED;
+                 block.set_Y_without_Y2();
+                 block.set_prediction_mode( Tree< bmode, num_intra_b_modes, b_mode_tree >( data,
+                                                                                           kf_b_mode_probs.at( above_mode ).at( left_mode ) ) );
+               } else {
+                 block.set_prediction_mode( implied_subblock_mode( Y2_.prediction_mode() ) );
+               }
+             } );
 
   /* Set chroma prediction mode */
   U_.at( 0, 0 ).set_prediction_mode( Tree< mbmode, num_uv_modes, uv_mode_tree >( data, kf_uv_mode_probs ) );
@@ -154,7 +154,7 @@ void Scorer::calculate( void )
 }
 
 void MotionVector::clamp( const int16_t to_left, const int16_t to_right,
-			  const int16_t to_top, const int16_t to_bottom )
+                          const int16_t to_top, const int16_t to_bottom )
 {
   x_ = min( max( x_, to_left ), to_right );
   y_ = min( max( y_, to_top ), to_bottom );
@@ -176,7 +176,7 @@ MotionVector Scorer::clamp( const MotionVector & mv, const typename TwoD< InterF
 
 /* Taken from libvpx dixie read_mv_component() */
 int16_t MotionVector::read_component( BoolDecoder & data,
-				      const SafeArray< Probability, MV_PROB_CNT > & component_probs )
+                                      const SafeArray< Probability, MV_PROB_CNT > & component_probs )
 {
   enum { IS_SHORT, SIGN, SHORT, BITS = SHORT + 8 - 1, LONG_WIDTH = 10 };
   int16_t x = 0;
@@ -199,7 +199,7 @@ int16_t MotionVector::read_component( BoolDecoder & data,
   }
 
   x <<= 1; /* must do before it can be negative or
-	      -fsanitize complains */
+              -fsanitize complains */
 
   if ( x && data.get( component_probs.at( SIGN ) ) ) {
     x = -x;
@@ -210,8 +210,8 @@ int16_t MotionVector::read_component( BoolDecoder & data,
 
 template <>
 void YBlock::read_subblock_inter_prediction( BoolDecoder & data,
-					     const MotionVector & best_mv,
-					     const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > & motion_vector_probs )
+                                             const MotionVector & best_mv,
+                                             const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > & motion_vector_probs )
 {
   const MotionVector default_mv;
 
@@ -236,7 +236,7 @@ void YBlock::read_subblock_inter_prediction( BoolDecoder & data,
   }
 
   prediction_mode_ = Tree< bmode, num_inter_b_modes, submv_ref_tree >( data,
-								       submv_ref_probs2.at( submv_ref_index ) );
+                                                                       submv_ref_probs2.at( submv_ref_index ) );
 
   switch ( prediction_mode_ ) {
   case LEFT4X4:
@@ -261,26 +261,26 @@ void YBlock::read_subblock_inter_prediction( BoolDecoder & data,
 }
 
 MotionVector::MotionVector( BoolDecoder & data,
-			    const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > & motion_vector_probs )
+                            const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > & motion_vector_probs )
   : y_( read_component( data, motion_vector_probs.at( 0 ) ) ),
     x_( read_component( data, motion_vector_probs.at( 1 ) ) )
 {}
 
 MotionVector luma_to_chroma( const MotionVector & s1,
-			     const MotionVector & s2,
-			     const MotionVector & s3,
-			     const MotionVector & s4 )
+                             const MotionVector & s2,
+                             const MotionVector & s3,
+                             const MotionVector & s4 )
 {
   const int16_t x = s1.x() + s2.x() + s3.x() + s4.x();
   const int16_t y = s1.y() + s2.y() + s3.y() + s4.y();
 
   return MotionVector( x >= 0 ?  (x + 4) >> 3 : -((-x + 4) >> 3),
-		       y >= 0 ?  (y + 4) >> 3 : -((-y + 4) >> 3) );
+                       y >= 0 ?  (y + 4) >> 3 : -((-y + 4) >> 3) );
 }
 
 template <>
 void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
-						    const ProbabilityTables & probability_tables )
+                                                    const ProbabilityTables & probability_tables )
 {
   if ( not inter_coded() ) {
     /* Set Y prediction mode */
@@ -289,19 +289,19 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 
     /* Set subblock prediction modes. Intra macroblocks in interframes are simpler than in keyframes. */
     Y_.forall( [&]( YBlock & block )
-	       {
-		 if ( Y2_.prediction_mode() == B_PRED ) {
-		   block.set_Y_without_Y2();
-		   block.set_prediction_mode( Tree< bmode, num_intra_b_modes, b_mode_tree >( data,
-											     invariant_b_mode_probs ) );
-		 } else {
-		   block.set_prediction_mode( implied_subblock_mode( Y2_.prediction_mode() ) );
-		 }
-	       } );
+               {
+                 if ( Y2_.prediction_mode() == B_PRED ) {
+                   block.set_Y_without_Y2();
+                   block.set_prediction_mode( Tree< bmode, num_intra_b_modes, b_mode_tree >( data,
+                                                                                             invariant_b_mode_probs ) );
+                 } else {
+                   block.set_prediction_mode( implied_subblock_mode( Y2_.prediction_mode() ) );
+                 }
+               } );
 
     /* Set chroma prediction modes */
     U_.at( 0, 0 ).set_prediction_mode( Tree< mbmode, num_uv_modes, uv_mode_tree >( data,
-										   probability_tables.uv_mode_probs ) );
+                                                                                   probability_tables.uv_mode_probs ) );
   } else {
     /* motion-vector "census" */
     Scorer census( header_.motion_vectors_flipped_ );
@@ -314,9 +314,9 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 
     /* census determines lookups into fixed probability table */
     const ProbabilityArray< num_mv_refs > mv_ref_probs = {{ mv_counts_to_probs.at( counts.at( 0 ) ).at( 0 ),
-							    mv_counts_to_probs.at( counts.at( 1 ) ).at( 1 ),
-							    mv_counts_to_probs.at( counts.at( 2 ) ).at( 2 ),
-							    mv_counts_to_probs.at( counts.at( 3 ) ).at( 3 ) }};
+                                                            mv_counts_to_probs.at( counts.at( 1 ) ).at( 1 ),
+                                                            mv_counts_to_probs.at( counts.at( 2 ) ).at( 2 ),
+                                                            mv_counts_to_probs.at( counts.at( 3 ) ).at( 3 ) }};
 
     Y2_.set_prediction_mode( Tree< mbmode, num_mv_refs, mv_ref_tree >( data, mv_ref_probs ) );
     Y2_.set_if_coded();
@@ -333,34 +333,34 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
       break;
     case NEWMV:
       {
-	MotionVector new_mv( data, probability_tables.motion_vector_probs );
-	new_mv += Scorer::clamp( census.best(), context_ );
-	set_base_motion_vector( new_mv );
+        MotionVector new_mv( data, probability_tables.motion_vector_probs );
+        new_mv += Scorer::clamp( census.best(), context_ );
+        set_base_motion_vector( new_mv );
       }
       break;
     case SPLITMV:
       {
-	header_.partition_id.initialize( data, split_mv_probs );
-	const auto & partition_scheme = mv_partitions.at( header_.partition_id.get() );
+        header_.partition_id.initialize( data, split_mv_probs );
+        const auto & partition_scheme = mv_partitions.at( header_.partition_id.get() );
 
-	for ( const auto & this_partition : partition_scheme ) {
-	  YBlock & first_subblock = Y_.at( this_partition.front().first,
-					   this_partition.front().second );
-	  first_subblock.set_Y_without_Y2();
+        for ( const auto & this_partition : partition_scheme ) {
+          YBlock & first_subblock = Y_.at( this_partition.front().first,
+                                           this_partition.front().second );
+          first_subblock.set_Y_without_Y2();
 
-	  first_subblock.read_subblock_inter_prediction( data,
-							 Scorer::clamp( census.best(), context_ ),
-							 probability_tables.motion_vector_probs );
+          first_subblock.read_subblock_inter_prediction( data,
+                                                         Scorer::clamp( census.best(), context_ ),
+                                                         probability_tables.motion_vector_probs );
 
-	  /* copy to rest of subblocks */
+          /* copy to rest of subblocks */
 
-	  for ( auto it = this_partition.begin() + 1; it != this_partition.end(); it++ ) {
-	    YBlock & other_subblock = Y_.at( it->first, it->second );
-	    other_subblock.set_prediction_mode( first_subblock.prediction_mode() );
-	    other_subblock.set_motion_vector( first_subblock.motion_vector() );
-	    other_subblock.set_Y_without_Y2();
-	  }
-	}
+          for ( auto it = this_partition.begin() + 1; it != this_partition.end(); it++ ) {
+            YBlock & other_subblock = Y_.at( it->first, it->second );
+            other_subblock.set_prediction_mode( first_subblock.prediction_mode() );
+            other_subblock.set_motion_vector( first_subblock.motion_vector() );
+            other_subblock.set_Y_without_Y2();
+          }
+        }
       }
       break;
     default:
@@ -374,44 +374,44 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 
     /* set motion vectors of chroma subblocks */
     U_.forall_ij( [&]( UVBlock & block, const unsigned int column, const unsigned int row ) {
-	block.set_motion_vector( luma_to_chroma( Y_.at( column * 2, row * 2 ).motion_vector(),
-						 Y_.at( column * 2 + 1, row * 2 ).motion_vector(),
-						 Y_.at( column * 2, row * 2 + 1 ).motion_vector(),
-						 Y_.at( column * 2 + 1, row * 2 + 1 ).motion_vector() ) );
+        block.set_motion_vector( luma_to_chroma( Y_.at( column * 2, row * 2 ).motion_vector(),
+                                                 Y_.at( column * 2 + 1, row * 2 ).motion_vector(),
+                                                 Y_.at( column * 2, row * 2 + 1 ).motion_vector(),
+                                                 Y_.at( column * 2 + 1, row * 2 + 1 ).motion_vector() ) );
       } );
   }
 }
 
 template<>
 void RefUpdateFrameMacroblock::decode_prediction_modes( BoolDecoder &,
-						        const ProbabilityTables & )
+                                                        const ProbabilityTables & )
 {
   /* Unset coded since pixel diffs don't need the Y2 block */
   Y2_.set_coded( false );
 
   Y_.forall( [&]( YBlock & block )
-	     {
-	       block.set_Y_without_Y2();
-	     } );
+             {
+               block.set_Y_without_Y2();
+             } );
 }
 
 template<>
 void StateUpdateFrameMacroblock::decode_prediction_modes( BoolDecoder &,
-						          const ProbabilityTables & )
+                                                          const ProbabilityTables & )
 {}
 
 InterFrameMacroblockHeader::InterFrameMacroblockHeader( BoolDecoder & data,
-							const InterFrameHeader & frame_header )
+                                                        const InterFrameHeader & frame_header )
   : is_inter_mb( data, frame_header.prob_inter ),
     mb_ref_frame_sel1( is_inter_mb, data, frame_header.prob_references_last ),
     mb_ref_frame_sel2( mb_ref_frame_sel1.get_or( false ), data, frame_header.prob_references_golden ),
     motion_vectors_flipped_( ( (reference() == GOLDEN_FRAME) and (frame_header.sign_bias_golden) )
-			     or ( (reference() == ALTREF_FRAME) and (frame_header.sign_bias_alternate) ) )
+                             or ( (reference() == ALTREF_FRAME) and (frame_header.sign_bias_alternate) ) )
 {}
 
 template <class FrameHeaderType, class MacroblockHeaderType>
 void Macroblock<FrameHeaderType, MacroblockHeaderType>::parse_tokens( BoolDecoder & data,
-								      const ProbabilityTables & probability_tables )
+                                                                      const ProbabilityTables & probability_tables )
 {
   /* is macroblock skipped? */
   if ( mb_skip_coeff_.get_or( false ) ) {
@@ -463,7 +463,7 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::calculate_has_nonzero()
 
 template <class FrameHeaderType, class MacroblockHeaderType>
 void Macroblock<FrameHeaderType, MacroblockHeaderType>::apply_walsh( const Quantizer & quantizer,
-								     VP8Raster::Macroblock & raster ) const
+                                                                     VP8Raster::Macroblock & raster ) const
 {
     SafeArray< SafeArray< DCTCoefficients, 4 >, 4 > Y_dequant_coeffs;
     for ( int row = 0; row < 4; row++ ) {
@@ -488,7 +488,7 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::apply_walsh( const Quant
 
 template <class FrameHeaderType, class MacroblockHeaderType>
 void Macroblock<FrameHeaderType, MacroblockHeaderType>::reconstruct_intra( const Quantizer & quantizer,
-									   VP8Raster::Macroblock & raster ) const
+                                                                           VP8Raster::Macroblock & raster ) const
 {
   /* Chroma */
   raster.U.intra_predict( uv_prediction_mode() );
@@ -496,9 +496,9 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::reconstruct_intra( const
 
   if ( has_nonzero_ ) {
     U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-		  { block.dequantize( quantizer ).idct_add( raster.U_sub.at( column, row ) ); } );
+                  { block.dequantize( quantizer ).idct_add( raster.U_sub.at( column, row ) ); } );
     V_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-		  { block.dequantize( quantizer ).idct_add( raster.V_sub.at( column, row ) ); } );
+                  { block.dequantize( quantizer ).idct_add( raster.V_sub.at( column, row ) ); } );
   }
 
   /* Luma */
@@ -518,7 +518,7 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::reconstruct_intra( const
 
 template <>
 void RefUpdateFrameMacroblock::reconstruct_continuation( const VP8Raster & reference,
-						         VP8Raster::Macroblock & raster ) const
+                                                         VP8Raster::Macroblock & raster ) const
 {
   const MotionVector zeromv;
 
@@ -531,38 +531,38 @@ void RefUpdateFrameMacroblock::reconstruct_continuation( const VP8Raster & refer
   assert( raster.V.contents() == reference.macroblock( context_.column, context_.row ).V.contents() );
 
   Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
-		{ block.add_residue( raster.Y_sub.at( column, row ) ); } );
+                { block.add_residue( raster.Y_sub.at( column, row ) ); } );
   U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-		{ block.add_residue( raster.U_sub.at( column, row ) ); } );
+                { block.add_residue( raster.U_sub.at( column, row ) ); } );
   V_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-		{ block.add_residue( raster.V_sub.at( column, row ) ); } );
+                { block.add_residue( raster.V_sub.at( column, row ) ); } );
 }
 
 template <>
 void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
-					      const References & references,
-					      VP8Raster::Macroblock & raster ) const
+                                              const References & references,
+                                              VP8Raster::Macroblock & raster ) const
 {
   const VP8Raster & reference = references.at( header_.reference() );
 
   if ( Y2_.prediction_mode() == SPLITMV ) {
     Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
-		  { raster.Y_sub.at( column, row ).inter_predict( block.motion_vector(),
-								       reference.Y() ); } );
+                  { raster.Y_sub.at( column, row ).inter_predict( block.motion_vector(),
+                                                                       reference.Y() ); } );
     U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-		  { raster.U_sub.at( column, row ).inter_predict( block.motion_vector(),
-								       reference.U() );
-		    raster.V_sub.at( column, row ).inter_predict( block.motion_vector(),
-								       reference.V() ); } );
+                  { raster.U_sub.at( column, row ).inter_predict( block.motion_vector(),
+                                                                       reference.U() );
+                    raster.V_sub.at( column, row ).inter_predict( block.motion_vector(),
+                                                                       reference.V() ); } );
 
     if ( has_nonzero_ ) {
       /* Add residue */
       Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
-		    { block.dequantize( quantizer ).idct_add( raster.Y_sub.at( column, row ) ); } );
+                    { block.dequantize( quantizer ).idct_add( raster.Y_sub.at( column, row ) ); } );
       U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-		    { block.dequantize( quantizer ).idct_add( raster.U_sub.at( column, row ) ); } );
+                    { block.dequantize( quantizer ).idct_add( raster.U_sub.at( column, row ) ); } );
       V_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-		    { block.dequantize( quantizer ).idct_add( raster.V_sub.at( column, row ) ); } );
+                    { block.dequantize( quantizer ).idct_add( raster.V_sub.at( column, row ) ); } );
     }
   } else {
     raster.Y.inter_predict( base_motion_vector(), reference.Y() );
@@ -572,17 +572,17 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
     if ( has_nonzero_ ) {
       apply_walsh( quantizer, raster );
       U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-		    { block.dequantize( quantizer ).idct_add( raster.U_sub.at( column, row ) ); } );
+                    { block.dequantize( quantizer ).idct_add( raster.U_sub.at( column, row ) ); } );
       V_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-		    { block.dequantize( quantizer ).idct_add( raster.V_sub.at( column, row ) ); } );
+                    { block.dequantize( quantizer ).idct_add( raster.V_sub.at( column, row ) ); } );
     }
   }
 }
 
 template <class FrameHeaderType, class MacroblockHeaderType>
 void Macroblock<FrameHeaderType, MacroblockHeaderType>::loopfilter( const Optional< FilterAdjustments > & filter_adjustments,
-								    const FilterParameters & loopfilter,
-								    VP8Raster::Macroblock & raster ) const
+                                                                    const FilterParameters & loopfilter,
+                                                                    VP8Raster::Macroblock & raster ) const
 {
   const bool skip_subblock_edges = Y2_.coded() and ( not has_nonzero_ );
 
@@ -591,9 +591,9 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::loopfilter( const Option
 
   if ( filter_adjustments.initialized() ) {
     loopfilter_in_use.adjust( filter_adjustments.get().loopfilter_ref_adjustments,
-			      filter_adjustments.get().loopfilter_mode_adjustments,
-			      header_.reference(),
-			      Y2_.prediction_mode() );
+                              filter_adjustments.get().loopfilter_mode_adjustments,
+                              header_.reference(),
+                              Y2_.prediction_mode() );
   }
 
   /* is filter disabled? */
@@ -621,14 +621,14 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::loopfilter( const Option
 
 template <>
 void RefUpdateFrameMacroblock::loopfilter( const Optional< FilterAdjustments > &,
-					   const FilterParameters &,
-					   VP8Raster::Macroblock & ) const
+                                           const FilterParameters &,
+                                           VP8Raster::Macroblock & ) const
 {}
 
 template <>
 void StateUpdateFrameMacroblock::loopfilter( const Optional< FilterAdjustments > &,
-					     const FilterParameters &,
-					     VP8Raster::Macroblock & ) const
+                                             const FilterParameters &,
+                                             VP8Raster::Macroblock & ) const
 {}
 
 reference_frame InterFrameMacroblockHeader::reference( void ) const
