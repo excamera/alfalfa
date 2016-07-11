@@ -63,6 +63,14 @@ private:
                             const TwoDSubRange<uint8_t, size, size> & prediction );
 
   template <class MacroblockType>
+  void luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
+                              VP8Raster::Macroblock & constructed_mb,
+                              VP8Raster::Macroblock & temp_mb,
+                              MacroblockType & frame_mb,
+                              const Quantizer & quantizer,
+                              const EncoderPass encoder_pass = FIRST_PASS ) const;
+
+  template <class MacroblockType>
   void luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
                               VP8Raster::Macroblock & constructed_mb,
                               VP8Raster::Macroblock & temp_mb,

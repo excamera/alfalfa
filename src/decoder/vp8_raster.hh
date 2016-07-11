@@ -25,12 +25,12 @@ public:
   class Block
   {
   public:
-    typedef TwoDSubRange< uint8_t, size, 1 > Row;
-    typedef TwoDSubRange< uint8_t, 1, size > Column;
+    typedef TwoDSubRange<uint8_t, size, 1> Row;
+    typedef TwoDSubRange<uint8_t, 1, size> Column;
 
   private:
-    TwoDSubRange< uint8_t, size, size > contents_;
-    typename TwoD< Block >::Context context_;
+    TwoDSubRange<uint8_t, size, size> contents_;
+    typename TwoD<Block>::Context context_;
 
     void dc_predict() { dc_predict( this->contents_ ); }
     void dc_predict_simple() { dc_predict_simple( this->contents_ ); }
@@ -46,19 +46,19 @@ public:
     void horizontal_down_predict() { horizontal_down_predict( this->contents_ ); }
     void horizontal_up_predict() { horizontal_up_predict( this->contents_ ); }
 
-    void dc_predict( TwoDSubRange< uint8_t, size, size > & output );
-    void dc_predict_simple( TwoDSubRange< uint8_t, size, size > & output );
-    void vertical_predict( TwoDSubRange< uint8_t, size, size > & output );
-    void horizontal_predict( TwoDSubRange< uint8_t, size, size > & output );
-    void true_motion_predict( TwoDSubRange< uint8_t, size, size > & output );
-    void vertical_smoothed_predict( TwoDSubRange< uint8_t, size, size > & output );
-    void horizontal_smoothed_predict( TwoDSubRange< uint8_t, size, size > & output );
-    void left_down_predict( TwoDSubRange< uint8_t, size, size > & output );
-    void right_down_predict( TwoDSubRange< uint8_t, size, size > & output );
-    void vertical_right_predict( TwoDSubRange< uint8_t, size, size > & output );
-    void vertical_left_predict( TwoDSubRange< uint8_t, size, size > & output );
-    void horizontal_down_predict( TwoDSubRange< uint8_t, size, size > & output );
-    void horizontal_up_predict( TwoDSubRange< uint8_t, size, size > & output );
+    void dc_predict( TwoDSubRange<uint8_t, size, size> & output );
+    void dc_predict_simple( TwoDSubRange<uint8_t, size, size> & output );
+    void vertical_predict( TwoDSubRange<uint8_t, size, size> & output );
+    void horizontal_predict( TwoDSubRange<uint8_t, size, size> & output );
+    void true_motion_predict( TwoDSubRange<uint8_t, size, size> & output );
+    void vertical_smoothed_predict( TwoDSubRange<uint8_t, size, size> & output );
+    void horizontal_smoothed_predict( TwoDSubRange<uint8_t, size, size> & output );
+    void left_down_predict( TwoDSubRange<uint8_t, size, size> & output );
+    void right_down_predict( TwoDSubRange<uint8_t, size, size> & output );
+    void vertical_right_predict( TwoDSubRange<uint8_t, size, size> & output );
+    void vertical_left_predict( TwoDSubRange<uint8_t, size, size> & output );
+    void horizontal_down_predict( TwoDSubRange<uint8_t, size, size> & output );
+    void horizontal_up_predict( TwoDSubRange<uint8_t, size, size> & output );
 
     struct Predictors {
       static const Row & row127( void );
@@ -81,7 +81,7 @@ public:
       uint8_t left( const int8_t row ) const;
       uint8_t east( const int8_t num ) const;
 
-      Predictors( const typename TwoD< Block >::Context & context );
+      Predictors( const typename TwoD<Block>::Context & context );
     } predictors_;
 
   public:
@@ -90,7 +90,7 @@ public:
     uint8_t east( const int column ) const { return predictors_.east( column ); }
 
   public:
-    Block( const typename TwoD< Block >::Context & c, TwoD< uint8_t > & raster_component );
+    Block( const typename TwoD<Block>::Context & c, TwoD<uint8_t> & raster_component );
 
     uint8_t & at( const unsigned int column, const unsigned int row )
     { return contents_.at( column, row ); }
@@ -108,21 +108,37 @@ public:
     void intra_predict( const PredictionMode mb_mode ) { intra_predict( mb_mode, this->contents_ ); }
 
     template <class PredictionMode>
-    void intra_predict( const PredictionMode mb_mode, TwoDSubRange< uint8_t, size, size > & output );
+    void intra_predict( const PredictionMode mb_mode,
+                        TwoDSubRange<uint8_t, size, size> & output );
 
-    /* for encoder */
+    /* for encoder use */
     template <class PredictionMode>
-    void intra_predict( const PredictionMode mb_mode, TwoD< uint8_t > & output );
+    void intra_predict( const PredictionMode mb_mode, TwoD<uint8_t> & output );
 
-    void inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference );
-    void analyze_inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference );
+    void inter_predict( const MotionVector & mv,
+                        const TwoD<uint8_t> & reference ) { inter_predict( mv, reference, this->contents_ ); }
+
+    void inter_predict( const MotionVector & mv,
+                        const TwoD<uint8_t> & reference,
+                        TwoDSubRange<uint8_t, size, size> & output );
+
+    /* for encoder use */
+    void inter_predict( const MotionVector & mv,
+                        const TwoD<uint8_t> & reference,
+                        TwoD<uint8_t> & output );
+
+    void analyze_inter_predict( const MotionVector & mv, const TwoD<uint8_t> & reference );
 
     template <class ReferenceType>
-    void safe_inter_predict( const MotionVector & mv, const ReferenceType & reference,
-			     const int source_column, const int source_row );
+    void safe_inter_predict( const MotionVector & mv,
+                             const ReferenceType & reference,
+                             const int source_column, const int source_row,
+                             TwoDSubRange<uint8_t, size, size> & output );
 
-    void unsafe_inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference,
-			       const int source_column, const int source_row );
+    void unsafe_inter_predict( const MotionVector & mv,
+                               const TwoD<uint8_t> & reference,
+                               const int source_column, const int source_row,
+                               TwoDSubRange<uint8_t, size, size> & output );
 
 #ifdef HAVE_SSE2
     void sse_horiz_inter_predict( const uint8_t * src, const unsigned int pixels_per_line,
@@ -136,32 +152,32 @@ public:
 
     void set_above_right_bottom_row_predictor( const typename Predictors::AboveRightBottomRowPredictor & replacement );
 
-    const typename TwoD< Block >::Context & context( void ) const { return context_; }
+    const typename TwoD<Block>::Context & context( void ) const { return context_; }
 
     static constexpr unsigned int dimension { size };
 
-    SafeArray< SafeArray< int16_t, size >, size > operator-( const Block & other ) const;
+    SafeArray<SafeArray<int16_t, size>, size> operator-( const Block & other ) const;
   };
 
-  using Block4  = Block< 4 >;
-  using Block8  = Block< 8 >;
-  using Block16 = Block< 16 >;
+  using Block4  = Block<4>;
+  using Block8  = Block<8>;
+  using Block16 = Block<16>;
 
   struct Macroblock
   {
     Block16 & Y;
     Block8 & U;
     Block8 & V;
-    TwoDSubRange< Block4, 4, 4 > Y_sub;
-    TwoDSubRange< Block4, 2, 2 > U_sub, V_sub;
+    TwoDSubRange<Block4, 4, 4> Y_sub;
+    TwoDSubRange<Block4, 2, 2> U_sub, V_sub;
 
-    Macroblock( const TwoD< Macroblock >::Context & c, VP8Raster & raster );
+    Macroblock( const TwoD<Macroblock>::Context & c, VP8Raster & raster );
 
     bool operator==( const Macroblock & other ) const
     {
       return Y.contents() == other.Y.contents()
-        and U.contents() == other.U.contents()
-        and V.contents() == other.V.contents();
+         and U.contents() == other.U.contents()
+         and V.contents() == other.V.contents();
     }
 
     bool operator!=( const Macroblock & other ) const
@@ -211,10 +227,10 @@ public:
 class EdgeExtendedRaster
 {
 private:
-  const TwoD< uint8_t > & master_;
+  const TwoD<uint8_t> & master_;
 
 public:
-  EdgeExtendedRaster( const TwoD< uint8_t > & master )
+  EdgeExtendedRaster( const TwoD<uint8_t> & master )
     : master_( master ) {}
 
   uint8_t at( const int column, const int row ) const

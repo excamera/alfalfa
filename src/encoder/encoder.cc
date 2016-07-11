@@ -61,10 +61,20 @@ FrameType Encoder::make_empty_frame( const uint16_t width, const uint16_t height
 
 template <unsigned int size>
 template <class PredictionMode>
-void VP8Raster::Block<size>::intra_predict( const PredictionMode mb_mode, TwoD<uint8_t> & output )
+void VP8Raster::Block<size>::intra_predict( const PredictionMode mb_mode,
+                                            TwoD<uint8_t> & output )
 {
   TwoDSubRange<uint8_t, size, size> subrange( output, 0, 0 );
   intra_predict( mb_mode, subrange );
+}
+
+template <unsigned int size>
+void VP8Raster::Block<size>::inter_predict( const MotionVector & mv,
+                                            const TwoD<uint8_t> & reference,
+                                            TwoD<uint8_t> & output )
+{
+  TwoDSubRange<uint8_t, size, size> subrange( output, 0, 0 );
+  inter_predict( mv, reference, subrange );
 }
 
 /* Encoder-specific Macroblock Methods */
@@ -141,6 +151,18 @@ uint32_t Encoder::variance( const VP8Raster::Block<size> & block,
   }
 
   return res - ( ( int64_t)sum * sum ) / ( size * size );
+}
+
+template <class MacroblockType>
+void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
+                                     VP8Raster::Macroblock & reconstructed_mb,
+                                     VP8Raster::Macroblock & temp_mb,
+                                     MacroblockType & frame_mb,
+                                     const Quantizer & quantizer,
+                                     const EncoderPass encoder_pass ) const
+{
+  frame_mb.set_reference( LAST_FRAME );
+
 }
 
 template <class MacroblockType>
@@ -648,7 +670,7 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
       luma_mb_intra_predict( original_mb, reconstructed_mb, temp_mb, frame_mb, quantizer, FIRST_PASS );
       chroma_mb_intra_predict( original_mb, reconstructed_mb, temp_mb, frame_mb, quantizer, FIRST_PASS );
 
-      frame_mb.mutable_header().set_reference( CURRENT_FRAME );
+      frame_mb.mutable_header().set_reference( LAST_FRAME );
 
       frame.relink_y2_blocks();
       frame_mb.calculate_has_nonzero();
@@ -842,6 +864,9 @@ double Encoder::encode_raster( const VP8Raster & raster,
   return encoded_frame.second;
 }
 
+/** This function decides if this raster should be encoded as a keyframe,
+ *  or as an interframe.
+ */
 bool Encoder::should_encode_as_keyframe( const VP8Raster & )
 {
   return not ( references_.last.initialized()

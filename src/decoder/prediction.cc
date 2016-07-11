@@ -349,10 +349,12 @@ static constexpr SafeArray<SafeArray<int16_t, 6>, 8> sixtap_filters =
      { { 0, -1,   12,  123,  -6,  0 } } }};
 
 template <unsigned int size>
-void VP8Raster::Block<size>::inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference )
+void VP8Raster::Block<size>::inter_predict( const MotionVector & mv,
+                                            const TwoD<uint8_t> & reference,
+                                            TwoDSubRange<uint8_t, size, size> & output )
 {
-  const int source_column = context().column * size + (mv.x() >> 3);
-  const int source_row = context().row * size + (mv.y() >> 3);
+  const int source_column = context().column * size + ( mv.x() >> 3 );
+  const int source_row = context().row * size + ( mv.y() >> 3 );
 
   if ( source_column - 2 < 0
        or source_column + size + 3 > reference.width()
@@ -361,9 +363,9 @@ void VP8Raster::Block<size>::inter_predict( const MotionVector & mv, const TwoD<
 
     EdgeExtendedRaster safe_reference( reference );
 
-    safe_inter_predict( mv, safe_reference, source_column, source_row );
+    safe_inter_predict( mv, safe_reference, source_column, source_row, output );
   } else {
-    unsafe_inter_predict( mv, reference, source_column, source_row );
+    unsafe_inter_predict( mv, reference, source_column, source_row, output );
   }
 }
 
@@ -444,18 +446,19 @@ void VP8Raster::Block<16>::sse_vert_inter_predict( const uint8_t * src,
 
 template <unsigned int size>
 void VP8Raster::Block<size>::unsafe_inter_predict( const MotionVector & mv, const TwoD< uint8_t > & reference,
-                                                   const int source_column, const int source_row )
+                                                   const int source_column, const int source_row,
+                                                   TwoDSubRange<uint8_t, size, size> & output )
 {
-  assert( contents_.stride() == reference.width() );
+  assert( output.stride() == reference.width() );
 
-  const unsigned int stride = contents_.stride();
+  const unsigned int stride = output.stride();
 
   const uint8_t mx = mv.x() & 7, my = mv.y() & 7;
 
   if ( (mx & 7) == 0 and (my & 7) == 0 ) {
-    uint8_t *dest_row_start = &contents_.at( 0, 0 );
+    uint8_t *dest_row_start = &output.at( 0, 0 );
     const uint8_t *src_row_start = &reference.at( source_column, source_row );
-    const uint8_t *dest_last_row_start = dest_row_start + size * contents_.stride();
+    const uint8_t *dest_last_row_start = dest_row_start + size * output.stride();
     while ( dest_row_start != dest_last_row_start ) {
       memcpy( dest_row_start, src_row_start, size );
       dest_row_start += stride;
@@ -468,7 +471,7 @@ void VP8Raster::Block<size>::unsafe_inter_predict( const MotionVector & mv, cons
   alignas(16) SafeArray< SafeArray< uint8_t, size + 8 >, size + 8 > intermediate;
   const uint8_t *intermediate_ptr = &intermediate.at( 0 ).at( 0 );
   const uint8_t *src_ptr = &reference.at( source_column, source_row );
-  const uint8_t *dst_ptr = &contents_.at( 0, 0 );
+  const uint8_t *dst_ptr = &output.at( 0, 0 );
 
   if ( mx ) {
     if ( my ) {
@@ -519,7 +522,7 @@ void VP8Raster::Block<size>::unsafe_inter_predict( const MotionVector & mv, cons
   }
 
   {
-    uint8_t *dest_row_start = &contents_.at( 0, 0 );
+    uint8_t *dest_row_start = &output.at( 0, 0 );
     const uint8_t *dest_last_row_start = dest_row_start + size * stride;
     const uint8_t *intermediate_row_start = &intermediate.at( 0 ).at( 0 );
 
@@ -550,32 +553,37 @@ void VP8Raster::Block<size>::unsafe_inter_predict( const MotionVector & mv, cons
 template <unsigned int size>
 template <class ReferenceType>
 void VP8Raster::Block<size>::safe_inter_predict( const MotionVector & mv, const ReferenceType & reference,
-                                                 const int source_column, const int source_row )
+                                                 const int source_column, const int source_row,
+                                                 TwoDSubRange<uint8_t, size, size> & output )
 {
   if ( (mv.x() & 7) == 0 and (mv.y() & 7) == 0 ) {
-    contents_.forall_ij( [&] ( uint8_t & val, unsigned int column, unsigned int row )
-                         { val = reference.at( source_column + column,
-                                               source_row + row ); } );
+    output.forall_ij(
+      [&] ( uint8_t & val, unsigned int column, unsigned int row )
+      {
+        val = reference.at( source_column + column, source_row + row );
+      }
+    );
+
     return;
   }
 
   /* filter horizontally */
   const auto & horizontal_filter = sixtap_filters.at( mv.x() & 7 );
 
-  SafeArray< SafeArray< uint8_t, size >, size + 5 > intermediate;
+  SafeArray<SafeArray<uint8_t, size>, size + 5> intermediate;
 
   for ( uint8_t row = 0; row < size + 5; row++ ) {
     for ( uint8_t column = 0; column < size; column++ ) {
       const int real_row = source_row + row - 2;
       const int real_column = source_column + column;
       intermediate.at( row ).at( column ) =
-        clamp255( ( ( reference.at( real_column - 2,   real_row ) * horizontal_filter.at( 0 ) )
-                    + ( reference.at( real_column - 1, real_row ) * horizontal_filter.at( 1 ) )
-                    + ( reference.at( real_column,     real_row ) * horizontal_filter.at( 2 ) )
-                    + ( reference.at( real_column + 1, real_row ) * horizontal_filter.at( 3 ) )
-                    + ( reference.at( real_column + 2, real_row ) * horizontal_filter.at( 4 ) )
-                    + ( reference.at( real_column + 3, real_row ) * horizontal_filter.at( 5 ) )
-                    + 64 ) >> 7 );
+        clamp255( ( ( reference.at( real_column - 2, real_row ) * horizontal_filter.at( 0 ) )
+                  + ( reference.at( real_column - 1, real_row ) * horizontal_filter.at( 1 ) )
+                  + ( reference.at( real_column,     real_row ) * horizontal_filter.at( 2 ) )
+                  + ( reference.at( real_column + 1, real_row ) * horizontal_filter.at( 3 ) )
+                  + ( reference.at( real_column + 2, real_row ) * horizontal_filter.at( 4 ) )
+                  + ( reference.at( real_column + 3, real_row ) * horizontal_filter.at( 5 ) )
+                  + 64 ) >> 7 );
     }
   }
 
@@ -584,14 +592,14 @@ void VP8Raster::Block<size>::safe_inter_predict( const MotionVector & mv, const 
 
   for ( uint8_t row = 0; row < size; row++ ) {
     for ( uint8_t column = 0; column < size; column++ ) {
-      contents_.at( column, row ) =
-        clamp255( ( ( intermediate.at( row ).at( column ) * vertical_filter.at( 0 ) )
-                    + ( intermediate.at( row + 1 ).at( column ) * vertical_filter.at( 1 ) )
-                    + ( intermediate.at( row + 2 ).at( column ) * vertical_filter.at( 2 ) )
-                    + ( intermediate.at( row + 3 ).at( column ) * vertical_filter.at( 3 ) )
-                    + ( intermediate.at( row + 4 ).at( column ) * vertical_filter.at( 4 ) )
-                    + ( intermediate.at( row + 5 ).at( column ) * vertical_filter.at( 5 ) )
-                    + 64 ) >> 7 );
+      output.at( column, row ) =
+        clamp255( ( ( intermediate.at( row     ).at( column ) * vertical_filter.at( 0 ) )
+                  + ( intermediate.at( row + 1 ).at( column ) * vertical_filter.at( 1 ) )
+                  + ( intermediate.at( row + 2 ).at( column ) * vertical_filter.at( 2 ) )
+                  + ( intermediate.at( row + 3 ).at( column ) * vertical_filter.at( 3 ) )
+                  + ( intermediate.at( row + 4 ).at( column ) * vertical_filter.at( 4 ) )
+                  + ( intermediate.at( row + 5 ).at( column ) * vertical_filter.at( 5 ) )
+                  + 64 ) >> 7 );
     }
   }
 }

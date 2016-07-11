@@ -140,8 +140,7 @@ public:
     }
   }
 
-
-        /* Encoding */
+  /* for encoder use */
   Y2Block & Y2()                      { return Y2_; }
   TwoDSubRange< YBlock, 4, 4 >  & Y() { return Y_; }
   TwoDSubRange< UVBlock, 2, 2 > & U() { return U_; }
