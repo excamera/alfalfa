@@ -95,6 +95,11 @@ void KeyFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
   U_.at( 0, 0 ).set_prediction_mode( Tree< mbmode, num_uv_modes, uv_mode_tree >( data, kf_uv_mode_probs ) );
 }
 
+template <>
+const MotionVector & KeyFrameMacroblock::base_motion_vector() const
+{
+  throw runtime_error( "Keyframes don't have motion vectors." );
+}
 
 template <>
 void InterFrameMacroblock::set_base_motion_vector( const MotionVector & mv )
