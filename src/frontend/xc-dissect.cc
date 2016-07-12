@@ -24,7 +24,7 @@ void usage_error( const string & program_name )
 }
 
 template <class FrameType>
-void print_probability_tables( const FrameType & frame, const DecoderState & state )
+void print_probability_tables( const FrameType & frame, const DecoderState & )
 {
   for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
     for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
@@ -38,7 +38,7 @@ void print_probability_tables( const FrameType & frame, const DecoderState & sta
             cout << ( int )node.get() << "\t";
           }
           else {
-            cout << ( int )state.probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l ) << "\t";
+            cout << "-" << "\t";
           }
         }
 
@@ -347,32 +347,29 @@ int main( int argc, char *argv[] )
   DecoderState decoder_state { width, height };
 
   for ( size_t frame_number = 0; frame_number < ivf.frame_count(); frame_number++ ) {
-    if( frame_number != SIZE_MAX and frame_number != target_frame_number ) {
-      continue;
-    }
-
     UncompressedChunk uncompressed_chunk { ivf.frame( frame_number ), width, height };
 
-    cout << "Frame #" << frame_number;
-
-    if ( uncompressed_chunk.key_frame() ) {
-      cout << " (keyframe)";
+    if( target_frame_number == SIZE_MAX or frame_number == target_frame_number ) {
+      cout << ">> Frame #" << frame_number << " "
+           << ( uncompressed_chunk.key_frame() ? "(KF)" : "(IF)" ) << endl;
     }
 
-    cout << endl;
-
-    decoder_state = DecoderState{ width, height }; // reset the decoder state for keyframe
-
     if ( uncompressed_chunk.key_frame() ) {
+      decoder_state = DecoderState{ width, height }; // reset the decoder state for the keyframe
+
       KeyFrame frame = decoder_state.parse_and_apply<KeyFrame>( uncompressed_chunk );
-      print_frame_info( frame, decoder_state, probability_tables, macroblocks, coefficients );
+
+      if( target_frame_number == SIZE_MAX or frame_number == target_frame_number ) {
+        print_frame_info( frame, decoder_state, probability_tables, macroblocks, coefficients );
+      }
     }
     else {
       InterFrame frame = decoder_state.parse_and_apply<InterFrame>( uncompressed_chunk );
-      print_frame_info( frame, decoder_state, probability_tables, macroblocks, coefficients );
-    }
 
-    cout << endl;
+      if( target_frame_number == SIZE_MAX or frame_number == target_frame_number ) {
+        print_frame_info( frame, decoder_state, probability_tables, macroblocks, coefficients );
+      }
+    }
   }
 
   return EXIT_SUCCESS;
