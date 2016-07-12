@@ -214,20 +214,21 @@ void print_frame_info( const Frame<FrameHeaderType, MacroblockType> & frame, con
 
         cout << endl;
 
-        if ( macroblock.y_prediction_mode() == B_PRED or
-             macroblock.y_prediction_mode() == SPLITMV ) {
-          macroblock.Y().forall_ij(
-            [&] ( const YBlock & yblock, unsigned int sb_column, unsigned sb_row ) {
-              cout << "Y Subblock [ " << sb_column << ", " << sb_row << " ]" << endl;
-              cout << "Prediction Mode: " << bmode_names[ yblock.prediction_mode() ] << endl;
+        macroblock.Y().forall_ij(
+          [&] ( const YBlock & yblock, unsigned int sb_column, unsigned sb_row ) {
+            cout << "Y Subblock [ " << sb_column << ", " << sb_row << " ]" << endl;
 
-              if ( coefficients ) {
-                cout << "DCT coeffs: { " << yblock.coefficients() << " }" << endl;
-                cout << endl;
-              }
+            if ( macroblock.y_prediction_mode() == B_PRED or
+            macroblock.y_prediction_mode() == SPLITMV ) {
+              cout << "Prediction Mode: " << bmode_names[ yblock.prediction_mode() ] << endl;
             }
-          );
-        }
+
+            if ( coefficients ) {
+              cout << "DCT coeffs: { " << yblock.coefficients() << " }" << endl;
+              cout << endl;
+            }
+          }
+        );
 
         if ( macroblock.Y2().coded() ) {
           cout << "<Y2>" << endl;
@@ -352,6 +353,7 @@ int main( int argc, char *argv[] )
     if( target_frame_number == SIZE_MAX or frame_number == target_frame_number ) {
       cout << ">> Frame #" << frame_number << " "
            << ( uncompressed_chunk.key_frame() ? "(KF)" : "(IF)" ) << endl;
+      cout << "   Size: " << ivf.frame( frame_number ).size() << " B" << endl;
     }
 
     if ( uncompressed_chunk.key_frame() ) {

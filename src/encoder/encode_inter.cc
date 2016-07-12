@@ -130,6 +130,8 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
   MutableRasterHandle reconstructed_raster_handle { width, height };
   VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
 
+  TokenBranchCounts token_branch_counts;
+
   raster.macroblocks().forall_ij(
     [&] ( VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
     {
@@ -150,8 +152,12 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
       else {
         frame_mb.reconstruct_intra( quantizer, reconstructed_mb );
       }
+
+      frame_mb.accumulate_token_branches( token_branch_counts );
     }
   );
+
+  optimize_probability_tables( frame, token_branch_counts );
 
   apply_best_loopfilter_settings( raster, reconstructed_raster, frame );
 

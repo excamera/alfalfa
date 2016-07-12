@@ -607,6 +607,9 @@ void RefUpdateFrameMacroblock::accumulate_token_branches( TokenBranchCounts & ) 
 template
 void KeyFrameMacroblock::accumulate_token_branches( TokenBranchCounts & ) const;
 
+template
+void InterFrameMacroblock::accumulate_token_branches( TokenBranchCounts & ) const;
+
 template <BlockType initial_block_type, class PredictionMode>
 void Block< initial_block_type,
             PredictionMode >::serialize_tokens( BoolEncoder & encoder,
@@ -818,7 +821,7 @@ vector<uint8_t> KeyFrame::serialize( const ProbabilityTables & probability_table
 {
   ProbabilityTables frame_probability_tables( probability_tables );
   frame_probability_tables.coeff_prob_update( header() );
-  
+
   return make_frame( true,
                      show_,
                      false,
