@@ -138,7 +138,7 @@ private:
   int16_t y_, x_; /* y is sent before x in the bitstream */
 
   static int16_t read_component( BoolDecoder & data,
-				 const SafeArray< Probability, MV_PROB_CNT > & component_probs );
+                                 const SafeArray< Probability, MV_PROB_CNT > & component_probs );
 
 public:
   MotionVector() : y_(), x_() {}
@@ -154,12 +154,17 @@ public:
   MotionVector operator-() const { return MotionVector( -x(), -y() ); }
 
   MotionVector( BoolDecoder & data,
-		const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > & motion_vector_probs );
+                const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > & motion_vector_probs );
 
   void clamp( const int16_t to_left, const int16_t to_right,
-	      const int16_t to_top, const int16_t to_bottom );
+              const int16_t to_top, const int16_t to_bottom );
 
   bool empty( void ) const { return x_ == 0 and y_ == 0; }
+
+  static MotionVector luma_to_chroma( const MotionVector & s1,
+                                      const MotionVector & s2,
+                                      const MotionVector & s3,
+                                      const MotionVector & s4 );
 };
 
 #endif /* VP8_HEADER_STRUCTURES_HH */

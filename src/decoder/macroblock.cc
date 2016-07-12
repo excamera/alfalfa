@@ -266,10 +266,10 @@ MotionVector::MotionVector( BoolDecoder & data,
     x_( read_component( data, motion_vector_probs.at( 1 ) ) )
 {}
 
-MotionVector luma_to_chroma( const MotionVector & s1,
-                             const MotionVector & s2,
-                             const MotionVector & s3,
-                             const MotionVector & s4 )
+MotionVector MotionVector::luma_to_chroma( const MotionVector & s1,
+                                           const MotionVector & s2,
+                                           const MotionVector & s3,
+                                           const MotionVector & s4 )
 {
   const int16_t x = s1.x() + s2.x() + s3.x() + s4.x();
   const int16_t y = s1.y() + s2.y() + s3.y() + s4.y();
@@ -374,10 +374,11 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
 
     /* set motion vectors of chroma subblocks */
     U_.forall_ij( [&]( UVBlock & block, const unsigned int column, const unsigned int row ) {
-        block.set_motion_vector( luma_to_chroma( Y_.at( column * 2, row * 2 ).motion_vector(),
-                                                 Y_.at( column * 2 + 1, row * 2 ).motion_vector(),
-                                                 Y_.at( column * 2, row * 2 + 1 ).motion_vector(),
-                                                 Y_.at( column * 2 + 1, row * 2 + 1 ).motion_vector() ) );
+        block.set_motion_vector( MotionVector::luma_to_chroma(
+          Y_.at( column * 2, row * 2 ).motion_vector(),
+          Y_.at( column * 2 + 1, row * 2 ).motion_vector(),
+          Y_.at( column * 2, row * 2 + 1 ).motion_vector(),
+          Y_.at( column * 2 + 1, row * 2 + 1 ).motion_vector() ) );
       } );
   }
 }

@@ -17,17 +17,19 @@ enum EncoderPass
   SECOND_PASS
 };
 
-struct EncoderReferences
+struct ReferenceFlags
 {
-  Optional<RasterHandle> last {};
-  Optional<RasterHandle> golden {};
-  Optional<RasterHandle> alternative_reference {};
+  bool has_last, has_golden, has_alternative;
+
+  ReferenceFlags()
+    : has_last( false ), has_golden( false ), has_alternative( false )
+  {}
 
   void clear_all()
   {
-    last.clear();
-    golden.clear();
-    alternative_reference.clear();
+    has_last = false;
+    has_golden = false;
+    has_alternative = false;
   }
 };
 
@@ -39,7 +41,8 @@ private:
   uint16_t height_;
   MutableRasterHandle temp_raster_handle_;
   DecoderState decoder_state_;
-  EncoderReferences references_;
+  References references_;
+  ReferenceFlags reference_flags_;
 
   Costs costs_;
 
@@ -69,6 +72,14 @@ private:
                               MacroblockType & frame_mb,
                               const Quantizer & quantizer,
                               const EncoderPass encoder_pass = FIRST_PASS ) const;
+
+  template <class MacroblockType>
+  void chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
+                                VP8Raster::Macroblock & constructed_mb,
+                                VP8Raster::Macroblock & temp_mb,
+                                MacroblockType & frame_mb,
+                                const Quantizer & quantizer,
+                                const EncoderPass encoder_pass = FIRST_PASS ) const;
 
   template <class MacroblockType>
   void luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,

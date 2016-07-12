@@ -44,8 +44,6 @@ private:
   void encode_prediction_modes( BoolEncoder & encoder,
                                 const ProbabilityTables & probability_tables ) const;
 
-  void set_base_motion_vector( const MotionVector & mv );
-
   void apply_walsh( const Quantizer & quantizer, VP8Raster::Macroblock & raster ) const;
 
 public:
@@ -69,11 +67,11 @@ public:
 
   /* Copy */
   Macroblock( const typename TwoD< Macroblock >::Context & c,
-            const TwoD< Macroblock > & old_macroblocks,
-            TwoD< Y2Block > & frame_Y2,
-            TwoD< YBlock > & frame_Y,
-            TwoD< UVBlock > & frame_U,
-            TwoD< UVBlock > & frame_V );
+              const TwoD< Macroblock > & old_macroblocks,
+              TwoD< Y2Block > & frame_Y2,
+              TwoD< YBlock > & frame_Y,
+              TwoD< UVBlock > & frame_U,
+              TwoD< UVBlock > & frame_V );
 
   void update_segmentation( SegmentationMap & mutable_segmentation_map );
 
@@ -96,7 +94,10 @@ public:
   const MacroblockHeaderType & header( void ) const { return header_; }
         MacroblockHeaderType & mutable_header( void ) { return header_; }
 
+  const typename TwoD< Macroblock >::Context & context() const { return context_; }
+
   const MotionVector & base_motion_vector( void ) const;
+  void set_base_motion_vector( const MotionVector & mv );
 
   const mbmode & uv_prediction_mode( void ) const { return U_.at( 0, 0 ).prediction_mode(); }
   const mbmode & y_prediction_mode( void ) const { return Y2_.prediction_mode(); }
@@ -171,7 +172,7 @@ struct InterFrameMacroblockHeader
   InterFrameMacroblockHeader( BoolDecoder & data, const InterFrameHeader & frame_header );
 
   reference_frame reference( void ) const;
-        void set_reference( const reference_frame ref );
+  void set_reference( const reference_frame ref );
 };
 
 /* State update frames don't actually have macroblocks, so this does nothing */
