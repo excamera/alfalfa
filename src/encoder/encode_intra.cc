@@ -184,15 +184,13 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
                                   frame_mb, quantizer, best_pred.first, encoder_pass);
 }
 
-template <class MacroblockType>
-void Encoder::chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
-                                       VP8Raster::Macroblock & reconstructed_mb,
-                                       VP8Raster::Macroblock & temp_mb,
-                                       MacroblockType & frame_mb,
-                                       const Quantizer & quantizer,
-                                       const EncoderPass encoder_pass ) const
+/*
+ * Please take a look at comments for `luma_mb_best_prediction_mode`.
+ */
+pair<mbmode, size_t> Encoder::chroma_mb_best_prediction_mode( const VP8Raster::Macroblock & original_mb,
+                                                              VP8Raster::Macroblock & reconstructed_mb,
+                                                              VP8Raster::Macroblock & temp_mb ) const
 {
-  // Select the best prediction mode
   uint32_t min_error = numeric_limits<uint32_t>::max();
   mbmode min_prediction_mode = DC_PRED;
 
@@ -214,7 +212,18 @@ void Encoder::chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb
     }
   }
 
-  // Apply
+  return make_pair( min_prediction_mode, min_error );
+}
+
+template<class MacroblockType>
+void Encoder::chroma_mb_apply_intra_prediction( const VP8Raster::Macroblock & original_mb,
+                                                VP8Raster::Macroblock & reconstructed_mb,
+                                                __attribute__((unused)) VP8Raster::Macroblock & temp_mb,
+                                                MacroblockType & frame_mb,
+                                                const Quantizer & quantizer,
+                                                const mbmode min_prediction_mode,
+                                                const EncoderPass encoder_pass ) const
+{
   frame_mb.U().at( 0, 0 ).set_prediction_mode( min_prediction_mode );
 
   frame_mb.U().forall_ij(
@@ -254,6 +263,24 @@ void Encoder::chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb
       frame_sb.calculate_has_nonzero();
     }
   );
+}
+
+template <class MacroblockType>
+void Encoder::chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
+                                       VP8Raster::Macroblock & reconstructed_mb,
+                                       VP8Raster::Macroblock & temp_mb,
+                                       MacroblockType & frame_mb,
+                                       const Quantizer & quantizer,
+                                       const EncoderPass encoder_pass ) const
+{
+  // Select the best prediction mode
+  pair<mbmode, size_t> best_pred = chroma_mb_best_prediction_mode( original_mb,
+                                                                   reconstructed_mb,
+                                                                   temp_mb );
+
+  // Apply
+  chroma_mb_apply_intra_prediction( original_mb, reconstructed_mb, temp_mb,
+                                    frame_mb, quantizer, best_pred.first, encoder_pass );
 }
 
 /* This function outputs the prediction values to 'reconstructed_sb'
