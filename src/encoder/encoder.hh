@@ -127,6 +127,11 @@ private:
                                        VP8Raster & reconstructed,
                                        FrameType & frame );
 
+  template<class FrameHeaderType, class MacroblockType>
+  void optimize_prob_skip( Frame<FrameHeaderType, MacroblockType> & frame );
+
+  void optimize_interframe_probs( InterFrame & frame );
+
 public:
   Encoder( const std::string & output_filename, const uint16_t width,
            const uint16_t height, const bool two_pass );
@@ -141,6 +146,8 @@ public:
 
   template<class FrameType>
   static FrameType make_empty_frame( const uint16_t width, const uint16_t height );
+
+  static unsigned calc_prob( unsigned false_count, unsigned total );
 };
 
 #endif /* ENCODER_HH */

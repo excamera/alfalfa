@@ -445,7 +445,7 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::parse_tokens( BoolDecode
 }
 
 template <class FrameHeaderType, class MacroblockHeaderType>
-void Macroblock<FrameHeaderType, MacroblockHeaderType>::calculate_has_nonzero()
+bool Macroblock<FrameHeaderType, MacroblockHeaderType>::calculate_has_nonzero( const bool mb_no_skip_coeff )
 {
   has_nonzero_ = false;
 
@@ -465,6 +465,12 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::calculate_has_nonzero()
   V_.forall( [&]( UVBlock & block ) {
       has_nonzero_ |= block.has_nonzero();
     } );
+
+  if ( mb_no_skip_coeff ) {
+    mb_skip_coeff_.initialize( not has_nonzero_ );
+  }
+
+  return has_nonzero_;
 }
 
 template <class FrameHeaderType, class MacroblockHeaderType>

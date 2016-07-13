@@ -1,6 +1,6 @@
+#include <algorithm>
 #include <array>
 #include <limits>
-#include <algorithm>
 
 #include "block.hh"
 #include "encoder.hh"
@@ -11,6 +11,15 @@
 
 using namespace std;
 
+unsigned Encoder::calc_prob( unsigned false_count, unsigned total )
+{
+  if ( false_count == 0 ) {
+    return 0;
+  } else {
+    return max( 1u, min( 255u, 256 * false_count / total ) );
+  }
+}
+
 /*
  * Taken from: libvpx:vp8/encoder/entropy.c:38-42
  */
@@ -19,15 +28,6 @@ const uint8_t vp8_coef_bands[ 16 ] =
 
 const uint8_t vp8_prev_token_class[ MAX_ENTROPY_TOKENS ] =
   { 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0 };
-
-static unsigned calc_prob( unsigned false_count, unsigned total )
-{
-  if ( false_count == 0 ) {
-    return 0;
-  } else {
-    return max( 1u, min( 255u, 256 * false_count / total ) );
-  }
-}
 
 uint8_t token_for_coeff( int16_t coeff )
 {
@@ -385,7 +385,7 @@ void Encoder::optimize_probability_tables( FrameType & frame, const TokenBranchC
           const unsigned int false_count = token_branch_counts.at( i ).at( j ).at( k ).at( l ).first;
           const unsigned int true_count = token_branch_counts.at( i ).at( j ).at( k ).at( l ).second;
 
-          const unsigned int prob = calc_prob( false_count, false_count + true_count );
+          const unsigned int prob = Encoder::calc_prob( false_count, false_count + true_count );
 
           assert( prob <= 255 );
 
@@ -398,6 +398,25 @@ void Encoder::optimize_probability_tables( FrameType & frame, const TokenBranchC
   }
 
   decoder_state_.probability_tables.coeff_prob_update( frame.header() );
+}
+
+template<class FrameHeaderType, class MacroblockType>
+void Encoder::optimize_prob_skip( Frame<FrameHeaderType, MacroblockType> & frame )
+{
+  size_t no_skip_count = 0;
+  size_t total_count = 0;
+
+  frame.mutable_macroblocks().forall(
+    [&] ( MacroblockType & frame_mb )
+    {
+      bool has_nonzero = frame_mb.calculate_has_nonzero( true );
+      no_skip_count += has_nonzero;
+      total_count++;
+    }
+  );
+
+  frame.mutable_header().prob_skip_false.clear();
+  frame.mutable_header().prob_skip_false.initialize( Encoder::calc_prob( no_skip_count, total_count ) );
 }
 
 template<class FrameType>

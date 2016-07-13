@@ -116,6 +116,42 @@ void Encoder::chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb
   );
 }
 
+void Encoder::optimize_interframe_probs( InterFrame & frame )
+{
+  size_t inter_count = 0;
+  size_t last_count = 0;
+  size_t golden_count = 0;
+  size_t total_count = 0;
+
+  frame.mutable_macroblocks().forall(
+    [&] ( InterFrameMacroblock & frame_mb )
+    {
+      total_count++;
+
+      switch( frame_mb.header().reference() ) {
+      case CURRENT_FRAME:
+        inter_count++;
+        break;
+
+      case LAST_FRAME:
+        last_count++;
+        break;
+
+      case GOLDEN_FRAME:
+        golden_count++;
+        break;
+
+      case ALTREF_FRAME:
+        break;
+      }
+    }
+  );
+
+  frame.mutable_header().prob_inter = Encoder::calc_prob( inter_count, total_count );
+  frame.mutable_header().prob_references_last = Encoder::calc_prob( last_count, total_count );
+  frame.mutable_header().prob_references_golden = Encoder::calc_prob( golden_count, total_count );
+}
+
 template<>
 pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Raster & raster,
                                                                      const QuantIndices & quant_indices )
@@ -157,6 +193,8 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
     }
   );
 
+  optimize_prob_skip( frame );
+  optimize_interframe_probs( frame );
   optimize_probability_tables( frame, token_branch_counts );
 
   apply_best_loopfilter_settings( raster, reconstructed_raster, frame );
