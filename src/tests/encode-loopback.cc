@@ -42,7 +42,7 @@ int main( int argc, char *argv[] )
       /* Decide what we're going to encode */
       vector< pair< Probability, bool > > bitlist;
       for ( unsigned int i = 0; i < 10000; i++ ) {
-	bitlist.emplace_back( probs( gen ), bits( gen ) );
+        bitlist.emplace_back( probs( gen ), bits( gen ) );
       }
 
       const auto encoded_string = encode( bitlist );
@@ -50,38 +50,38 @@ int main( int argc, char *argv[] )
       BoolDecoder decoder( Chunk( &encoded_string.front(), encoded_string.size() ) );
 
       for ( const auto & x : bitlist ) {
-	const bool this_bit = decoder.get( x.first );
-	if ( this_bit != x.second ) {
-	  cerr << "get( " << x.first << " ) got " << this_bit << ", expected " << x.second << endl;
-	  return EXIT_FAILURE;
-	}
+        const bool this_bit = decoder.get( x.first );
+        if ( this_bit != x.second ) {
+          cerr << "get( " << x.first << " ) got " << this_bit << ", expected " << x.second << endl;
+          return EXIT_FAILURE;
+        }
       }
     }
 
     /* Now try some trees */
     for ( unsigned int trial = 0; trial < 200; trial++ ) {
       for ( mbmode i = mbmode( 0 ); i < num_y_modes; i = mbmode( i + 1 ) ) {
-	Tree< mbmode, num_y_modes, kf_y_mode_tree > test_mode = i;
+        Tree< mbmode, num_y_modes, kf_y_mode_tree > test_mode = i;
 
-	BoolEncoder encoder;
+        BoolEncoder encoder;
 
-	ProbabilityArray< num_y_modes > probabilities;
-	for ( uint8_t j = 0; j < probabilities.size(); j++ ) {
-	  probabilities.at( j ) = probs( gen );
-	}
+        ProbabilityArray< num_y_modes > probabilities;
+        for ( uint8_t j = 0; j < probabilities.size(); j++ ) {
+          probabilities.at( j ) = probs( gen );
+        }
 
-	encode( encoder, test_mode, probabilities );
+        encode( encoder, test_mode, probabilities );
 
-	const auto encoded_string = encoder.finish();
+        const auto encoded_string = encoder.finish();
 
-	BoolDecoder decoder( Chunk( &encoded_string.front(), encoded_string.size() ) );
+        BoolDecoder decoder( Chunk( &encoded_string.front(), encoded_string.size() ) );
 
-	const decltype( test_mode ) decoded_id = { decoder, probabilities };
+        const decltype( test_mode ) decoded_id = { decoder, probabilities };
 
-	if ( decoded_id != i ) {
-	  cerr << "Encoded id of " << int(i) << " and got " << int(decoded_id) << endl;
-	  return EXIT_FAILURE;
-	}
+        if ( decoded_id != i ) {
+          cerr << "Encoded id of " << int(i) << " and got " << int(decoded_id) << endl;
+          return EXIT_FAILURE;
+        }
       }
     }
     

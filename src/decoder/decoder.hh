@@ -24,10 +24,10 @@ class ReferenceDependency;
 struct ProbabilityTables
 {
   SafeArray<SafeArray<SafeArray<SafeArray<Probability,
-					  ENTROPY_NODES>,
-			        PREV_COEF_CONTEXTS>,
-		      COEF_BANDS>,
-	    BLOCK_TYPES> coeff_probs = k_default_coeff_probs;
+                                          ENTROPY_NODES>,
+                                PREV_COEF_CONTEXTS>,
+                      COEF_BANDS>,
+            BLOCK_TYPES> coeff_probs = k_default_coeff_probs;
 
   ProbabilityArray<num_y_modes> y_mode_probs = k_default_y_mode_probs;
   ProbabilityArray<num_uv_modes> uv_mode_probs = k_default_uv_mode_probs;
@@ -108,8 +108,8 @@ struct Segmentation
 
   template <class HeaderType>
   Segmentation( const HeaderType & header,
-		const unsigned int width,
-		const unsigned int height );
+                const unsigned int width,
+                const unsigned int height );
 
   template <class HeaderType>
   void update( const HeaderType & header );
@@ -132,8 +132,8 @@ struct DecoderState
   DecoderState( const unsigned int s_width, const unsigned int s_height );
 
   DecoderState( const KeyFrameHeader & header,
-		const unsigned int s_width,
-		const unsigned int s_height );
+                const unsigned int s_width,
+                const unsigned int s_height );
 
   template <class FrameType>
   FrameType parse_and_apply( const UncompressedChunk & uncompressed_chunk );

@@ -64,8 +64,8 @@ public:
       value_ <<= 1;
       range_ <<= 1;
       if ( ++bit_count_ == 8 ) {
-	bit_count_ = 0;
-	load_octet();
+        bit_count_ = 0;
+        load_octet();
       }
     }
 
@@ -74,7 +74,7 @@ public:
 
   template < uint8_t alphabet_size, class T >
   T tree( const TreeArray< alphabet_size > & nodes,
-	  const ProbabilityArray< alphabet_size > & probabilities );
+          const ProbabilityArray< alphabet_size > & probabilities );
 };
 
 template <class enumeration, uint8_t alphabet_size, const TreeArray< alphabet_size > & nodes>

@@ -23,8 +23,8 @@ uint16_t TokenDecoder<length>::decode( BoolDecoder & data ) const
 
 template < BlockType initial_block_type, class PredictionMode >
 void Block< initial_block_type,
-	    PredictionMode >::parse_tokens( BoolDecoder & data,
-					    const ProbabilityTables & probability_tables )
+            PredictionMode >::parse_tokens( BoolDecoder & data,
+                                            const ProbabilityTables & probability_tables )
 {
   bool last_was_zero = false;
 
@@ -33,8 +33,8 @@ void Block< initial_block_type,
     + ( context().left.initialized() ? context().left.get()->has_nonzero() : 0 );
 
   for ( unsigned int index = (type_ == BlockType::Y_after_Y2) ? 1 : 0;
-	index < 16;
-	index++ ) {
+        index < 16;
+        index++ ) {
     /* select the tree probabilities based on the prediction context */
     const ProbabilityArray< MAX_ENTROPY_TOKENS > & prob
       = probability_tables.coeff_probs.at( type_ ).at( coefficient_to_band.at( index ) ).at( token_context );
@@ -42,8 +42,8 @@ void Block< initial_block_type,
     /* decode the token */
     if ( not last_was_zero ) {
       if ( not data.get( prob.at( 0 ) ) ) {
-	/* EOB */
-	break;
+        /* EOB */
+        break;
       }
     }
 
@@ -64,37 +64,37 @@ void Block< initial_block_type,
     } else {
       token_context = 2;
       if ( not data.get( prob.at( 3 ) ) ) {
-	if ( not data.get( prob.at( 4 ) ) ) {
-	  value = 2;
-	} else {
-	  if ( not data.get( prob.at( 5 ) ) ) {
-	    value = 3;
-	  } else {
-	    value = 4;
-	  }
-	}
+        if ( not data.get( prob.at( 4 ) ) ) {
+          value = 2;
+        } else {
+          if ( not data.get( prob.at( 5 ) ) ) {
+            value = 3;
+          } else {
+            value = 4;
+          }
+        }
       } else {
-	if ( not data.get( prob.at( 6 ) ) ) {
-	  if ( not data.get( prob.at( 7 ) ) ) {
-	    value = 5 + data.get( 159 );
-	  } else {
-	    value = token_decoder_1.decode( data );
-	  }
-	} else {
-	  if ( not data.get( prob.at( 8 ) ) ) {
-	    if ( not data.get( prob.at( 9 ) ) ) {
-	      value = token_decoder_2.decode( data );
-	    } else {
-	      value = token_decoder_3.decode( data );
-	    }
-	  } else {
-	    if ( not data.get( prob.at( 10 ) ) ) {
-	      value = token_decoder_4.decode( data );
-	    } else {
-	      value = token_decoder_5.decode( data );
-	    }
-	  }
-	}
+        if ( not data.get( prob.at( 6 ) ) ) {
+          if ( not data.get( prob.at( 7 ) ) ) {
+            value = 5 + data.get( 159 );
+          } else {
+            value = token_decoder_1.decode( data );
+          }
+        } else {
+          if ( not data.get( prob.at( 8 ) ) ) {
+            if ( not data.get( prob.at( 9 ) ) ) {
+              value = token_decoder_2.decode( data );
+            } else {
+              value = token_decoder_3.decode( data );
+            }
+          } else {
+            if ( not data.get( prob.at( 10 ) ) ) {
+              value = token_decoder_4.decode( data );
+            } else {
+              value = token_decoder_5.decode( data );
+            }
+          }
+        }
       }
     }
 

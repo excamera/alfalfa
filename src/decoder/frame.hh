@@ -50,13 +50,13 @@ class Frame
  public:
   void relink_y2_blocks( void );
   void loopfilter( const Optional< Segmentation > & segmentation,
-		   const Optional< FilterAdjustments > & quantizer_filter_adjustments,
-		   VP8Raster & target ) const;
+                   const Optional< FilterAdjustments > & quantizer_filter_adjustments,
+                   VP8Raster & target ) const;
 
   Frame( const bool show,
-	 const unsigned int width,
-	 const unsigned int height,
-	 BoolDecoder & first_partition );
+         const unsigned int width,
+         const unsigned int height,
+         BoolDecoder & first_partition );
 
   /* Construct a StateUpdateFrame */
   Frame( const ProbabilityTables & source_probs,
@@ -80,7 +80,7 @@ class Frame
   TwoD<MacroblockType> & mutable_macroblocks() { return macroblock_headers_.get(); }
 
   void parse_macroblock_headers( BoolDecoder & rest_of_first_partition,
-				 const ProbabilityTables & probability_tables );
+                                 const ProbabilityTables & probability_tables );
 
   void update_segmentation( SegmentationMap & mutable_segmentation_map );
 

@@ -22,7 +22,7 @@ public:
   void write( const Chunk & chunk );
 
   void close(); /* may throw exception, so better for caller to call explicitly
-		   instead of letting destructor possibly throw */
+                   instead of letting destructor possibly throw */
 };
 
 #endif /* SUBPROCESS_HH */

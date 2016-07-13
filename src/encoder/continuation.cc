@@ -78,10 +78,10 @@ void InterFrameMacroblock::zero_out()
 template <>
 RefUpdateFrameMacroblock::Macroblock( const typename TwoD< Macroblock >::Context & c,
                                       const ReferenceUpdater & ref_update,
-	      			      TwoD< Y2Block > & frame_Y2,
-	      			      TwoD< YBlock > & frame_Y,
-	      			      TwoD< UVBlock > & frame_U,
-	      			      TwoD< UVBlock > & frame_V )
+                                            TwoD< Y2Block > & frame_Y2,
+                                            TwoD< YBlock > & frame_Y,
+                                            TwoD< UVBlock > & frame_U,
+                                            TwoD< UVBlock > & frame_V )
   : context_( c ),
     segment_id_update_(),
     segment_id_( 0 ),
@@ -146,12 +146,12 @@ StateUpdateFrameHeader::StateUpdateFrameHeader( const ProbabilityTables & source
   for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
     for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
       for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
-	for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
-	  const auto & source = source_probabilities.coeff_probs.at( i ).at( j ).at( k ).at( l );
-	  const auto & target = target_probabilities.coeff_probs.at( i ).at( j ).at( k ).at( l );
+        for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
+          const auto & source = source_probabilities.coeff_probs.at( i ).at( j ).at( k ).at( l );
+          const auto & target = target_probabilities.coeff_probs.at( i ).at( j ).at( k ).at( l );
 
-	  token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( source != target, target );
-	}
+          token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( source != target, target );
+        }
       }
     }
   }
@@ -425,7 +425,7 @@ void VP8Raster::Block<size>::analyze_inter_predict( const MotionVector & mv, con
 
   if ( (mv.x() & 7) == 0 and (mv.y() & 7) == 0 ) {
     contents_.forall_ij( [&] ( uint8_t &, unsigned int column, unsigned int row )
-			 { 
+                         { 
                            check_ref( reference, source_column + column, source_row + row );
                          } );
     return;
@@ -451,9 +451,9 @@ void InterFrameMacroblock::analyze_dependencies( VP8Raster::Macroblock & raster,
 {
   if ( Y2_.prediction_mode() == SPLITMV ) {
     Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
-		  { raster.Y_sub.at( column, row ).analyze_inter_predict( block.motion_vector(), reference.Y() ); } );
+                  { raster.Y_sub.at( column, row ).analyze_inter_predict( block.motion_vector(), reference.Y() ); } );
     U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-		  { raster.U_sub.at( column, row ).analyze_inter_predict( block.motion_vector(), reference.U() ); } );
+                  { raster.U_sub.at( column, row ).analyze_inter_predict( block.motion_vector(), reference.U() ); } );
   } else {
     raster.Y.analyze_inter_predict( base_motion_vector(), reference.Y() );
     raster.U.analyze_inter_predict( U_.at( 0, 0 ).motion_vector(), reference.U() );
@@ -593,8 +593,8 @@ InterFrame::Frame( const InterFrame & original,
     display_height_( original.display_height_ ),
     header_( original.header_ ),
     macroblock_headers_( true, macroblock_width_, macroblock_height_,
-			 original.macroblock_headers_.get(),
-			 Y2_, Y_, U_, V_ ),
+                         original.macroblock_headers_.get(),
+                         Y2_, Y_, U_, V_ ),
     ref_updates_( original.ref_updates_ )
 {
   Y2_.copy_from( original.Y2_ );
@@ -639,17 +639,17 @@ InterFrame::Frame( const InterFrame & original,
 
       /* don't optimize the tree probabilities for now */
       for ( unsigned int i = 0; i < 3; i++ ) {
-	mb_segmentation_map.at( i ).initialize( 128 );
+        mb_segmentation_map.at( i ).initialize( 128 );
       }
 
       /* write segmentation updates into the macroblock headers */
       macroblock_headers_.get().forall( [&]( InterFrameMacroblock & macroblock ) {
-	  macroblock.mutable_segment_id_update().initialize( macroblock.segment_id() ); } );
+          macroblock.mutable_segment_id_update().initialize( macroblock.segment_id() ); } );
 
       if ( header_.update_segmentation.get().mb_segmentation_map.initialized() ) {
-	header_.update_segmentation.get().mb_segmentation_map.get() = mb_segmentation_map;
+        header_.update_segmentation.get().mb_segmentation_map.get() = mb_segmentation_map;
       } else {
-	header_.update_segmentation.get().mb_segmentation_map.initialize( mb_segmentation_map );
+        header_.update_segmentation.get().mb_segmentation_map.initialize( mb_segmentation_map );
       }
     }
   }
@@ -684,14 +684,14 @@ InterFrame::Frame( const InterFrame & original,
   // reference update and then "zero out" the macroblocks here that have already been updated
   /* process each macroblock */
   macroblock_headers_.get().forall_ij( [&]( InterFrameMacroblock & macroblock,
-					    const unsigned int column,
-					    const unsigned int row ) {
+                                            const unsigned int column,
+                                            const unsigned int row ) {
                                          // FIXME if this is an inter coded macroblock that produces a result
                                          // which we've already put in the reference with a RefUpdateFrame
                                          // then zero it out
-					 if ( macroblock.inter_coded() and
-					   macroblock.zero_out() );
-					 } } );
+                                         if ( macroblock.inter_coded() and
+                                           macroblock.zero_out() );
+                                         } } );
 #endif
   relink_y2_blocks();
 }

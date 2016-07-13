@@ -111,14 +111,14 @@ public:
   void set_Y_without_Y2( void )
   {
     static_assert( initial_block_type == Y_after_Y2,
-		   "set_Y_without_Y2 called on non-Y coded block" );
+                   "set_Y_without_Y2 called on non-Y coded block" );
     type_ = Y_without_Y2;
   }
 
   void set_Y_after_Y2( void )
   {
     static_assert( initial_block_type == Y_after_Y2,
-		   "set_Y_after_Y2 called on non-Y coded block" );
+                   "set_Y_after_Y2 called on non-Y coded block" );
     type_ = Y_after_Y2;
   }
 
@@ -130,7 +130,7 @@ public:
   void set_if_coded( void )
   {
     static_assert( initial_block_type == Y2,
-		   "set_if_coded attempted on non-Y2 coded block" );
+                   "set_if_coded attempted on non-Y2 coded block" );
     if ( (prediction_mode_ == B_PRED) or (prediction_mode_ == SPLITMV) ) {
       coded_ = false;
     }
@@ -140,7 +140,7 @@ public:
 
   BlockType type( void ) const { return type_; }
   bool coded( void ) const { static_assert( initial_block_type == Y2,
-					    "only Y2 blocks can be omitted" ); return coded_; }
+                                            "only Y2 blocks can be omitted" ); return coded_; }
   bool has_nonzero( void ) const { return has_nonzero_; }
 
   void set_dc_coefficient( const int16_t & val );
@@ -160,13 +160,13 @@ public:
   }
 
   void read_subblock_inter_prediction( BoolDecoder & data, const MotionVector & best_mv,
-				       const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > & motion_vector_probs );
+                                       const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > & motion_vector_probs );
 
   void write_subblock_inter_prediction( BoolEncoder & encoder, const MotionVector & best_mv,
-					const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > & motion_vector_probs ) const;
+                                        const SafeArray< SafeArray< Probability, MV_PROB_CNT >, 2 > & motion_vector_probs ) const;
 
   void serialize_tokens( BoolEncoder & data,
-			 const ProbabilityTables & probability_tables ) const;
+                         const ProbabilityTables & probability_tables ) const;
 
   DCTCoefficients & mutable_coefficients( void ) { return coefficients_; }
   const DCTCoefficients & coefficients( void ) const { return coefficients_; }

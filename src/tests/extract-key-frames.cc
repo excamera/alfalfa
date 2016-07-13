@@ -29,8 +29,8 @@ int main( int argc, char *argv[] )
     for ( uint32_t i = 0; i < file.frame_count(); i++ ) {
       UncompressedChunk chunk( file.frame( i ), file.width(), file.height() );
       if ( chunk.key_frame() ) {
-	num_key_frames++;
-	key_frames.emplace_back( i );
+        num_key_frames++;
+        key_frames.emplace_back( i );
       }
     }
 

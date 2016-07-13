@@ -28,7 +28,7 @@ int main( int argc, char *argv[] )
     while ( frame_no < file.frame_count() ) {
       UncompressedChunk uncompressed_chunk( file.frame( frame_no ), file.width(), file.height() );
       if ( uncompressed_chunk.key_frame() ) {
-	break;
+        break;
       }
       frame_no++;
     }
@@ -55,22 +55,22 @@ int main( int argc, char *argv[] )
 
     UncompressedChunk whole_frame( file.frame( i ), file.width(), file.height() );
       if ( whole_frame.key_frame() ) {
-	const KeyFrame parsed_frame = decoder_state.parse_and_apply<KeyFrame>( whole_frame );
-	serialized_frame = parsed_frame.serialize( decoder_state.probability_tables );
+        const KeyFrame parsed_frame = decoder_state.parse_and_apply<KeyFrame>( whole_frame );
+        serialized_frame = parsed_frame.serialize( decoder_state.probability_tables );
       } else {
-	const InterFrame parsed_frame = decoder_state.parse_and_apply<InterFrame>( whole_frame );
-	serialized_frame = parsed_frame.serialize( decoder_state.probability_tables );
+        const InterFrame parsed_frame = decoder_state.parse_and_apply<InterFrame>( whole_frame );
+        serialized_frame = parsed_frame.serialize( decoder_state.probability_tables );
       }
 
       /* verify equality of original and re-encoded frame */
       if ( file.frame( i ).size() != serialized_frame.size() ) {
-	throw internal_error( "roundtrip failure", "frame size mismatch. wanted " + to_string( file.frame( i ).size() ) + ", got " + to_string( serialized_frame.size() ) );
+        throw internal_error( "roundtrip failure", "frame size mismatch. wanted " + to_string( file.frame( i ).size() ) + ", got " + to_string( serialized_frame.size() ) );
       } else {
-	for ( unsigned int j = 0; j < file.frame( i ).size(); j++ ) {
-	  if ( file.frame( i )( j ).octet() != serialized_frame.at( j ) ) {
-	    throw internal_error( "roundtrip failure", "frame contents mismatch" );
-	  }
-	}
+        for ( unsigned int j = 0; j < file.frame( i ).size(); j++ ) {
+          if ( file.frame( i )( j ).octet() != serialized_frame.at( j ) ) {
+            throw internal_error( "roundtrip failure", "frame contents mismatch" );
+          }
+        }
       }
 
       /* write size of frame */

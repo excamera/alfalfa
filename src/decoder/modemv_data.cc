@@ -8,8 +8,8 @@ const ProbabilityArray< num_y_modes > kf_y_mode_probs = {{ 145, 156, 163, 128 }}
 const ProbabilityArray< num_uv_modes > kf_uv_mode_probs = {{ 142, 114, 183 }};
 
 const SafeArray< SafeArray< ProbabilityArray< num_intra_b_modes >,
-				num_intra_b_modes >,
-		     num_intra_b_modes > kf_b_mode_probs =
+                            num_intra_b_modes >,
+                 num_intra_b_modes > kf_b_mode_probs =
 {{
   {{ /* above mode 0 */
     {{ /* left mode 0 */ 231, 120,  48,  89, 115, 113, 120, 152, 112}},
@@ -223,32 +223,32 @@ const extern SafeArray< ProbabilityArray< 4 >, 5 > submv_ref_probs2 =
 
 const extern SafeArray< vector< vector< pair< uint8_t, uint8_t > > >, 4 > mv_partitions =
   {{ { { {0,0}, {1,0}, {2,0}, {3,0},
-	 {0,1}, {1,1}, {2,1}, {3,1} },
+         {0,1}, {1,1}, {2,1}, {3,1} },
        { {0,2}, {1,2}, {2,2}, {3,2},
-	 {0,3}, {1,3}, {2,3}, {3,3} } }, /* top, bottom */
+         {0,3}, {1,3}, {2,3}, {3,3} } }, /* top, bottom */
 
      { { {0,0}, {1,0},
-	 {0,1}, {1,1},
-	 {0,2}, {1,2},
-	 {0,3}, {1,3} },
+         {0,1}, {1,1},
+         {0,2}, {1,2},
+         {0,3}, {1,3} },
        { {2,0}, {3,0},
-	 {2,1}, {3,1},
-	 {2,2}, {3,2},
-	 {2,3}, {3,3} } }, /* left, right */
+         {2,1}, {3,1},
+         {2,2}, {3,2},
+         {2,3}, {3,3} } }, /* left, right */
 
      { { {0,0}, {1,0},
-	 {0,1}, {1,1} },
+         {0,1}, {1,1} },
        { {2,0}, {3,0},
-	 {2,1}, {3,1} },
+         {2,1}, {3,1} },
        { {0,2}, {1,2},
-	 {0,3}, {1,3} },
+         {0,3}, {1,3} },
        { {2,2}, {3,2},
-	 {2,3}, {3,3} } }, /* four quarters */
+         {2,3}, {3,3} } }, /* four quarters */
 
      { { {0,0} }, { {1,0} }, { {2,0} }, { {3,0} },
        { {0,1} }, { {1,1} }, { {2,1} }, { {3,1} },
        { {0,2} }, { {1,2} }, { {2,2} }, { {3,2} },
-       { {0,3} }, { {1,3} }, { {2,3} }, { {3,3} } } /* each subblock gets own vector */ 
+       { {0,3} }, { {1,3} }, { {2,3} }, { {3,3} } } /* each subblock gets own vector */
     }};
 
 /* not in original modemv_data.h */

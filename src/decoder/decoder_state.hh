@@ -51,7 +51,7 @@ inline KeyFrame DecoderState::parse_and_apply<KeyFrame>( const UncompressedChunk
 
   /* parse keyframe header */
   KeyFrame myframe( uncompressed_chunk.show_frame(),
-		    width, height, first_partition );
+                    width, height, first_partition );
 
   /* reset persistent decoder state to default values */
   *this = DecoderState( myframe.header(), width, height );
@@ -71,7 +71,7 @@ inline KeyFrame DecoderState::parse_and_apply<KeyFrame>( const UncompressedChunk
   }
 
   myframe.parse_tokens( uncompressed_chunk.dct_partitions( myframe.dct_partition_count() ),
-			frame_probability_tables );
+                        frame_probability_tables );
 
   return myframe;
 }
@@ -86,7 +86,7 @@ inline InterFrame DecoderState::parse_and_apply<InterFrame>( const UncompressedC
 
   /* parse interframe header */
   InterFrame myframe( uncompressed_chunk.show_frame(),
-		      width, height, first_partition );
+                      width, height, first_partition );
 
   /* update probability tables. replace persistent copy if prescribed in header */
   ProbabilityTables frame_probability_tables( probability_tables );
@@ -125,7 +125,7 @@ inline InterFrame DecoderState::parse_and_apply<InterFrame>( const UncompressedC
   }
 
   myframe.parse_tokens( uncompressed_chunk.dct_partitions( myframe.dct_partition_count() ),
-			frame_probability_tables );
+                        frame_probability_tables );
 
   return myframe;
 }
@@ -162,15 +162,15 @@ inline RefUpdateFrame DecoderState::parse_and_apply<RefUpdateFrame>( const Uncom
   myframe.parse_macroblock_headers( first_partition, frame_probability_tables );
 
   myframe.parse_tokens( uncompressed_chunk.dct_partitions( myframe.dct_partition_count() ),
-			frame_probability_tables );
+                        frame_probability_tables );
 
   return myframe;
 }
 
 template <class HeaderType>
 Segmentation::Segmentation( const HeaderType & header,
-			    const unsigned int width,
-			    const unsigned int height )
+                            const unsigned int width,
+                            const unsigned int height )
   : map( width, height, 3 )
 {
   update( header );

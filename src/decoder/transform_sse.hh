@@ -4,9 +4,8 @@
 #define TRANSFORM_SSE_HH
 
 extern "C" {
-  void vp8_short_idct4x4llm_mmx(const short *input, unsigned char *pred,
-		      int pitch, unsigned char *dest,int stride);
-
+  void vp8_short_idct4x4llm_mmx( const short *input, unsigned char *pred,
+                                 int pitch, unsigned char *dest,int stride );
 }
 
 #endif

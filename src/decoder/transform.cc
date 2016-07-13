@@ -110,6 +110,6 @@ void Block< initial_block_type, PredictionMode >::add_residue( VP8Raster::Block4
 {
   for ( uint8_t i = 0; i < 16; i++ ) {
     output.at( i % 4, i / 4 ) = clamp255( output.at( i % 4, i / 4 )
-					  + coefficients_.at( zigzag.at( i ) ) );
+                                          + coefficients_.at( zigzag.at( i ) ) );
   }
 }

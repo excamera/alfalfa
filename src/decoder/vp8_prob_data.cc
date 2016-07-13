@@ -3,10 +3,10 @@
 #include "vp8_prob_data.hh"
 
 const SafeArray< SafeArray< SafeArray< SafeArray< Probability,
-						  ENTROPY_NODES >,
-				       PREV_COEF_CONTEXTS >,
-			    COEF_BANDS >,
-		 BLOCK_TYPES > k_coeff_entropy_update_probs =
+                                                  ENTROPY_NODES >,
+                                       PREV_COEF_CONTEXTS >,
+                            COEF_BANDS >,
+                 BLOCK_TYPES > k_coeff_entropy_update_probs =
 {{
     {{
         {{
@@ -184,10 +184,10 @@ const ProbabilityArray< num_y_modes > k_default_y_mode_probs = {{ 112,  86, 140,
 const ProbabilityArray< num_uv_modes > k_default_uv_mode_probs = {{ 162, 101, 204 }};
 
 const SafeArray< SafeArray< SafeArray< SafeArray< Probability,
-						  ENTROPY_NODES >,
-				       PREV_COEF_CONTEXTS >,
-			    COEF_BANDS >,
-		 BLOCK_TYPES > k_default_coeff_probs =
+                                                  ENTROPY_NODES >,
+                                       PREV_COEF_CONTEXTS >,
+                            COEF_BANDS >,
+                 BLOCK_TYPES > k_default_coeff_probs =
 {{
     {{ /* block type 0 */
         {{ /* coeff band 0 */

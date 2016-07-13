@@ -27,7 +27,7 @@ private:
 
 public:
   RasterHolder make_raster( const unsigned int display_width,
-			    const unsigned int display_height )
+                            const unsigned int display_height )
   {
     RasterHolder ret;
 
@@ -35,8 +35,8 @@ public:
       ret.reset( new HashCachedRaster( display_width, display_height ) );
     } else {
       if ( (unused_rasters_.front()->display_width() != display_width)
-	   or (unused_rasters_.front()->display_height() != display_height) ) {
-	throw Unsupported( "raster size has changed" );
+           or (unused_rasters_.front()->display_height() != display_height) ) {
+        throw Unsupported( "raster size has changed" );
       }
 
       ret = dequeue( unused_rasters_ );

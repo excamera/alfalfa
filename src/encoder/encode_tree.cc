@@ -8,8 +8,8 @@ using namespace std;
 
 template <class enumeration, uint8_t alphabet_size, const TreeArray< alphabet_size > & nodes >
 static void encode( BoolEncoder & encoder,
-		    const Tree< enumeration, alphabet_size, nodes > & value,
-		    const ProbabilityArray< alphabet_size > & probs )
+                    const Tree< enumeration, alphabet_size, nodes > & value,
+                    const ProbabilityArray< alphabet_size > & probs )
 {
   /* reverse the tree */
   SafeArray< uint8_t, 128 + nodes.size() > value_to_index;

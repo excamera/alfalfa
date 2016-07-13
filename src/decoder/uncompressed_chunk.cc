@@ -6,8 +6,8 @@
 using namespace std;
 
 UncompressedChunk::UncompressedChunk( const Chunk & frame,
-				      const uint16_t expected_width,
-				      const uint16_t expected_height )
+                                      const uint16_t expected_width,
+                                      const uint16_t expected_height )
   : key_frame_(),
     reconstruction_filter_(),
     loop_filter_(),
@@ -62,11 +62,11 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
 
     first_partition_ = frame( first_partition_byte_offset, first_partition_length );
     rest_ = frame( first_partition_byte_offset + first_partition_length,
-		   frame.size() - first_partition_byte_offset - first_partition_length );
+                   frame.size() - first_partition_byte_offset - first_partition_length );
 
     if ( key_frame_ ) {
       if ( frame( 3, 3 ).to_string() != "\x9d\x01\x2a" ) {
-	throw Invalid( "did not find key-frame start code" );
+        throw Invalid( "did not find key-frame start code" );
       }
 
       Chunk sizes = frame( 6, 4 );
@@ -75,8 +75,8 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
       const uint16_t frame_width = sizes.bits( 0, 14 ), frame_height = sizes.bits( 16, 14 );
 
       if ( frame_width != expected_width or frame_height != expected_height
-	   or horizontal_scale or vertical_scale ) {
-	throw Unsupported( "VP8 upscaling not supported" );
+           or horizontal_scale or vertical_scale ) {
+        throw Unsupported( "VP8 upscaling not supported" );
       }
     }
   } catch ( const out_of_range & e ) {

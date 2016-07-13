@@ -6,9 +6,9 @@
 extern "C" {
   typedef void predict_block_function
   (
-    const uint8_t	 *src_ptr,
+    const uint8_t        *src_ptr,
     const unsigned int   src_pixels_per_line,
-    const uint8_t	 *output_ptr,
+    const uint8_t        *output_ptr,
     const unsigned int   output_pitch,
     const unsigned int   output_height,
     const unsigned int   vp8_filter_index

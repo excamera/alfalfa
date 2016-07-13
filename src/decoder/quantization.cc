@@ -106,21 +106,21 @@ DCTCoefficients DCTCoefficients::quantize( const uint16_t dc_factor, const uint1
 
 template <>
 DCTCoefficients Y2Block::quantize( const Quantizer & quantizer,
-				   const DCTCoefficients & coefficients )
+                                   const DCTCoefficients & coefficients )
 {
   return coefficients.quantize( quantizer.y2_dc, quantizer.y2_ac );
 }
 
 template <>
 DCTCoefficients YBlock::quantize( const Quantizer & quantizer,
-				  const DCTCoefficients & coefficients )
+                                  const DCTCoefficients & coefficients )
 {
   return coefficients.quantize( quantizer.y_dc, quantizer.y_ac );
 }
 
 template <>
 DCTCoefficients UVBlock::quantize( const Quantizer & quantizer,
-				   const DCTCoefficients & coefficients)
+                                   const DCTCoefficients & coefficients)
 {
   return coefficients.quantize( quantizer.uv_dc, quantizer.uv_ac );
 }

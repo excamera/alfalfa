@@ -57,9 +57,9 @@ static UpdateTracker calculate_updates( const RefUpdateFrameHeader & header )
 
 template <class FrameHeaderType, class MacroblockType>
 Frame<FrameHeaderType, MacroblockType>::Frame( const bool show,
-					       const unsigned int width,
-					       const unsigned int height,
-					       BoolDecoder & first_partition )
+                                               const unsigned int width,
+                                               const unsigned int height,
+                                               BoolDecoder & first_partition )
   : show_( show ),
     display_width_( width ),
     display_height_( height ),
@@ -109,26 +109,26 @@ DependencyTracker InterFrame::get_used( void ) const
 
   macroblock_headers_.get().forall( [&] ( const InterFrameMacroblock & mb ) {
                                       if ( mb.inter_coded() ) {
-				        deps.reference( mb.header().reference() ) = true;
+                                        deps.reference( mb.header().reference() ) = true;
                                       }
-				    } );
+                                    } );
 
   return deps;
 }
 
 template <class FrameHeaderType, class MacroblockType>
 void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers( BoolDecoder & rest_of_first_partition,
-								       const ProbabilityTables & probability_tables )
+                                                                       const ProbabilityTables & probability_tables )
 {
   /* calculate segment tree probabilities if map is updated by this frame */
   const ProbabilityArray< num_segments > mb_segment_tree_probs = calculate_mb_segment_tree_probs();
 
   /* parse the macroblock headers */
   macroblock_headers_.initialize( macroblock_width_, macroblock_height_,
-				  rest_of_first_partition, header_,
-				  mb_segment_tree_probs,
-				  probability_tables,
-				  Y2_, Y_, U_, V_ );
+                                  rest_of_first_partition, header_,
+                                  mb_segment_tree_probs,
+                                  probability_tables,
+                                  Y2_, Y_, U_, V_ );
 
   /* repoint Y2 above/left pointers to skip missing subblocks */
   relink_y2_blocks();
@@ -142,7 +142,7 @@ void Frame<FrameHeaderType, MacroblockType>::update_segmentation( SegmentationMa
 
 template <class FrameHeaderType, class MacroblockType>
 void Frame<FrameHeaderType, MacroblockType>::parse_tokens( vector< Chunk > dct_partitions,
-							   const ProbabilityTables & probability_tables )
+                                                           const ProbabilityTables & probability_tables )
 {
   vector<BoolDecoder> dct_partition_decoders;
   for ( const auto & x : dct_partitions ) {
@@ -151,39 +151,39 @@ void Frame<FrameHeaderType, MacroblockType>::parse_tokens( vector< Chunk > dct_p
 
   /* parse every macroblock's tokens */
   macroblock_headers_.get().forall_ij( [&]( MacroblockType & macroblock,
-					    const unsigned int,
-					    const unsigned int row )
-				       {
-					 macroblock.parse_tokens( dct_partition_decoders.at( row % dct_partition_decoders.size() ),
-								  probability_tables ); } );
+                                            const unsigned int,
+                                            const unsigned int row )
+                                       {
+                                         macroblock.parse_tokens( dct_partition_decoders.at( row % dct_partition_decoders.size() ),
+                                                                  probability_tables ); } );
 }
 
 template <class FrameHeaderType, class MacroblockType>
 void Frame<FrameHeaderType, MacroblockType>::loopfilter( const Optional< Segmentation > & segmentation,
-							 const Optional< FilterAdjustments > & filter_adjustments,
-							 VP8Raster & raster ) const
+                                                         const Optional< FilterAdjustments > & filter_adjustments,
+                                                         VP8Raster & raster ) const
 {
   if ( header_.loop_filter_level ) {
     /* calculate per-segment filter adjustments if
        segmentation is enabled */
 
     const FilterParameters frame_loopfilter( header_.filter_type,
-					     header_.loop_filter_level,
-					     header_.sharpness_level );
+                                             header_.loop_filter_level,
+                                             header_.sharpness_level );
 
     SafeArray< FilterParameters, num_segments > segment_loopfilters;
 
     if ( segmentation.initialized() ) {
       for ( uint8_t i = 0; i < num_segments; i++ ) {
-	FilterParameters segment_filter( header_.filter_type,
-					 header_.loop_filter_level,
-					 header_.sharpness_level );
-	segment_filter.filter_level = segmentation.get().segment_filter_adjustments.at( i )
-	  + ( segmentation.get().absolute_segment_adjustments
-	      ? 0
-	      : segment_filter.filter_level );
+        FilterParameters segment_filter( header_.filter_type,
+                                         header_.loop_filter_level,
+                                         header_.sharpness_level );
+        segment_filter.filter_level = segmentation.get().segment_filter_adjustments.at( i )
+          + ( segmentation.get().absolute_segment_adjustments
+              ? 0
+              : segment_filter.filter_level );
 
-	segment_loopfilters.at( i ) = segment_filter;
+        segment_loopfilters.at( i ) = segment_filter;
       }
     }
 
@@ -191,13 +191,13 @@ void Frame<FrameHeaderType, MacroblockType>::loopfilter( const Optional< Segment
        filter adjustments are enabled */
 
     macroblock_headers_.get().forall_ij( [&]( const MacroblockType & macroblock,
-					      const unsigned int column,
-					      const unsigned int row )
-					 { macroblock.loopfilter( filter_adjustments,
-								  segmentation.initialized()
-								  ? segment_loopfilters.at( macroblock.segment_id() )
-								  : frame_loopfilter,
-								  raster.macroblock( column, row ) ); } );
+                                              const unsigned int column,
+                                              const unsigned int row )
+                                         { macroblock.loopfilter( filter_adjustments,
+                                                                  segmentation.initialized()
+                                                                  ? segment_loopfilters.at( macroblock.segment_id() )
+                                                                  : frame_loopfilter,
+                                                                  raster.macroblock( column, row ) ); } );
   }
 }
 
@@ -205,14 +205,14 @@ void Frame<FrameHeaderType, MacroblockType>::loopfilter( const Optional< Segment
 // FIXME probably want to subclass so we don't need to specialize all these nops
 template <>
 void RefUpdateFrame::loopfilter( const Optional<Segmentation> &,
-			         const Optional<FilterAdjustments> &,
-				 VP8Raster & ) const
+                                 const Optional<FilterAdjustments> &,
+                                 VP8Raster & ) const
 {}
 
 template <>
 void StateUpdateFrame::loopfilter( const Optional<Segmentation> &,
-			           const Optional<FilterAdjustments> &,
-				   VP8Raster & ) const
+                                   const Optional<FilterAdjustments> &,
+                                   VP8Raster & ) const
 {}
 
 
@@ -228,9 +228,9 @@ SafeArray<Quantizer, num_segments> Frame<FrameHeaderType, MacroblockType>::calcu
     for ( uint8_t i = 0; i < num_segments; i++ ) {
       QuantIndices segment_indices( header_.quant_indices );
       segment_indices.y_ac_qi = segmentation.get().segment_quantizer_adjustments.at( i )
-	+ ( segmentation.get().absolute_segment_adjustments
-	    ? static_cast<Unsigned<7>>( 0 )
-	    : segment_indices.y_ac_qi );
+        + ( segmentation.get().absolute_segment_adjustments
+            ? static_cast<Unsigned<7>>( 0 )
+            : segment_indices.y_ac_qi );
 
       segment_quantizers.at( i ) = Quantizer( segment_indices );
     }
@@ -260,14 +260,14 @@ void KeyFrame::decode( const Optional< Segmentation > & segmentation, const Refe
 
   /* process each macroblock */
   macroblock_headers_.get().forall_ij( [&]( const KeyFrameMacroblock & macroblock,
-					    const unsigned int column,
-					    const unsigned int row ) {
-					 const auto & quantizer = segmentation.initialized()
-					   ? segment_quantizers.at( macroblock.segment_id() )
-					   : frame_quantizer;
-					 macroblock.reconstruct_intra( quantizer,
-								       raster.macroblock( column, row ) );
-				       } );
+                                            const unsigned int column,
+                                            const unsigned int row ) {
+                                         const auto & quantizer = segmentation.initialized()
+                                           ? segment_quantizers.at( macroblock.segment_id() )
+                                           : frame_quantizer;
+                                         macroblock.reconstruct_intra( quantizer,
+                                                                       raster.macroblock( column, row ) );
+                                       } );
 }
 
 template <>
@@ -279,19 +279,19 @@ void InterFrame::decode( const Optional<Segmentation> & segmentation, const Refe
 
   /* process each macroblock */
   macroblock_headers_.get().forall_ij( [&]( const InterFrameMacroblock & macroblock,
-					    const unsigned int column,
-					    const unsigned int row ) {
-					 const auto & quantizer = segmentation.initialized()
-					   ? segment_quantizers.at( macroblock.segment_id() )
-					   : frame_quantizer;
-					 if ( macroblock.inter_coded() ) {
-					   macroblock.reconstruct_inter( quantizer,
-					                                 references,
-					                                 raster.macroblock( column, row ) );
-					 } else {
-					   macroblock.reconstruct_intra( quantizer,
-									 raster.macroblock( column, row ) );
-					 } } );
+                                            const unsigned int column,
+                                            const unsigned int row ) {
+                                         const auto & quantizer = segmentation.initialized()
+                                           ? segment_quantizers.at( macroblock.segment_id() )
+                                           : frame_quantizer;
+                                         if ( macroblock.inter_coded() ) {
+                                           macroblock.reconstruct_inter( quantizer,
+                                                                         references,
+                                                                         raster.macroblock( column, row ) );
+                                         } else {
+                                           macroblock.reconstruct_intra( quantizer,
+                                                                         raster.macroblock( column, row ) );
+                                         } } );
 }
 
 template <>
@@ -327,8 +327,8 @@ void Frame<FrameHeaderType, MacroblockType>::relink_y2_blocks( void )
       block.set_above( above_coded.at( column ) );
       block.set_left( left_coded.at( row ) );
       if ( block.coded() ) {
-	above_coded.at( column ) = &block;
-	left_coded.at( row ) = &block;
+        above_coded.at( column ) = &block;
+        left_coded.at( row ) = &block;
       }
     } );
 }
@@ -422,12 +422,12 @@ string InterFrame::stats( void ) const
   ref_percentages.fill( 0 );
 
   macroblock_headers_.get().forall( [&] ( const InterFrameMacroblock & macroblock )
-				    {
-				      if ( macroblock.inter_coded() ) {
-					inter_coded_macroblocks++;
-					ref_percentages[ macroblock.header().reference() ]++;
-				      }
-				    } );
+                                    {
+                                      if ( macroblock.inter_coded() ) {
+                                        inter_coded_macroblocks++;
+                                        ref_percentages[ macroblock.header().reference() ]++;
+                                      }
+                                    } );
 
   return "\tPercentage Inter Coded: " +
     to_string( (double)inter_coded_macroblocks * 100 / total_macroblocks ) + "%\n" +

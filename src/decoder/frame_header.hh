@@ -104,8 +104,8 @@ struct TokenProbUpdate
   Flagged< Unsigned<8> > coeff_prob;
 
   TokenProbUpdate( BoolDecoder & data,
-		   const unsigned int l, const unsigned int k,
-		   const unsigned int j, const unsigned int i )
+                   const unsigned int l, const unsigned int k,
+                   const unsigned int j, const unsigned int i )
     : coeff_prob( data, k_coeff_entropy_update_probs.at( i ).at( j ).at( k ).at( l ) ) {}
 
   TokenProbUpdate( const bool initialized, const uint8_t x ) : coeff_prob( initialized, x ) {}
@@ -126,7 +126,7 @@ struct MVProbReplacement
   uint8_t get( void ) const { return mv_prob.get(); }
 
   MVProbReplacement( BoolDecoder & data,
-		      const unsigned int j, const unsigned int i )
+                     const unsigned int j, const unsigned int i )
     : mv_prob( data, k_mv_entropy_update_probs.at( i ).at( j ) )
   {}
 
@@ -150,7 +150,7 @@ struct MVProbUpdate
   uint8_t get( void ) const { return mv_prob.get() ? (mv_prob.get() << 1) : 1; }
 
   MVProbUpdate( BoolDecoder & data,
-		const unsigned int j, const unsigned int i )
+                const unsigned int j, const unsigned int i )
     : mv_prob( data, k_mv_entropy_update_probs.at( i ).at( j ) )
   {}
 
@@ -181,10 +181,10 @@ struct KeyFrameHeader
   QuantIndices quant_indices;
   Flag refresh_entropy_probs;
   Enumerate< Enumerate< Enumerate< Enumerate< TokenProbUpdate,
-					      ENTROPY_NODES >,
-				   PREV_COEF_CONTEXTS >,
-			COEF_BANDS >,
-	     BLOCK_TYPES > token_prob_update;
+                                              ENTROPY_NODES >,
+                                   PREV_COEF_CONTEXTS >,
+                        COEF_BANDS >,
+             BLOCK_TYPES > token_prob_update;
   Flagged< Unsigned<8> > prob_skip_false;
 
   KeyFrameHeader( BoolDecoder & data )
@@ -240,10 +240,10 @@ struct InterFrameHeader
   Flag refresh_entropy_probs;
   Flag refresh_last;
   Enumerate< Enumerate< Enumerate< Enumerate< TokenProbUpdate,
-					      ENTROPY_NODES >,
-				   PREV_COEF_CONTEXTS >,
-			COEF_BANDS >,
-	     BLOCK_TYPES > token_prob_update;
+                                              ENTROPY_NODES >,
+                                   PREV_COEF_CONTEXTS >,
+                        COEF_BANDS >,
+             BLOCK_TYPES > token_prob_update;
   Flagged< Unsigned<8> > prob_skip_false;
   Unsigned<8> prob_inter; /* RFC 6386 calls this prob_intra in the text, prob_inter in the code */
   Unsigned<8> prob_references_last;
@@ -304,10 +304,10 @@ struct InterFrameHeader
 struct StateUpdateFrameHeader
 {
   Enumerate< Enumerate< Enumerate< Enumerate< TokenProbUpdate,
-					      ENTROPY_NODES >,
-				   PREV_COEF_CONTEXTS >,
-			COEF_BANDS >,
-	     BLOCK_TYPES > token_prob_update;
+                                              ENTROPY_NODES >,
+                                   PREV_COEF_CONTEXTS >,
+                        COEF_BANDS >,
+             BLOCK_TYPES > token_prob_update;
   Flagged<Array<Unsigned<8>, 4>> intra_16x16_prob;
   Flagged<Array<Unsigned<8>, 3>> intra_chroma_prob;
   Enumerate<Enumerate<MVProbReplacement, MV_PROB_CNT>, 2> mv_prob_replacement;
@@ -343,10 +343,10 @@ struct RefUpdateFrameHeader
   Unsigned<2> ref_to_update;
   Unsigned<2> log2_number_of_dct_partitions;
   Enumerate<Enumerate<Enumerate<Enumerate<TokenProbUpdate,
-		          ENTROPY_NODES>,
-		    PREV_COEF_CONTEXTS>,
-	       COEF_BANDS>,
-	 BLOCK_TYPES> token_prob_update;
+                                          ENTROPY_NODES>,
+                                PREV_COEF_CONTEXTS>,
+                      COEF_BANDS>,
+            BLOCK_TYPES> token_prob_update;
   Flagged<Unsigned<8>> prob_skip_false;
   Optional<UpdateSegmentation> update_segmentation;
 

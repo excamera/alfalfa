@@ -13,8 +13,8 @@ private:
 
 public:
   tagged_error( const std::error_category & category,
-		const std::string s_attempt,
-		const int error_code )
+                const std::string s_attempt,
+                const int error_code )
     : system_error( error_code, category ),
       attempt_and_error_( s_attempt + ": " + std::system_error::what() )
   {}
@@ -29,7 +29,7 @@ class unix_error : public tagged_error
 {
 public:
   unix_error ( const std::string & s_attempt,
-	       const int s_errno = errno )
+               const int s_errno = errno )
     : tagged_error( std::system_category(), s_attempt, s_errno )
   {}
 };

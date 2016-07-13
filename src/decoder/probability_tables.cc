@@ -18,7 +18,7 @@ size_t ProbabilityTables::hash( void ) const
   for ( auto const & block_sub : coeff_probs ) {
     for ( auto const & bands_sub : block_sub ) {
       for ( auto const & contexts_sub : bands_sub ) {
-	boost::hash_range( hash_val, contexts_sub.begin(), contexts_sub.end() );
+        boost::hash_range( hash_val, contexts_sub.begin(), contexts_sub.end() );
       }
     }
   }
@@ -53,12 +53,12 @@ void ProbabilityTables::coeff_prob_update( const HeaderType & header )
   for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
     for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
       for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
-	for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
-	  const auto & node = header.token_prob_update.at( i ).at( j ).at( k ).at( l ).coeff_prob;
-	  if ( node.initialized() ) {
-	    coeff_probs.at( i ).at( j ).at( k ).at( l ) = node.get();
-	  }
-	}
+        for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
+          const auto & node = header.token_prob_update.at( i ).at( j ).at( k ).at( l ).coeff_prob;
+          if ( node.initialized() ) {
+            coeff_probs.at( i ).at( j ).at( k ).at( l ) = node.get();
+          }
+        }
       }
     }
   }
@@ -101,7 +101,7 @@ void ProbabilityTables::update( const InterFrameHeader & header )
     for ( uint8_t j = 0; j < header.mv_prob_update.at( i ).size(); j++ ) {
       const auto & prob = header.mv_prob_update.at( i ).at( j );
       if ( prob.initialized() ) {
-	motion_vector_probs.at( i ).at( j ) = prob.get();
+        motion_vector_probs.at( i ).at( j ) = prob.get();
       }
     }
   }

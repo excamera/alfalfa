@@ -163,7 +163,7 @@ void Texture::resize( const unsigned int width, const unsigned int height )
   height_ = height;
   glBindTexture( GL_TEXTURE_RECTANGLE, num_ );
   glTexImage2D( GL_TEXTURE_RECTANGLE, 0, GL_RGBA8, width_, height_, 0,
-		GL_BGRA, GL_UNSIGNED_BYTE, nullptr );
+                GL_BGRA, GL_UNSIGNED_BYTE, nullptr );
 }
 
 void Texture::load( const TwoD< uint8_t > & raster )
@@ -249,7 +249,7 @@ void glCheck( const string & where, const bool expected )
   if ( error != GL_NO_ERROR ) {
     while ( error != GL_NO_ERROR ) {
       if ( not expected ) {
-	cerr << "GL error " << where << ": " << gluErrorString( error ) << endl;
+        cerr << "GL error " << where << ": " << gluErrorString( error ) << endl;
       }
       error = glGetError();
     }

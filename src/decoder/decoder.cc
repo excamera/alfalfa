@@ -135,8 +135,8 @@ DecoderState::DecoderState( const unsigned int s_width, const unsigned int s_hei
 {}
 
 DecoderState::DecoderState( const KeyFrameHeader & header,
-			    const unsigned int s_width,
-			    const unsigned int s_height )
+                            const unsigned int s_width,
+                            const unsigned int s_height )
   : width( s_width ), height( s_height ),
     segmentation( header.update_segmentation.initialized(), header, width, height ),
     filter_adjustments( header.mode_lf_adjustments.initialized(), header )
@@ -186,10 +186,10 @@ size_t Segmentation::hash( void ) const
   boost::hash_combine( hash_val, absolute_segment_adjustments );
 
   boost::hash_range( hash_val, segment_quantizer_adjustments.begin(),
-		       segment_quantizer_adjustments.end() );
+                     segment_quantizer_adjustments.end() );
 
   boost::hash_range( hash_val, segment_filter_adjustments.begin(),
-		       segment_filter_adjustments.end() );
+                     segment_filter_adjustments.end() );
 
   boost::hash_range( hash_val, map.begin(), map.end() );
 

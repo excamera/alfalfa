@@ -28,14 +28,14 @@ public:
     Optional< const T * > left, above_left, above, above_right;
 
     Context( const unsigned int s_column, const unsigned int s_row,
-	     const unsigned int width, const unsigned int height,
-	     const TwoDStorage & self )
+             const unsigned int width, const unsigned int height,
+             const TwoDStorage & self )
       : column( s_column ), row( s_row ),
-	width( width ), height( height ),
-	left(        self.maybe_at( column - 1, row ) ),
-	above_left(  self.maybe_at( column - 1, row - 1 ) ),
-	above(       self.maybe_at( column,     row - 1 ) ),
-	above_right( self.maybe_at( column + 1, row - 1 ) )
+        width( width ), height( height ),
+        left(        self.maybe_at( column - 1, row ) ),
+        above_left(  self.maybe_at( column - 1, row - 1 ) ),
+        above(       self.maybe_at( column,     row - 1 ) ),
+        above_right( self.maybe_at( column + 1, row - 1 ) )
     {}
 
     // Seems like when copying a TwoD, copying the potentially
@@ -55,8 +55,8 @@ public:
     /* we want to construct each member separately */
     for ( unsigned int row = 0; row < height; row++ ) {
       for ( unsigned int column = 0; column < width; column++ ) {
-	const Context c( column, row, width, height, *this );
-	storage_.emplace_back( c, Fargs... );
+        const Context c( column, row, width, height, *this );
+        storage_.emplace_back( c, Fargs... );
       }
     }
   }
@@ -100,7 +100,7 @@ public:
   {
     for ( unsigned int row = 0; row < height(); row++ ) {
       for ( unsigned int column = 0; column < width(); column++ ) {
-	f( at( column, row ) );
+        f( at( column, row ) );
       }
     }
   }
@@ -110,7 +110,7 @@ public:
   {
     for ( unsigned int row = 0; row < height(); row++ ) {
       for ( unsigned int column = 0; column < width(); column++ ) {
-	f( at( column, row ) );
+        f( at( column, row ) );
       }
     }
   }
@@ -120,7 +120,7 @@ public:
   {
     for ( unsigned int row = 0; row < height(); row++ ) {
       for ( unsigned int column = 0; column < width(); column++ ) {
-	f( at( column, row ), column, row );
+        f( at( column, row ), column, row );
       }
     }
   }
@@ -130,7 +130,7 @@ public:
   {
     for ( unsigned int row = 0; row < height(); row++ ) {
       for ( unsigned int column = 0; column < width(); column++ ) {
-	f( at( column, row ), column, row );
+        f( at( column, row ), column, row );
       }
     }
   }
@@ -138,15 +138,15 @@ public:
   bool operator==( const TwoDStorage< T > & other ) const
   {
     if ( width() != other.width()
-	 or height() != other.height() ) {
+         or height() != other.height() ) {
       return false;
     }
 
     for ( unsigned int row = 0; row < height(); row++ ) {
       for ( unsigned int column = 0; column < width(); column++ ) {
-	if ( at( column, row ) != other.at( column, row ) ) {
-	  return false;
-	}
+        if ( at( column, row ) != other.at( column, row ) ) {
+          return false;
+        }
       }
     }
 
@@ -300,16 +300,16 @@ public:
   void copy_from( const TwoDSubRange< T, sub_width, sub_height > & other )
   {
     forall_ij( [&] ( T & x, const unsigned int column, const unsigned int row )
-	       { x = other.at( column, row ); } );
+               { x = other.at( column, row ); } );
   }
 
   bool operator==( const TwoDSubRange< T, sub_width, sub_height > & other ) const
   {
     for ( unsigned int row = 0; row < sub_height; row++ ) {
       for ( unsigned int column = 0; column < sub_width; column++ ) {
-	if ( at( column, row ) != other.at( column, row ) ) {
-	  return false;
-	}
+        if ( at( column, row ) != other.at( column, row ) ) {
+          return false;
+        }
       }
     }
 
@@ -339,7 +339,7 @@ public:
   {
     for ( unsigned int row = 0; row < sub_height; row++ ) {
       for ( unsigned int column = 0; column < sub_width; column++ ) {
-	f( at( column, row ) );
+        f( at( column, row ) );
       }
     }
   }
@@ -349,7 +349,7 @@ public:
   {
     for ( unsigned int row = 0; row < sub_height; row++ ) {
       for ( unsigned int column = 0; column < sub_width; column++ ) {
-	f( at( column, row ) );
+        f( at( column, row ) );
       }
     }
   }
@@ -359,7 +359,7 @@ public:
   {
     for ( unsigned int row = 0; row < sub_height; row++ ) {
       for ( unsigned int column = 0; column < sub_width; column++ ) {
-	f( at( column, row ), column, row );
+        f( at( column, row ), column, row );
       }
     }
   }
@@ -369,7 +369,7 @@ public:
   {
     for ( unsigned int row = 0; row < sub_height; row++ ) {
       for ( unsigned int column = 0; column < sub_width; column++ ) {
-	f( at( column, row ), column, row );
+        f( at( column, row ), column, row );
       }
     }
   }

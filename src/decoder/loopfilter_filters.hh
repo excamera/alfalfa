@@ -30,8 +30,8 @@ static inline int8_t vp8_signed_char_clamp(int t)
 
 /* should we apply any filter at all ( 11111111 yes, 00000000 no) */
 signed inline char vp8_filter_mask(uc limit, uc blimit,
-				   uc p3, uc p2, uc p1, uc p0,
-				   uc q0, uc q1, uc q2, uc q3)
+                                   uc p3, uc p2, uc p1, uc p0,
+                                   uc q0, uc q1, uc q2, uc q3)
 {
     signed char mask = 0;
     mask |= (abs(p3 - p2) > limit);
@@ -54,7 +54,7 @@ signed inline char vp8_hevmask(uc thresh, uc p1, uc p0, uc q0, uc q1)
 }
 
 void inline vp8_filter(signed char mask, uc hev, uc & op1,
-		       uc & op0, uc & oq0, uc & oq1)
+                       uc & op0, uc & oq0, uc & oq1)
 
 {
     signed char ps0, qs0;
@@ -102,7 +102,7 @@ void inline vp8_filter(signed char mask, uc hev, uc & op1,
 }
 
 void inline vp8_mbfilter(signed char mask, uc hev,
-			 uc & op2, uc & op1, uc & op0, uc & oq0, uc & oq1, uc & oq2)
+                         uc & op2, uc & op1, uc & op0, uc & oq0, uc & oq1, uc & oq2)
 {
     signed char s, u;
     signed char filter_value, Filter1, Filter2;

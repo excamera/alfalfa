@@ -24,8 +24,8 @@ private:
       scores_.at( 0 ) += score;
     } else {
       if ( not ( mv == motion_vectors_.at( index_ ) ) ) {
-	index_++;
-	motion_vectors_.at( index_ ) = mv;
+        index_++;
+        motion_vectors_.at( index_ ) = mv;
       }
 
       scores_.at( index_ ) += score;

@@ -23,13 +23,13 @@ struct FilterParameters
   uint8_t sharpness_level;
 
   FilterParameters( const bool use_simple_filter,
-		    const uint8_t s_filter_level,
-		    const uint8_t s_sharpness_level );
+                    const uint8_t s_filter_level,
+                    const uint8_t s_sharpness_level );
 
   void adjust( const SafeArray< int8_t, num_reference_frames > & ref_adjustments,
-	       const SafeArray< int8_t, 4 > & mode_adjustments,
-	       const reference_frame macroblock_reference_frame,
-	       const mbmode macroblock_y_mode );
+               const SafeArray< int8_t, 4 > & mode_adjustments,
+               const reference_frame macroblock_reference_frame,
+               const mbmode macroblock_y_mode );
 
   FilterParameters();
 };

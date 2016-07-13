@@ -67,7 +67,7 @@ static void single_switch( ofstream & manifest, unsigned int switch_frame,
     else {
       /* PSNR for continuation frames calculated from target raster */
       if ( not next_target.shown() ) {
-	target_player.advance();
+        target_player.advance();
       }
 
       /* Make another diff */

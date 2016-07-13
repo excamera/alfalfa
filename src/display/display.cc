@@ -109,7 +109,7 @@ void VideoDisplay::resize( const pair<unsigned int, unsigned int> & target_size 
 
   texture_shader_program_.use();
   glUniform2ui( texture_shader_program_.uniform_location( "window_size" ),
-		target_size.first, target_size.second );
+                target_size.first, target_size.second );
 
   glUniform1i( texture_shader_program_.uniform_location( "yTex" ), 0);
   glUniform1i( texture_shader_program_.uniform_location( "uTex" ), 1);
