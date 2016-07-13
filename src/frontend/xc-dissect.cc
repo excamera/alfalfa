@@ -174,7 +174,7 @@ void print_header( const InterFrameHeader & header )
   for ( size_t i = 0; i < 2; i++ ) {
     for ( size_t j = 0; j < 19; j++ ) {
       if ( header.mv_prob_update.at( i ).at ( j ).initialized() ) {
-        cout << header.mv_prob_update.at( i ).at ( j ).get();
+        cout << (int)header.mv_prob_update.at( i ).at ( j ).get();
       }
       else {
         cout << "-";

@@ -286,8 +286,10 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
         auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
 
         // Process Y and Y2
-        luma_mb_intra_predict( original_mb, reconstructed_mb, temp_mb, frame_mb, quantizer, pass );
-        chroma_mb_intra_predict( original_mb, reconstructed_mb, temp_mb, frame_mb, quantizer, pass );
+        luma_mb_intra_predict( original_mb, reconstructed_mb, temp_mb,
+                               frame_mb, quantizer, (EncoderPass)pass );
+        chroma_mb_intra_predict( original_mb, reconstructed_mb, temp_mb,
+                                 frame_mb, quantizer, (EncoderPass)pass );
 
         frame.relink_y2_blocks();
         frame_mb.calculate_has_nonzero();
