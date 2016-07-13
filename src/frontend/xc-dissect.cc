@@ -3,6 +3,7 @@
 #include <array>
 #include <string>
 #include <iomanip>
+#include <sstream>
 
 #include "modemv_data.hh"
 #include "frame.hh"
@@ -60,21 +61,37 @@ static array<string, 14> bmode_names =
 static array<string, 4> reference_frame_names =
   { "CURRENT_FRAME", "LAST_FRAME", "GOLDEN_FRAME", "ALTREF_FRAME" };
 
-void print_header( const KeyFrameHeader & header )
+template<class KeyType>
+void print_key( const KeyType & key, const size_t level = 0 )
 {
-  cout << "[Keyframe Header]" << endl;
-  cout << "color_space:         " << header.color_space << endl;
-  cout << "clamping_type:       " << header.clamping_type << endl;
-  cout << "update_segmentation: " << header.update_segmentation.initialized() << endl;
-  cout << "filter_type:         " << header.filter_type << endl;
-  cout << "mode_lf_adjustments: " << header.mode_lf_adjustments.initialized() << endl;
+  wstringstream ss;
+  for ( size_t i = 0; i < level; i++ ) { ss << "  "; }
+  //if ( level > 0 ) { ss << L"\342\224\224\342\224\200 "; }
+  ss << key << ": ";
+
+  wcout << setw( 25 ) << left << ss.str();
+}
+
+template<class KeyType, class ValueType>
+void print_key_value( const KeyType & key, const ValueType & value, const size_t level = 0 )
+{
+  print_key( key, level );
+  cout << value << endl;
+}
+
+template<class FrameHeaderType>
+void print_header_common( const FrameHeaderType & header )
+{
+  print_key_value( "update_segmentation", header.update_segmentation.initialized() );
+  print_key_value( "filter_type",         header.filter_type );
+  print_key_value( "mode_lf_adjustments", header.mode_lf_adjustments.initialized() );
 
   if (  header.mode_lf_adjustments.initialized() ) {
   auto mode_ref_lf_delta_update = header.mode_lf_adjustments.get();
-  cout << "  lf_delta_update:   " << mode_ref_lf_delta_update.initialized() << endl;
+  print_key_value( "lf_delta_update", mode_ref_lf_delta_update.initialized(), 1 );
 
     if ( mode_ref_lf_delta_update.initialized() ) {
-      cout << "    ref_update:      ";
+      print_key( "ref_update", 2 );
       for ( size_t i = 0; i < 4; i++ ) {
         auto & ref_update = mode_ref_lf_delta_update.get().ref_update.at( i );
 
@@ -88,7 +105,7 @@ void print_header( const KeyFrameHeader & header )
       }
       cout << endl;
 
-      cout << "    mode_update:     ";
+      print_key( "mode_update", 2 );
       for ( size_t i = 0; i < 4; i++ ) {
         auto & mode_update = mode_ref_lf_delta_update.get().mode_update.at( i );
 
@@ -104,8 +121,22 @@ void print_header( const KeyFrameHeader & header )
     }
   }
 
-  cout << "loop_filter_level:   " << (int)header.loop_filter_level << endl;
-  cout << "sharpness_level:     " << (int)header.sharpness_level << endl;
+  print_key_value( "loop_filter_level", (int)header.loop_filter_level );
+  print_key_value( "sharpness_level", (int)header.sharpness_level );
+  print_key_value( "mb_no_skip_coeff", header.prob_skip_false.initialized() );
+
+  if ( header.prob_skip_false.initialized() ) {
+    print_key_value( "prob_skip_false", (int)header.prob_skip_false.get() );
+  }
+}
+
+void print_header( const KeyFrameHeader & header )
+{
+  cout << "[Keyframe Header]" << endl;
+  print_key_value( "color_space", header.color_space );
+  print_key_value( "clamping_type", header.clamping_type );
+
+  print_header_common( header );
 
   cout << endl;
 }
@@ -113,47 +144,47 @@ void print_header( const KeyFrameHeader & header )
 void print_header( const InterFrameHeader & header )
 {
   cout << "[Interframe Header]" << endl;
-  cout << "update_segmentation: " << header.update_segmentation.initialized() << endl;
-  cout << "filter_type:         " << header.filter_type << endl;
-  cout << "mode_lf_adjustments: " << header.mode_lf_adjustments.initialized() << endl;
 
-  if (  header.mode_lf_adjustments.initialized() ) {
-  auto mode_ref_lf_delta_update = header.mode_lf_adjustments.get();
-  cout << "  lf_delta_update:   " << mode_ref_lf_delta_update.initialized() << endl;
+  print_header_common( header );
 
-    if ( mode_ref_lf_delta_update.initialized() ) {
-      cout << "    ref_update:      ";
-      for ( size_t i = 0; i < 4; i++ ) {
-        auto & ref_update = mode_ref_lf_delta_update.get().ref_update.at( i );
+  print_key_value( "prob_inter", (int)header.prob_inter );
+  print_key_value( "prob_last", (int)header.prob_references_last );
+  print_key_value( "prob_golden", (int)header.prob_references_golden );
+  print_key_value( "16x16_prob_update", header.intra_16x16_prob.initialized() );
 
-        cout << setw( 6 ) << right;
-        if ( ref_update.initialized() ) {
-          cout << (int)ref_update.get();
-        }
-        else {
-          cout << "X";
-        }
-      }
-      cout << endl;
-
-      cout << "    mode_update:     ";
-      for ( size_t i = 0; i < 4; i++ ) {
-        auto & mode_update = mode_ref_lf_delta_update.get().mode_update.at( i );
-
-        cout << setw( 6 ) << right;
-        if ( mode_update.initialized() ) {
-          cout << (int)mode_update.get();
-        }
-        else {
-          cout << "X";
-        }
-      }
-      cout << endl;
+  if ( header.intra_16x16_prob.initialized() ) {
+    print_key( "16x16_prob", 1 );
+    for ( size_t i = 0; i < 4; i++ ) {
+      cout << setw( 6 ) << right << (int)header.intra_16x16_prob.get().at( i );
     }
+    cout << endl;
   }
 
-  cout << "loop_filter_level:   " << (int)header.loop_filter_level << endl;
-  cout << "sharpness_level:     " << (int)header.sharpness_level << endl;
+  print_key_value( "chroma_prob_update", header.intra_chroma_prob.initialized() );
+
+  if( header.intra_chroma_prob.initialized() ) {
+    print_key( "chroma_prob", 1 );
+    for ( size_t i = 0; i < 3; i++ ) {
+      cout << setw( 6 ) << right << (int)header.intra_chroma_prob.get().at( i );
+    }
+    cout << endl;
+  }
+
+  print_key( "mv_prob_update" );
+  for ( size_t i = 0; i < 2; i++ ) {
+    for ( size_t j = 0; j < 19; j++ ) {
+      if ( header.mv_prob_update.at( i ).at ( j ).initialized() ) {
+        cout << header.mv_prob_update.at( i ).at ( j ).get();
+      }
+      else {
+        cout << "-";
+      }
+      if ( i == 0 or j != 18 ) {
+        cout << "|";
+      }
+    }
+  }
+  cout << endl;
 
   cout << endl;
 }
