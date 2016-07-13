@@ -1,3 +1,5 @@
+/* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+
 #include <iostream>
 #include <unordered_map>
 #include <unordered_set>

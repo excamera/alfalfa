@@ -1,3 +1,5 @@
+/* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+
 #ifndef TRANSFORM_SSE_HH
 #define TRANSFORM_SSE_HH
 

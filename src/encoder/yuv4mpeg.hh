@@ -1,3 +1,5 @@
+/* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+
 #ifndef YUV4MPEG_HH
 #define YUV4MPEG_HH
 

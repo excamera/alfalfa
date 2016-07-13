@@ -1,3 +1,5 @@
+/* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+
 #ifndef LOOPFILTER_FILTERS_HH
 #define LOOPFILTER_FILTERS_HH
 

@@ -1,3 +1,5 @@
+/* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+
 #ifndef VP8_HEADER_STRUCTURES_HH
 #define VP8_HEADER_STRUCTURES_HH
 

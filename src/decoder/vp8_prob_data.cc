@@ -1,3 +1,5 @@
+/* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+
 #include "vp8_prob_data.hh"
 
 const SafeArray< SafeArray< SafeArray< SafeArray< Probability,

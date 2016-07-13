@@ -1,3 +1,5 @@
+/* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+
 #include "macroblock.hh"
 #include "block.hh"
 #include "safe_array.hh"

@@ -1,3 +1,5 @@
+/* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+
 #include <limits>
 
 #include "encoder.hh"
@@ -63,6 +65,8 @@ void Encoder::chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb
                                        const Quantizer & quantizer,
                                        const EncoderPass ) const
 {
+  assert( frame_mb.inter_coded() );
+
   const VP8Raster & reference = references_.last.get();
   const auto & reference_mb = reference.macroblock( frame_mb.context().column,
                                                     frame_mb.context().row );

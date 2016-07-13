@@ -1,3 +1,5 @@
+/* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+
 #ifndef CONTINUATION_PLAYER_HH
 #define CONTINUATION_PLAYER_HH
 

@@ -1,3 +1,5 @@
+/* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+
 #include "player.hh"
 #include "uncompressed_chunk.hh"
 #include "decoder_state.hh"

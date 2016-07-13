@@ -1,3 +1,5 @@
+/* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+
 #ifndef DEPENDENCY_TRACKING_HH
 #define DEPENDENCY_TRACKING_HH
 

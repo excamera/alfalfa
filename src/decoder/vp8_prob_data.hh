@@ -1,3 +1,5 @@
+/* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+
 #ifndef VP8_PROB_DATA_HH
 #define VP8_PROB_DATA_HH
 

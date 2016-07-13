@@ -1,3 +1,5 @@
+/* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+
 #ifndef SYSTEM_RUNNER_HH
 #define SYSTEM_RUNNER_HH
 

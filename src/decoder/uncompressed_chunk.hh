@@ -1,3 +1,5 @@
+/* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+
 #ifndef UNCOMPRESSED_CHUNK_HH
 #define UNCOMPRESSED_CHUNK_HH
 

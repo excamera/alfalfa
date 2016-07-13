@@ -1,3 +1,5 @@
+/* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+
 #ifndef TRACKING_PLAYER_HH
 #define TRACKING_PLAYER_HH
 
