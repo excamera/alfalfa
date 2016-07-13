@@ -8,6 +8,7 @@
 #include <thread>
 #include <exception>
 #include <algorithm>
+#include <numeric>
 
 #include "child_process.hh"
 #include "exception.hh"

@@ -37,6 +37,12 @@ void FilterAdjustments::update( const HeaderType & header ) {
   }
 }
 
+template
+void FilterAdjustments::update<KeyFrameHeader>(const KeyFrameHeader &header);
+
+template
+void FilterAdjustments::update<InterFrameHeader>(const InterFrameHeader &header);
+
 template <>
 inline KeyFrame DecoderState::parse_and_apply<KeyFrame>( const UncompressedChunk & uncompressed_chunk )
 {

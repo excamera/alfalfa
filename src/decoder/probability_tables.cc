@@ -64,6 +64,9 @@ void ProbabilityTables::coeff_prob_update( const HeaderType & header )
   }
 }
 
+template
+void ProbabilityTables::coeff_prob_update<InterFrameHeader>(const InterFrameHeader &header);
+
 template <>
 void ProbabilityTables::update( const StateUpdateFrameHeader & header )
 { 
