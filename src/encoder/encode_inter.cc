@@ -6,11 +6,10 @@
 
 using namespace std;
 
-template <class MacroblockType>
 void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                      VP8Raster::Macroblock & reconstructed_mb,
                                      VP8Raster::Macroblock & temp_mb,
-                                     MacroblockType & frame_mb,
+                                     InterFrameMacroblock & frame_mb,
                                      const Quantizer & quantizer,
                                      const EncoderPass ) const
 {
@@ -57,11 +56,10 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
   frame_mb.Y2().calculate_has_nonzero();
 }
 
-template <class MacroblockType>
 void Encoder::chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                        VP8Raster::Macroblock & reconstructed_mb,
                                        VP8Raster::Macroblock & temp_mb,
-                                       MacroblockType & frame_mb,
+                                       InterFrameMacroblock & frame_mb,
                                        const Quantizer & quantizer,
                                        const EncoderPass ) const
 {

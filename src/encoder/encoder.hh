@@ -67,21 +67,36 @@ private:
   static uint32_t variance( const VP8Raster::Block<size> & block,
                             const TwoDSubRange<uint8_t, size, size> & prediction );
 
-  template <class MacroblockType>
   void luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                               VP8Raster::Macroblock & constructed_mb,
                               VP8Raster::Macroblock & temp_mb,
-                              MacroblockType & frame_mb,
+                              InterFrameMacroblock & frame_mb,
                               const Quantizer & quantizer,
                               const EncoderPass encoder_pass = FIRST_PASS ) const;
 
-  template <class MacroblockType>
   void chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                 VP8Raster::Macroblock & constructed_mb,
                                 VP8Raster::Macroblock & temp_mb,
-                                MacroblockType & frame_mb,
+                                InterFrameMacroblock & frame_mb,
                                 const Quantizer & quantizer,
                                 const EncoderPass encoder_pass = FIRST_PASS ) const;
+
+  template<class MacroblockType>
+  std::pair<mbmode, size_t> luma_mb_best_prediction_mode( const VP8Raster::Macroblock & original_mb,
+                                                          VP8Raster::Macroblock & reconstructed_mb,
+                                                          VP8Raster::Macroblock & temp_mb,
+                                                          MacroblockType & frame_mb,
+                                                          const Quantizer & quantizer,
+                                                          const EncoderPass encoder_pass ) const;
+
+  template<class MacroblockType>
+  void luma_mb_apply_intra_prediction( const VP8Raster::Macroblock & original_mb,
+                                       VP8Raster::Macroblock & reconstructed_mb,
+                                       VP8Raster::Macroblock & temp_mb,
+                                       MacroblockType & frame_mb,
+                                       const Quantizer & quantizer,
+                                       const mbmode min_prediction_mode,
+                                       const EncoderPass encoder_pass ) const;
 
   template <class MacroblockType>
   void luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,

@@ -1,13 +1,13 @@
 /* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 
 #include "macroblock.hh"
-#include "scorer.hh"
 
 #include "tokens.cc"
 #include "transform.cc"
 #include "prediction.cc"
 #include "quantization.cc"
 #include "tree.cc"
+#include "scorer.hh"
 
 #include <algorithm>
 
@@ -286,6 +286,19 @@ MotionVector MotionVector::luma_to_chroma( const MotionVector & s1,
 }
 
 template <>
+Scorer InterFrameMacroblock::motion_vector_census()
+{
+  Scorer census( header_.motion_vectors_flipped_ );
+
+  census.add( 2, context_.above );
+  census.add( 2, context_.left );
+  census.add( 1, context_.above_left );
+  census.calculate();
+
+  return census;
+}
+
+template <>
 void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
                                                     const ProbabilityTables & probability_tables )
 {
@@ -310,12 +323,7 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
     U_.at( 0, 0 ).set_prediction_mode( Tree< mbmode, num_uv_modes, uv_mode_tree >( data,
                                                                                    probability_tables.uv_mode_probs ) );
   } else {
-    /* motion-vector "census" */
-    Scorer census( header_.motion_vectors_flipped_ );
-    census.add( 2, context_.above );
-    census.add( 2, context_.left );
-    census.add( 1, context_.above_left );
-    census.calculate();
+    Scorer census = motion_vector_census();
 
     const auto counts = census.mode_contexts();
 

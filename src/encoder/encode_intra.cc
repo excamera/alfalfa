@@ -6,15 +6,23 @@
 
 using namespace std;
 
-template <class MacroblockType>
-void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
-                                     VP8Raster::Macroblock & reconstructed_mb,
-                                     VP8Raster::Macroblock & temp_mb,
-                                     MacroblockType & frame_mb,
-                                     const Quantizer & quantizer,
-                                     const EncoderPass encoder_pass ) const
+/*
+ * This function selects the best intra-prediction mode based on rd-cost.
+ * In the case of B_PRED mode, the image is already reconstructed in
+ * `reconstructed_mb` and the coefficients are set in `frame_mb`.
+ * For any other prediction mode, `reconstructed_mb` will contain the
+ * prediction values and no changes will be made in `frame_mb`. In this case,
+ * there is another function that take cares of the reconstruction and filling
+ * `frame_mb`.
+ */
+template<class MacroblockType>
+pair<mbmode, size_t> Encoder::luma_mb_best_prediction_mode( const VP8Raster::Macroblock & original_mb,
+                                                            VP8Raster::Macroblock & reconstructed_mb,
+                                                            VP8Raster::Macroblock & temp_mb,
+                                                            MacroblockType & frame_mb,
+                                                            const Quantizer & quantizer,
+                                                            const EncoderPass encoder_pass ) const
 {
-  // Select the best prediction mode
   uint32_t min_error = numeric_limits<uint32_t>::max();
   mbmode min_prediction_mode = DC_PRED;
 
@@ -92,7 +100,23 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
     }
   }
 
-  // Apply
+  return make_pair( min_prediction_mode, min_error );
+}
+
+/*
+ * `reconstructed_mb` should contain the prediction values, or in the case of
+ * B_PRED mode, it should contain the actual reconstruted frame, alongside with
+ * corresponding coefficients in `frame_mb`.
+ */
+template<class MacroblockType>
+void Encoder::luma_mb_apply_intra_prediction( const VP8Raster::Macroblock & original_mb,
+                                              VP8Raster::Macroblock & reconstructed_mb,
+                                              __attribute__((unused)) VP8Raster::Macroblock & temp_mb,
+                                              MacroblockType & frame_mb,
+                                              const Quantizer & quantizer,
+                                              const mbmode min_prediction_mode,
+                                              const EncoderPass encoder_pass ) const
+{
   frame_mb.Y2().set_prediction_mode( min_prediction_mode );
 
   if ( min_prediction_mode != B_PRED ) { // if B_PRED is selected, it is already taken care of.
@@ -138,6 +162,26 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
   else {
     frame_mb.Y2().set_coded( false );
   }
+}
+
+template <class MacroblockType>
+void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
+                                     VP8Raster::Macroblock & reconstructed_mb,
+                                     VP8Raster::Macroblock & temp_mb,
+                                     MacroblockType & frame_mb,
+                                     const Quantizer & quantizer,
+                                     const EncoderPass encoder_pass ) const
+{
+  // Select the best prediction mode
+  pair<mbmode, size_t> best_pred = luma_mb_best_prediction_mode( original_mb,
+                                                                 reconstructed_mb,
+                                                                 temp_mb,
+                                                                 frame_mb,
+                                                                 quantizer,
+                                                                 encoder_pass );
+  // Apply
+  luma_mb_apply_intra_prediction( original_mb, reconstructed_mb, temp_mb,
+                                  frame_mb, quantizer, best_pred.first, encoder_pass);
 }
 
 template <class MacroblockType>

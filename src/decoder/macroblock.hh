@@ -14,6 +14,7 @@ struct ProbabilityTables;
 struct References;
 class BoolEncoder;
 class ReferenceUpdater;
+class Scorer;
 
 typedef SafeArray< SafeArray< SafeArray< SafeArray< std::pair< uint32_t, uint32_t >,
                                                     ENTROPY_NODES >,
@@ -122,6 +123,8 @@ public:
   void zero_out();
 
   void analyze_dependencies( VP8Raster::Macroblock & raster, const VP8Raster & reference ) const;
+
+  Scorer motion_vector_census();
 
   bool operator==( const Macroblock & other ) const
   {
