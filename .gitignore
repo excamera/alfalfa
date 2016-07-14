@@ -29,6 +29,7 @@ Makefile.in
 /src/frontend/xc-enc
 /src/frontend/xc-ssim
 /src/frontend/xc-dissect
+/src/frontend/xc-framesize
 
 /src/tests/decode-to-stdout
 /src/tests/encode-loopback

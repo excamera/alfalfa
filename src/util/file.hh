@@ -35,6 +35,8 @@ public:
 
   /* Allow moving */
   File( File && other );
+
+  size_t size() const { return size_; }
 };
 
 #endif /* FILE_HH */

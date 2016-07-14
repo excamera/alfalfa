@@ -36,6 +36,8 @@ public:
 
   Chunk frame( const uint32_t & index ) const;
   std::pair<uint64_t, uint32_t> frame_location( const uint32_t & index ) const;
+
+  size_t size() { return file_.size(); }
 };
 
 #endif /* IVF_HH */
