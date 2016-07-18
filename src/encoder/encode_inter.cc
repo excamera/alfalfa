@@ -11,49 +11,83 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                      VP8Raster::Macroblock & temp_mb,
                                      InterFrameMacroblock & frame_mb,
                                      const Quantizer & quantizer,
-                                     const EncoderPass ) const
+                                     const EncoderPass encoder_pass ) const
 {
+  // let's find the best intra-prediction for this macroblock first...
+  MBPredictionData best_pred = luma_mb_best_prediction_mode( original_mb,
+                                                             reconstructed_mb,
+                                                             temp_mb,
+                                                             frame_mb,
+                                                             quantizer,
+                                                             encoder_pass );
+
   const VP8Raster & reference = references_.last.get();
   const auto & reference_mb = reference.macroblock( frame_mb.context().column,
                                                     frame_mb.context().row );
 
   TwoDSubRange<uint8_t, 16, 16> & prediction = temp_mb.Y.mutable_contents();
 
-  frame_mb.mutable_header().set_reference( LAST_FRAME );
-  frame_mb.Y2().set_prediction_mode( ZEROMV );
-  frame_mb.set_base_motion_vector( MotionVector() );
+  // TODO this loop must be revised for prediction modes other than ZEROMV
+  for ( unsigned int prediction_mode = ZEROMV; prediction_mode <= ZEROMV; prediction_mode++ ) {
+    MBPredictionData pred;
+    pred.prediction_mode = ( mbmode )prediction_mode;
 
-  frame_mb.Y().forall(
-    [&] ( YBlock & frame_sb ) { frame_sb.set_motion_vector( frame_mb.base_motion_vector() ); }
-  );
+    reference_mb.Y.inter_predict( MotionVector(), reference.Y(), prediction );
+    pred.distortion = variance( original_mb.Y, prediction );
 
-  reference_mb.Y.inter_predict( MotionVector(), reference.Y(), prediction );
-  reconstructed_mb.Y.mutable_contents().copy_from( prediction );
-
-  SafeArray<int16_t, 16> walsh_input;
-
-  // XXX refactor this and its keyframe counterpart to remove the redundancy.
-  frame_mb.Y().forall_ij(
-    [&] ( YBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
-    {
-      auto & original_sb = original_mb.Y_sub.at( sb_column, sb_row );
-
-      frame_sb.mutable_coefficients().subtract_dct( original_sb,
-        reconstructed_mb.Y_sub.at( sb_column, sb_row ).contents() );
-
-      walsh_input.at( sb_column + 4 * sb_row ) = frame_sb.coefficients().at( 0 );
-      frame_sb.set_dc_coefficient( 0 );
-      frame_sb.set_Y_after_Y2();
-
-      frame_sb.mutable_coefficients() = YBlock::quantize( quantizer, frame_sb.coefficients() );
-      frame_sb.calculate_has_nonzero();
+    if ( true or pred.distortion < best_pred.distortion ) {
+      best_pred = pred;
     }
-  );
+  }
 
-  frame_mb.Y2().set_coded( true );
-  frame_mb.Y2().mutable_coefficients().wht( walsh_input );
-  frame_mb.Y2().mutable_coefficients() = Y2Block::quantize( quantizer, frame_mb.Y2().coefficients() );
-  frame_mb.Y2().calculate_has_nonzero();
+  if ( best_pred.prediction_mode <= B_PRED ) {
+    // This block will be intra-predicted
+    frame_mb.mutable_header().is_inter_mb = false;
+
+    luma_mb_apply_intra_prediction( original_mb, reconstructed_mb, temp_mb,
+                                    frame_mb, quantizer,
+                                    best_pred.prediction_mode, encoder_pass );
+  }
+  else {
+    // This block will be inter-predicted
+    // Only ZEROMV is implemented for now.
+    frame_mb.mutable_header().is_inter_mb = true;
+    frame_mb.mutable_header().set_reference( LAST_FRAME );
+
+    frame_mb.Y2().set_prediction_mode( ZEROMV );
+    frame_mb.set_base_motion_vector( MotionVector() );
+
+    frame_mb.Y().forall(
+      [&] ( YBlock & frame_sb ) { frame_sb.set_motion_vector( frame_mb.base_motion_vector() ); }
+    );
+
+    reconstructed_mb.Y.mutable_contents().copy_from( prediction );
+
+    SafeArray<int16_t, 16> walsh_input;
+
+    // XXX refactor this and its keyframe counterpart to remove the redundancy.
+    frame_mb.Y().forall_ij(
+      [&] ( YBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
+      {
+        auto & original_sb = original_mb.Y_sub.at( sb_column, sb_row );
+
+        frame_sb.mutable_coefficients().subtract_dct( original_sb,
+          reconstructed_mb.Y_sub.at( sb_column, sb_row ).contents() );
+
+        walsh_input.at( sb_column + 4 * sb_row ) = frame_sb.coefficients().at( 0 );
+        frame_sb.set_dc_coefficient( 0 );
+        frame_sb.set_Y_after_Y2();
+
+        frame_sb.mutable_coefficients() = YBlock::quantize( quantizer, frame_sb.coefficients() );
+        frame_sb.calculate_has_nonzero();
+      }
+    );
+
+    frame_mb.Y2().set_coded( true );
+    frame_mb.Y2().mutable_coefficients().wht( walsh_input );
+    frame_mb.Y2().mutable_coefficients() = Y2Block::quantize( quantizer, frame_mb.Y2().coefficients() );
+    frame_mb.Y2().calculate_has_nonzero();
+  }
 }
 
 void Encoder::chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
@@ -178,8 +212,17 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
       auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
 
       // Process Y and Y2
-      luma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb, frame_mb, quantizer, FIRST_PASS );
-      chroma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb, frame_mb, quantizer, FIRST_PASS );
+      luma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb, frame_mb,
+                             quantizer, FIRST_PASS );
+
+      if ( frame_mb.inter_coded() ) {
+        chroma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb,
+                                 frame_mb, quantizer, FIRST_PASS );
+      }
+      else {
+        chroma_mb_intra_predict( original_mb, reconstructed_mb, temp_mb,
+                                 frame_mb, quantizer, FIRST_PASS );
+      }
 
       frame.relink_y2_blocks();
       frame_mb.calculate_has_nonzero();
