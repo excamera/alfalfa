@@ -120,10 +120,10 @@ void Encoder::chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb
 
 void Encoder::optimize_interframe_probs( InterFrame & frame )
 {
-  size_t inter_count = 0;
-  size_t last_count = 0;
+  size_t inter_count  = 0;
+  size_t last_count   = 0;
   size_t golden_count = 0;
-  size_t total_count = 0;
+  size_t total_count  = 0;
 
   frame.mutable_macroblocks().forall(
     [&] ( InterFrameMacroblock & frame_mb )

@@ -38,6 +38,15 @@ struct ReferenceFlags
 class Encoder
 {
 private:
+  struct MBPredictionData
+  {
+    mbmode prediction_mode { DC_PRED };
+
+    uint32_t rate       { std::numeric_limits<uint32_t>::max() };
+    uint32_t distortion { std::numeric_limits<uint32_t>::max() };
+    uint32_t cost       { std::numeric_limits<uint32_t>::max() };
+  };
+
   IVFWriter ivf_writer_;
   uint16_t width_;
   uint16_t height_;
@@ -82,12 +91,12 @@ private:
                                 const EncoderPass encoder_pass = FIRST_PASS ) const;
 
   template<class MacroblockType>
-  std::pair<mbmode, size_t> luma_mb_best_prediction_mode( const VP8Raster::Macroblock & original_mb,
-                                                          VP8Raster::Macroblock & reconstructed_mb,
-                                                          VP8Raster::Macroblock & temp_mb,
-                                                          MacroblockType & frame_mb,
-                                                          const Quantizer & quantizer,
-                                                          const EncoderPass encoder_pass = FIRST_PASS ) const;
+  MBPredictionData luma_mb_best_prediction_mode( const VP8Raster::Macroblock & original_mb,
+                                                 VP8Raster::Macroblock & reconstructed_mb,
+                                                 VP8Raster::Macroblock & temp_mb,
+                                                 MacroblockType & frame_mb,
+                                                 const Quantizer & quantizer,
+                                                 const EncoderPass encoder_pass = FIRST_PASS ) const;
 
   template<class MacroblockType>
   void luma_mb_apply_intra_prediction( const VP8Raster::Macroblock & original_mb,
@@ -106,9 +115,9 @@ private:
                               const Quantizer & quantizer,
                               const EncoderPass encoder_pass = FIRST_PASS ) const;
 
-  std::pair<mbmode, size_t> chroma_mb_best_prediction_mode( const VP8Raster::Macroblock & original_mb,
-                                                            VP8Raster::Macroblock & reconstructed_mb,
-                                                            VP8Raster::Macroblock & temp_mb ) const;
+  MBPredictionData chroma_mb_best_prediction_mode( const VP8Raster::Macroblock & original_mb,
+                                                   VP8Raster::Macroblock & reconstructed_mb,
+                                                   VP8Raster::Macroblock & temp_mb ) const;
 
   template<class MacroblockType>
   void chroma_mb_apply_intra_prediction( const VP8Raster::Macroblock & original_mb,
