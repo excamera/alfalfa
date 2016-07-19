@@ -32,7 +32,9 @@ public:
   SafeArray<SafeArray<uint16_t, num_uv_modes>, 2> intra_uv_mode_costs;
 
   void fill_token_costs( const ProbabilityTables & probability_tables );
+
   void fill_mode_costs();
+  void fill_mode_costs( const ProbabilityArray< num_mv_refs > & mv_ref_probs );
 
   static uint16_t coeff_base_cost( int16_t coeff );
 };

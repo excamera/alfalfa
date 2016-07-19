@@ -27,7 +27,6 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
 
   TwoDSubRange<uint8_t, 16, 16> & prediction = temp_mb.Y.mutable_contents();
 
-  // TODO this loop must be revised for prediction modes other than ZEROMV
   for ( unsigned int prediction_mode = ZEROMV; prediction_mode <= ZEROMV; prediction_mode++ ) {
     MBPredictionData pred;
     pred.prediction_mode = ( mbmode )prediction_mode;
@@ -35,7 +34,7 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
     reference_mb.Y.inter_predict( MotionVector(), reference.Y(), prediction );
     pred.distortion = variance( original_mb.Y, prediction );
 
-    if ( true or pred.distortion < best_pred.distortion ) {
+    if ( pred.distortion < best_pred.distortion ) {
       best_pred = pred;
     }
   }

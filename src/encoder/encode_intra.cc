@@ -205,10 +205,9 @@ Encoder::MBPredictionData Encoder::chroma_mb_best_prediction_mode( const VP8Rast
     pred.distortion = sse( original_mb.U, u_prediction )
                     + sse( original_mb.V, v_prediction );
 
-    // This made the results slightly worse. Why?
-    // pred.rate = costs_.mbmode_costs.at( 0 ).at( prediction_mode );
-    // pred.cost = rdcost( pred.rate, pred.distortion, RATE_MULTIPLIER,
-    //                     DISTORTION_MULTIPLIER );
+    pred.rate = costs_.intra_uv_mode_costs.at( 0 ).at( prediction_mode );
+    pred.cost = rdcost( pred.rate, pred.distortion, RATE_MULTIPLIER,
+                        DISTORTION_MULTIPLIER );
 
     if ( pred.distortion < best_pred.distortion ) {
       reconstructed_mb.U.mutable_contents().copy_from( u_prediction );

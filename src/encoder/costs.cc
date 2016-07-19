@@ -102,13 +102,16 @@ void Costs::fill_mode_costs()
 
   // fill mbmode_costs
   compute_cost( mbmode_costs.at( 0 ), kf_y_mode_probs, kf_y_mode_tree );
-  // XXX: needs to be upated for inter-frames
-  compute_cost( mbmode_costs.at( 0 ), k_default_y_mode_probs, y_mode_tree );
+  compute_cost( mbmode_costs.at( 1 ), k_default_y_mode_probs, y_mode_tree );
 
   // fill intra_uv_mode_costs
   compute_cost( intra_uv_mode_costs.at( 0 ), kf_uv_mode_probs, uv_mode_tree );
-  // XXX: needs to be upated for inter-frames
-  compute_cost( intra_uv_mode_costs.at( 0 ), k_default_uv_mode_probs, uv_mode_tree );
+  compute_cost( intra_uv_mode_costs.at( 1 ), k_default_uv_mode_probs, uv_mode_tree );
+}
+
+void fill_mode_costs( const ProbabilityArray< num_mv_refs > & )
+{
+
 }
 
 /*
