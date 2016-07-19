@@ -77,7 +77,7 @@ Encoder::MBPredictionData Encoder::luma_mb_best_prediction_mode( const VP8Raster
         }
       );
 
-      pred.cost = rdcost( pred.cost, pred.distortion,
+      pred.cost = rdcost( pred.rate, pred.distortion,
                           RATE_MULTIPLIER, DISTORTION_MULTIPLIER );
     }
     else {
