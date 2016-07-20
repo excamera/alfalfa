@@ -3,6 +3,7 @@
 #include <limits>
 
 #include "encoder.hh"
+#include "scorer.hh"
 
 using namespace std;
 
@@ -11,7 +12,7 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                      VP8Raster::Macroblock & temp_mb,
                                      InterFrameMacroblock & frame_mb,
                                      const Quantizer & quantizer,
-                                     const EncoderPass encoder_pass ) const
+                                     const EncoderPass encoder_pass )
 {
   // let's find the best intra-prediction for this macroblock first...
   MBPredictionData best_pred = luma_mb_best_prediction_mode( original_mb,
@@ -19,7 +20,8 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                                              temp_mb,
                                                              frame_mb,
                                                              quantizer,
-                                                             encoder_pass );
+                                                             encoder_pass,
+                                                             true );
 
   const VP8Raster & reference = references_.last.get();
   const auto & reference_mb = reference.macroblock( frame_mb.context().column,
@@ -27,12 +29,24 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
 
   TwoDSubRange<uint8_t, 16, 16> & prediction = temp_mb.Y.mutable_contents();
 
+  const Scorer census = frame_mb.motion_vector_census();
+  const auto counts = census.mode_contexts();
+  const ProbabilityArray< num_mv_refs > mv_ref_probs = {{ mv_counts_to_probs.at( counts.at( 0 ) ).at( 0 ),
+                                                          mv_counts_to_probs.at( counts.at( 1 ) ).at( 1 ),
+                                                          mv_counts_to_probs.at( counts.at( 2 ) ).at( 2 ),
+                                                          mv_counts_to_probs.at( counts.at( 3 ) ).at( 3 ) }};
+
+  costs_.fill_mv_ref_costs( mv_ref_probs );
+
   for ( unsigned int prediction_mode = ZEROMV; prediction_mode <= ZEROMV; prediction_mode++ ) {
     MBPredictionData pred;
     pred.prediction_mode = ( mbmode )prediction_mode;
 
     reference_mb.Y.inter_predict( MotionVector(), reference.Y(), prediction );
     pred.distortion = variance( original_mb.Y, prediction );
+    pred.rate = costs_.mbmode_costs.at( 1 ).at( prediction_mode );
+    pred.cost = rdcost( pred.rate, pred.distortion, RATE_MULTIPLIER,
+                        DISTORTION_MULTIPLIER );
 
     if ( pred.distortion < best_pred.distortion ) {
       best_pred = pred;
@@ -109,9 +123,9 @@ void Encoder::chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb
     [&]( UVBlock & block, const unsigned int column, const unsigned int row )
     {
       block.set_motion_vector( MotionVector::luma_to_chroma(
-        frame_mb.Y().at( column * 2, row * 2 ).motion_vector(),
-        frame_mb.Y().at( column * 2 + 1, row * 2 ).motion_vector(),
-        frame_mb.Y().at( column * 2, row * 2 + 1 ).motion_vector(),
+        frame_mb.Y().at( column * 2,     row * 2     ).motion_vector(),
+        frame_mb.Y().at( column * 2 + 1, row * 2     ).motion_vector(),
+        frame_mb.Y().at( column * 2,     row * 2 + 1 ).motion_vector(),
         frame_mb.Y().at( column * 2 + 1, row * 2 + 1 ).motion_vector() ) );
     }
   );

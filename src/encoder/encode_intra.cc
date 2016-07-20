@@ -21,7 +21,8 @@ Encoder::MBPredictionData Encoder::luma_mb_best_prediction_mode( const VP8Raster
                                                                  VP8Raster::Macroblock & temp_mb,
                                                                  MacroblockType & frame_mb,
                                                                  const Quantizer & quantizer,
-                                                                 const EncoderPass encoder_pass ) const
+                                                                 const EncoderPass encoder_pass,
+                                                                 const bool interframe ) const
 {
   MBPredictionData best_pred;
 
@@ -36,7 +37,7 @@ Encoder::MBPredictionData Encoder::luma_mb_best_prediction_mode( const VP8Raster
 
     if ( prediction_mode == B_PRED ) {
       pred.cost = 0;
-      pred.rate = 0;
+      pred.rate = costs_.mbmode_costs.at( interframe ? 1 : 0 ).at( B_PRED );
       pred.distortion = 0;
 
       reconstructed_mb.Y_sub.forall_ij(
@@ -87,7 +88,7 @@ Encoder::MBPredictionData Encoder::luma_mb_best_prediction_mode( const VP8Raster
        * the average will be taken out from Y2 block into the Y2 block. */
       pred.distortion = variance( original_mb.Y, prediction );
 
-      pred.rate = costs_.mbmode_costs.at( 0 /* keyframe */ ).at( prediction_mode );
+      pred.rate = costs_.mbmode_costs.at( interframe ? 1 : 0 ).at( prediction_mode );
       pred.cost = rdcost( pred.rate, pred.distortion, RATE_MULTIPLIER,
                           DISTORTION_MULTIPLIER );
     }
@@ -381,6 +382,7 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
     optimize_probability_tables( frame, token_branch_counts );
   }
 
+  // optimize_prob_skip( frame );
   apply_best_loopfilter_settings( raster, reconstructed_raster, frame );
 
   references_.last = move( reconstructed_raster_handle );

@@ -50,11 +50,11 @@ static uint16_t inline cost_zero( uint8_t prob )  { return vp8_prob_cost[ prob ]
 static uint16_t inline cost_one( uint8_t prob )   { return vp8_prob_cost[ complement( prob ) ]; }
 static uint16_t inline cost_bit( uint8_t prob, bool b ) { return cost_zero( b ? complement( prob ): prob ); }
 
-template<unsigned int token_count, unsigned int prob_nodes>
-void Costs::compute_cost( SafeArray<uint16_t, token_count> & costs_nodes,
-                               const SafeArray<Probability, prob_nodes> & probabilities,
-                               const TreeArray<token_count> tree, size_t tree_index,
-                               uint16_t current_cost )
+template<unsigned int array_size, unsigned int prob_nodes, unsigned int token_count>
+void Costs::compute_cost( SafeArray<uint16_t, array_size> & costs_nodes,
+                          const SafeArray<Probability, prob_nodes> & probabilities,
+                          const SafeArray<TreeNode, token_count> tree, size_t tree_index,
+                          uint16_t current_cost )
 {
   const Probability prob = probabilities.at( tree_index / 2 );
 
@@ -109,9 +109,13 @@ void Costs::fill_mode_costs()
   compute_cost( intra_uv_mode_costs.at( 1 ), k_default_uv_mode_probs, uv_mode_tree );
 }
 
-void fill_mode_costs( const ProbabilityArray< num_mv_refs > & )
+/*
+ * Fill the mode costs for macroblocks predicted with motion vectors
+ * (NEARESTMV to SPLITMV).
+ */
+void Costs::fill_mv_ref_costs( const ProbabilityArray<num_mv_refs> & mv_mode_probs )
 {
-
+  compute_cost( mbmode_costs.at( 1 ), mv_mode_probs, mv_ref_tree );
 }
 
 /*

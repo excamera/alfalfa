@@ -81,7 +81,7 @@ private:
                               VP8Raster::Macroblock & temp_mb,
                               InterFrameMacroblock & frame_mb,
                               const Quantizer & quantizer,
-                              const EncoderPass encoder_pass = FIRST_PASS ) const;
+                              const EncoderPass encoder_pass = FIRST_PASS );
 
   void chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                 VP8Raster::Macroblock & constructed_mb,
@@ -96,7 +96,8 @@ private:
                                                  VP8Raster::Macroblock & temp_mb,
                                                  MacroblockType & frame_mb,
                                                  const Quantizer & quantizer,
-                                                 const EncoderPass encoder_pass = FIRST_PASS ) const;
+                                                 const EncoderPass encoder_pass = FIRST_PASS,
+                                                 const bool interframe = false ) const;
 
   template<class MacroblockType>
   void luma_mb_apply_intra_prediction( const VP8Raster::Macroblock & original_mb,

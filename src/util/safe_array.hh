@@ -41,8 +41,15 @@ struct SafeArray
   template <unsigned int offset, unsigned int len>
   const SafeArray<T, len> & slice( void ) const
   {
-    static_assert( offset + len < size_param, "SafeArray slice extends past end of array" );
-    return *reinterpret_cast< const SafeArray<T, len> *>( storage_ + offset );
+    static_assert( offset + len <= size_param, "SafeArray slice extends past end of array" );
+    return *reinterpret_cast<const SafeArray<T, len> *>( storage_ + offset );
+  }
+
+  template <unsigned int offset, unsigned int len>
+  SafeArray<T, len> & slice( void )
+  {
+    static_assert( offset + len <= size_param, "SafeArray slice extends past end of array" );
+    return *reinterpret_cast<SafeArray<T, len> *>( storage_ + offset );
   }
 
   const T & last( void ) const { return storage_[ size_param - 1 ]; }
