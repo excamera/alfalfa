@@ -38,9 +38,11 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
 
   costs_.fill_mv_ref_costs( mv_ref_probs );
 
-  for ( unsigned int prediction_mode = ZEROMV; prediction_mode <= ZEROMV; prediction_mode++ ) {
+  vector<mbmode> inter_modes = { ZEROMV, /* SPLIMV, NEARESTMV, NEARMV, NEWMV */ };
+
+  for ( const mbmode prediction_mode : inter_modes ) {
     MBPredictionData pred;
-    pred.prediction_mode = ( mbmode )prediction_mode;
+    pred.prediction_mode = prediction_mode;
 
     reference_mb.Y.inter_predict( MotionVector(), reference.Y(), prediction );
     pred.distortion = variance( original_mb.Y, prediction );

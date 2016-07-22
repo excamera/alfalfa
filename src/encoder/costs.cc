@@ -118,6 +118,71 @@ void Costs::fill_mv_ref_costs( const ProbabilityArray<num_mv_refs> & mv_mode_pro
   compute_cost( mbmode_costs.at( 1 ), mv_mode_probs, mv_ref_tree );
 }
 
+template<class MacroblockType, class BlockType>
+uint32_t Costs::block_cost( const MacroblockType & frame_mb, const BlockType & block )
+{
+  uint8_t coded_length = 0;
+
+  /* how many tokens are we going to encode? */
+  for ( size_t index = ( block.type() == BlockType::Y_after_Y2 ) ? 1 : 0;
+        index < 16;
+        index++ ) {
+    if ( block.coefficients().at( zigzag.at( index ) ) ) {
+      coded_length = index + 1;
+    }
+  }
+
+  uint32_t cost = 0;
+  uint8_t token_context = ( block.context().above.initialized() ? block.context().above.get()->has_nonzero() : 0 )
+    + ( block.context().left.initialized() ? block.context().left.get()->has_nonzero() : 0 );
+
+
+  size_t i = ( block.type() == BlockType::Y_after_Y2 ) ? 1 : 0;
+  for ( ; i < coded_length; i++ ) {
+    const int16_t coeff = block.coefficients().at( zigzag.at( i ) );
+    const int16_t token = token_for_coeff( coeff );
+
+    cost += token_costs.at( block.type() )
+                       .at( coefficient_to_band.at( i ) )
+                       .at( token_context )
+                       .at( token );
+
+    cost += coeff_base_cost( coeff );
+
+    token_context = prev_token_class.at( token );
+  }
+
+  if ( coded_length < 16 ) {
+    cost += token_costs.at( block.type() )
+                       .at( coefficient_to_band.at( i ) )
+                       .at( token_context )
+                       .at( DCT_EOB_TOKEN );
+  }
+
+  return cost;
+}
+
+uint8_t Costs::token_for_coeff( int16_t coeff )
+{
+  coeff = abs( coeff );
+
+  switch( coeff ) {
+  case 0: return ZERO_TOKEN;
+  case 1: return ONE_TOKEN;
+  case 2: return TWO_TOKEN;
+  case 3: return THREE_TOKEN;
+  case 4: return FOUR_TOKEN;
+  }
+
+  if ( coeff <=  6 ) return DCT_VAL_CATEGORY1;
+  if ( coeff <= 10 ) return DCT_VAL_CATEGORY2;
+  if ( coeff <= 18 ) return DCT_VAL_CATEGORY3;
+  if ( coeff <= 34 ) return DCT_VAL_CATEGORY4;
+  if ( coeff <= 66 ) return DCT_VAL_CATEGORY5;
+
+  return DCT_VAL_CATEGORY6;
+}
+
 /*
  * Taken from: libvpx:vp8/encoder/dct_token_values.h
  * TODO: compute these values in the initializer

@@ -7,6 +7,7 @@
 #include "block.hh"
 #include "encoder.hh"
 #include "frame_header.hh"
+#include "tokens.hh"
 
 #include "encode_inter.cc"
 #include "encode_intra.cc"
@@ -20,36 +21,6 @@ unsigned Encoder::calc_prob( unsigned false_count, unsigned total )
   } else {
     return max( 1u, min( 255u, 256 * false_count / total ) );
   }
-}
-
-/*
- * Taken from: libvpx:vp8/encoder/entropy.c:38-42
- */
-const uint8_t vp8_coef_bands[ 16 ] =
-  { 0, 1, 2, 3, 6, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 7 };
-
-const uint8_t vp8_prev_token_class[ MAX_ENTROPY_TOKENS ] =
-  { 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0 };
-
-uint8_t token_for_coeff( int16_t coeff )
-{
-  coeff = abs( coeff );
-
-  switch( coeff ) {
-  case 0: return ZERO_TOKEN;
-  case 1: return ONE_TOKEN;
-  case 2: return TWO_TOKEN;
-  case 3: return THREE_TOKEN;
-  case 4: return FOUR_TOKEN;
-  }
-
-  if ( coeff <=  6 ) return DCT_VAL_CATEGORY1;
-  if ( coeff <= 10 ) return DCT_VAL_CATEGORY2;
-  if ( coeff <= 18 ) return DCT_VAL_CATEGORY3;
-  if ( coeff <= 34 ) return DCT_VAL_CATEGORY4;
-  if ( coeff <= 66 ) return DCT_VAL_CATEGORY5;
-
-  return DCT_VAL_CATEGORY6;
 }
 
 QuantIndices::QuantIndices()
@@ -279,7 +250,7 @@ void Encoder::trellis_quantize( FrameSubblockType & frame_sb,
       uint32_t sse = diff * diff;
 
       current_node.coeff = candidate_coeff;
-      current_node.token = token_for_coeff( candidate_coeff );
+      current_node.token = Costs::token_for_coeff( candidate_coeff );
 
       array<uint32_t, LEVELS> distortions;
       array<uint32_t, LEVELS> rates;
@@ -296,8 +267,8 @@ void Encoder::trellis_quantize( FrameSubblockType & frame_sb,
               rates[ next ] = trellis.at( idx + 1 ).at( next ).rate;
 
         if ( idx < 15 ) {
-          size_t next_band = vp8_coef_bands[ idx + 1 ];
-          size_t current_context = vp8_prev_token_class[ current_node.token ];
+          size_t next_band = coefficient_to_band.at( idx + 1 );
+          size_t current_context = prev_token_class.at( current_node.token );
 
           // cost of the next token based on the *current* context
           rates[ next ] += costs_.token_costs.at( frame_sb.type() )
@@ -333,11 +304,14 @@ void Encoder::trellis_quantize( FrameSubblockType & frame_sb,
     }
   }
 
+  uint8_t token_context = ( frame_sb.context().above.initialized() ? frame_sb.context().above.get()->has_nonzero() : 0 )
+    + ( frame_sb.context().left.initialized() ? frame_sb.context().left.get()->has_nonzero() : 0 );
+
   for ( size_t i = 0; i < LEVELS; i++ ) {
     TrellisNode & node = trellis.at( first_index ).at( i );
     node.rate += costs_.token_costs.at( frame_sb.type() )
-                                   .at( vp8_coef_bands[ first_index ] )
-                                   .at( 0 )
+                                   .at( coefficient_to_band.at( first_index ) )
+                                   .at( token_context )
                                    .at( node.token );
 
     node.cost = rdcost( node.rate, node.distortion, RATE_MULTIPLIER,

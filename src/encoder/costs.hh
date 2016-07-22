@@ -3,9 +3,15 @@
 #ifndef TOKEN_COSTS_HH
 #define TOKEN_COSTS_HH
 
+#include <array>
+
 #include "safe_array.hh"
 #include "decoder.hh"
 #include "modemv_data.hh"
+#include "tokens.hh"
+
+const std::array<uint8_t, MAX_ENTROPY_TOKENS> prev_token_class =
+  { 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0 };
 
 class Costs
 {
@@ -36,6 +42,10 @@ public:
   void fill_mode_costs();
   void fill_mv_ref_costs( const ProbabilityArray< num_mv_refs > & mv_ref_probs );
 
+  template<class MacroblockType, class BlockType>
+  uint32_t block_cost( const MacroblockType & frame_mb, const BlockType & block );
+
+  static uint8_t token_for_coeff( int16_t coeff );
   static uint16_t coeff_base_cost( int16_t coeff );
 };
 
