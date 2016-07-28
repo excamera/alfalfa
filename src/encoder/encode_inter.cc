@@ -239,7 +239,6 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
                                  frame_mb, quantizer, FIRST_PASS );
       }
 
-      frame.relink_y2_blocks();
       frame_mb.calculate_has_nonzero();
 
       if ( frame_mb.inter_coded() ) {
@@ -252,6 +251,8 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
       frame_mb.accumulate_token_branches( token_branch_counts );
     }
   );
+
+  frame.relink_y2_blocks();
 
   optimize_prob_skip( frame );
   optimize_interframe_probs( frame );

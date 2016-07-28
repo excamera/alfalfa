@@ -371,7 +371,6 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
         chroma_mb_intra_predict( original_mb, reconstructed_mb, temp_mb,
                                  frame_mb, quantizer, (EncoderPass)pass );
 
-        frame.relink_y2_blocks();
         frame_mb.calculate_has_nonzero();
         frame_mb.reconstruct_intra( quantizer, reconstructed_mb );
 
@@ -381,6 +380,8 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
 
     optimize_probability_tables( frame, token_branch_counts );
   }
+
+  frame.relink_y2_blocks();
 
   // optimize_prob_skip( frame );
   apply_best_loopfilter_settings( raster, reconstructed_raster, frame );
