@@ -321,16 +321,18 @@ bmode Encoder::luma_sb_intra_predict( const VP8Raster::Block4 & original_sb,
 
 template<>
 pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster & raster,
-                                                                 const QuantIndices & quant_indices )
+                                                                 const QuantIndices & quant_indices,
+                                                                 const bool update_state )
 {
-  const uint16_t width = raster.display_width();
-  const uint16_t height = raster.display_height();
+  DecoderState decoder_state_copy = decoder_state_;
+  decoder_state_ = DecoderState( width_, height_ );
 
-  KeyFrame frame = Encoder::make_empty_frame<KeyFrame>( width, height );
+  KeyFrame frame = Encoder::make_empty_frame<KeyFrame>( width_, height_ );
   frame.mutable_header().quant_indices = quant_indices;
+  frame.mutable_header().refresh_entropy_probs = true;
 
   Quantizer quantizer( frame.header().quant_indices );
-  MutableRasterHandle reconstructed_raster_handle { width, height };
+  MutableRasterHandle reconstructed_raster_handle { width_, height_ };
   VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
 
   /* This is how VP8 sets the coefficients for rd-cost.
@@ -386,8 +388,13 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
   // optimize_prob_skip( frame );
   apply_best_loopfilter_settings( raster, reconstructed_raster, frame );
 
-  references_.last = move( reconstructed_raster_handle );
-  reference_flags_.has_last = true;
+  if ( not update_state ) {
+    decoder_state_ = decoder_state_copy;
+  }
+  else {
+    references_.last = move( reconstructed_raster_handle );
+    reference_flags_.has_last = true;
+  }
 
   return make_pair( move( frame ), reconstructed_raster.quality( raster ) );
 }

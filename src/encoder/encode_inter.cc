@@ -7,6 +7,81 @@
 
 using namespace std;
 
+static bool out_of_bounds( const MotionVector & mv )
+{
+  int16_t x = mv.x();
+  int16_t y = mv.y();
+
+  if ( x >  1023 ) return true;
+  if ( x < -1023 ) return true;
+  if ( y >  1023 ) return true;
+  if ( y < -1023 ) return true;
+
+  return false;
+}
+
+/*
+ * Taken from: libvpx:vp8/encoder/rdopt.c:135
+ */
+static const array<int, 128> sad_per_bit16lut = {
+  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  3,  3,  3,
+  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  4,  4,  4,  4,  4,  4,  4,  4,
+  4,  4,  4,  4,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  6,  6,  6,
+  6,  6,  6,  6,  6,  6,  6,  6,  6,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,
+  7,  7,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  9,  9,  9,  9,  9,
+  9,  9,  9,  9,  9,  9,  9,  10, 10, 10, 10, 10, 10, 10, 10, 11, 11, 11, 11,
+  11, 11, 12, 12, 12, 12, 12, 12, 13, 13, 13, 13, 14, 14
+};
+
+MotionVector Encoder::diamond_search( const VP8Raster::Macroblock & original_mb,
+                                      VP8Raster::Macroblock & reconstructed_mb,
+                                      VP8Raster::Macroblock & temp_mb,
+                                      InterFrameMacroblock & frame_mb,
+                                      const VP8Raster & reference,
+                                      MotionVector base_mv,
+                                      MotionVector origin,
+                                      size_t step_size ) const
+{
+  TwoDSubRange<uint8_t, 16, 16> & prediction = temp_mb.Y.mutable_contents();
+
+  base_mv = Scorer::clamp( base_mv, frame_mb.context() );
+
+  while ( step_size > 0 ) {
+    MBPredictionData best_pred;
+    MBPredictionData pred;
+
+    for ( int x = -1; x <= 1; x++ ) {
+      for ( int y = -1; y <= 1; y++ ) {
+        if ( ( ( x & y ) == 0 ) && ( ( x | y ) != 0 ) ) continue;
+
+        pred.mv = MotionVector();
+        MotionVector direction( ( ( step_size << 2 ) * ( x + y ) ) / 2,
+                                ( ( step_size << 2 ) * ( x - y ) ) / 2 );
+
+        pred.mv += origin + direction;
+
+        if ( out_of_bounds( pred.mv ) ) continue;
+
+        MotionVector this_mv( Scorer::clamp( pred.mv + base_mv, frame_mb.context() ) );
+
+        reconstructed_mb.Y.inter_predict( this_mv, reference.Y(), prediction );
+        pred.distortion = sad( original_mb.Y, prediction );
+        pred.rate = costs_.sad_motion_vector_cost( pred.mv, MotionVector(), sad_per_bit16lut[ qindex_ ] );
+        pred.cost = rdcost( pred.rate, pred.distortion, 1, 1 );
+
+        if ( pred.cost < best_pred.cost  ) {
+          best_pred = pred;
+        }
+      }
+    }
+
+    origin = best_pred.mv;
+    step_size /= 2;
+  }
+
+  return origin;
+}
+
 void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                      VP8Raster::Macroblock & reconstructed_mb,
                                      VP8Raster::Macroblock & temp_mb,
@@ -23,6 +98,7 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                                              encoder_pass,
                                                              true );
 
+  MotionVector best_mv;
   const VP8Raster & reference = references_.last.get();
   const auto & reference_mb = reference.macroblock( frame_mb.context().column,
                                                     frame_mb.context().row );
@@ -37,21 +113,66 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                                           mv_counts_to_probs.at( counts.at( 3 ) ).at( 3 ) }};
 
   costs_.fill_mv_ref_costs( mv_ref_probs );
+  costs_.fill_mv_component_costs( decoder_state_.probability_tables.motion_vector_probs );
+  costs_.fill_mv_sad_costs();
 
-  vector<mbmode> inter_modes = { ZEROMV, /* SPLIMV, NEARESTMV, NEARMV, NEWMV */ };
+  vector<mbmode> inter_modes = { ZEROMV, NEARESTMV, NEARMV, NEWMV, /* SPLIMV */ };
 
   for ( const mbmode prediction_mode : inter_modes ) {
     MBPredictionData pred;
     pred.prediction_mode = prediction_mode;
+    MotionVector mv;
 
-    reference_mb.Y.inter_predict( MotionVector(), reference.Y(), prediction );
+    switch ( prediction_mode ) {
+    case NEWMV:
+      for ( size_t step = 7; step < 8; step-- ) {
+        mv = diamond_search( original_mb, reconstructed_mb, temp_mb, frame_mb,
+                             reference, census.best(), mv, ( 1 << step ) );
+      }
+
+      mv = Scorer::clamp( mv, frame_mb.context() );
+
+      if ( mv.empty() ) {
+        continue;
+      }
+
+      break;
+
+    case NEARESTMV:
+    case NEARMV:
+      mv = Scorer::clamp( ( prediction_mode == NEARMV ) ? census.near() : census.nearest(),
+                          frame_mb.context() );
+
+      if ( mv.empty() ) {
+        // Same as ZEROMV
+        continue;
+      }
+
+      break;
+
+    case ZEROMV:
+      mv = MotionVector();
+      break;
+
+    default:
+      throw runtime_error( "not supported" );
+    }
+
+    reference_mb.Y.inter_predict( mv, reference.Y(), prediction );
     pred.distortion = variance( original_mb.Y, prediction );
     pred.rate = costs_.mbmode_costs.at( 1 ).at( prediction_mode );
+
+    if ( prediction_mode == NEWMV ) {
+      pred.rate += costs_.motion_vector_cost( mv );
+    }
+
     pred.cost = rdcost( pred.rate, pred.distortion, RATE_MULTIPLIER,
                         DISTORTION_MULTIPLIER );
 
-    if ( pred.distortion < best_pred.distortion ) {
+    if ( pred.cost < best_pred.cost ) {
+      best_mv = mv;
       best_pred = pred;
+      reconstructed_mb.Y.mutable_contents().copy_from( prediction );
     }
   }
 
@@ -65,18 +186,15 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
   }
   else {
     // This block will be inter-predicted
-    // Only ZEROMV is implemented for now.
     frame_mb.mutable_header().is_inter_mb = true;
     frame_mb.mutable_header().set_reference( LAST_FRAME );
 
-    frame_mb.Y2().set_prediction_mode( ZEROMV );
-    frame_mb.set_base_motion_vector( MotionVector() );
+    frame_mb.Y2().set_prediction_mode( best_pred.prediction_mode );
+    frame_mb.set_base_motion_vector( best_mv );
 
     frame_mb.Y().forall(
       [&] ( YBlock & frame_sb ) { frame_sb.set_motion_vector( frame_mb.base_motion_vector() ); }
     );
-
-    reconstructed_mb.Y.mutable_contents().copy_from( prediction );
 
     SafeArray<int16_t, 16> walsh_input;
 
@@ -205,16 +323,18 @@ void Encoder::optimize_interframe_probs( InterFrame & frame )
 
 template<>
 pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Raster & raster,
-                                                                     const QuantIndices & quant_indices )
+                                                                     const QuantIndices & quant_indices,
+                                                                     const bool update_state )
 {
-  const uint16_t width = raster.display_width();
-  const uint16_t height = raster.display_height();
+  DecoderState decoder_state_copy = decoder_state_;
 
-  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width, height );
+  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width_, height_ );
   frame.mutable_header().quant_indices = quant_indices;
+  frame.mutable_header().refresh_entropy_probs = true;
+  frame.mutable_header().refresh_last = true;
 
   Quantizer quantizer( frame.header().quant_indices );
-  MutableRasterHandle reconstructed_raster_handle { width, height };
+  MutableRasterHandle reconstructed_raster_handle { width_, height_ };
   VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
 
   TokenBranchCounts token_branch_counts;
@@ -257,8 +377,15 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
   optimize_prob_skip( frame );
   optimize_interframe_probs( frame );
   optimize_probability_tables( frame, token_branch_counts );
-
   apply_best_loopfilter_settings( raster, reconstructed_raster, frame );
+
+  if ( not update_state ) {
+    decoder_state_ = decoder_state_copy;
+  }
+  else {
+    references_.last = move( reconstructed_raster_handle );
+    reference_flags_.has_last = true;
+  }
 
   return make_pair( move( frame ), reconstructed_raster.quality( raster ) );
 }

@@ -41,6 +41,7 @@ private:
   struct MBPredictionData
   {
     mbmode prediction_mode { DC_PRED };
+    MotionVector mv {};
 
     uint32_t rate       { std::numeric_limits<uint32_t>::max() };
     uint32_t distortion { std::numeric_limits<uint32_t>::max() };
@@ -54,6 +55,8 @@ private:
   DecoderState decoder_state_;
   References references_;
   ReferenceFlags reference_flags_;
+
+  size_t qindex_ { 0 };
 
   Costs costs_;
 
@@ -69,8 +72,21 @@ private:
                           uint32_t distortion_multiplier );
 
   template<unsigned int size>
+  static uint32_t sad( const VP8Raster::Block<size> & block,
+                       const TwoDSubRange<uint8_t, size, size> & prediction );
+
+  template<unsigned int size>
   static uint32_t sse( const VP8Raster::Block<size> & block,
                        const TwoDSubRange<uint8_t, size, size> & prediction );
+
+  MotionVector diamond_search( const VP8Raster::Macroblock & original_mb,
+                               VP8Raster::Macroblock & reconstructed_mb,
+                               VP8Raster::Macroblock & temp_mb,
+                               InterFrameMacroblock & frame_mb,
+                               const VP8Raster & reference,
+                               MotionVector base_mv,
+                               MotionVector origin,
+                               size_t step_size ) const;
 
   template<unsigned int size>
   static uint32_t variance( const VP8Raster::Block<size> & block,
@@ -144,7 +160,9 @@ private:
                                const SafeArray<uint16_t, num_intra_b_modes> & mode_costs ) const;
 
   template<class FrameType>
-  std::pair<FrameType, double> encode_with_quantizer( const VP8Raster & raster, const QuantIndices & quant_indices );
+  std::pair<FrameType, double> encode_with_quantizer( const VP8Raster & raster,
+                                                      const QuantIndices & quant_indices,
+                                                      const bool update_state = false );
 
   template<class FrameType>
   double encode_raster( const VP8Raster & raster, const double minimum_ssim,

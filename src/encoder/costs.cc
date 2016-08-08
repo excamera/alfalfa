@@ -1,6 +1,10 @@
 /* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 
+#include <algorithm>
+
 #include "costs.hh"
+
+using namespace std;
 
 /*
  * This file is based on
@@ -10,7 +14,7 @@
  *
  * TODO: compute these values in the initializer
  */
-const uint16_t vp8_prob_cost[ 256 ] =
+const SafeArray<uint16_t, 256> vp8_prob_cost =
 {
  2047, 2047, 1791, 1641, 1535, 1452, 1385, 1328, 1279, 1235, 1196, 1161, 1129, 1099, 1072, 1046,
  1023, 1000, 979,  959,  940,  922,  905,  889,  873,  858,  843,  829,  816,  803,  790,  778,
@@ -46,14 +50,107 @@ const TreeArray<MAX_ENTROPY_TOKENS> vp8_coef_tree =
 }};
 
 static uint8_t  inline complement( uint8_t prob ) { return 255 - prob; }
-static uint16_t inline cost_zero( uint8_t prob )  { return vp8_prob_cost[ prob ]; }
-static uint16_t inline cost_one( uint8_t prob )   { return vp8_prob_cost[ complement( prob ) ]; }
-static uint16_t inline cost_bit( uint8_t prob, bool b ) { return cost_zero( b ? complement( prob ): prob ); }
+static uint16_t inline cost_zero( uint8_t prob )  { return vp8_prob_cost.at( prob ); }
+static uint16_t inline cost_one( uint8_t prob )   { return vp8_prob_cost.at( complement( prob ) ); }
+static uint16_t inline cost_bit( uint8_t prob, bool b ) { return cost_zero( b ? complement( prob ) : prob ); }
+
+template<unsigned int tree_length, unsigned int probs_length>
+static uint16_t inline tree_cost( int token, int num_of_bits,
+                                  const SafeArray<TreeNode, tree_length> & tree,
+                                  const SafeArray<Probability, probs_length> & probs )
+{
+  uint16_t cost = 0;
+  size_t tree_index = 0;
+
+  for ( size_t n = num_of_bits; ( n-- ) > 0; ) {
+    bool bit = ( token >> n ) & 1;
+    cost += cost_bit( probs.at( tree_index / 2 ), bit );
+    tree_index = tree.at( tree_index + bit );
+  }
+
+  return cost;
+}
+
+// look at serializer.cc:197
+uint32_t Costs::mv_component_cost( const int16_t num,
+                                   const SafeArray<Probability, MV_PROB_CNT> & probs )
+{
+  enum { IS_SHORT, SIGN, SHORT, BITS = SHORT + 8 - 1, LONG_WIDTH = 10 };
+
+  uint32_t cost = 0;
+
+  int16_t num_to_encode = num;
+  uint16_t x = abs( num_to_encode );
+
+  if ( x < 8 ) {
+    cost = cost_zero( probs.at( IS_SHORT ) )
+         + tree_cost( x, 3, small_mv_tree, probs.slice<SHORT, 7>() );
+
+    if ( x == 0 ) {
+      return cost;
+    }
+  }
+  else {
+    cost = cost_one( probs.at( IS_SHORT ) );
+
+    for ( uint8_t i = 0; i < 3; i++ ) {
+      cost += cost_bit( probs.at( BITS + i ), ( x >> i ) & 1 );
+    }
+
+    for ( uint8_t i = LONG_WIDTH - 1; i > 3; i-- ) {
+      cost += cost_bit( probs.at( BITS + i ), ( x >> i ) & 1 );
+    }
+
+    if ( x & 0xfff0 ) {
+      cost += cost_bit( probs.at( BITS + 3 ), ( x >> 3 ) & 1 );
+    }
+  }
+
+  return cost;
+}
+
+void Costs::fill_mv_component_costs( const SafeArray<SafeArray<Probability, MV_PROB_CNT>, 2> & motion_vector_probs )
+{
+  enum { IS_SHORT, SIGN, SHORT, BITS = SHORT + 8 - 1, LONG_WIDTH = 10 };
+
+  mv_component_costs.at( 0 ).at( 0 ).at( 0 ) = mv_component_costs.at( 0 ).at( 1 ).at( 0 )
+                                             = mv_component_cost( 0, motion_vector_probs.at( 0 ) );
+  mv_component_costs.at( 1 ).at( 0 ).at( 0 ) = mv_component_costs.at( 1 ).at( 1 ).at( 0 )
+                                             = mv_component_cost( 0, motion_vector_probs.at( 1 ) );
+
+  for ( size_t i = 1; i <= 1023; i++ ) {
+    uint32_t cost_0 = mv_component_cost( i, motion_vector_probs.at( 0 ) );
+    uint32_t cost_1 = mv_component_cost( i, motion_vector_probs.at( 1 ) );
+
+    mv_component_costs.at( 0 ).at( 0 ).at( i ) = cost_0 + cost_zero( motion_vector_probs.at( 0 ).at( SIGN ) );
+    mv_component_costs.at( 0 ).at( 1 ).at( i ) = cost_0 +  cost_one( motion_vector_probs.at( 0 ).at( SIGN ) );
+
+    mv_component_costs.at( 1 ).at( 0 ).at( i ) = cost_1 + cost_zero( motion_vector_probs.at( 1 ).at( SIGN ) );
+    mv_component_costs.at( 1 ).at( 1 ).at( i ) = cost_1 +  cost_one( motion_vector_probs.at( 1 ).at( SIGN ) );
+  }
+}
+
+// libvpx:vp8/encoder/onyx_if.c:1698
+void Costs::fill_mv_sad_costs()
+{
+  mv_sad_costs.at( 0 ).at( 0 ).at( 0 ) = 300;
+  mv_sad_costs.at( 0 ).at( 1 ).at( 0 ) = 300;
+  mv_sad_costs.at( 1 ).at( 0 ).at( 0 ) = 300;
+  mv_sad_costs.at( 1 ).at( 1 ).at( 0 ) = 300;
+
+  for ( size_t i = 1; i <= 255; i++ ) {
+    size_t cost = 256 * ( 2 * log2f( 8 * i ) + 0.6 );
+    mv_sad_costs.at( 0 ).at( 0 ).at( i ) = cost;
+    mv_sad_costs.at( 0 ).at( 1 ).at( i ) = cost;
+    mv_sad_costs.at( 1 ).at( 0 ).at( i ) = cost;
+    mv_sad_costs.at( 1 ).at( 1 ).at( i ) = cost;
+  }
+}
 
 template<unsigned int array_size, unsigned int prob_nodes, unsigned int token_count>
 void Costs::compute_cost( SafeArray<uint16_t, array_size> & costs_nodes,
                           const SafeArray<Probability, prob_nodes> & probabilities,
-                          const SafeArray<TreeNode, token_count> tree, size_t tree_index,
+                          const SafeArray<TreeNode, token_count> & tree, size_t tree_index,
                           uint16_t current_cost )
 {
   const Probability prob = probabilities.at( tree_index / 2 );
@@ -116,6 +213,29 @@ void Costs::fill_mode_costs()
 void Costs::fill_mv_ref_costs( const ProbabilityArray<num_mv_refs> & mv_mode_probs )
 {
   compute_cost( mbmode_costs.at( 1 ), mv_mode_probs, mv_ref_tree );
+}
+
+/*
+ * Taken from: libvpx:vp8/encoder.mcomp.c:29
+ */
+uint32_t Costs::motion_vector_cost( const MotionVector & mv ) const
+{
+  return ( ( mv_component_costs.at( 0 ).at( mv.y() < 0 ).at( abs( mv.y() ) )
+       + mv_component_costs.at( 1 ).at( mv.x() < 0 ).at( abs( mv.x() ) ) ) * 96 ) >> 7;
+}
+
+/*
+ * Taken from: libvpx:vp8/encoder.mcomp.c:56
+ */
+uint32_t Costs::sad_motion_vector_cost( const MotionVector & mv,
+                                        const MotionVector & base,
+                                        size_t weight ) const
+{
+  int x = max( min ( ( mv.x() - base.x() ) >> 2, 255 ), -255 );
+  int y = max( min ( ( mv.y() - base.y() ) >> 2, 255 ), -255 );
+  //std::cout << x << " " << y << std::endl;
+  return ( ( mv_sad_costs.at( 0 ).at( y < 0 ).at( abs( y ) )
+         + mv_sad_costs.at( 1 ).at( x < 0 ).at( abs( x ) ) ) * weight + 128 ) / 256 ;
 }
 
 template<class MacroblockType, class BlockType>
@@ -187,7 +307,7 @@ uint8_t Costs::token_for_coeff( int16_t coeff )
  * Taken from: libvpx:vp8/encoder/dct_token_values.h
  * TODO: compute these values in the initializer
  */
-static const uint16_t dct_value_cost[ 2048 * 2 ] =
+static const SafeArray<uint16_t, 2048 * 2> dct_value_cost =
 {
     8285, 8277, 8267, 8259, 8253, 8245, 8226, 8218, 8212, 8204, 8194, 8186,
     8180, 8172, 8150, 8142, 8136, 8128, 8118, 8110, 8104, 8096, 8077, 8069,
@@ -536,5 +656,5 @@ static const uint16_t dct_value_cost[ 2048 * 2 ] =
 uint16_t Costs::coeff_base_cost( int16_t coeff )
 {
   assert( coeff >= -2048 && coeff <= 2047 );
-  return *( dct_value_cost + 2048 + coeff );
+  return dct_value_cost.at( 2048 + coeff );
 }

@@ -94,6 +94,21 @@ FrameType Encoder::make_empty_frame( const uint16_t width, const uint16_t height
 }
 
 template<unsigned int size>
+uint32_t Encoder::sad( const VP8Raster::Block<size> & block,
+                       const TwoDSubRange<uint8_t, size, size> & prediction )
+{
+  uint32_t res = 0;
+
+  for ( size_t i = 0; i < size; i++ ) {
+    for ( size_t j = 0; j < size; j++ ) {
+      res += abs( block.at( i, j ) - prediction.at( i, j ) );
+    }
+  }
+
+  return res;
+}
+
+template<unsigned int size>
 uint32_t Encoder::sse( const VP8Raster::Block<size> & block,
                        const TwoDSubRange<uint8_t, size, size> & prediction )
 {
@@ -365,7 +380,7 @@ void Encoder::optimize_probability_tables( FrameType & frame, const TokenBranchC
 
           assert( prob <= 255 );
 
-          if ( prob > 0 and prob != k_default_coeff_probs.at( i ).at( j ).at( k ).at( l ) ) {
+          if ( prob > 0 and prob != decoder_state_.probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l ) ) {
             frame.mutable_header().token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( true, prob );
           }
         }
@@ -469,10 +484,10 @@ double Encoder::encode_raster( const VP8Raster & raster,
   size_t best_y_ac_qi = 0;
 
   while ( y_ac_qi_min <= y_ac_qi_max ) {
-    decoder_state_ = DecoderState( width_, height_ );
-
     quant_indices.y_ac_qi = ( y_ac_qi_min + y_ac_qi_max ) / 2;
-    pair<FrameType, double> encoded_frame = encode_with_quantizer<FrameType>( raster, quant_indices );
+    qindex_ = quant_indices.y_ac_qi;
+
+    pair<FrameType, double> encoded_frame = encode_with_quantizer<FrameType>( raster, quant_indices, false );
 
     double current_ssim = encoded_frame.second;
 
@@ -483,7 +498,7 @@ double Encoder::encode_raster( const VP8Raster & raster,
     }
 
     if ( y_ac_qi_min == y_ac_qi_max ) {
-      break; // "I believe the search is over."
+      break;
     }
 
     if ( current_ssim < minimum_ssim ) {
@@ -495,10 +510,11 @@ double Encoder::encode_raster( const VP8Raster & raster,
   }
 
   quant_indices.y_ac_qi = best_y_ac_qi;
-  decoder_state_ = DecoderState( width_, height_ );
-  pair<FrameType, double> encoded_frame = encode_with_quantizer<FrameType>( raster, quant_indices );
+  qindex_ = quant_indices.y_ac_qi;
+  DecoderState current_state = decoder_state_;
+  pair<FrameType, double> encoded_frame = encode_with_quantizer<FrameType>( raster, quant_indices, true );
 
-  ivf_writer_.append_frame( encoded_frame.first.serialize( decoder_state_.probability_tables ) );
+  ivf_writer_.append_frame( encoded_frame.first.serialize( current_state.probability_tables ) );
   return encoded_frame.second;
 }
 
@@ -514,6 +530,10 @@ bool Encoder::should_encode_as_keyframe( const VP8Raster & )
 double Encoder::encode( const VP8Raster & raster, const double minimum_ssim,
                         const uint8_t y_ac_qi )
 {
+  if ( width_ != raster.display_width() or height_ != raster.display_height() ) {
+    throw runtime_error( "scaling is not supported" );
+  }
+
   if ( should_encode_as_keyframe( raster ) ) {
     reference_flags_.clear_all();
     return encode_raster<KeyFrame>( raster, minimum_ssim, y_ac_qi );
