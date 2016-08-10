@@ -171,10 +171,10 @@ MotionVector Scorer::clamp( const MotionVector & mv, const typename TwoD< InterF
 {
   MotionVector ret( mv );
 
-  const int16_t to_left = -((c.column * 16) << 3) - 128;
-  const int16_t to_right = (((c.width - 1 - c.column) * 16) << 3) + 128;
-  const int16_t to_top = (-((c.row * 16)) << 3) - 128;
-  const int16_t to_bottom = (((c.height - 1 - c.row) * 16) << 3) + 128;
+  const int16_t to_left = max( -(((int32_t)c.column * 16) << 3) - 128, (int32_t)SHRT_MIN );
+  const int16_t to_right = min( (((c.width - 1 - c.column) * 16) << 3) + 128, (uint32_t)SHRT_MAX );
+  const int16_t to_top = max( -((((int32_t)c.row * 16)) << 3) - 128, (int32_t)SHRT_MIN );
+  const int16_t to_bottom = min( (((c.height - 1 - c.row) * 16) << 3) + 128, (uint32_t)SHRT_MAX );
 
   ret.clamp( to_left, to_right, to_top, to_bottom );
 

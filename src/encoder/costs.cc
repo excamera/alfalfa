@@ -233,7 +233,7 @@ uint32_t Costs::sad_motion_vector_cost( const MotionVector & mv,
 {
   int x = max( min ( ( mv.x() - base.x() ) >> 2, 255 ), -255 );
   int y = max( min ( ( mv.y() - base.y() ) >> 2, 255 ), -255 );
-  //std::cout << x << " " << y << std::endl;
+
   return ( ( mv_sad_costs.at( 0 ).at( y < 0 ).at( abs( y ) )
          + mv_sad_costs.at( 1 ).at( x < 0 ).at( abs( x ) ) ) * weight + 128 ) / 256 ;
 }

@@ -55,8 +55,8 @@ MotionVector Encoder::diamond_search( const VP8Raster::Macroblock & original_mb,
         if ( ( ( x & y ) == 0 ) && ( ( x | y ) != 0 ) ) continue;
 
         pred.mv = MotionVector();
-        MotionVector direction( ( ( step_size << 2 ) * ( x + y ) ) / 2,
-                                ( ( step_size << 2 ) * ( x - y ) ) / 2 );
+        MotionVector direction( ( ( step_size << 1 ) * ( x + y ) ),
+                                ( ( step_size << 1 ) * ( x - y ) ) );
 
         pred.mv += origin + direction;
 
