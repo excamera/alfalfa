@@ -48,6 +48,10 @@ private:
     uint32_t cost       { std::numeric_limits<uint32_t>::max() };
   };
 
+  typedef SafeArray<SafeArray<std::pair<uint32_t, uint32_t>,
+                              MV_PROB_CNT>,
+                    2> MVComponentCounts;
+
   IVFWriter ivf_writer_;
   uint16_t width_;
   uint16_t height_;
@@ -97,6 +101,7 @@ private:
                               VP8Raster::Macroblock & temp_mb,
                               InterFrameMacroblock & frame_mb,
                               const Quantizer & quantizer,
+                              MVComponentCounts & component_counts,
                               const EncoderPass encoder_pass = FIRST_PASS );
 
   void chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
@@ -190,6 +195,11 @@ private:
   void optimize_prob_skip( Frame<FrameHeaderType, MacroblockType> & frame );
 
   void optimize_interframe_probs( InterFrame & frame );
+  void optimize_mv_probs( InterFrame & frame, const MVComponentCounts & counts );
+
+  void update_mv_component_counts( const int16_t & component,
+                                   const bool is_x,
+                                   MVComponentCounts & counts ) const;
 
 public:
   Encoder( const std::string & output_filename, const uint16_t width,

@@ -20,6 +20,97 @@ static bool out_of_bounds( const MotionVector & mv )
   return false;
 }
 
+void Encoder::update_mv_component_counts( const int16_t & component,
+                                          const bool is_x,
+                                          Encoder::MVComponentCounts & counts ) const
+{
+  enum { IS_SHORT, SIGN, SHORT, BITS = SHORT + 8 - 1, LONG_WIDTH = 10 };
+
+  uint16_t x = abs( component );
+  uint8_t comp_idx = is_x ? 1 : 0;
+
+  if ( x < 8 ) {
+    counts.at( comp_idx ).at( IS_SHORT ).first++;
+
+    if ( x < 4 ) {
+      counts.at( comp_idx ).at( SHORT + 0 ).first++;
+
+      if ( x < 2 ) {
+        counts.at( comp_idx ).at( SHORT + 1 ).first++;
+
+        if ( x == 0 ) {
+          counts.at( comp_idx ).at( SHORT + 2 ).first++;
+        }
+        else { // x == 1
+          counts.at( comp_idx ).at( SHORT + 2 ).second++;
+        }
+      }
+      else { /* x >= 2 */
+        counts.at( comp_idx ).at( SHORT + 1 ).second++;
+
+        if ( x == 2 ) {
+          counts.at( comp_idx ).at( SHORT + 3 ).first++;
+        }
+        else { // x == 3
+          counts.at( comp_idx ).at( SHORT + 3 ).second++;
+        }
+      }
+    }
+    else { /* x >= 4 */
+      counts.at( comp_idx ).at( SHORT + 0 ).second++;
+
+      if ( x < 6 ) {
+        counts.at( comp_idx ).at( SHORT + 4 ).first++;
+
+        if ( x == 4 ) {
+          counts.at( comp_idx ).at( SHORT + 5 ).first++;
+        }
+        else { // x == 5
+          counts.at( comp_idx ).at( SHORT + 5 ).second++;
+        }
+      }
+      else { /* x >= 6 */
+        counts.at( comp_idx ).at( SHORT + 4 ).second++;
+
+        if ( x == 6 ) {
+          counts.at( comp_idx ).at( SHORT + 6 ).first++;
+        }
+        else { // x == 7
+          counts.at( comp_idx ).at( SHORT + 6 ).second++;
+        }
+      }
+    }
+  }
+  else { /* x >= 8 */
+    counts.at( comp_idx ).at( IS_SHORT ).second++;
+
+    for ( uint8_t i = 0; i < LONG_WIDTH; i++ ) {
+      if ( i == 3 and x & 0xfff0 ) {
+        if ( ( x >> 3 ) & 1 ) {
+          counts.at( comp_idx ).at( BITS + i ).second++;
+        }
+        else {
+          counts.at( comp_idx ).at( BITS + i ).first++;
+        }
+      }
+
+      if ( (x >> i) & 1 ) {
+        counts.at( comp_idx ).at( BITS + i ).second++;
+      }
+      else {
+        counts.at( comp_idx ).at( BITS + i ).first++;
+      }
+    }
+  }
+
+  if ( component < 0 ) {
+    counts.at( comp_idx ).at( SIGN ).second++;
+  }
+  else {
+    counts.at( comp_idx ).at( SIGN ).first++;
+  }
+}
+
 /*
  * Taken from: libvpx:vp8/encoder/rdopt.c:135
  */
@@ -87,6 +178,7 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                      VP8Raster::Macroblock & temp_mb,
                                      InterFrameMacroblock & frame_mb,
                                      const Quantizer & quantizer,
+                                     MVComponentCounts & component_counts,
                                      const EncoderPass encoder_pass )
 {
   // let's find the best intra-prediction for this macroblock first...
@@ -106,6 +198,7 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
   TwoDSubRange<uint8_t, 16, 16> & prediction = temp_mb.Y.mutable_contents();
 
   const Scorer census = frame_mb.motion_vector_census();
+  const MotionVector best_ref = Scorer::clamp( census.best(), frame_mb.context() );
   const auto counts = census.mode_contexts();
   const ProbabilityArray< num_mv_refs > mv_ref_probs = {{ mv_counts_to_probs.at( counts.at( 0 ) ).at( 0 ),
                                                           mv_counts_to_probs.at( counts.at( 1 ) ).at( 1 ),
@@ -127,7 +220,7 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
     case NEWMV:
       for ( size_t step = 7; step < 8; step-- ) {
         mv = diamond_search( original_mb, reconstructed_mb, temp_mb, frame_mb,
-                             reference, census.best(), mv, ( 1 << step ) );
+                             reference, best_ref, mv, ( 1 << step ) );
       }
 
       mv = Scorer::clamp( mv, frame_mb.context() );
@@ -158,7 +251,13 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
       throw runtime_error( "not supported" );
     }
 
-    reference_mb.Y.inter_predict( mv, reference.Y(), prediction );
+    if ( prediction_mode == NEWMV ) {
+      reference_mb.Y.inter_predict( mv + best_ref, reference.Y(), prediction );
+    }
+    else {
+      reference_mb.Y.inter_predict( mv, reference.Y(), prediction );
+    }
+    
     pred.distortion = variance( original_mb.Y, prediction );
     pred.rate = costs_.mbmode_costs.at( 1 ).at( prediction_mode );
 
@@ -190,7 +289,13 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
     frame_mb.mutable_header().set_reference( LAST_FRAME );
 
     frame_mb.Y2().set_prediction_mode( best_pred.prediction_mode );
-    frame_mb.set_base_motion_vector( best_mv );
+
+    if ( best_pred.prediction_mode == NEWMV ) {
+      frame_mb.set_base_motion_vector( best_mv + best_ref );
+    }
+    else {
+      frame_mb.set_base_motion_vector( best_mv );
+    }
 
     frame_mb.Y().forall(
       [&] ( YBlock & frame_sb ) { frame_sb.set_motion_vector( frame_mb.base_motion_vector() ); }
@@ -220,6 +325,9 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
     frame_mb.Y2().mutable_coefficients().wht( walsh_input );
     frame_mb.Y2().mutable_coefficients() = Y2Block::quantize( quantizer, frame_mb.Y2().coefficients() );
     frame_mb.Y2().calculate_has_nonzero();
+
+    update_mv_component_counts( best_mv.x(), true, component_counts );
+    update_mv_component_counts( best_mv.y(), false, component_counts );
   }
 }
 
@@ -285,6 +393,24 @@ void Encoder::chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb
   );
 }
 
+void Encoder::optimize_mv_probs( InterFrame & frame, const MVComponentCounts & counts )
+{
+  for ( size_t i = 0; i < 2; i++ ) {
+    for ( size_t j = 0; j < MV_PROB_CNT; j++) {
+      const uint32_t false_count = counts.at( i ).at( j ).first;
+      const uint32_t true_count = counts.at( i ).at( j ).second;
+
+      const uint32_t prob = Encoder::calc_prob( false_count, false_count + true_count );
+
+      if ( prob > 1 and prob != decoder_state_.probability_tables.motion_vector_probs.at( i ).at( j ) ) {
+        frame.mutable_header().mv_prob_update.at( i ).at( j ) = MVProbUpdate( true, ( prob >> 1 ) << 1 );
+      }
+    }
+  }
+
+  decoder_state_.probability_tables.mv_prob_update( frame.header().mv_prob_update );
+}
+
 void Encoder::optimize_interframe_probs( InterFrame & frame )
 {
   size_t inter_count  = 0;
@@ -292,8 +418,8 @@ void Encoder::optimize_interframe_probs( InterFrame & frame )
   size_t golden_count = 0;
   size_t total_count  = 0;
 
-  frame.mutable_macroblocks().forall(
-    [&] ( InterFrameMacroblock & frame_mb )
+  frame.macroblocks().forall(
+    [&] ( const InterFrameMacroblock & frame_mb )
     {
       total_count++;
 
@@ -338,6 +464,7 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
   VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
 
   TokenBranchCounts token_branch_counts;
+  MVComponentCounts component_counts;
 
   raster.macroblocks().forall_ij(
     [&] ( VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
@@ -348,7 +475,7 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
 
       // Process Y and Y2
       luma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb, frame_mb,
-                             quantizer, FIRST_PASS );
+                             quantizer, component_counts, FIRST_PASS );
 
       if ( frame_mb.inter_coded() ) {
         chroma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb,
@@ -378,6 +505,7 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
   optimize_interframe_probs( frame );
   optimize_probability_tables( frame, token_branch_counts );
   apply_best_loopfilter_settings( raster, reconstructed_raster, frame );
+  optimize_mv_probs( frame, component_counts );
 
   if ( not update_state ) {
     decoder_state_ = decoder_state_copy;
