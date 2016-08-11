@@ -160,6 +160,13 @@ public:
     return res;
   }
 
+  MotionVector operator-( const MotionVector & other ) const
+  {
+    MotionVector res( *this );
+    res -= other;
+    return res;
+  }
+
   MotionVector operator-() const { return MotionVector( -x(), -y() ); }
 
   MotionVector( BoolDecoder & data,

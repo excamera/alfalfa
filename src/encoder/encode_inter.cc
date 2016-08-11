@@ -223,7 +223,7 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                              reference, best_ref, mv, ( 1 << step ) );
       }
 
-      mv = Scorer::clamp( mv, frame_mb.context() );
+      mv += best_ref;
 
       if ( mv.empty() ) {
         continue;
@@ -251,18 +251,13 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
       throw runtime_error( "not supported" );
     }
 
-    if ( prediction_mode == NEWMV ) {
-      reference_mb.Y.inter_predict( mv + best_ref, reference.Y(), prediction );
-    }
-    else {
-      reference_mb.Y.inter_predict( mv, reference.Y(), prediction );
-    }
-    
+    reference_mb.Y.inter_predict( mv, reference.Y(), prediction );
+
     pred.distortion = variance( original_mb.Y, prediction );
     pred.rate = costs_.mbmode_costs.at( 1 ).at( prediction_mode );
 
     if ( prediction_mode == NEWMV ) {
-      pred.rate += costs_.motion_vector_cost( mv );
+      pred.rate += costs_.motion_vector_cost( mv - best_ref );
     }
 
     pred.cost = rdcost( pred.rate, pred.distortion, RATE_MULTIPLIER,
@@ -290,12 +285,7 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
 
     frame_mb.Y2().set_prediction_mode( best_pred.prediction_mode );
 
-    if ( best_pred.prediction_mode == NEWMV ) {
-      frame_mb.set_base_motion_vector( best_mv + best_ref );
-    }
-    else {
-      frame_mb.set_base_motion_vector( best_mv );
-    }
+    frame_mb.set_base_motion_vector( best_mv );
 
     frame_mb.Y().forall(
       [&] ( YBlock & frame_sb ) { frame_sb.set_motion_vector( frame_mb.base_motion_vector() ); }
@@ -326,8 +316,8 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
     frame_mb.Y2().mutable_coefficients() = Y2Block::quantize( quantizer, frame_mb.Y2().coefficients() );
     frame_mb.Y2().calculate_has_nonzero();
 
-    update_mv_component_counts( best_mv.x(), true, component_counts );
-    update_mv_component_counts( best_mv.y(), false, component_counts );
+    update_mv_component_counts( ( best_mv - best_ref ).x(), true, component_counts );
+    update_mv_component_counts( ( best_mv - best_ref ).y(), false, component_counts );
   }
 }
 
@@ -505,7 +495,7 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
   optimize_interframe_probs( frame );
   optimize_probability_tables( frame, token_branch_counts );
   apply_best_loopfilter_settings( raster, reconstructed_raster, frame );
-  optimize_mv_probs( frame, component_counts );
+  //optimize_mv_probs( frame, component_counts );
 
   if ( not update_state ) {
     decoder_state_ = decoder_state_copy;
