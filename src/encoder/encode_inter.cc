@@ -93,12 +93,13 @@ void Encoder::update_mv_component_counts( const int16_t & component,
           counts.at( comp_idx ).at( BITS + i ).first++;
         }
       }
-
-      if ( (x >> i) & 1 ) {
-        counts.at( comp_idx ).at( BITS + i ).second++;
-      }
-      else {
-        counts.at( comp_idx ).at( BITS + i ).first++;
+      else if ( i != 3 ) {
+        if ( (x >> i) & 1 ) {
+          counts.at( comp_idx ).at( BITS + i ).second++;
+        }
+        else {
+          counts.at( comp_idx ).at( BITS + i ).first++;
+        }
       }
     }
   }
@@ -146,8 +147,8 @@ MotionVector Encoder::diamond_search( const VP8Raster::Macroblock & original_mb,
         if ( ( ( x & y ) == 0 ) && ( ( x | y ) != 0 ) ) continue;
 
         pred.mv = MotionVector();
-        MotionVector direction( ( ( step_size << 1 ) * ( x + y ) ),
-                                ( ( step_size << 1 ) * ( x - y ) ) );
+        MotionVector direction( ( ( step_size ) * ( x + y ) ),
+                                ( ( step_size ) * ( x - y ) ) );
 
         pred.mv += origin + direction;
 
@@ -492,10 +493,10 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
   frame.relink_y2_blocks();
 
   optimize_prob_skip( frame );
+  // optimize_mv_probs( frame, component_counts );
   optimize_interframe_probs( frame );
   optimize_probability_tables( frame, token_branch_counts );
   apply_best_loopfilter_settings( raster, reconstructed_raster, frame );
-  //optimize_mv_probs( frame, component_counts );
 
   if ( not update_state ) {
     decoder_state_ = decoder_state_copy;
