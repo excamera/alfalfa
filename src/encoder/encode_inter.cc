@@ -404,10 +404,9 @@ void Encoder::optimize_mv_probs( InterFrame & frame, const MVComponentCounts & c
 
 void Encoder::optimize_interframe_probs( InterFrame & frame )
 {
-  size_t inter_count  = 0;
-  size_t last_count   = 0;
-  size_t golden_count = 0;
-  size_t total_count  = 0;
+  vector<pair<uint32_t, uint32_t>> probs( 2 );
+  size_t intra_count = 0;
+  size_t total_count = 0;
 
   frame.macroblocks().forall(
     [&] ( const InterFrameMacroblock & frame_mb )
@@ -416,26 +415,37 @@ void Encoder::optimize_interframe_probs( InterFrame & frame )
 
       switch( frame_mb.header().reference() ) {
       case CURRENT_FRAME:
-        inter_count++;
+        intra_count++;
         break;
 
       case LAST_FRAME:
-        last_count++;
+        probs[ 0 ].first++;
         break;
 
       case GOLDEN_FRAME:
-        golden_count++;
+        probs[ 0 ].second++;
+        probs[ 1 ].first++;
         break;
 
       case ALTREF_FRAME:
+        probs[ 0 ].second++;
+        probs[ 1 ].second++;
         break;
       }
     }
   );
 
-  frame.mutable_header().prob_inter = Encoder::calc_prob( inter_count, total_count );
-  frame.mutable_header().prob_references_last = Encoder::calc_prob( last_count, total_count );
-  frame.mutable_header().prob_references_golden = Encoder::calc_prob( golden_count, total_count );
+  frame.mutable_header().prob_inter = Encoder::calc_prob( intra_count, total_count );
+  uint8_t prob_last = Encoder::calc_prob( probs[ 0 ].first, probs[ 0 ].first + probs[ 0 ].second );
+  uint8_t prob_gf = Encoder::calc_prob( probs[ 1 ].first, probs[ 1 ].first + probs[ 1 ].second );
+
+  if ( prob_last > 0 ) {
+    frame.mutable_header().prob_references_last = prob_last;
+  }
+
+  if ( prob_gf > 0 ) {
+    frame.mutable_header().prob_references_golden = prob_gf;
+  }
 }
 
 template<>
