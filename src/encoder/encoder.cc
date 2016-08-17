@@ -536,6 +536,7 @@ double Encoder::encode( const VP8Raster & raster, const double minimum_ssim,
 
   if ( should_encode_as_keyframe( raster ) ) {
     reference_flags_.clear_all();
+    decoder_state_ = DecoderState( width_, height_ );
     return encode_raster<KeyFrame>( raster, minimum_ssim, y_ac_qi );
   }
   else {
