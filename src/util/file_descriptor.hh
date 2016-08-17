@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <algorithm>
+#include <cstdio>
 
 #include "exception.hh"
 #include "chunk.hh"
@@ -18,6 +19,7 @@ private:
   bool eof_ { false };
 
 public:
+  FileDescriptor( FILE *file ) : fd_( fileno(file) ) {}
   FileDescriptor( const int s_fd ) : fd_( s_fd ) {}
 
   ~FileDescriptor()

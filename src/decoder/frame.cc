@@ -337,28 +337,28 @@ template <class FrameHeaderType, class MacroblockType>
 void Frame<FrameHeaderType, MacroblockType>::copy_to( const RasterHandle & raster, References & references ) const
 {
   if ( ref_updates_.last_to_alternate ) {
-      references.alternative_reference = references.last;
+    references.update_alternative(references.last);
   } else if ( ref_updates_.golden_to_alternate ) {
-    references.alternative_reference = references.golden;
+    references.update_alternative(references.golden);
   }
 
   if ( ref_updates_.last_to_golden ) {
-    references.golden = references.last;
+    references.update_golden(references.last);
   }
   else if ( ref_updates_.alternate_to_golden ) {
-    references.golden = references.alternative_reference;
+    references.update_golden(references.alternative);
   }
 
   if ( ref_updates_.update_golden ) {
-    references.golden = raster;
+    references.update_golden(raster);
   }
 
   if ( ref_updates_.update_alternate ) {
-    references.alternative_reference = raster;
+    references.update_alternative(raster);
   }
 
   if ( ref_updates_.update_last ) {
-    references.last = raster;
+    references.update_last(raster);
   }
 }
 
@@ -368,7 +368,8 @@ void Frame<FrameHeaderType, MacroblockType>::copy_to( const RasterHandle & raste
 template<>
 void KeyFrame::copy_to( const RasterHandle & raster, References & references ) const
 {
-  references.last = references.golden = references.alternative_reference = raster;
+  references.last = references.golden = references.alternative = raster;
+  references.reference_flags.set_all();
 }
 
 template<>

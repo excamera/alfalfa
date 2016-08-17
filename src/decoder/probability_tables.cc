@@ -3,6 +3,8 @@
 #include "decoder.hh"
 #include "frame.hh"
 
+using namespace std;
+
 template <unsigned int size>
 static void assign( SafeArray< Probability, size > & dest, const Array< Unsigned<8>, size > & src )
 {
@@ -129,6 +131,77 @@ bool ProbabilityTables::operator==( const ProbabilityTables & other ) const
     and y_mode_probs == other.y_mode_probs
     and uv_mode_probs == other.uv_mode_probs
     and motion_vector_probs == other.motion_vector_probs;
+}
+
+uint32_t ProbabilityTables::serialize(EncoderStateSerializer &odata) const {
+  uint32_t len = BLOCK_TYPES * COEF_BANDS * PREV_COEF_CONTEXTS * ENTROPY_NODES +
+                 y_mode_probs.size() + uv_mode_probs.size() + 2 * MV_PROB_CNT;
+  odata.reserve(len + 5);
+  odata.put(EncoderSerDesTag::PROB_TABLE);
+  odata.put(len);
+
+  for (unsigned i = 0; i < BLOCK_TYPES; i++) {
+    for (unsigned j = 0; j < COEF_BANDS; j++) {
+      for (unsigned k = 0; k < PREV_COEF_CONTEXTS; k++) {
+        for (unsigned l = 0; l < ENTROPY_NODES; l++) {
+          odata.put(coeff_probs.at(i).at(j).at(k).at(l));
+        }
+      }
+    }
+  }
+
+  for (unsigned i = 0; i < y_mode_probs.size(); i++) {
+    odata.put(y_mode_probs.at(i));
+  }
+
+  for (unsigned i = 0; i < uv_mode_probs.size(); i++) {
+    odata.put(uv_mode_probs.at(i));
+  }
+
+  for (unsigned i = 0; i < 2; i++) {
+    for (unsigned j = 0; j < MV_PROB_CNT; j++) {
+      odata.put(motion_vector_probs.at(i).at(j));
+    }
+  }
+
+  return len + 5;
+}
+
+ProbabilityTables::ProbabilityTables(EncoderStateDeserializer &idata) {
+  EncoderSerDesTag data_type = idata.get_tag();
+  assert(data_type == EncoderSerDesTag::PROB_TABLE);
+  (void) data_type;   // unused except in assert
+
+  uint32_t expect_len = BLOCK_TYPES * COEF_BANDS * PREV_COEF_CONTEXTS * ENTROPY_NODES +
+                        y_mode_probs.size() + uv_mode_probs.size() + 2 * MV_PROB_CNT;
+  uint32_t get_len = idata.get<uint32_t>();
+  assert(expect_len == get_len);
+  (void) expect_len;  // uunusd except in assert
+  (void) get_len;     // "
+
+  for (unsigned i = 0; i < BLOCK_TYPES; i++) {
+    for (unsigned j = 0; j < COEF_BANDS; j++) {
+      for (unsigned k = 0; k < PREV_COEF_CONTEXTS; k++) {
+        for (unsigned l = 0; l < ENTROPY_NODES; l++) {
+          coeff_probs.at(i).at(j).at(k).at(l) = idata.get<Probability>();
+        }
+      }
+    }
+  }
+
+  for (unsigned i = 0; i < y_mode_probs.size(); i++) {
+    y_mode_probs.at(i) = idata.get<Probability>();
+  }
+
+  for (unsigned i = 0; i < uv_mode_probs.size(); i++) {
+    uv_mode_probs.at(i) = idata.get<Probability>();
+  }
+
+  for (unsigned i = 0; i < 2; i++) {
+    for (unsigned j = 0; j < MV_PROB_CNT; j++) {
+      motion_vector_probs.at(i).at(j) = idata.get<Probability>();
+    }
+  }
 }
 
 template

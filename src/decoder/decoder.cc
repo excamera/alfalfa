@@ -18,6 +18,46 @@ Decoder::Decoder( DecoderState state, References refs )
   : state_( state ), references_( refs )
 {}
 
+Decoder::Decoder(EncoderStateDeserializer &idata, const uint16_t width, const uint16_t height)
+  : state_(idata, width, height)
+  , references_(idata, width, height) {
+  assert(idata.remaining() == 0);
+}
+
+size_t Decoder::serialize(EncoderStateSerializer &odata) const {
+  odata.reserve(9);
+  odata.put(EncoderSerDesTag::DECODER);
+
+  uint32_t len = 4;
+  size_t placeholder = odata.put(len);
+  odata.put(state_.width);
+  odata.put(state_.height);
+
+  // serialize
+  len += state_.serialize(odata);
+  len += references_.serialize(odata);
+
+  // update length
+  odata.put(len, placeholder);
+
+  return len + 5;
+}
+
+Decoder Decoder::deserialize(EncoderStateDeserializer &idata) {
+  EncoderSerDesTag data_type = idata.get_tag();
+  assert(data_type == EncoderSerDesTag::DECODER);
+  (void) data_type;   // not used except in assert
+
+  uint32_t len = idata.get<uint32_t>();
+  assert(len == idata.remaining());
+  (void) len;         // not used except in assert
+
+  uint16_t width = idata.get<uint16_t>();
+  uint16_t height = idata.get<uint16_t>();
+
+  return Decoder(idata, width, height);
+}
+
 UncompressedChunk Decoder::decompress_frame( const Chunk & compressed_frame ) const
 {
   /* parse uncompressed data chunk */
@@ -93,7 +133,7 @@ SourceHash Decoder::source_hash( const DependencyTracker & deps ) const
   return SourceHash( deps.need_state ? OptHash( true, state_.hash() ) : OptHash( false ),
                      deps.need_last ? OptHash( true, references_.last.hash() ) : OptHash( false ),
                      deps.need_golden ? OptHash( true, references_.golden.hash() ) : OptHash( false ),
-                     deps.need_alternate ? OptHash( true, references_.alternative_reference.hash() ) : OptHash( false ) );
+                     deps.need_alternate ? OptHash( true, references_.alternative.hash() ) : OptHash( false ) );
 }
 
 TargetHash Decoder::target_hash( const UpdateTracker & updates, const RasterHandle & output,
@@ -105,19 +145,14 @@ TargetHash Decoder::target_hash( const UpdateTracker & updates, const RasterHand
 DecoderHash Decoder::get_hash( void ) const
 {
   return DecoderHash( state_.hash(), references_.last.hash(),
-                      references_.golden.hash(), references_.alternative_reference.hash() );
-}
-
-References Decoder::get_references( void ) const
-{
-  return references_;
+                      references_.golden.hash(), references_.alternative.hash() );
 }
 
 bool Decoder::operator==( const Decoder & other ) const
 {
   return state_ == other.state_ and references_.last == other.references_.last and
     references_.golden == other.references_.golden and
-    references_.alternative_reference == other.references_.alternative_reference;
+    references_.alternative == other.references_.alternative;
 }
 
 References::References( const uint16_t width, const uint16_t height )
@@ -127,8 +162,24 @@ References::References( const uint16_t width, const uint16_t height )
 References::References( MutableRasterHandle && raster )
   : last( move( raster ) ),
     golden( last ),
-    alternative_reference( last )
+    alternative( last ),
+    reference_flags ()
 {}
+
+References::References(EncoderStateDeserializer &idata, const uint16_t width, const uint16_t height)
+  : last(move(idata.get_ref(EncoderSerDesTag::REF_LAST, width, height)))
+  , golden(move(idata.get_ref(EncoderSerDesTag::REF_GOLD, width, height)))
+  , alternative(move(idata.get_ref(EncoderSerDesTag::REF_ALT, width, height)))
+  , reference_flags(idata) {}
+
+size_t References::serialize(EncoderStateSerializer &odata) const {
+  size_t len = 0;
+  len += odata.put(last, EncoderSerDesTag::REF_LAST);
+  len += odata.put(golden, EncoderSerDesTag::REF_GOLD);
+  len += odata.put(alternative, EncoderSerDesTag::REF_ALT);
+  len += reference_flags.serialize(odata);
+  return len;
+}
 
 DecoderState::DecoderState( const unsigned int s_width, const unsigned int s_height )
   : width( s_width ), height( s_height )
@@ -141,6 +192,21 @@ DecoderState::DecoderState( const KeyFrameHeader & header,
     segmentation( header.update_segmentation.initialized(), header, width, height ),
     filter_adjustments( header.mode_lf_adjustments.initialized(), header )
 {}
+
+DecoderState::DecoderState(EncoderStateDeserializer &idata, const unsigned s_width, const unsigned s_height)
+  : width(s_width)
+  , height(s_height)
+  , probability_tables(idata) {
+  EncoderSerDesTag seg_opt = idata.get_tag();
+  if (seg_opt == EncoderSerDesTag::OPT_FULL) {
+    segmentation.initialize(idata, s_width, s_height);
+  }
+
+  EncoderSerDesTag filt_opt = idata.get_tag();
+  if (filt_opt == EncoderSerDesTag::OPT_FULL) {
+    filter_adjustments.initialize(idata);
+  }
+}
 
 bool DecoderState::operator==( const DecoderState & other ) const
 {
@@ -168,6 +234,36 @@ size_t DecoderState::hash( void ) const
   return hash_val;
 }
 
+size_t DecoderState::serialize(EncoderStateSerializer &odata) const {
+  odata.reserve(5);
+  odata.put(EncoderSerDesTag::DECODER_STATE);
+
+  uint32_t len = 0;
+  size_t placeholder = odata.put(len);
+
+  len += probability_tables.serialize(odata);
+
+  if (segmentation.initialized()) {
+    odata.put(EncoderSerDesTag::OPT_FULL);
+    len += segmentation.get().serialize(odata);
+  } else {
+    odata.put(EncoderSerDesTag::OPT_EMPTY);
+  }
+  len += 1;
+
+  if (filter_adjustments.initialized()) {
+    odata.put(EncoderSerDesTag::OPT_FULL);
+    len += filter_adjustments.get().serialize(odata);
+  } else {
+    odata.put(EncoderSerDesTag::OPT_EMPTY);
+  }
+  len += 1;
+
+  odata.put(len, placeholder);
+
+  return len + 5;
+}
+
 size_t FilterAdjustments::hash( void ) const
 {
   size_t hash_val = 0;
@@ -177,6 +273,43 @@ size_t FilterAdjustments::hash( void ) const
   boost::hash_range( hash_val, loopfilter_mode_adjustments.begin(), loopfilter_ref_adjustments.end() );
 
   return hash_val;
+}
+
+size_t FilterAdjustments::serialize(EncoderStateSerializer &odata) const {
+  uint32_t len = num_reference_frames + 4;
+  odata.reserve(len + 5);
+  odata.put(EncoderSerDesTag::FILT_ADJ);
+  odata.put(len);
+
+  for (unsigned i = 0; i < num_reference_frames; i++) {
+    odata.put(loopfilter_ref_adjustments.at(i));
+  }
+
+  for (unsigned i = 0; i < 4; i++) {
+    odata.put(loopfilter_mode_adjustments.at(i));
+  }
+
+  return len + 5;
+}
+
+FilterAdjustments::FilterAdjustments(EncoderStateDeserializer &idata) {
+  EncoderSerDesTag data_type = idata.get_tag();
+  assert(data_type == EncoderSerDesTag::FILT_ADJ);
+  (void) data_type;   // not used except in assert
+
+  uint32_t expect_len = num_reference_frames + 4;
+  uint32_t get_len = idata.get<uint32_t>();
+  assert(expect_len == get_len);
+  (void) expect_len;  // not used except in assert
+  (void) get_len;     // "
+
+  for (unsigned i = 0; i < num_reference_frames; i++) {
+    loopfilter_ref_adjustments.at(i) = idata.get<int8_t>();
+  }
+
+  for (unsigned i = 0; i < 4; i++) {
+    loopfilter_mode_adjustments.at(i) = idata.get<int8_t>();
+  }
 }
 
 size_t Segmentation::hash( void ) const
@@ -194,6 +327,56 @@ size_t Segmentation::hash( void ) const
   boost::hash_range( hash_val, map.begin(), map.end() );
 
   return hash_val;
+}
+
+size_t Segmentation::serialize(EncoderStateSerializer &odata) const {
+  uint32_t len = num_segments + num_segments + map.width() * map.height();
+  odata.reserve(len + 5);
+
+  // sneak a bool into the tag
+  if (absolute_segment_adjustments) {
+    odata.put(EncoderSerDesTag::SEGM_ABS);
+  } else {
+    odata.put(EncoderSerDesTag::SEGM_REL);
+  }
+  odata.put(len);
+
+  for (unsigned i = 0; i < num_segments; i++) {
+    odata.put(segment_quantizer_adjustments.at(i));
+  }
+
+  for (unsigned i = 0; i < num_segments; i++) {
+    odata.put(segment_filter_adjustments.at(i));
+  }
+
+  for (unsigned i = 0; i < map.width(); i++) {
+    for (unsigned j = 0; j < map.height(); j++) {
+      odata.put(map.at(i, j));
+    }
+  }
+
+  return len + 5;
+}
+
+Segmentation::Segmentation(EncoderStateDeserializer &idata, const unsigned width, const unsigned height)
+  : map(width, height, 3) {
+  EncoderSerDesTag data_type = idata.get_tag();
+  assert(data_type == EncoderSerDesTag::SEGM_ABS || data_type == EncoderSerDesTag::SEGM_REL);
+  absolute_segment_adjustments = data_type == EncoderSerDesTag::SEGM_ABS;
+
+  for (unsigned i = 0; i < num_segments; i++) {
+    segment_quantizer_adjustments.at(i) = idata.get<int8_t>();
+  }
+
+  for (unsigned i = 0; i < num_segments; i++) {
+    segment_filter_adjustments.at(i) = idata.get<int8_t>();
+  }
+
+  for (unsigned i = 0; i < map.width(); i++) {
+    for (unsigned j = 0; j < map.height(); j++) {
+      map.at(i, j) = idata.get<uint8_t>();
+    }
+  }
 }
 
 bool FilterAdjustments::operator==( const FilterAdjustments & other ) const

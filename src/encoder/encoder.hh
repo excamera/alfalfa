@@ -8,31 +8,17 @@
 #include <tuple>
 #include <limits>
 
+#include "decoder.hh"
 #include "frame.hh"
 #include "vp8_raster.hh"
 #include "ivf_writer.hh"
 #include "costs.hh"
+#include "enc_state_serializer.hh"
 
 enum EncoderPass
 {
   FIRST_PASS,
   SECOND_PASS
-};
-
-struct ReferenceFlags
-{
-  bool has_last, has_golden, has_alternative;
-
-  ReferenceFlags()
-    : has_last( false ), has_golden( false ), has_alternative( false )
-  {}
-
-  void clear_all()
-  {
-    has_last = false;
-    has_golden = false;
-    has_alternative = false;
-  }
 };
 
 class Encoder
@@ -58,7 +44,6 @@ private:
   MutableRasterHandle temp_raster_handle_;
   DecoderState decoder_state_;
   References references_;
-  ReferenceFlags reference_flags_;
 
   uint32_t frame_count_ { 0 };
 
@@ -209,6 +194,10 @@ public:
   Encoder( const std::string & output_filename, const uint16_t width,
            const uint16_t height, const bool two_pass );
 
+  Encoder(Decoder dec, const std::string &output_filename, const bool two_pass);
+
+  size_t serialize(EncoderStateSerializer &odata) const;
+
   /*
    * This function decides that the current raster should be encoded as a
    * keyframe or as an interframe.
@@ -219,6 +208,8 @@ public:
 
   template<class FrameType>
   static FrameType make_empty_frame( const uint16_t width, const uint16_t height );
+
+  static Encoder deserialize(EncoderStateDeserializer &idata, const std::string &filename, const bool two_pass);
 
   static unsigned calc_prob( unsigned false_count, unsigned total );
 };

@@ -533,8 +533,7 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
     decoder_state_ = decoder_state_copy;
   }
   else {
-    references_.last = move( reconstructed_raster_handle );
-    reference_flags_.has_last = true;
+    references_.update_last(move( reconstructed_raster_handle ));
   }
 
   return make_pair( move( frame ), reconstructed_raster.quality( raster ) );

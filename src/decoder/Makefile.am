@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I../protobufs -I$(srcdir)/../util $(CXX11_FLAGS) $(PROTOBUF_CFLAGS)
+AM_CPPFLAGS = -I$(srcdir)/../util $(CXX11_FLAGS) $(PROTOBUF_CFLAGS)
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(NODEBUG_CXXFLAGS)
 
 SUFFIXES = .asm
@@ -20,4 +20,4 @@ libalfalfadecoder_a_SOURCES = vp8_raster.hh block.hh bool_decoder.hh decoder.cc 
 	transform_sse.hh raster_handle.hh raster_handle.cc \
 	player.cc player.hh dependency_tracking.hh dependency_tracking.cc \
 	tracking_player.hh tracking_player.cc probability_tables.cc \
-	config.asm x86_abi_support.asm
+	config.asm x86_abi_support.asm enc_state_serializer.hh

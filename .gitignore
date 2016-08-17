@@ -23,6 +23,8 @@ Makefile.in
 /stamp-h1
 /test-driver
 
+/src/tags
+
 /src/frontend/vp8play
 /src/frontend/vp8decode
 /src/frontend/collisions
@@ -41,3 +43,4 @@ Makefile.in
 
 /src/tests/test_vectors/
 /src/tests/encoder_test_vectors/
+/src/tests/encoder_output/

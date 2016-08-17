@@ -79,9 +79,27 @@ Encoder::Encoder( const string & output_filename, const uint16_t width,
   : ivf_writer_( output_filename, "VP80", width, height, 1, 1 ),
     width_( width ), height_( height ), temp_raster_handle_( width, height ),
     decoder_state_( width, height ), references_( width, height ),
-    reference_flags_(), costs_(), two_pass_encoder_( two_pass )
+    costs_(), two_pass_encoder_( two_pass )
 {
   costs_.fill_mode_costs();
+}
+
+Encoder::Encoder(Decoder dec, const string &output_filename, const bool two_pass)
+  : ivf_writer_( output_filename, "VP80", dec.get_width(), dec.get_height(), 1, 1 ),
+    width_( dec.get_width() ), height_( dec.get_height() ),
+    temp_raster_handle_( dec.get_width(), dec.get_height() ),
+    decoder_state_( dec.get_state() ), references_( dec.get_references() ),
+    costs_(), two_pass_encoder_( two_pass )
+{
+  costs_.fill_mode_costs();
+}
+
+size_t Encoder::serialize(EncoderStateSerializer &odata) const {
+  return Decoder(decoder_state_, references_).serialize(odata);
+}
+
+Encoder Encoder::deserialize(EncoderStateDeserializer &idata, const std::string &filename, const bool two_pass) {
+  return Encoder(Decoder::deserialize(idata), filename, two_pass);
 }
 
 template<class FrameType>
@@ -526,8 +544,8 @@ double Encoder::encode_raster( const VP8Raster & raster,
  */
 bool Encoder::should_encode_as_keyframe( const VP8Raster & )
 {
-  return not ( reference_flags_.has_last or reference_flags_.has_golden
-            or reference_flags_.has_alternative );
+  return not ( references_.reference_flags.has_last or references_.reference_flags.has_golden
+            or references_.reference_flags.has_alternative );
 }
 
 double Encoder::encode( const VP8Raster & raster, const double minimum_ssim,
@@ -538,7 +556,7 @@ double Encoder::encode( const VP8Raster & raster, const double minimum_ssim,
   }
 
   if ( should_encode_as_keyframe( raster ) ) {
-    reference_flags_.clear_all();
+    references_.reference_flags.clear_all();
     decoder_state_ = DecoderState( width_, height_ );
     return encode_raster<KeyFrame>( raster, minimum_ssim, y_ac_qi );
   }

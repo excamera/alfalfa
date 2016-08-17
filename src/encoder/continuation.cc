@@ -383,7 +383,7 @@ MissingTracker Decoder::find_missing( const References & refs,
 {
   return MissingTracker { not partially_equal_reference( LAST_FRAME, refs.last, references_.last, deps ),
                           not partially_equal_reference( GOLDEN_FRAME, refs.golden, references_.golden, deps ),
-                          not partially_equal_reference( ALTREF_FRAME, refs.alternative_reference, references_.alternative_reference, deps ) };
+                          not partially_equal_reference( ALTREF_FRAME, refs.alternative, references_.alternative, deps ) };
 }
 
 ReferenceDependency::ReferenceDependency( const TwoD<InterFrameMacroblock> & frame_macroblocks )
@@ -493,7 +493,7 @@ void InterFrame::analyze_dependencies( const ReferenceDependency & deps ) const
 
   fake_refs.last = make_fake_reference( LAST_FRAME, deps, display_width_, display_height_ );
   fake_refs.golden = make_fake_reference( GOLDEN_FRAME, deps, display_width_, display_height_ );
-  fake_refs.alternative_reference = make_fake_reference( ALTREF_FRAME, deps, display_width_, display_height_ );
+  fake_refs.alternative = make_fake_reference( ALTREF_FRAME, deps, display_width_, display_height_ );
 
   macroblock_headers_.get().forall_ij( [&] ( const InterFrameMacroblock & macroblock, const unsigned col, const unsigned row ) {
                                         if ( macroblock.inter_coded() ) {
