@@ -6,7 +6,7 @@
 #include <cstdio>
 #include <fstream>
 #include <iterator>
-#include <utility>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -84,6 +84,10 @@ class EncoderStateSerializer {
       std::copy(data_.begin(), data_.end(), output_iter);
     }
 
+    void write(const std::string &filename) {
+      this->write(filename.c_str());
+    }
+
     void write(FILE *file) {
       std::fwrite(data_.data(), 1, data_.size(), file);
     }
@@ -98,13 +102,26 @@ class EncoderStateDeserializer : File {
       : File(filename)
       , ptr_(0) {}
 
+    EncoderStateDeserializer(const std::string &filename)
+      : File(filename.c_str())
+      , ptr_(0) {}
+
     EncoderStateDeserializer(FILE *file)
       : File(std::move(FileDescriptor(file)))
       , ptr_(0) {}
 
+    template<typename T, typename F, typename ...Ps> static T build(F f, Ps ...ps) {
+      EncoderStateDeserializer idata(f);
+      return T::deserialize(idata, std::forward<Ps>(ps)...);
+    }
+
     void reset(void) { ptr_ = 0; }
     size_t remaining(void) const { return chunk().size() - ptr_; }
     size_t size(void) const { return chunk().size(); }
+
+    EncoderSerDesTag peek_tag(void) {
+      return static_cast<EncoderSerDesTag>((*this)(ptr_, 1).octet());
+    }
 
     EncoderSerDesTag get_tag(void) {
       return static_cast<EncoderSerDesTag>((*this)(ptr_++, 1).octet());
@@ -122,22 +139,25 @@ class EncoderStateDeserializer : File {
 
     MutableRasterHandle get_ref(EncoderSerDesTag t, const uint16_t width, const uint16_t height) {
       MutableRasterHandle raster(width, height);
-      EncoderSerDesTag data_type = this->get_tag();
-      assert(data_type == t);
-      (void) t;           // not used except in assert
-      (void) data_type;   // not used except in assert
-      unsigned rwidth = raster.get().width();
-      unsigned rheight = raster.get().height();
 
-      uint32_t expect_len = rwidth * rheight + 2 * (rwidth / 2) * (rheight / 2);
-      uint32_t get_len = this->get<uint32_t>();
-      assert(get_len == expect_len);
-      (void) get_len;     // only used in assert
-      (void) expect_len;  // only used in assert
+      if (this->peek_tag() == t) {
+        EncoderSerDesTag data_type = this->get_tag();
+        assert(data_type == t);
+        (void) t;           // not used except in assert
+        (void) data_type;   // not used except in assert
+        unsigned rwidth = raster.get().width();
+        unsigned rheight = raster.get().height();
 
-      raster.get().Y().forall([this](uint8_t &f){ f = this->get<uint8_t>(); });
-      raster.get().U().forall([this](uint8_t &f){ f = this->get<uint8_t>(); });
-      raster.get().V().forall([this](uint8_t &f){ f = this->get<uint8_t>(); });
+        uint32_t expect_len = rwidth * rheight + 2 * (rwidth / 2) * (rheight / 2);
+        uint32_t get_len = this->get<uint32_t>();
+        assert(get_len == expect_len);
+        (void) get_len;     // only used in assert
+        (void) expect_len;  // only used in assert
+
+        raster.get().Y().forall([this](uint8_t &f){ f = this->get<uint8_t>(); });
+        raster.get().U().forall([this](uint8_t &f){ f = this->get<uint8_t>(); });
+        raster.get().V().forall([this](uint8_t &f){ f = this->get<uint8_t>(); });
+      }
 
       return raster;
     }

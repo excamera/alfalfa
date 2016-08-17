@@ -32,6 +32,7 @@ Makefile.in
 /src/frontend/xc-ssim
 /src/frontend/xc-dissect
 /src/frontend/xc-framesize
+/src/frontend/comp-states
 
 /src/tests/decode-to-stdout
 /src/tests/encode-loopback

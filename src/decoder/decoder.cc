@@ -25,7 +25,7 @@ Decoder::Decoder(EncoderStateDeserializer &idata)
 }
 
 size_t Decoder::serialize(EncoderStateSerializer &odata) const {
-  odata.reserve(9);
+  odata.reserve(5);
   odata.put(EncoderSerDesTag::DECODER);
 
   uint32_t len = 0;
@@ -175,9 +175,18 @@ size_t References::serialize(EncoderStateSerializer &odata) const {
   odata.put((uint16_t) last.get().display_width());
   odata.put((uint16_t) last.get().display_height());
 
-  len += odata.put(last, EncoderSerDesTag::REF_LAST);
-  len += odata.put(golden, EncoderSerDesTag::REF_GOLD);
-  len += odata.put(alternative, EncoderSerDesTag::REF_ALT);
+  if (reference_flags.has_last) {
+    len += odata.put(last, EncoderSerDesTag::REF_LAST);
+  }
+
+  if (reference_flags.has_golden) {
+    len += odata.put(golden, EncoderSerDesTag::REF_GOLD);
+  }
+
+  if (reference_flags.has_alternative) {
+    len += odata.put(alternative, EncoderSerDesTag::REF_ALT);
+  }
+
   len += reference_flags.serialize(odata);
 
   odata.put(len, placeholder);
@@ -201,10 +210,10 @@ References References::deserialize(EncoderStateDeserializer &idata) {
 }
 
 bool References::operator==(const References &other) const {
-  return last == other.last &&
-         golden == other.golden &&
-         alternative == other.alternative &&
-         reference_flags == other.reference_flags;
+  return reference_flags == other.reference_flags &&
+         (!reference_flags.has_last || last == other.last) &&
+         (!reference_flags.has_golden || golden == other.golden) &&
+         (!reference_flags.has_alternative || alternative == other.alternative);
 }
 
 DecoderState::DecoderState(const unsigned s_width, const unsigned s_height,
