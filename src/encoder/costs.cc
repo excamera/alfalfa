@@ -216,16 +216,16 @@ void Costs::fill_mv_ref_costs( const ProbabilityArray<num_mv_refs> & mv_mode_pro
 }
 
 /*
- * Taken from: libvpx:vp8/encoder.mcomp.c:29
+ * Taken from: libvpx:vp8/encoder/mcomp.c:29
  */
-uint32_t Costs::motion_vector_cost( const MotionVector & mv ) const
+uint32_t Costs::motion_vector_cost( const MotionVector & mv, size_t weight ) const
 {
   return ( ( mv_component_costs.at( 0 ).at( mv.y() < 0 ).at( abs( mv.y() ) )
-       + mv_component_costs.at( 1 ).at( mv.x() < 0 ).at( abs( mv.x() ) ) ) * 96 ) >> 7;
+           + mv_component_costs.at( 1 ).at( mv.x() < 0 ).at( abs( mv.x() ) ) ) * weight ) / 128;
 }
 
 /*
- * Taken from: libvpx:vp8/encoder.mcomp.c:56
+ * Taken from: libvpx:vp8/encoder/mcomp.c:56
  */
 uint32_t Costs::sad_motion_vector_cost( const MotionVector & mv,
                                         const MotionVector & base,
@@ -235,7 +235,7 @@ uint32_t Costs::sad_motion_vector_cost( const MotionVector & mv,
   int y = max( min ( ( mv.y() - base.y() ) >> 2, 255 ), -255 );
 
   return ( ( mv_sad_costs.at( 0 ).at( y < 0 ).at( abs( y ) )
-         + mv_sad_costs.at( 1 ).at( x < 0 ).at( abs( x ) ) ) * weight + 128 ) / 256 ;
+           + mv_sad_costs.at( 1 ).at( x < 0 ).at( abs( x ) ) ) * weight + 128 ) / 256 ;
 }
 
 template<class MacroblockType, class BlockType>

@@ -515,6 +515,9 @@ double Encoder::encode_raster( const VP8Raster & raster,
   pair<FrameType, double> encoded_frame = encode_with_quantizer<FrameType>( raster, quant_indices, true );
 
   ivf_writer_.append_frame( encoded_frame.first.serialize( current_state.probability_tables ) );
+
+  frame_count_++;
+
   return encoded_frame.second;
 }
 

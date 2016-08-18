@@ -57,7 +57,7 @@ public:
   void fill_mv_component_costs( const SafeArray<SafeArray<Probability, MV_PROB_CNT>, 2> & motion_vector_probs );
   void fill_mv_sad_costs();
 
-  uint32_t motion_vector_cost( const MotionVector & mv ) const;
+  uint32_t motion_vector_cost( const MotionVector & mv, size_t weight ) const;
   uint32_t sad_motion_vector_cost( const MotionVector & mv,
                                    const MotionVector & base,
                                    size_t weight ) const;

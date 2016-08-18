@@ -60,6 +60,8 @@ private:
   References references_;
   ReferenceFlags reference_flags_;
 
+  uint32_t frame_count_ { 0 };
+
   size_t qindex_ { 0 };
 
   Costs costs_;
@@ -139,7 +141,8 @@ private:
 
   MBPredictionData chroma_mb_best_prediction_mode( const VP8Raster::Macroblock & original_mb,
                                                    VP8Raster::Macroblock & reconstructed_mb,
-                                                   VP8Raster::Macroblock & temp_mb ) const;
+                                                   VP8Raster::Macroblock & temp_mb,
+                                                   const bool interframe = false ) const;
 
   template<class MacroblockType>
   void chroma_mb_apply_intra_prediction( const VP8Raster::Macroblock & original_mb,
@@ -157,7 +160,8 @@ private:
                                 VP8Raster::Macroblock & temp_mb,
                                 MacroblockType & frame_mb,
                                 const Quantizer & quantizer,
-                                const EncoderPass encoder_pass = FIRST_PASS ) const;
+                                const EncoderPass encoder_pass = FIRST_PASS,
+                                const bool interframe = false ) const;
 
   bmode luma_sb_intra_predict( const VP8Raster::Block4 & original_sb,
                                VP8Raster::Block4 & constructed_sb,

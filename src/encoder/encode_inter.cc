@@ -191,6 +191,15 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                                              encoder_pass,
                                                              true );
 
+  MBPredictionData best_uv_pred = chroma_mb_best_prediction_mode( original_mb,
+                                                                  reconstructed_mb,
+                                                                  temp_mb,
+                                                                  true );
+
+  best_pred.distortion += best_uv_pred.distortion;
+  best_pred.rate += best_uv_pred.rate;
+  best_pred.cost += best_uv_pred.cost;
+
   MotionVector best_mv;
   const VP8Raster & reference = references_.last.get();
   const auto & reference_mb = reference.macroblock( frame_mb.context().column,
@@ -210,7 +219,7 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
   costs_.fill_mv_component_costs( decoder_state_.probability_tables.motion_vector_probs );
   costs_.fill_mv_sad_costs();
 
-  vector<mbmode> inter_modes = { ZEROMV, NEARESTMV, NEARMV, NEWMV, /* SPLIMV */ };
+  constexpr array<mbmode, 4> inter_modes = { ZEROMV, NEARESTMV, NEARMV, NEWMV, /* SPLIMV */ };
 
   for ( const mbmode prediction_mode : inter_modes ) {
     MBPredictionData pred;
@@ -258,8 +267,13 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
     pred.rate = costs_.mbmode_costs.at( 1 ).at( prediction_mode );
 
     if ( prediction_mode == NEWMV ) {
-      pred.rate += costs_.motion_vector_cost( mv - best_ref );
+      pred.rate += costs_.motion_vector_cost( mv - best_ref, 96 );
     }
+
+    chroma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb, frame_mb, quantizer, encoder_pass );
+
+    pred.distortion += sse( original_mb.U, reconstructed_mb.U.contents() )
+                     + sse( original_mb.V, reconstructed_mb.V.contents() );
 
     pred.cost = rdcost( pred.rate, pred.distortion, RATE_MULTIPLIER,
                         DISTORTION_MULTIPLIER );
@@ -329,8 +343,6 @@ void Encoder::chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb
                                        const Quantizer & quantizer,
                                        const EncoderPass ) const
 {
-  assert( frame_mb.inter_coded() );
-
   const VP8Raster & reference = references_.last.get();
   const auto & reference_mb = reference.macroblock( frame_mb.context().column,
                                                     frame_mb.context().row );
@@ -463,6 +475,8 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
   Quantizer quantizer( frame.header().quant_indices );
   MutableRasterHandle reconstructed_raster_handle { width_, height_ };
   VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
+
+  costs_.fill_token_costs( ProbabilityTables() );
 
   TokenBranchCounts token_branch_counts;
   MVComponentCounts component_counts;

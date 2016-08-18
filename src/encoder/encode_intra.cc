@@ -181,7 +181,7 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
   // Apply
   luma_mb_apply_intra_prediction( original_mb, reconstructed_mb, temp_mb,
                                   frame_mb, quantizer,
-                                  best_pred.prediction_mode, encoder_pass);
+                                  best_pred.prediction_mode, encoder_pass );
 }
 
 /*
@@ -189,7 +189,8 @@ void Encoder::luma_mb_intra_predict( const VP8Raster::Macroblock & original_mb,
  */
 Encoder::MBPredictionData Encoder::chroma_mb_best_prediction_mode( const VP8Raster::Macroblock & original_mb,
                                                                    VP8Raster::Macroblock & reconstructed_mb,
-                                                                   VP8Raster::Macroblock & temp_mb ) const
+                                                                   VP8Raster::Macroblock & temp_mb,
+                                                                   const bool interframe ) const
 {
   MBPredictionData best_pred;
 
@@ -206,7 +207,7 @@ Encoder::MBPredictionData Encoder::chroma_mb_best_prediction_mode( const VP8Rast
     pred.distortion = sse( original_mb.U, u_prediction )
                     + sse( original_mb.V, v_prediction );
 
-    pred.rate = costs_.intra_uv_mode_costs.at( 0 ).at( prediction_mode );
+    pred.rate = costs_.intra_uv_mode_costs.at( interframe ).at( prediction_mode );
     pred.cost = rdcost( pred.rate, pred.distortion, RATE_MULTIPLIER,
                         DISTORTION_MULTIPLIER );
 
@@ -277,12 +278,14 @@ void Encoder::chroma_mb_intra_predict( const VP8Raster::Macroblock & original_mb
                                        VP8Raster::Macroblock & temp_mb,
                                        MacroblockType & frame_mb,
                                        const Quantizer & quantizer,
-                                       const EncoderPass encoder_pass ) const
+                                       const EncoderPass encoder_pass,
+                                       const bool interframe ) const
 {
   // Select the best prediction mode
   MBPredictionData best_pred = chroma_mb_best_prediction_mode( original_mb,
                                                                reconstructed_mb,
-                                                               temp_mb );
+                                                               temp_mb,
+                                                               interframe );
 
   // Apply
   chroma_mb_apply_intra_prediction( original_mb, reconstructed_mb, temp_mb,
