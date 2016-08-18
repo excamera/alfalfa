@@ -197,8 +197,8 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                                                   true );
 
   best_pred.distortion += best_uv_pred.distortion;
-  best_pred.rate += best_uv_pred.rate;
-  best_pred.cost += best_uv_pred.cost;
+  best_pred.rate       += best_uv_pred.rate;
+  best_pred.cost       += best_uv_pred.cost;
 
   MotionVector best_mv;
   const VP8Raster & reference = references_.last.get();
@@ -270,10 +270,11 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
       pred.rate += costs_.motion_vector_cost( mv - best_ref, 96 );
     }
 
-    chroma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb, frame_mb, quantizer, encoder_pass );
+    chroma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb, frame_mb,
+                             quantizer, encoder_pass );
 
-    pred.distortion += sse( original_mb.U, reconstructed_mb.U.contents() )
-                     + sse( original_mb.V, reconstructed_mb.V.contents() );
+    pred.distortion += sse( original_mb.U, reconstructed_mb.U.contents() );
+    pred.distortion += sse( original_mb.V, reconstructed_mb.V.contents() );
 
     pred.cost = rdcost( pred.rate, pred.distortion, RATE_MULTIPLIER,
                         DISTORTION_MULTIPLIER );
@@ -416,8 +417,7 @@ void Encoder::optimize_mv_probs( InterFrame & frame, const MVComponentCounts & c
 
 void Encoder::optimize_interframe_probs( InterFrame & frame )
 {
-  vector<pair<uint32_t, uint32_t>> probs( 2 );
-  size_t intra_count = 0;
+  array<pair<uint32_t, uint32_t>, 3> probs;
   size_t total_count = 0;
 
   frame.macroblocks().forall(
@@ -426,30 +426,37 @@ void Encoder::optimize_interframe_probs( InterFrame & frame )
       total_count++;
 
       switch( frame_mb.header().reference() ) {
-      case CURRENT_FRAME:
-        intra_count++;
-        break;
-
-      case LAST_FRAME:
+      case CURRENT_FRAME: // 0
         probs[ 0 ].first++;
         break;
 
-      case GOLDEN_FRAME:
+      case LAST_FRAME: // 10
         probs[ 0 ].second++;
         probs[ 1 ].first++;
         break;
 
-      case ALTREF_FRAME:
+      case GOLDEN_FRAME: // 110
         probs[ 0 ].second++;
         probs[ 1 ].second++;
+        probs[ 2 ].first++;
+        break;
+
+      case ALTREF_FRAME: // 111
+        probs[ 0 ].second++;
+        probs[ 1 ].second++;
+        probs[ 2 ].second++;
         break;
       }
     }
   );
 
-  frame.mutable_header().prob_inter = Encoder::calc_prob( intra_count, total_count );
-  uint8_t prob_last = Encoder::calc_prob( probs[ 0 ].first, probs[ 0 ].first + probs[ 0 ].second );
-  uint8_t prob_gf = Encoder::calc_prob( probs[ 1 ].first, probs[ 1 ].first + probs[ 1 ].second );
+  uint8_t prob_inter = Encoder::calc_prob( probs[ 0 ].first, probs[ 0 ].first + probs[ 0 ].second );
+  uint8_t prob_last  = Encoder::calc_prob( probs[ 1 ].first, probs[ 1 ].first + probs[ 1 ].second );
+  uint8_t prob_gf    = Encoder::calc_prob( probs[ 2 ].first, probs[ 2 ].first + probs[ 2 ].second );
+
+  if ( prob_inter > 0 ) {
+    frame.mutable_header().prob_inter = prob_inter;
+  }
 
   if ( prob_last > 0 ) {
     frame.mutable_header().prob_references_last = prob_last;

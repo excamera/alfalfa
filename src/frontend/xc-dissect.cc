@@ -243,6 +243,7 @@ void print_frame_info( const Frame<FrameHeaderType, MacroblockType> & frame, con
         if ( macroblock.inter_coded() ) {
           cout << "Base Motion Vector: ( " << macroblock.base_motion_vector().x()
                << ", " << macroblock.base_motion_vector().y() << " )" << endl;
+          cout << "Reference: " << reference_frame_names[ macroblock.header().reference() ] << endl;
         }
 
         cout << endl;

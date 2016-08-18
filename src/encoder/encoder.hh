@@ -177,9 +177,6 @@ private:
   double encode_raster( const VP8Raster & raster, const double minimum_ssim,
                         const uint8_t y_ac_qi = std::numeric_limits<uint8_t>::max() );
 
-  template<class FrameType>
-  void optimize_probability_tables( FrameType & frame, const TokenBranchCounts & token_branch_counts );
-
   template<class FrameSubblockType>
   void trellis_quantize( FrameSubblockType & frame_sb,
                          const Quantizer & quantizer ) const;
@@ -194,6 +191,9 @@ private:
   void apply_best_loopfilter_settings( const VP8Raster & original,
                                        VP8Raster & reconstructed,
                                        FrameType & frame );
+
+  template<class FrameType>
+  void optimize_probability_tables( FrameType & frame, const TokenBranchCounts & token_branch_counts );
 
   template<class FrameHeaderType, class MacroblockType>
   void optimize_prob_skip( Frame<FrameHeaderType, MacroblockType> & frame );
