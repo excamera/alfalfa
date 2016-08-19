@@ -19,7 +19,8 @@ private:
   bool eof_ { false };
 
 public:
-  FileDescriptor( FILE *file ) : fd_( fileno(file) ) {}
+  // NOTE that the below constructor first seeks file to 0.
+  FileDescriptor( FILE *file ) : fd_( (fseek(file, 0, SEEK_SET), fileno(file)) ) {}
   FileDescriptor( const int s_fd ) : fd_( s_fd ) {}
 
   ~FileDescriptor()

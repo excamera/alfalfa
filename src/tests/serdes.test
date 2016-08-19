@@ -1,0 +1,4 @@
+#!/bin/bash
+
+exec >&2
+exec ./serdes-test 32

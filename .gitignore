@@ -40,6 +40,7 @@ Makefile.in
 /src/tests/state-collisions
 /src/tests/ivfcopy
 /src/tests/ivfcompare
+/src/tests/serdes-test
 
 /src/tests/test_vectors/
 /src/tests/encoder_test_vectors/

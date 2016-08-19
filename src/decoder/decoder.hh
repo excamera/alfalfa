@@ -53,6 +53,9 @@ struct ProbabilityTables
   bool operator==( const ProbabilityTables & other ) const;
 
   uint32_t serialize(EncoderStateSerializer &odata) const;
+  static ProbabilityTables deserialize(EncoderStateDeserializer &idata) {
+    return ProbabilityTables(idata);
+  }
 };
 
 struct FilterAdjustments
@@ -78,6 +81,9 @@ struct FilterAdjustments
   bool operator==( const FilterAdjustments & other ) const;
 
   size_t serialize(EncoderStateSerializer &odata) const;
+  static FilterAdjustments deserialize(EncoderStateDeserializer &idata) {
+    return FilterAdjustments(idata);
+  }
 };
 
 struct ReferenceFlags
@@ -109,6 +115,12 @@ struct ReferenceFlags
     has_last = has_golden = has_alternative = true;
   }
 
+  bool operator==(const ReferenceFlags &other) const {
+    return has_last == other.has_last &&
+           has_golden == other.has_golden &&
+           has_alternative == other.has_alternative;
+  }
+
   size_t serialize(EncoderStateSerializer &odata) const {
     uint8_t val = (has_last << 7)
                 | (has_golden << 6)
@@ -116,6 +128,9 @@ struct ReferenceFlags
                 | (uint8_t) EncoderSerDesTag::REF_FLAGS;
     odata.put(val);
     return 1;
+  }
+  static ReferenceFlags deserialize(EncoderStateDeserializer &idata) {
+    return ReferenceFlags(idata);
   }
 };
 
@@ -155,7 +170,10 @@ struct References
     }
   }
 
+  bool operator==(const References &other) const;
+
   size_t serialize(EncoderStateSerializer &odata) const;
+  static References deserialize(EncoderStateDeserializer &idata);
 };
 
 using SegmentationMap = TwoD< uint8_t >;
@@ -179,7 +197,10 @@ struct Segmentation
                 const unsigned int width,
                 const unsigned int height );
 
-  Segmentation(EncoderStateDeserializer &idata, const unsigned width, const unsigned height);
+  Segmentation(EncoderStateDeserializer &idata, const bool abs, const unsigned width, const unsigned height);
+
+  // testing only
+  Segmentation(const unsigned width, const unsigned height);
 
   template <class HeaderType>
   void update( const HeaderType & header );
@@ -191,6 +212,7 @@ struct Segmentation
   Segmentation( const Segmentation & other );
 
   size_t serialize(EncoderStateSerializer &odata) const;
+  static Segmentation deserialize(EncoderStateDeserializer &idata);
 };
 
 struct DecoderState
@@ -200,6 +222,11 @@ struct DecoderState
   ProbabilityTables probability_tables = {};
   Optional<Segmentation> segmentation = {};
   Optional<FilterAdjustments> filter_adjustments = {};
+
+  // testing only
+  DecoderState(const unsigned s_width, const unsigned s_height,
+               ProbabilityTables &&p, Optional<Segmentation> &&s,
+               Optional<FilterAdjustments> &&f);
 
   DecoderState(EncoderStateDeserializer &idata, const unsigned s_width, const unsigned s_height);
 
@@ -220,6 +247,7 @@ struct DecoderState
   size_t hash( void ) const;
 
   size_t serialize(EncoderStateSerializer &odata) const;
+  static DecoderState deserialize(EncoderStateDeserializer &idata);
 };
 
 class Decoder
@@ -231,7 +259,7 @@ private:
 public:
   Decoder( const uint16_t width, const uint16_t height );
   Decoder( DecoderState state, References references );
-  Decoder( EncoderStateDeserializer &idata, const uint16_t width, const uint16_t height );
+  Decoder( EncoderStateDeserializer &idata );
 
   const VP8Raster & example_raster( void ) const { return references_.last; }
 
@@ -263,8 +291,8 @@ public:
 
   References get_references( void ) const { return references_; }
 
-  uint16_t get_width(void) { return state_.width; }
-  uint16_t get_height(void) { return state_.height; }
+  uint16_t get_width(void) const { return state_.width; }
+  uint16_t get_height(void) const { return state_.height; }
 
   bool operator==( const Decoder & other ) const;
 

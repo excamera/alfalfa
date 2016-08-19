@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdio>
 #include <limits>
 
 #include "block.hh"
@@ -99,7 +100,22 @@ size_t Encoder::serialize(EncoderStateSerializer &odata) const {
 }
 
 Encoder Encoder::deserialize(EncoderStateDeserializer &idata, const std::string &filename, const bool two_pass) {
-  return Encoder(Decoder::deserialize(idata), filename, two_pass);
+  return Encoder(move(Decoder::deserialize(idata)), filename, two_pass);
+}
+
+// testing only! output file is immediately deleted
+Encoder Encoder::deserialize(EncoderStateDeserializer &idata) {
+  char *tname = tmpnam(NULL);
+  Encoder e(move(Decoder::deserialize(idata)), string(tname), false);
+  remove(tname);
+  return e;
+}
+
+bool Encoder::operator==(const Encoder &other) const {
+  return width_ == other.width_ &&
+         height_ == other.height_ &&
+         decoder_state_ == other.decoder_state_ &&
+         references_ == other.references_;
 }
 
 template<class FrameType>

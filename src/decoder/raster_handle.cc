@@ -20,6 +20,7 @@ static T dequeue( queue<T> & q )
   return ret;
 }
 
+bool RasterPoolDebug::allow_resize = false;
 class RasterPool
 {
 private:
@@ -36,10 +37,17 @@ public:
     } else {
       if ( (unused_rasters_.front()->display_width() != display_width)
            or (unused_rasters_.front()->display_height() != display_height) ) {
-        throw Unsupported( "raster size has changed" );
+        if (RasterPoolDebug::allow_resize) {
+          while (! unused_rasters_.empty()) {
+            dequeue(unused_rasters_);
+          }
+          ret.reset(new HashCachedRaster(display_width, display_height));
+        } else {
+          throw Unsupported( "raster size has changed" );
+        }
+      } else {
+        ret = dequeue( unused_rasters_ );
       }
-
-      ret = dequeue( unused_rasters_ );
     }
 
     ret.get_deleter().set_raster_pool( this );

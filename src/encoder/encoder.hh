@@ -196,8 +196,6 @@ public:
 
   Encoder(Decoder dec, const std::string &output_filename, const bool two_pass);
 
-  size_t serialize(EncoderStateSerializer &odata) const;
-
   /*
    * This function decides that the current raster should be encoded as a
    * keyframe or as an interframe.
@@ -209,9 +207,15 @@ public:
   template<class FrameType>
   static FrameType make_empty_frame( const uint16_t width, const uint16_t height );
 
+  static unsigned calc_prob( unsigned false_count, unsigned total );
+
+  bool operator==(const Encoder &other) const;
+
+  size_t serialize(EncoderStateSerializer &odata) const;
   static Encoder deserialize(EncoderStateDeserializer &idata, const std::string &filename, const bool two_pass);
 
-  static unsigned calc_prob( unsigned false_count, unsigned total );
+  // testing only! output file is immediately deleted
+  static Encoder deserialize(EncoderStateDeserializer &idata);
 };
 
 #endif /* ENCODER_HH */

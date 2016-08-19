@@ -8,6 +8,15 @@
 class RasterPool;
 class RasterHandle;
 
+class RasterPoolDebug {
+  public:
+    // WARNING this will probably break everything!
+    // you should only use it if you absolutely must
+    // resize rasters while displaying and know exactly
+    // what you're doing!
+    static bool allow_resize;
+};
+
 class HashCachedRaster : public VP8Raster
 {
 private:

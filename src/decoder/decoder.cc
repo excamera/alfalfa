@@ -18,9 +18,9 @@ Decoder::Decoder( DecoderState state, References refs )
   : state_( state ), references_( refs )
 {}
 
-Decoder::Decoder(EncoderStateDeserializer &idata, const uint16_t width, const uint16_t height)
-  : state_(idata, width, height)
-  , references_(idata, width, height) {
+Decoder::Decoder(EncoderStateDeserializer &idata)
+  : state_(move(DecoderState::deserialize(idata)))
+  , references_(move(References::deserialize(idata))) {
   assert(idata.remaining() == 0);
 }
 
@@ -28,10 +28,8 @@ size_t Decoder::serialize(EncoderStateSerializer &odata) const {
   odata.reserve(9);
   odata.put(EncoderSerDesTag::DECODER);
 
-  uint32_t len = 4;
+  uint32_t len = 0;
   size_t placeholder = odata.put(len);
-  odata.put(state_.width);
-  odata.put(state_.height);
 
   // serialize
   len += state_.serialize(odata);
@@ -52,10 +50,7 @@ Decoder Decoder::deserialize(EncoderStateDeserializer &idata) {
   assert(len == idata.remaining());
   (void) len;         // not used except in assert
 
-  uint16_t width = idata.get<uint16_t>();
-  uint16_t height = idata.get<uint16_t>();
-
-  return Decoder(idata, width, height);
+  return Decoder(idata);
 }
 
 UncompressedChunk Decoder::decompress_frame( const Chunk & compressed_frame ) const
@@ -150,9 +145,7 @@ DecoderHash Decoder::get_hash( void ) const
 
 bool Decoder::operator==( const Decoder & other ) const
 {
-  return state_ == other.state_ and references_.last == other.references_.last and
-    references_.golden == other.references_.golden and
-    references_.alternative == other.references_.alternative;
+  return state_ == other.state_ and references_ == other.references_;
 }
 
 References::References( const uint16_t width, const uint16_t height )
@@ -170,16 +163,59 @@ References::References(EncoderStateDeserializer &idata, const uint16_t width, co
   : last(move(idata.get_ref(EncoderSerDesTag::REF_LAST, width, height)))
   , golden(move(idata.get_ref(EncoderSerDesTag::REF_GOLD, width, height)))
   , alternative(move(idata.get_ref(EncoderSerDesTag::REF_ALT, width, height)))
-  , reference_flags(idata) {}
+  , reference_flags(move(ReferenceFlags::deserialize(idata))) {}
 
 size_t References::serialize(EncoderStateSerializer &odata) const {
-  size_t len = 0;
+  odata.reserve(9);
+  odata.put(EncoderSerDesTag::REFERENCES);
+
+  uint32_t len = 4;
+  size_t placeholder = odata.put(len);
+
+  odata.put((uint16_t) last.get().display_width());
+  odata.put((uint16_t) last.get().display_height());
+
   len += odata.put(last, EncoderSerDesTag::REF_LAST);
   len += odata.put(golden, EncoderSerDesTag::REF_GOLD);
   len += odata.put(alternative, EncoderSerDesTag::REF_ALT);
   len += reference_flags.serialize(odata);
-  return len;
+
+  odata.put(len, placeholder);
+
+  return len + 5;
 }
+
+References References::deserialize(EncoderStateDeserializer &idata) {
+  EncoderSerDesTag data_type = idata.get_tag();
+  assert(data_type == EncoderSerDesTag::REFERENCES);
+  (void) data_type;   // unused
+
+  uint32_t get_len = idata.get<uint32_t>();
+  assert(get_len <= idata.remaining());
+  (void) get_len;     // unused
+
+  uint16_t width = idata.get<uint16_t>();
+  uint16_t height = idata.get<uint16_t>();
+
+  return References(idata, width, height);
+}
+
+bool References::operator==(const References &other) const {
+  return last == other.last &&
+         golden == other.golden &&
+         alternative == other.alternative &&
+         reference_flags == other.reference_flags;
+}
+
+DecoderState::DecoderState(const unsigned s_width, const unsigned s_height,
+                           ProbabilityTables &&p, Optional<Segmentation> &&s,
+                           Optional<FilterAdjustments> &&f)
+  : width(s_width)
+  , height(s_height)
+  , probability_tables(move(p))
+  , segmentation(move(s))
+  , filter_adjustments(move(f))
+{}
 
 DecoderState::DecoderState( const unsigned int s_width, const unsigned int s_height )
   : width( s_width ), height( s_height )
@@ -196,15 +232,15 @@ DecoderState::DecoderState( const KeyFrameHeader & header,
 DecoderState::DecoderState(EncoderStateDeserializer &idata, const unsigned s_width, const unsigned s_height)
   : width(s_width)
   , height(s_height)
-  , probability_tables(idata) {
+  , probability_tables(move(ProbabilityTables::deserialize(idata))) {
   EncoderSerDesTag seg_opt = idata.get_tag();
   if (seg_opt == EncoderSerDesTag::OPT_FULL) {
-    segmentation.initialize(idata, s_width, s_height);
+    segmentation = move(Segmentation::deserialize(idata));
   }
 
   EncoderSerDesTag filt_opt = idata.get_tag();
   if (filt_opt == EncoderSerDesTag::OPT_FULL) {
-    filter_adjustments.initialize(idata);
+    filter_adjustments = move(FilterAdjustments::deserialize(idata));
   }
 }
 
@@ -235,11 +271,14 @@ size_t DecoderState::hash( void ) const
 }
 
 size_t DecoderState::serialize(EncoderStateSerializer &odata) const {
-  odata.reserve(5);
+  odata.reserve(9);
   odata.put(EncoderSerDesTag::DECODER_STATE);
 
-  uint32_t len = 0;
+  uint32_t len = 4;
   size_t placeholder = odata.put(len);
+
+  odata.put((uint16_t) width);
+  odata.put((uint16_t) height);
 
   len += probability_tables.serialize(odata);
 
@@ -262,6 +301,21 @@ size_t DecoderState::serialize(EncoderStateSerializer &odata) const {
   odata.put(len, placeholder);
 
   return len + 5;
+}
+
+DecoderState DecoderState::deserialize(EncoderStateDeserializer &idata) {
+  EncoderSerDesTag data_type = idata.get_tag();
+  assert(data_type == EncoderSerDesTag::DECODER_STATE);
+  (void) data_type;   // unused
+
+  uint32_t get_len = idata.get<uint32_t>();
+  assert(get_len <= idata.remaining());
+  (void) get_len;     // unused
+
+  uint16_t width = idata.get<uint16_t>();
+  uint16_t height = idata.get<uint16_t>();
+
+  return DecoderState(idata, width, height);
 }
 
 size_t FilterAdjustments::hash( void ) const
@@ -330,7 +384,7 @@ size_t Segmentation::hash( void ) const
 }
 
 size_t Segmentation::serialize(EncoderStateSerializer &odata) const {
-  uint32_t len = num_segments + num_segments + map.width() * map.height();
+  uint32_t len = 4 + num_segments + num_segments + map.width() * map.height();
   odata.reserve(len + 5);
 
   // sneak a bool into the tag
@@ -341,6 +395,9 @@ size_t Segmentation::serialize(EncoderStateSerializer &odata) const {
   }
   odata.put(len);
 
+  odata.put((uint16_t) map.width());
+  odata.put((uint16_t) map.height());
+
   for (unsigned i = 0; i < num_segments; i++) {
     odata.put(segment_quantizer_adjustments.at(i));
   }
@@ -349,34 +406,25 @@ size_t Segmentation::serialize(EncoderStateSerializer &odata) const {
     odata.put(segment_filter_adjustments.at(i));
   }
 
-  for (unsigned i = 0; i < map.width(); i++) {
-    for (unsigned j = 0; j < map.height(); j++) {
-      odata.put(map.at(i, j));
-    }
-  }
+  map.forall([&](uint8_t &f){ odata.put(f); });
 
   return len + 5;
 }
 
-Segmentation::Segmentation(EncoderStateDeserializer &idata, const unsigned width, const unsigned height)
-  : map(width, height, 3) {
+Segmentation Segmentation::deserialize(EncoderStateDeserializer &idata) {
   EncoderSerDesTag data_type = idata.get_tag();
   assert(data_type == EncoderSerDesTag::SEGM_ABS || data_type == EncoderSerDesTag::SEGM_REL);
-  absolute_segment_adjustments = data_type == EncoderSerDesTag::SEGM_ABS;
+  bool abs = data_type == EncoderSerDesTag::SEGM_ABS;
 
-  for (unsigned i = 0; i < num_segments; i++) {
-    segment_quantizer_adjustments.at(i) = idata.get<int8_t>();
-  }
+  uint32_t get_len = idata.get<uint32_t>();
+  uint16_t width = idata.get<uint16_t>();
+  uint16_t height = idata.get<uint16_t>();
+  uint32_t expect_len = 4 + num_segments + num_segments + width * height;
+  assert(expect_len == get_len);
+  (void) expect_len;    // unused except in assert
+  (void) get_len;       // unused except in assert
 
-  for (unsigned i = 0; i < num_segments; i++) {
-    segment_filter_adjustments.at(i) = idata.get<int8_t>();
-  }
-
-  for (unsigned i = 0; i < map.width(); i++) {
-    for (unsigned j = 0; j < map.height(); j++) {
-      map.at(i, j) = idata.get<uint8_t>();
-    }
-  }
+  return Segmentation(idata, abs, width, height);
 }
 
 bool FilterAdjustments::operator==( const FilterAdjustments & other ) const
@@ -391,6 +439,25 @@ bool Segmentation::operator==( const Segmentation & other ) const
     and segment_quantizer_adjustments == other.segment_quantizer_adjustments
     and segment_filter_adjustments == other.segment_filter_adjustments
     and map == other.map;
+}
+
+Segmentation::Segmentation(const unsigned width, const unsigned height)
+  : map(width, height, 3) {}
+
+Segmentation::Segmentation(EncoderStateDeserializer &idata,
+                           const bool abs, const unsigned width, const unsigned height)
+  : absolute_segment_adjustments(abs)
+  , map(width, height, 3) {
+
+  for (unsigned i = 0; i < num_segments; i++) {
+    segment_quantizer_adjustments.at(i) = idata.get<int8_t>();
+  }
+
+  for (unsigned i = 0; i < num_segments; i++) {
+    segment_filter_adjustments.at(i) = idata.get<int8_t>();
+  }
+
+  map.forall([&](uint8_t &f){ f = idata.get<uint8_t>(); });
 }
 
 Segmentation::Segmentation( const Segmentation & other )

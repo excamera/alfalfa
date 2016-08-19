@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iterator>
 #include <utility>
+#include <utility>
 #include <vector>
 
 #include "file.hh"
@@ -20,6 +21,7 @@ enum class EncoderSerDesTag : uint8_t
   , DECODER_STATE
   , OPT_EMPTY
   , OPT_FULL
+  , REFERENCES
   , REF_FLAGS
   , REF_LAST
   , REF_GOLD
@@ -69,23 +71,9 @@ class EncoderStateSerializer {
       this->put(t);
       this->put(len);
 
-      for (unsigned row = 0; row < height; row++) {
-        for (unsigned col = 0; col < width; col++) {
-          this->put(ref.Y().at(col, row));
-        }
-      }
-
-      for (unsigned row = 0; row < height / 2; row++) {
-        for (unsigned col = 0; col < width / 2; col++) {
-          this->put(ref.U().at(col, row));
-        }
-      }
-
-      for (unsigned row = 0; row < height / 2; row++) {
-        for (unsigned col = 0; col < width / 2; col++) {
-          this->put(ref.V().at(col, row));
-        }
-      }
+      ref.Y().forall([this](uint8_t &f){ this->put(f); });
+      ref.U().forall([this](uint8_t &f){ this->put(f); });
+      ref.V().forall([this](uint8_t &f){ this->put(f); });
 
       return len + 5;
     }
@@ -110,8 +98,13 @@ class EncoderStateDeserializer : File {
       : File(filename)
       , ptr_(0) {}
 
+    EncoderStateDeserializer(FILE *file)
+      : File(std::move(FileDescriptor(file)))
+      , ptr_(0) {}
+
     void reset(void) { ptr_ = 0; }
-    size_t remaining(void) const { return size() - ptr_; }
+    size_t remaining(void) const { return chunk().size() - ptr_; }
+    size_t size(void) const { return chunk().size(); }
 
     EncoderSerDesTag get_tag(void) {
       return static_cast<EncoderSerDesTag>((*this)(ptr_++, 1).octet());
@@ -119,10 +112,11 @@ class EncoderStateDeserializer : File {
 
     template<typename T> T get(void) {
       T ret = (T) 0;
-      for (unsigned i = 0; i < sizeof(ret); i++) {
+      for (unsigned i = sizeof(ret); i > 0; i--) {
         ret = ret << 8;
-        ret = ret | (*this)(ptr_++, 1).octet();
+        ret = ret | (*this)(ptr_ + i - 1, 1).octet();
       }
+      ptr_ += sizeof(ret);
       return ret;
     }
 
@@ -135,29 +129,16 @@ class EncoderStateDeserializer : File {
       unsigned rwidth = raster.get().width();
       unsigned rheight = raster.get().height();
 
-      uint32_t expect_len = rwidth * rheight + 2 * (rwidth / 2) + 2 * (rheight / 2);
+      uint32_t expect_len = rwidth * rheight + 2 * (rwidth / 2) * (rheight / 2);
       uint32_t get_len = this->get<uint32_t>();
       assert(get_len == expect_len);
       (void) get_len;     // only used in assert
       (void) expect_len;  // only used in assert
 
-      for (unsigned row = 0; row < height; row++) {
-        for (unsigned col = 0; col < width; col++) {
-          raster.get().Y().at(col, row) = this->get<uint8_t>();
-        }
-      }
+      raster.get().Y().forall([this](uint8_t &f){ f = this->get<uint8_t>(); });
+      raster.get().U().forall([this](uint8_t &f){ f = this->get<uint8_t>(); });
+      raster.get().V().forall([this](uint8_t &f){ f = this->get<uint8_t>(); });
 
-      for (unsigned row = 0; row < height / 2; row++) {
-        for (unsigned col = 0; col < width / 2; col++) {
-          raster.get().U().at(col, row) = this->get<uint8_t>();
-        }
-      }
-
-      for (unsigned row = 0; row < height / 2; row++) {
-        for (unsigned col = 0; col < width / 2; col++) {
-          raster.get().V().at(col, row) = this->get<uint8_t>();
-        }
-      }
       return raster;
     }
 };
