@@ -79,7 +79,7 @@ uint32_t Costs::mv_component_cost( const int16_t num,
 
   uint32_t cost = 0;
 
-  int16_t num_to_encode = num;
+  int16_t num_to_encode = num >> 1;
   uint16_t x = abs( num_to_encode );
 
   if ( x < 8 ) {
