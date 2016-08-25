@@ -103,7 +103,7 @@ Encoder::MBPredictionData Encoder::luma_mb_best_prediction_mode( const VP8Raster
 }
 
 /*
- * `reconstructed_mb` should contain the prediction values, or in the case of
+ * `reconstructed_mb` must contain the prediction values, or in the case of
  * B_PRED mode, it should contain the actual reconstruted frame, alongside with
  * corresponding coefficients in `frame_mb`.
  */
@@ -118,49 +118,49 @@ void Encoder::luma_mb_apply_intra_prediction( const VP8Raster::Macroblock & orig
 {
   frame_mb.Y2().set_prediction_mode( min_prediction_mode );
 
-  if ( min_prediction_mode != B_PRED ) { // if B_PRED is selected, it is already taken care of.
-    SafeArray<int16_t, 16> walsh_input;
+  if ( min_prediction_mode == B_PRED ) {
+    frame_mb.Y2().set_coded( false );
+    return;
+  }
 
-    frame_mb.Y().forall_ij(
-      [&] ( YBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
-      {
-        auto & original_sb = original_mb.Y_sub.at( sb_column, sb_row );
-        frame_sb.set_prediction_mode( KeyFrameMacroblock::implied_subblock_mode( min_prediction_mode ) );
+  SafeArray<int16_t, 16> walsh_input;
 
-        frame_sb.mutable_coefficients().subtract_dct( original_sb,
-          reconstructed_mb.Y_sub.at( sb_column, sb_row ).contents() );
+  frame_mb.Y().forall_ij(
+    [&] ( YBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
+    {
+      auto & original_sb = original_mb.Y_sub.at( sb_column, sb_row );
+      frame_sb.set_prediction_mode( KeyFrameMacroblock::implied_subblock_mode( min_prediction_mode ) );
 
-        walsh_input.at( sb_column + 4 * sb_row ) = frame_sb.coefficients().at( 0 );
-        frame_sb.set_dc_coefficient( 0 );
-        frame_sb.set_Y_after_Y2();
+      frame_sb.mutable_coefficients().subtract_dct( original_sb,
+        reconstructed_mb.Y_sub.at( sb_column, sb_row ).contents() );
 
-        if ( encoder_pass == FIRST_PASS ) {
-          frame_sb.mutable_coefficients() = YBlock::quantize( quantizer, frame_sb.coefficients() );
-        }
-        else {
-          trellis_quantize( frame_sb, quantizer );
-        }
+      walsh_input.at( sb_column + 4 * sb_row ) = frame_sb.coefficients().at( 0 );
+      frame_sb.set_dc_coefficient( 0 );
+      frame_sb.set_Y_after_Y2();
 
-        frame_sb.calculate_has_nonzero();
+      if ( encoder_pass == FIRST_PASS ) {
+        frame_sb.mutable_coefficients() = YBlock::quantize( quantizer, frame_sb.coefficients() );
       }
-    );
+      else {
+        trellis_quantize( frame_sb, quantizer );
+      }
 
-    frame_mb.Y2().set_coded( true );
-    frame_mb.Y2().mutable_coefficients().wht( walsh_input );
-
-    if ( encoder_pass == FIRST_PASS ) {
-      frame_mb.Y2().mutable_coefficients() = Y2Block::quantize( quantizer, frame_mb.Y2().coefficients() );
+      frame_sb.calculate_has_nonzero();
     }
-    else {
-      check_reset_y2( frame_mb.Y2(), quantizer );
-      trellis_quantize( frame_mb.Y2(), quantizer );
-    }
+  );
 
-    frame_mb.Y2().calculate_has_nonzero();
+  frame_mb.Y2().set_coded( true );
+  frame_mb.Y2().mutable_coefficients().wht( walsh_input );
+
+  if ( encoder_pass == FIRST_PASS ) {
+    frame_mb.Y2().mutable_coefficients() = Y2Block::quantize( quantizer, frame_mb.Y2().coefficients() );
   }
   else {
-    frame_mb.Y2().set_coded( false );
+    check_reset_y2( frame_mb.Y2(), quantizer );
+    trellis_quantize( frame_mb.Y2(), quantizer );
   }
+
+  frame_mb.Y2().calculate_has_nonzero();
 }
 
 template <class MacroblockType>

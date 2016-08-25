@@ -63,12 +63,20 @@ private:
                           uint32_t distortion_multiplier );
 
   template<unsigned int size>
+  static int32_t avg( const VP8Raster::Block<size> & block,
+                      const TwoDSubRange<uint8_t, size, size> & prediction );
+
+  template<unsigned int size>
   static uint32_t sad( const VP8Raster::Block<size> & block,
                        const TwoDSubRange<uint8_t, size, size> & prediction );
 
   template<unsigned int size>
   static uint32_t sse( const VP8Raster::Block<size> & block,
                        const TwoDSubRange<uint8_t, size, size> & prediction );
+
+  template<unsigned int size>
+  static uint32_t variance( const VP8Raster::Block<size> & block,
+                            const TwoDSubRange<uint8_t, size, size> & prediction );
 
   MotionVector diamond_search( const VP8Raster::Macroblock & original_mb,
                                VP8Raster::Macroblock & reconstructed_mb,
@@ -78,10 +86,6 @@ private:
                                MotionVector base_mv,
                                MotionVector origin,
                                size_t step_size ) const;
-
-  template<unsigned int size>
-  static uint32_t variance( const VP8Raster::Block<size> & block,
-                            const TwoDSubRange<uint8_t, size, size> & prediction );
 
   void luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                               VP8Raster::Macroblock & constructed_mb,

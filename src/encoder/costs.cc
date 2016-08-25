@@ -238,50 +238,6 @@ uint32_t Costs::sad_motion_vector_cost( const MotionVector & mv,
            + mv_sad_costs.at( 1 ).at( x < 0 ).at( abs( x ) ) ) * weight + 128 ) / 256 ;
 }
 
-template<class MacroblockType, class BlockType>
-uint32_t Costs::block_cost( const MacroblockType & frame_mb, const BlockType & block )
-{
-  uint8_t coded_length = 0;
-
-  /* how many tokens are we going to encode? */
-  for ( size_t index = ( block.type() == BlockType::Y_after_Y2 ) ? 1 : 0;
-        index < 16;
-        index++ ) {
-    if ( block.coefficients().at( zigzag.at( index ) ) ) {
-      coded_length = index + 1;
-    }
-  }
-
-  uint32_t cost = 0;
-  uint8_t token_context = ( block.context().above.initialized() ? block.context().above.get()->has_nonzero() : 0 )
-    + ( block.context().left.initialized() ? block.context().left.get()->has_nonzero() : 0 );
-
-
-  size_t i = ( block.type() == BlockType::Y_after_Y2 ) ? 1 : 0;
-  for ( ; i < coded_length; i++ ) {
-    const int16_t coeff = block.coefficients().at( zigzag.at( i ) );
-    const int16_t token = token_for_coeff( coeff );
-
-    cost += token_costs.at( block.type() )
-                       .at( coefficient_to_band.at( i ) )
-                       .at( token_context )
-                       .at( token );
-
-    cost += coeff_base_cost( coeff );
-
-    token_context = prev_token_class.at( token );
-  }
-
-  if ( coded_length < 16 ) {
-    cost += token_costs.at( block.type() )
-                       .at( coefficient_to_band.at( i ) )
-                       .at( token_context )
-                       .at( DCT_EOB_TOKEN );
-  }
-
-  return cost;
-}
-
 uint8_t Costs::token_for_coeff( int16_t coeff )
 {
   coeff = abs( coeff );
