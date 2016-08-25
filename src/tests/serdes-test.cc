@@ -8,6 +8,7 @@
 
 #include "decoder.hh"
 #include "encoder.hh"
+#include "file_descriptor.hh"
 #include "raster_handle.hh"
 
 using namespace std;
@@ -264,9 +265,5 @@ Decoder random_decoder(default_random_engine &rng) {
 }
 
 Encoder random_encoder(default_random_engine &rng) {
-  char *tname = tmpnam(NULL);
-  Encoder e = Encoder(move(random_decoder(rng)), string(tname), false);
-  remove(tname);
-
-  return e;
+  return Encoder(move(random_decoder(rng)), FileDescriptor(tmpfile()), false);
 }

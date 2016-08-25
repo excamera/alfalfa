@@ -4,6 +4,7 @@
 #include <array>
 #include <cstdio>
 #include <limits>
+#include <utility>
 
 #include "block.hh"
 #include "encoder.hh"
@@ -85,8 +86,9 @@ Encoder::Encoder( const string & output_filename, const uint16_t width,
   costs_.fill_mode_costs();
 }
 
-Encoder::Encoder(Decoder dec, const string &output_filename, const bool two_pass)
-  : ivf_writer_( output_filename, "VP80", dec.get_width(), dec.get_height(), 1, 1 ),
+template<typename T>
+Encoder::Encoder(Decoder dec, T ofd, const bool two_pass)
+  : ivf_writer_( forward<T>(ofd), "VP80", dec.get_width(), dec.get_height(), 1, 1 ),
     width_( dec.get_width() ), height_( dec.get_height() ),
     temp_raster_handle_( dec.get_width(), dec.get_height() ),
     decoder_state_( dec.get_state() ), references_( dec.get_references() ),
@@ -105,9 +107,7 @@ Encoder Encoder::deserialize(EncoderStateDeserializer &idata, const std::string 
 
 // testing only! output file is immediately deleted
 Encoder Encoder::deserialize(EncoderStateDeserializer &idata) {
-  char *tname = tmpnam(NULL);
-  Encoder e(move(Decoder::deserialize(idata)), string(tname), false);
-  remove(tname);
+  Encoder e(move(Decoder::deserialize(idata)), FileDescriptor(tmpfile()), false);
   return e;
 }
 

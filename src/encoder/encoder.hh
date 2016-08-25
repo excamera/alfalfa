@@ -14,6 +14,7 @@
 #include "ivf_writer.hh"
 #include "costs.hh"
 #include "enc_state_serializer.hh"
+#include "file_descriptor.hh"
 
 enum EncoderPass
 {
@@ -198,7 +199,7 @@ public:
   Encoder( const std::string & output_filename, const uint16_t width,
            const uint16_t height, const bool two_pass );
 
-  Encoder(Decoder dec, const std::string &output_filename, const bool two_pass);
+  template<typename T> Encoder(Decoder dec, T ofd, const bool two_pass);
 
   /*
    * This function decides that the current raster should be encoded as a
