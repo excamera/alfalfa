@@ -65,6 +65,10 @@ public:
   unsigned int cur_frame_no() const { return frame_no_ - 1; }
 
   long unsigned int original_size() const;
+
+  Decoder current_decoder() const { return decoder_; }
+  References current_references() const { return decoder_.get_references(); }
+  DecoderState current_state() const { return decoder_.get_state(); }
 };
 
 using Player = FilePlayer;

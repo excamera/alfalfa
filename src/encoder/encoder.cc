@@ -87,7 +87,7 @@ Encoder::Encoder( const string & output_filename, const uint16_t width,
 }
 
 template<typename T>
-Encoder::Encoder(Decoder dec, T ofd, const bool two_pass)
+Encoder::Encoder( Decoder dec, T ofd, const bool two_pass )
   : ivf_writer_( forward<T>(ofd), "VP80", dec.get_width(), dec.get_height(), 1, 1 ),
     width_( dec.get_width() ), height_( dec.get_height() ),
     temp_raster_handle_( dec.get_width(), dec.get_height() ),
@@ -96,6 +96,9 @@ Encoder::Encoder(Decoder dec, T ofd, const bool two_pass)
 {
   costs_.fill_mode_costs();
 }
+
+template Encoder::Encoder( Decoder, const std::string, const bool );
+template Encoder::Encoder( Decoder, FileDescriptor, const bool );
 
 size_t Encoder::serialize(EncoderStateSerializer &odata) const {
   return Decoder(decoder_state_, references_).serialize(odata);

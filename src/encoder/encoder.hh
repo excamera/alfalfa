@@ -199,7 +199,10 @@ public:
   Encoder( const std::string & output_filename, const uint16_t width,
            const uint16_t height, const bool two_pass );
 
-  template<typename T> Encoder(Decoder dec, T ofd, const bool two_pass);
+  template<typename T>
+  Encoder( Decoder dec, T ofd, const bool two_pass );
+
+  IVFWriter & ivf_writer() { return ivf_writer_; } // This is stupid.
 
   /*
    * This function decides that the current raster should be encoded as a
@@ -208,6 +211,9 @@ public:
   double encode( const VP8Raster & raster,
                  const double minimum_ssim,
                  const uint8_t y_ac_qi = std::numeric_limits<uint8_t>::max() );
+
+  InterFrame reencode_as_interframe( const VP8Raster & unfiltered_output,
+                                     const KeyFrame & original_frame );
 
   template<class FrameType>
   static FrameType make_empty_frame( const uint16_t width, const uint16_t height );

@@ -25,7 +25,7 @@ using namespace std;
 
 void usage_error( const string & program_name )
 {
-  cerr << "Usage: " << program_name << " [options] [-o <output>] <input>" << endl
+  cerr << "Usage: " << program_name << " [options] <input>" << endl
        << endl
        << "Options:" << endl
        << " -o <arg>, --output=<arg>              Output file name (default: output.ivf)" << endl

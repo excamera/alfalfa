@@ -166,6 +166,8 @@ struct MVProbUpdate
   {
     return mv_prob == other.mv_prob;
   }
+
+  void clear() { mv_prob.clear(); }
 };
 
 struct KeyFrameHeader

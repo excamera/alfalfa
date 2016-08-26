@@ -467,6 +467,137 @@ void Encoder::optimize_interframe_probs( InterFrame & frame )
   }
 }
 
+InterFrame Encoder::reencode_as_interframe( const VP8Raster & unfiltered_output,
+                                            const KeyFrame & original_frame )
+{
+  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width_, height_ );
+  auto & kf_header = original_frame.header();
+  auto & if_header = frame.mutable_header();
+
+  if_header.filter_type             = kf_header.filter_type;
+  if_header.update_segmentation     = kf_header.update_segmentation;
+  if_header.loop_filter_level       = kf_header.loop_filter_level;
+  if_header.sharpness_level         = kf_header.sharpness_level;
+  if_header.mode_lf_adjustments     = kf_header.mode_lf_adjustments;
+  if_header.quant_indices           = kf_header.quant_indices; // ?
+  //if_header.quant_indices.y_ac_qi   = 0;
+  if_header.refresh_last            = true;
+  if_header.refresh_entropy_probs   = true;
+
+  for ( size_t i = 0; i < MV_PROB_CNT; i++ ) {
+    if_header.mv_prob_update.at( 0 ).at( i ).clear();
+    if_header.mv_prob_update.at( 1 ).at( i ).clear();
+  }
+
+  // TODO MV probabilities.
+
+  if_header.intra_16x16_prob.clear();
+
+  for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
+    for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
+      for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
+        for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
+          auto & current_prob = decoder_state_.probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l );
+          auto & kf_header_prob = kf_header.token_prob_update.at( i ).at( j ).at( k ).at( l ).coeff_prob;
+          auto & default_kf_prob = k_default_coeff_probs.at( i ).at( j ).at( k ).at( l );
+
+          if ( kf_header_prob.initialized() ) {
+            if( current_prob != kf_header_prob.get() ) {
+              if_header.token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( true, kf_header_prob.get() );
+            }
+            else {
+              if_header.token_prob_update.at( i ).at( j ).at( k ).at( l ).coeff_prob.clear();
+            }
+          }
+          else {
+            if ( current_prob != default_kf_prob ) {
+              if_header.token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( true, default_kf_prob );
+            }
+            else {
+              if_header.token_prob_update.at( i ).at( j ).at( k ).at( l ).coeff_prob.clear();
+            }
+          }
+        }
+      }
+    }
+  }
+
+  decoder_state_.probability_tables.coeff_prob_update( frame.header() );
+
+  Quantizer quantizer( frame.header().quant_indices );
+  MutableRasterHandle reconstructed_raster_handle { width_, height_ };
+  VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
+
+  MVComponentCounts component_counts;
+
+  size_t diff1 = 0;
+  size_t diff2 = 0;
+
+  unfiltered_output.macroblocks().forall_ij(
+    [&] ( VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
+    {
+      auto & reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
+      auto & temp_mb = temp_raster().macroblock( mb_column, mb_row );
+      auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
+
+      // Process Y and Y2
+      luma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb, frame_mb,
+                             quantizer, component_counts, FIRST_PASS );
+
+      if ( frame_mb.inter_coded() ) {
+        chroma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb,
+                                 frame_mb, quantizer, FIRST_PASS );
+      }
+      else {
+        chroma_mb_intra_predict( original_mb, reconstructed_mb, temp_mb,
+                                 frame_mb, quantizer, FIRST_PASS );
+      }
+
+      frame_mb.calculate_has_nonzero();
+
+      if ( frame_mb.inter_coded() ) {
+        frame_mb.reconstruct_inter( quantizer, references_, reconstructed_mb );
+      }
+      else {
+        frame_mb.reconstruct_intra( quantizer, reconstructed_mb );
+      }
+
+      for ( size_t i = 0; i < 16; i++ ) {
+        for ( size_t j = 0; j < 16; j++ ) {
+          unsigned int d = abs( original_mb.Y.at( i, j ) - reconstructed_mb.Y.at( i , j ) );
+          diff1 += ( d != 0 );
+          diff2 += d;
+        }
+      }
+
+      for ( size_t i = 0; i < 8; i++ ) {
+        for ( size_t j = 0; j < 8; j++ ) {
+          unsigned int d = abs( original_mb.U.at( i, j ) - reconstructed_mb.U.at( i , j ) );
+          diff1 += ( d != 0 );
+          diff2 += d;
+
+          d = abs( original_mb.V.at( i, j ) - reconstructed_mb.V.at( i , j ) );
+          diff1 += ( d != 0 );
+          diff2 += d;
+        }
+      }
+    }
+  );
+
+  double tot = width_ * height_ + width_ * height_ / 2;
+  cout << ((double) diff1) / tot << ' '<< ((double ) diff2) / ((double) diff1) << endl;
+
+  frame.relink_y2_blocks();
+
+  optimize_prob_skip( frame );
+  optimize_interframe_probs( frame );
+
+  DecoderState current_state = decoder_state_;
+  ivf_writer_.append_frame( frame.serialize( current_state.probability_tables ) );
+
+  return frame;
+}
+
 template<>
 pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Raster & raster,
                                                                      const QuantIndices & quant_indices,
