@@ -191,14 +191,14 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                                              encoder_pass,
                                                              true );
 
-  MBPredictionData best_uv_pred = chroma_mb_best_prediction_mode( original_mb,
+  /* MBPredictionData best_uv_pred = chroma_mb_best_prediction_mode( original_mb,
                                                                   reconstructed_mb,
                                                                   temp_mb,
                                                                   true );
 
   best_pred.distortion += best_uv_pred.distortion;
   best_pred.rate       += best_uv_pred.rate;
-  best_pred.cost       += best_uv_pred.cost;
+  best_pred.cost       += best_uv_pred.cost; */
 
   MotionVector best_mv;
   const VP8Raster & reference = references_.last.get();
@@ -270,11 +270,11 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
       pred.rate += costs_.motion_vector_cost( mv - best_ref, 96 );
     }
 
-    chroma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb, frame_mb,
+    /* chroma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb, frame_mb,
                              quantizer, encoder_pass );
 
     pred.distortion += sse( original_mb.U, reconstructed_mb.U.contents() );
-    pred.distortion += sse( original_mb.V, reconstructed_mb.V.contents() );
+    pred.distortion += sse( original_mb.V, reconstructed_mb.V.contents() ); */
 
     pred.cost = rdcost( pred.rate, pred.distortion, RATE_MULTIPLIER,
                         DISTORTION_MULTIPLIER );
