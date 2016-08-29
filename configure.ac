@@ -6,10 +6,12 @@ AC_INIT([alfalfa], [0.1], [alfalfa@mit.edu])
 AM_INIT_AUTOMAKE([foreign tar-ustar])
 AC_CONFIG_SRCDIR([src/decoder/prediction.cc])
 AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_MACRO_DIRS([m4])
 
 # Checks for programs.
 AC_PROG_CXX
-AC_PROG_RANLIB
+dnl AC_PROG_RANLIB
+LT_INIT
 AC_PATH_PROG([PERL], [perl], [])
 AS_IF([test x"$PERL" = x],
   [AC_MSG_ERROR([cannot find perl])])
@@ -41,6 +43,20 @@ AC_ARG_ENABLE([debug],
   [NODEBUG_CXXFLAGS="-DNDEBUG"])
 
 AC_SUBST(NODEBUG_CXXFLAGS)
+
+AC_ARG_ENABLE([all-static],
+  [AS_HELP_STRING([--enable-all-static], [Build statically linked binaries])],
+  [case "$enableval" in
+    '' | yes)
+        STATIC_BUILD_FLAG="-all-static"
+        ;;
+    *)
+        AC_MSG_ERROR([Unknown argument '$enableval' to --enable-all-static])
+        ;;
+   esac],
+  [STATIC_BUILD_FLAG=""])
+
+AC_SUBST(STATIC_BUILD_FLAG)
 
 # Checks for assemblers
 # TODO only check this when arch is x86
