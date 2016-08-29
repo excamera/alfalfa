@@ -50,6 +50,9 @@ AC_ARG_ENABLE([all-static],
     '' | yes)
         STATIC_BUILD_FLAG="-all-static"
         ;;
+    no)
+        STATIC_BUILD_FLAG=""
+        ;;
     *)
         AC_MSG_ERROR([Unknown argument '$enableval' to --enable-all-static])
         ;;
