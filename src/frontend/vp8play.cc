@@ -4,18 +4,21 @@
 
 #include "player.hh"
 #include "display.hh"
+#include "enc_state_serializer.hh"
 
 using namespace std;
 
 int main( int argc, char *argv[] )
 {
   try {
-    if ( argc != 2 ) {
-      cerr << "Usage: " << argv[ 0 ] << " FILENAME" << endl;
+    if ( argc < 2 ) {
+      cerr << "Usage: " << argv[ 0 ] << " FILENAME [decoder_state]" << endl;
       return EXIT_FAILURE;
     }
 
-    Player player( argv[ 1 ] );
+    Player player = argc < 3
+      ? Player( argv[ 1 ] )
+      : EncoderStateDeserializer::build<Player>(argv[2], argv[1]);
 
     VideoDisplay display { player.example_raster() };
 

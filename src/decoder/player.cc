@@ -14,6 +14,23 @@ FramePlayer::FramePlayer( const uint16_t width, const uint16_t height )
     decoder_( width, height )
 {}
 
+FramePlayer::FramePlayer(EncoderStateDeserializer &idata)
+  : width_(0)
+  , height_(0)
+  , decoder_(move(Decoder::deserialize(idata)))
+{
+  width_ = decoder_.get_width();
+  height_ = decoder_.get_height();
+}
+
+FramePlayer FramePlayer::deserialize(EncoderStateDeserializer &idata) {
+  return FramePlayer(idata);
+}
+
+size_t FramePlayer::serialize(EncoderStateSerializer &odata) {
+  return decoder_.serialize(odata);
+}
+
 Optional<RasterHandle> FramePlayer::decode( const Chunk & chunk )
 {
   return decoder_.parse_and_decode_frame( chunk );
@@ -96,6 +113,28 @@ FilePlayer::FilePlayer( const string & filename, IVF && file )
     }
     frame_no_++;
   }
+}
+
+FilePlayer::FilePlayer(const string &filename, IVF &&file, EncoderStateDeserializer &idata)
+  : FramePlayer(idata)
+  , file_(move(file))
+  , filename_(filename)
+{
+  if (file_.fourcc() != "VP80") {
+    throw Unsupported( "not a VP8 file" );
+  }
+
+  if (file_.width() != decoder_.get_width() || file_.height() != decoder_.get_height()) {
+    throw Unsupported("state vs. file dimension mismatch");
+  }
+}
+
+FilePlayer FilePlayer::deserialize(EncoderStateDeserializer &idata, const string &filename) {
+  return FilePlayer(filename, move(IVF(filename)), idata);
+}
+
+size_t FilePlayer::serialize(EncoderStateSerializer &odata) {
+  return decoder_.serialize(odata);
 }
 
 FrameRawData FilePlayer::get_next_frame( void )

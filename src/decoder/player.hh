@@ -10,6 +10,7 @@
 #include "ivf.hh"
 #include "frame_info.hh"
 #include "decoder.hh"
+#include "enc_state_serializer.hh"
 
 struct FrameRawData
 {
@@ -29,6 +30,7 @@ protected:
 
 public:
   FramePlayer( const uint16_t width, const uint16_t height );
+  FramePlayer( EncoderStateDeserializer &idata );
 
   Optional<RasterHandle> decode( const Chunk & chunk );
 
@@ -45,6 +47,9 @@ public:
 
   bool operator==( const FramePlayer & other ) const;
   bool operator!=( const FramePlayer & other ) const;
+
+  size_t serialize(EncoderStateSerializer &odata);
+  static FramePlayer deserialize(EncoderStateDeserializer &idata);
 };
 
 class FilePlayer : public FramePlayer
@@ -54,12 +59,14 @@ private:
   unsigned int frame_no_ { 0 };
   std::string filename_;
   FilePlayer( const std::string & filename, IVF && file );
+  FilePlayer( const std::string & filename, IVF && file, EncoderStateDeserializer & idata );
 
 protected:
   FrameRawData get_next_frame();
 
 public:
   FilePlayer( const std::string & filename );
+
   RasterHandle advance();
   bool eof() const;
   unsigned int cur_frame_no() const { return frame_no_ - 1; }
@@ -69,6 +76,9 @@ public:
   Decoder current_decoder() const { return decoder_; }
   References current_references() const { return decoder_.get_references(); }
   DecoderState current_state() const { return decoder_.get_state(); }
+
+  size_t serialize(EncoderStateSerializer &odata);
+  static FilePlayer deserialize(EncoderStateDeserializer &idata, const std::string &filename);
 };
 
 using Player = FilePlayer;
