@@ -9,7 +9,6 @@ noinst_LIBRARIES = libalfalfadecoder.a
 
 libalfalfadecoder_a_SOURCES = vp8_raster.hh block.hh bool_decoder.hh decoder.cc decoder.hh \
 	frame.cc frame_header.hh frame.hh \
-	frame_info.cc frame_info.hh \
 	loopfilter.cc loopfilter_filters.hh loopfilter.hh \
 	macroblock.cc macroblock.hh modemv_data.cc modemv_data.hh \
 	prediction.cc quantization.cc quantization.hh tokens.cc tokens.hh \
@@ -18,6 +17,6 @@ libalfalfadecoder_a_SOURCES = vp8_raster.hh block.hh bool_decoder.hh decoder.cc 
 	decoder_state.hh loopfilter_sse2.asm loopfilter_block_sse2_x86_64.asm \
 	predictor_sse.hh subpixel_ssse3.asm idctllm_mmx.asm \
 	transform_sse.hh raster_handle.hh raster_handle.cc \
-	player.cc player.hh dependency_tracking.hh dependency_tracking.cc \
+	player.cc player.hh \
 	probability_tables.cc \
 	config.asm x86_abi_support.asm enc_state_serializer.hh

@@ -6,13 +6,10 @@
 #include "2d.hh"
 #include "block.hh"
 #include "macroblock.hh"
-#include "dependency_tracking.hh"
 
 struct References;
 struct Segmentation;
 struct FilterAdjustments;
-
-class ReferenceDependency;
 
 struct Quantizers
 {
@@ -39,8 +36,6 @@ class Frame
 
   Optional<TwoD<MacroblockType>> macroblock_headers_ {};
 
-  UpdateTracker ref_updates_;
-
   ProbabilityArray< num_segments > calculate_mb_segment_tree_probs( void ) const;
   SafeArray< Quantizer, num_segments > calculate_segment_quantizers( const Optional< Segmentation > & segmentation ) const;
 
@@ -65,9 +60,6 @@ class Frame
 
   const FrameHeaderType & header() const { return header_; }
   FrameHeaderType & mutable_header() { return header_; }
-
-  DependencyTracker get_used() const;
-  UpdateTracker get_updated() const { return ref_updates_; }
 
   const TwoD<MacroblockType> & macroblocks() const { return macroblock_headers_.get(); }
   TwoD<MacroblockType> & mutable_macroblocks() { return macroblock_headers_.get(); }
@@ -97,63 +89,9 @@ class Frame
   bool show_frame( void ) const { return show_; }
 
   bool operator==( const Frame & other ) const;
-
-  void analyze_dependencies( const ReferenceDependency & deps ) const;
 };
 
 using KeyFrame = Frame<KeyFrameHeader, KeyFrameMacroblock>;
 using InterFrame = Frame<InterFrameHeader, InterFrameMacroblock>;
-
-/* Tracks which macroblocks we depend on from a raster */
-class ReferenceDependency
-{
-private:
-  unsigned width_, height_;
-  SafeArray<std::vector<std::vector<bool>>, 3> needed_macroblocks_;
-public:
-  ReferenceDependency( const TwoD<InterFrameMacroblock> & frame_macroblocks );
-
-  bool need_update_macroblock( const reference_frame & ref, const unsigned col, const unsigned row ) const;
-
-  unsigned num_macroblocks_horiz() const { return width_; }
-  unsigned num_macroblocks_vert() const { return height_; }
-};
-
-/* Encapsulates whatever needs to be done to update a reference for continuations */
-class ReferenceUpdater
-{
-public:
-  using Residue = SafeArray<SafeArray<int16_t, 4>, 4>;
-  class MacroblockDiff {
-  private:
-    SafeArray<SafeArray<Residue, 4>, 4> Y_;
-    SafeArray<SafeArray<Residue, 2>, 2> U_;
-    SafeArray<SafeArray<Residue, 2>, 2> V_;
-  public:
-    MacroblockDiff();
-    MacroblockDiff( const VP8Raster::Macroblock & lhs, const VP8Raster::Macroblock & rhs );
-
-    Residue y_residue( const unsigned int column, const unsigned int row ) const;
-    Residue u_residue( const unsigned int column, const unsigned int row ) const;
-    Residue v_residue( const unsigned int column, const unsigned int row ) const;
-  };
-private:
-  RasterHandle new_reference_;
-  std::vector<std::vector<Optional<ReferenceUpdater::MacroblockDiff>>> diffs_;
-  uint8_t prob_skip_;
-  unsigned width_, height_;
-public:
-  ReferenceUpdater( const reference_frame & ref_frame, const VP8Raster & current,
-                    const VP8Raster & target, const ReferenceDependency & dependencies );
-
-  Optional<ReferenceUpdater::MacroblockDiff> macroblock( const unsigned int column, const unsigned int row ) const;
-
-  uint8_t skip_probability() const;
-
-  unsigned width() const { return width_; }
-  unsigned height() const { return height_; }
-
-  const RasterHandle new_reference() const { return new_reference_; }
-};
 
 #endif /* FRAME_HH */

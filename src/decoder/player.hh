@@ -8,7 +8,6 @@
 #include <memory>
 
 #include "ivf.hh"
-#include "frame_info.hh"
 #include "decoder.hh"
 #include "enc_state_serializer.hh"
 
@@ -34,11 +33,7 @@ public:
 
   Optional<RasterHandle> decode( const Chunk & chunk );
 
-  Optional<RasterHandle> safe_decode( const FrameInfo & info, const Chunk & chunk );
-
   const VP8Raster & example_raster( void ) const;
-
-  bool can_decode( const FrameInfo & frame ) const;
 
   uint16_t width( void ) const { return width_; }
   uint16_t height( void ) const { return height_; }

@@ -6,6 +6,7 @@
 #include "decoder_state.hh"
 
 #include <sstream>
+#include <boost/functional/hash.hpp>
 
 using namespace std;
 
@@ -113,27 +114,18 @@ Optional<RasterHandle> Decoder::parse_and_decode_frame( const Chunk & compressed
   return make_optional( output.first, output.second );
 }
 
-SourceHash Decoder::source_hash( const DependencyTracker & deps ) const
-{
-  using OptHash = Optional<size_t>;
-
-  return SourceHash( deps.need_state ? OptHash( true, state_.hash() ) : OptHash( false ),
-                     deps.need_last ? OptHash( true, references_.last.hash() ) : OptHash( false ),
-                     deps.need_golden ? OptHash( true, references_.golden.hash() ) : OptHash( false ),
-                     deps.need_alternate ? OptHash( true, references_.alternative.hash() ) : OptHash( false ) );
-}
-
-TargetHash Decoder::target_hash( const UpdateTracker & updates, const RasterHandle & output,
-                                 bool shown ) const
-{
-  return TargetHash( updates, state_.hash(), output.hash(), shown );
-}
-
 DecoderHash Decoder::get_hash( void ) const
 {
   return DecoderHash( state_.hash(), references_.last.hash(),
                       references_.golden.hash(), references_.alternative.hash() );
 }
+
+DecoderHash::DecoderHash( size_t state_hash, size_t last_hash, size_t golden_hash, size_t alt_hash )
+  : state_hash_( state_hash ),
+    last_hash_( last_hash ),
+    golden_hash_( golden_hash ),
+    alt_hash_( alt_hash )
+{}
 
 bool Decoder::operator==( const Decoder & other ) const
 {
@@ -468,4 +460,38 @@ Segmentation::Segmentation( const Segmentation & other )
     map( other.map.width(), other.map.height() )
 {
   map.copy_from( other.map );
+}
+
+size_t DecoderHash::hash( void ) const
+{
+  size_t hash_val = 0;
+  boost::hash_combine( hash_val, state_hash_ );
+  boost::hash_combine( hash_val, last_hash_ );
+  boost::hash_combine( hash_val, golden_hash_ );
+  boost::hash_combine( hash_val, alt_hash_ );
+  return hash_val;
+}
+
+string DecoderHash::str( void ) const
+{
+  stringstream hash_str;
+  hash_str << hex << uppercase;
+
+  hash_str << state_hash_ << "_" <<
+    last_hash_ << "_" << golden_hash_ << "_" << alt_hash_;
+
+  return hash_str.str();
+}
+
+bool DecoderHash::operator==( const DecoderHash & other ) const
+{
+  return state_hash_ == other.state_hash_ and
+         last_hash_ == other.last_hash_ and
+         golden_hash_ == other.golden_hash_ and
+         alt_hash_ == other.alt_hash_;
+}
+
+bool DecoderHash::operator!=( const DecoderHash & other ) const
+{
+  return not operator==( other );
 }

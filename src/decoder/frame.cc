@@ -4,46 +4,6 @@
 
 using namespace std;
 
-static UpdateTracker calculate_updates( const KeyFrameHeader & )
-{
-  // KeyFrames always update all references
-  return UpdateTracker( true, true, true, false, false, false, false );
-}
-
-static UpdateTracker calculate_updates( const InterFrameHeader & header )
-{
-  UpdateTracker tracker( false, false, false, false, false, false, false );
-  if ( header.copy_buffer_to_alternate.initialized() ) {
-    if ( header.copy_buffer_to_alternate.get() == 1 ) {
-      tracker.last_to_alternate = true;
-    } else if ( header.copy_buffer_to_alternate.get() == 2 ) {
-      tracker.golden_to_alternate = true;
-    }
-  }
-
-  if ( header.copy_buffer_to_golden.initialized() ) {
-    if ( header.copy_buffer_to_golden.get() == 1 ) {
-      tracker.last_to_golden = true;
-    } else if ( header.copy_buffer_to_golden.get() == 2 ) {
-      tracker.alternate_to_golden = true;
-    }
-  }
-
-  if ( header.refresh_golden_frame ) {
-    tracker.update_golden = true;
-  }
-
-  if ( header.refresh_alternate_frame ) {
-    tracker.update_alternate = true;
-  }
-
-  if ( header.refresh_last ) {
-    tracker.update_last = true;
-  }
-
-  return tracker;
-}
-
 template <class FrameHeaderType, class MacroblockType>
 Frame<FrameHeaderType, MacroblockType>::Frame( const bool show,
                                                const unsigned int width,
@@ -52,8 +12,7 @@ Frame<FrameHeaderType, MacroblockType>::Frame( const bool show,
   : show_( show ),
     display_width_( width ),
     display_height_( height ),
-    header_( first_partition ),
-    ref_updates_( calculate_updates( header_ ) )
+    header_( first_partition )
 {}
 
 template <class FrameHeaderType, class MacroblockType>
@@ -71,26 +30,6 @@ ProbabilityArray< num_segments > Frame<FrameHeaderType, MacroblockType>::calcula
   }
 
   return mb_segment_tree_probs;
-}
-
-template <>
-DependencyTracker KeyFrame::get_used( void ) const
-{
-  return DependencyTracker { false, false, false, false };
-}
-
-template <>
-DependencyTracker InterFrame::get_used( void ) const
-{
-  DependencyTracker deps { true, false, false, false };
-
-  macroblock_headers_.get().forall( [&] ( const InterFrameMacroblock & mb ) {
-                                      if ( mb.inter_coded() ) {
-                                        deps.reference( mb.header().reference() ) = true;
-                                      }
-                                    } );
-
-  return deps;
 }
 
 template <class FrameHeaderType, class MacroblockType>
@@ -264,43 +203,42 @@ void Frame<FrameHeaderType, MacroblockType>::relink_y2_blocks( void )
     } );
 }
 
-template <class FrameHeaderType, class MacroblockType>
-void Frame<FrameHeaderType, MacroblockType>::copy_to( const RasterHandle & raster, References & references ) const
-{
-  if ( ref_updates_.last_to_alternate ) {
-    references.update_alternative(references.last);
-  } else if ( ref_updates_.golden_to_alternate ) {
-    references.update_alternative(references.golden);
-  }
-
-  if ( ref_updates_.last_to_golden ) {
-    references.update_golden(references.last);
-  }
-  else if ( ref_updates_.alternate_to_golden ) {
-    references.update_golden(references.alternative);
-  }
-
-  if ( ref_updates_.update_golden ) {
-    references.update_golden(raster);
-  }
-
-  if ( ref_updates_.update_alternate ) {
-    references.update_alternative(raster);
-  }
-
-  if ( ref_updates_.update_last ) {
-    references.update_last(raster);
-  }
-}
-
-/**
- * Specialized version is faster for keyframes
- */
-template<>
+template <>
 void KeyFrame::copy_to( const RasterHandle & raster, References & references ) const
 {
   references.last = references.golden = references.alternative = raster;
-  references.reference_flags.set_all();
+}
+
+template <>
+void InterFrame::copy_to( const RasterHandle & raster, References & references ) const
+{
+  if ( header_.copy_buffer_to_alternate.initialized() ) {
+    if ( header_.copy_buffer_to_alternate.get() == 1 ) {
+      references.alternative = references.last;
+    } else if ( header_.copy_buffer_to_alternate.get() == 2 ) {
+      references.alternative = references.golden;
+    }
+  }
+
+  if ( header_.copy_buffer_to_golden.initialized() ) {
+    if ( header_.copy_buffer_to_golden.get() == 1 ) {
+      references.golden = references.last;
+    } else if ( header_.copy_buffer_to_golden.get() == 2 ) {
+      references.golden = references.alternative;
+    }
+  }
+
+  if ( header_.refresh_golden_frame ) {
+    references.golden = raster;
+  }
+
+  if ( header_.refresh_alternate_frame ) {
+    references.alternative = raster;
+  }
+
+  if ( header_.refresh_last ) {
+    references.last = raster;
+  }
 }
 
 template<>

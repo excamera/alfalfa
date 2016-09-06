@@ -9,6 +9,7 @@
 #include "tree.cc"
 #include "scorer.hh"
 
+#include <climits>
 #include <algorithm>
 
 using namespace std;

@@ -11,7 +11,6 @@
 #include "quantization.hh"
 #include "exception.hh"
 #include "raster_handle.hh"
-#include "dependency_tracking.hh"
 #include "uncompressed_chunk.hh"
 #include "frame_header.hh"
 #include "enc_state_serializer.hh"
@@ -20,7 +19,6 @@ class Chunk;
 class VP8Raster;
 struct KeyFrameHeader;
 struct InterFrameHeader;
-class ReferenceDependency;
 
 struct ProbabilityTables
 {
@@ -248,6 +246,23 @@ struct DecoderState
   static DecoderState deserialize(EncoderStateDeserializer &idata);
 };
 
+class DecoderHash
+{
+private:
+  size_t state_hash_, last_hash_, golden_hash_, alt_hash_;
+public:
+  DecoderHash( size_t state_hash, size_t last_hash,
+               size_t golden_hash, size_t alt_hash );
+
+  size_t hash( void ) const;
+
+  std::string str( void ) const;
+
+  bool operator==( const DecoderHash & other ) const;
+
+  bool operator!=( const DecoderHash & other ) const;
+};
+
 class Decoder
 {
 private:
@@ -261,8 +276,6 @@ public:
 
   const VP8Raster & example_raster( void ) const { return references_.last; }
 
-  SourceHash source_hash( const DependencyTracker & deps ) const;
-  TargetHash target_hash( const UpdateTracker & updates, const RasterHandle & output, bool shown ) const;
   DecoderHash get_hash( void ) const;
 
   UncompressedChunk decompress_frame( const Chunk & compressed_frame ) const;
@@ -283,8 +296,6 @@ public:
     frame.copy_to( output, references_ );
   }
 
-  MissingTracker find_missing( const References & refs, const ReferenceDependency & deps ) const;
-
   DecoderState get_state() const { return state_; }
 
   References get_references( void ) const { return references_; }
@@ -298,5 +309,6 @@ public:
 
   static Decoder deserialize(EncoderStateDeserializer &idata);
 };
+
 
 #endif /* DECODER_HH */

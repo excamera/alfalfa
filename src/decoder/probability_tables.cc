@@ -3,6 +3,8 @@
 #include "decoder.hh"
 #include "frame.hh"
 
+#include <boost/functional/hash.hpp>
+
 using namespace std;
 
 template <unsigned int size>
