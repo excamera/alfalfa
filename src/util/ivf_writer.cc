@@ -34,7 +34,9 @@ IVFWriter::IVFWriter( FileDescriptor && fd,
                       const uint32_t time_scale )
   : fd_( move( fd ) ),
     file_size_( 0 ),
-    frame_count_( 0 )
+    frame_count_( 0 ),
+    width_( width ),
+    height_( height )
 {
   if ( fourcc.size() != 4 ) {
     throw internal_error( "IVF", "FourCC must be four bytes long" );

@@ -12,6 +12,9 @@ private:
   uint64_t file_size_;
   uint32_t frame_count_;
 
+  uint16_t width_;
+  uint16_t height_;
+
 public:
   IVFWriter( const std::string & filename,
              const std::string & fourcc,
@@ -28,6 +31,9 @@ public:
              const uint32_t time_scale );
 
   size_t append_frame( const Chunk & chunk );
+
+  uint16_t width() const { return width_; }
+  uint16_t height() const { return height_; }
 };
 
 #endif /* IVF_WRITER_HH */

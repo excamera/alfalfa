@@ -40,9 +40,9 @@ private:
                     2> MVComponentCounts;
 
   IVFWriter ivf_writer_;
-  uint16_t width_;
-  uint16_t height_;
-  MutableRasterHandle temp_raster_handle_;
+  uint16_t width_ { ivf_writer_.width() };
+  uint16_t height_ { ivf_writer_.height() };
+  MutableRasterHandle temp_raster_handle_ { width_, height_ };
   DecoderState decoder_state_;
   References references_;
 
@@ -50,7 +50,7 @@ private:
 
   size_t qindex_ { 0 };
 
-  Costs costs_;
+  Costs costs_ {};
 
   bool two_pass_encoder_ { false };
 
@@ -195,11 +195,9 @@ private:
   static unsigned calc_prob( unsigned false_count, unsigned total );
 
 public:
-  Encoder( const std::string & output_filename, const uint16_t width,
-           const uint16_t height, const bool two_pass );
+  Encoder( IVFWriter && output, const bool two_pass );
 
-  template<typename T>
-  Encoder( Decoder dec, T ofd, const bool two_pass );
+  Encoder( const Decoder & decoder, IVFWriter && output, const bool two_pass );
 
   double encode( const VP8Raster & raster,
                  const double minimum_ssim,
@@ -211,7 +209,7 @@ public:
   bool operator==(const Encoder &other) const;
 
   size_t serialize(EncoderStateSerializer &odata) const;
-  static Encoder deserialize(EncoderStateDeserializer &idata, const std::string &filename, const bool two_pass);
+  static Encoder deserialize(EncoderStateDeserializer &idata, IVFWriter && output, const bool two_pass);
 
   // testing only! output file is immediately deleted
   static Encoder deserialize(EncoderStateDeserializer &idata);

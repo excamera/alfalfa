@@ -142,9 +142,11 @@ int main( int argc, char *argv[] )
       throw runtime_error( "unsupported input format" );
     }
 
+    IVFWriter output { output_file, "VP80", input_reader->display_width(), input_reader->display_height(), 1, 1 };
+
     Encoder encoder = input_state == ""
-      ? Encoder(output_file, input_reader->display_width(), input_reader->display_height(), two_pass)
-      : EncoderStateDeserializer::build<Encoder>(input_state, output_file, two_pass);
+      ? Encoder(move(output), two_pass)
+      : EncoderStateDeserializer::build<Encoder>(input_state, move(output), two_pass);
 
     Optional<RasterHandle> raster = input_reader->get_next_frame();
 

@@ -76,42 +76,33 @@ void InterFrameMacroblockHeader::set_reference( const reference_frame ref )
 }
 
 /* Encoder */
-Encoder::Encoder( const string & output_filename, const uint16_t width,
-                  const uint16_t height, const bool two_pass )
-  : ivf_writer_( output_filename, "VP80", width, height, 1, 1 ),
-    width_( width ), height_( height ), temp_raster_handle_( width, height ),
-    decoder_state_( width, height ), references_( width, height ),
-    costs_(), two_pass_encoder_( two_pass )
+Encoder::Encoder( IVFWriter && output, const bool two_pass )
+  : ivf_writer_( move( output ) ),
+    decoder_state_( width_, height_ ), references_( width_, height_ ),
+    two_pass_encoder_( two_pass )
 {
   costs_.fill_mode_costs();
 }
 
-template<typename T>
-Encoder::Encoder( Decoder dec, T ofd, const bool two_pass )
-  : ivf_writer_( forward<T>(ofd), "VP80", dec.get_width(), dec.get_height(), 1, 1 ),
-    width_( dec.get_width() ), height_( dec.get_height() ),
-    temp_raster_handle_( dec.get_width(), dec.get_height() ),
-    decoder_state_( dec.get_state() ), references_( dec.get_references() ),
-    costs_(), two_pass_encoder_( two_pass )
+Encoder::Encoder( const Decoder & decoder, IVFWriter && output, const bool two_pass )
+  : ivf_writer_( move( output ) ),
+    decoder_state_( decoder.get_state() ), references_( decoder.get_references() ),
+    two_pass_encoder_( two_pass )
 {
+  if ( decoder.get_width() != ivf_writer_.width()
+       or decoder.get_height() != ivf_writer_.height() ) {
+    throw runtime_error( "height/width mismatch" );
+  }
+
   costs_.fill_mode_costs();
 }
-
-template Encoder::Encoder( Decoder, const std::string, const bool );
-template Encoder::Encoder( Decoder, FileDescriptor, const bool );
 
 size_t Encoder::serialize(EncoderStateSerializer &odata) const {
   return Decoder(decoder_state_, references_).serialize(odata);
 }
 
-Encoder Encoder::deserialize(EncoderStateDeserializer &idata, const std::string &filename, const bool two_pass) {
-  return Encoder(move(Decoder::deserialize(idata)), filename, two_pass);
-}
-
-// testing only! output file is immediately deleted
-Encoder Encoder::deserialize(EncoderStateDeserializer &idata) {
-  Encoder e(move(Decoder::deserialize(idata)), FileDescriptor(tmpfile()), false);
-  return e;
+Encoder Encoder::deserialize(EncoderStateDeserializer &idata, IVFWriter && output, const bool two_pass) {
+  return Encoder( move(Decoder::deserialize(idata)), move( output ), two_pass );
 }
 
 bool Encoder::operator==(const Encoder &other) const {
