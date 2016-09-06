@@ -22,6 +22,7 @@ private:
   LoopFilterType loop_filter_;
   bool show_frame_;
   bool experimental_;
+  bool switching_frame_; /* quantizes prediction as in H.264 */
   Chunk first_partition_;
   Chunk rest_;
 
@@ -36,6 +37,7 @@ public:
   bool show_frame( void ) const { return show_frame_; }
 
   bool experimental( void ) const { return experimental_; }
+  bool switching_frame() const { return switching_frame_; }
 };
 
 #endif /* UNCOMPRESSED_CHUNK_HH */

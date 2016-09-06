@@ -13,6 +13,7 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
     loop_filter_(),
     show_frame_(),
     experimental_(),
+    switching_frame_(),
     first_partition_( nullptr, 0 ),
     rest_( nullptr, 0 )
 {
@@ -34,6 +35,7 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
       reconstruction_filter_ = ReconstructionFilterType::Bicubic;
       loop_filter_ = LoopFilterType::Normal;
       experimental_ = true;
+      switching_frame_ = true;
       break;
     case 6:
       reconstruction_filter_ = ReconstructionFilterType::Bicubic;
