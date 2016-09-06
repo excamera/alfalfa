@@ -106,16 +106,10 @@ size_t FilePlayer::serialize(EncoderStateSerializer &odata) {
   return decoder_.serialize(odata);
 }
 
-FrameRawData FilePlayer::get_next_frame( void )
-{
-  pair<uint64_t, uint32_t> frame_location = file_.frame_location( frame_no_ );
-  return { file_.frame( frame_no_++ ), frame_location.first, frame_location.second };
-}
-
 RasterHandle FilePlayer::advance( void )
 {
   while ( not eof() ) {
-    Optional<RasterHandle> raster = decode( get_next_frame().chunk );
+    Optional<RasterHandle> raster = decode( file_.frame( frame_no_++ ) );
     if ( raster.initialized() ) {
       return raster.get();
     }

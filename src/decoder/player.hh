@@ -11,13 +11,6 @@
 #include "decoder.hh"
 #include "enc_state_serializer.hh"
 
-struct FrameRawData
-{
-  Chunk chunk;
-  uint64_t offset;
-  uint32_t length;
-};
-
 class FramePlayer
 {
 friend std::ostream& operator<<( std::ostream &, const FramePlayer &);
@@ -55,9 +48,6 @@ private:
   std::string filename_;
   FilePlayer( const std::string & filename, IVF && file );
   FilePlayer( const std::string & filename, IVF && file, EncoderStateDeserializer & idata );
-
-protected:
-  FrameRawData get_next_frame();
 
 public:
   FilePlayer( const std::string & filename );
