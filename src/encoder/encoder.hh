@@ -52,7 +52,6 @@ private:
 
   Costs costs_;
 
-  double minimum_ssim_ { 0.8 };
   bool two_pass_encoder_ { false };
 
   // TODO: Where did these come from?
@@ -175,8 +174,6 @@ private:
 
   VP8Raster & temp_raster() { return temp_raster_handle_.get(); }
 
-  bool should_encode_as_keyframe( const VP8Raster & raster );
-
   template<class FrameType>
   void apply_best_loopfilter_settings( const VP8Raster & original,
                                        VP8Raster & reconstructed,
@@ -195,6 +192,8 @@ private:
                                    const bool is_x,
                                    MVComponentCounts & counts ) const;
 
+  static unsigned calc_prob( unsigned false_count, unsigned total );
+
 public:
   Encoder( const std::string & output_filename, const uint16_t width,
            const uint16_t height, const bool two_pass );
@@ -208,8 +207,6 @@ public:
 
   template<class FrameType>
   static FrameType make_empty_frame( const uint16_t width, const uint16_t height );
-
-  static unsigned calc_prob( unsigned false_count, unsigned total );
 
   bool operator==(const Encoder &other) const;
 
