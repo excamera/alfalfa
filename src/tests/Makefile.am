@@ -4,13 +4,12 @@ AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(NODEBUG_CXXFLAGS)
 LDADD = ../decoder/libalfalfadecoder.a ../encoder/libalfalfaencoder.a ../util/libalfalfautil.a $(X264_LIBS)
 
 check_PROGRAMS = extract-key-frames decode-to-stdout encode-loopback roundtrip \
-                 state-collisions ivfcopy ivfcompare serdes-test
+                 ivfcopy ivfcompare serdes-test
 
 extract_key_frames_SOURCES = extract-key-frames.cc
 decode_to_stdout_SOURCES = decode-to-stdout.cc
 encode_loopback_SOURCES = encode-loopback.cc
 roundtrip_SOURCES = roundtrip.cc
-state_collisions_SOURCES = state-collisions.cc
 ivfcopy_SOURCES = ivfcopy.cc
 ivfcompare_SOURCES = ivfcompare.cc
 serdes_test_SOURCES = serdes-test.cc
