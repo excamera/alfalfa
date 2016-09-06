@@ -53,11 +53,6 @@ class Frame
          const unsigned int height,
          BoolDecoder & first_partition );
 
-  /* Rewrite InterFrame */
-  Frame( const Frame & original,
-         const Optional<Segmentation> & target_segmentation,
-         const Optional<FilterAdjustments> & target_filter );
-
   const FrameHeaderType & header() const { return header_; }
   FrameHeaderType & mutable_header() { return header_; }
 
