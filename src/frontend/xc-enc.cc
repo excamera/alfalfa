@@ -146,7 +146,8 @@ int main( int argc, char *argv[] )
 
     Encoder encoder = input_state == ""
       ? Encoder(move(output), two_pass)
-      : EncoderStateDeserializer::build<Encoder>(input_state, move(output), two_pass);
+      : Encoder( EncoderStateDeserializer::build<Decoder>( input_state ),
+                 move( output ), two_pass );
 
     Optional<RasterHandle> raster = input_reader->get_next_frame();
 
@@ -162,7 +163,7 @@ int main( int argc, char *argv[] )
 
     if (output_state != "") {
       EncoderStateSerializer odata = {};
-      encoder.serialize(odata);
+      encoder.export_decoder().serialize(odata);
       odata.write(output_state);
     }
   } catch ( const exception &  e ) {

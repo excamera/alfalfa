@@ -206,13 +206,7 @@ public:
                  const double minimum_ssim,
                  const uint8_t y_ac_qi = std::numeric_limits<uint8_t>::max() );
 
-  bool operator==(const Encoder &other) const;
-
-  size_t serialize(EncoderStateSerializer &odata) const;
-  static Encoder deserialize(EncoderStateDeserializer &idata, IVFWriter && output, const bool two_pass);
-
-  // testing only! output file is immediately deleted
-  static Encoder deserialize(EncoderStateDeserializer &idata);
+  Decoder export_decoder() const { return { decoder_state_, references_ }; }
 };
 
 #endif /* ENCODER_HH */

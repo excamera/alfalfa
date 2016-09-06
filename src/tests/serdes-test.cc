@@ -93,13 +93,6 @@ int main( int argc, char *argv[] ) {
       run_one_test(random_decoder, rng, "Decoder");
     }
 
-    // Encoder
-    cout << "\nEncoder:           " << flush;
-    for (unsigned i = 0; i < num_tests; i++) {
-      progress(i, num_tests);
-      run_one_test(random_encoder, rng, "Encoder");
-    }
-
     cout << '\n';
   } catch ( const exception & e ) {
     print_exception( argv[ 0 ], e );
@@ -242,22 +235,4 @@ Decoder random_decoder(default_random_engine &rng) {
   uint16_t width = hwdist(rng);
   uint16_t height = hwdist(rng);
   return Decoder(random_decoder_state(rng, width, height), random_references(rng, width, height));
-}
-
-Encoder random_encoder(default_random_engine &rng) {
-  Decoder decoder = random_decoder( rng );
-  uint16_t width = decoder.get_width();
-  uint16_t height = decoder.get_height();
-
-  return Encoder( move(decoder), IVFWriter( tmpfile(), "VP80", width, height, 1, 1 ), false );
-}
-
-// testing only! output file is immediately deleted
-Encoder Encoder::deserialize(EncoderStateDeserializer &idata)
-{
-  Decoder decoder = Decoder::deserialize(idata);
-  uint16_t width = decoder.get_width();
-  uint16_t height = decoder.get_height();
-
-  return Encoder( move(decoder), IVFWriter( tmpfile(), "VP80", width, height, 1, 1 ), false );
 }

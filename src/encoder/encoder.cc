@@ -97,21 +97,6 @@ Encoder::Encoder( const Decoder & decoder, IVFWriter && output, const bool two_p
   costs_.fill_mode_costs();
 }
 
-size_t Encoder::serialize(EncoderStateSerializer &odata) const {
-  return Decoder(decoder_state_, references_).serialize(odata);
-}
-
-Encoder Encoder::deserialize(EncoderStateDeserializer &idata, IVFWriter && output, const bool two_pass) {
-  return Encoder( move(Decoder::deserialize(idata)), move( output ), two_pass );
-}
-
-bool Encoder::operator==(const Encoder &other) const {
-  return width() == other.width() &&
-    height() == other.height() &&
-    decoder_state_ == other.decoder_state_ &&
-    references_ == other.references_;
-}
-
 template<class FrameType>
 FrameType Encoder::make_empty_frame( const uint16_t width, const uint16_t height )
 {
