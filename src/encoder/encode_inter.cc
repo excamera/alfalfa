@@ -612,7 +612,6 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
 
   Quantizer quantizer( frame.header().quant_indices );
   MutableRasterHandle reconstructed_raster_handle { width_, height_ };
-  VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
 
   costs_.fill_token_costs( ProbabilityTables() );
 
@@ -622,7 +621,7 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
   raster.macroblocks().forall_ij(
     [&] ( VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
     {
-      auto & reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
+      auto & reconstructed_mb = reconstructed_raster_handle.get().macroblock( mb_column, mb_row );
       auto & temp_mb = temp_raster().macroblock( mb_column, mb_row );
       auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
 
@@ -658,14 +657,16 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
   // optimize_mv_probs( frame, component_counts );
   optimize_interframe_probs( frame );
   optimize_probability_tables( frame, token_branch_counts );
-  apply_best_loopfilter_settings( raster, reconstructed_raster, frame );
+  apply_best_loopfilter_settings( raster, reconstructed_raster_handle.get(), frame );
+
+  RasterHandle immutable_raster( move( reconstructed_raster_handle ) );
 
   if ( not update_state ) {
     decoder_state_ = decoder_state_copy;
   }
   else {
-    references_.update_last(move( reconstructed_raster_handle ));
+    references_.last = immutable_raster;
   }
 
-  return make_pair( move( frame ), reconstructed_raster.quality( raster ) );
+  return { move( frame ), immutable_raster.get().quality( raster ) };
 }

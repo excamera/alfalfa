@@ -139,15 +139,14 @@ References::References( const uint16_t width, const uint16_t height )
 References::References( MutableRasterHandle && raster )
   : last( move( raster ) ),
     golden( last ),
-    alternative( last ),
-    reference_flags ()
+    alternative( last )
 {}
 
 References::References(EncoderStateDeserializer &idata, const uint16_t width, const uint16_t height)
   : last(move(idata.get_ref(EncoderSerDesTag::REF_LAST, width, height)))
   , golden(move(idata.get_ref(EncoderSerDesTag::REF_GOLD, width, height)))
   , alternative(move(idata.get_ref(EncoderSerDesTag::REF_ALT, width, height)))
-  , reference_flags(move(ReferenceFlags::deserialize(idata))) {}
+{}
 
 size_t References::serialize(EncoderStateSerializer &odata) const {
   odata.reserve(9);
@@ -159,19 +158,11 @@ size_t References::serialize(EncoderStateSerializer &odata) const {
   odata.put((uint16_t) last.get().display_width());
   odata.put((uint16_t) last.get().display_height());
 
-  if (reference_flags.has_last) {
-    len += odata.put(last, EncoderSerDesTag::REF_LAST);
-  }
+  len += odata.put(last, EncoderSerDesTag::REF_LAST);
 
-  if (reference_flags.has_golden) {
-    len += odata.put(golden, EncoderSerDesTag::REF_GOLD);
-  }
+  len += odata.put(golden, EncoderSerDesTag::REF_GOLD);
 
-  if (reference_flags.has_alternative) {
-    len += odata.put(alternative, EncoderSerDesTag::REF_ALT);
-  }
-
-  len += reference_flags.serialize(odata);
+  len += odata.put(alternative, EncoderSerDesTag::REF_ALT);
 
   odata.put(len, placeholder);
 
@@ -194,10 +185,9 @@ References References::deserialize(EncoderStateDeserializer &idata) {
 }
 
 bool References::operator==(const References &other) const {
-  return reference_flags == other.reference_flags &&
-         (!reference_flags.has_last || last == other.last) &&
-         (!reference_flags.has_golden || golden == other.golden) &&
-         (!reference_flags.has_alternative || alternative == other.alternative);
+  return last == other.last and
+    golden == other.golden and
+    alternative == other.alternative;
 }
 
 DecoderState::DecoderState(const unsigned s_width, const unsigned s_height,

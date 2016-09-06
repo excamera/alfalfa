@@ -21,7 +21,6 @@ void progress(unsigned i, unsigned num_tests);
 
 EncoderStateDeserializer deser_from_ser(EncoderStateSerializer &&odata);
 
-ReferenceFlags random_reference_flags(default_random_engine &rng);
 ProbabilityTables random_probability_tables(default_random_engine &rng);
 FilterAdjustments random_filter_adjustments(default_random_engine &rng);
 
@@ -80,13 +79,6 @@ int main( int argc, char *argv[] ) {
       run_one_test(random_decoder_state, rng, "DecoderState");
     }
 
-    // ReferenceFlags
-    cout << "\nReferenceFlags:    " << flush;
-    for (unsigned i = 0; i < num_tests; i++) {
-      progress(i, num_tests);
-      run_one_test(random_reference_flags, rng, "ReferenceFlags");
-    }
-
     // References
     cout << "\nReferences:        " << flush;
     for (unsigned i = 0; i < num_tests; i++) {
@@ -142,16 +134,6 @@ EncoderStateDeserializer deser_from_ser(EncoderStateSerializer &&odata) {
   FILE *f = tmpfile();
   odata.write(f);
   return EncoderStateDeserializer(f);
-}
-
-ReferenceFlags random_reference_flags(default_random_engine &rng) {
-  uniform_int_distribution<uint8_t> flags_dist(0, 7);
-  ReferenceFlags f;
-  uint8_t r = flags_dist(rng);
-  f.has_last = r & (1 << 2);
-  f.has_golden = r & (1 << 1);
-  f.has_alternative = r & (1 << 0);
-  return f;
 }
 
 ProbabilityTables random_probability_tables(default_random_engine &rng) {
@@ -239,11 +221,9 @@ References random_references(default_random_engine &rng) {
 References random_references(default_random_engine &rng, uint16_t width, uint16_t height) {
   References r(MutableRasterHandle(width, height));
 
-  r.update_last(random_mutable_raster_handle(rng, width, height));
-  r.update_golden(random_mutable_raster_handle(rng, width, height));
-  r.update_alternative(random_mutable_raster_handle(rng, width, height));
-
-  r.reference_flags = random_reference_flags(rng);
+  r.last = random_mutable_raster_handle(rng, width, height);
+  r.golden = random_mutable_raster_handle(rng, width, height);
+  r.alternative = random_mutable_raster_handle(rng, width, height);
 
   return r;
 }

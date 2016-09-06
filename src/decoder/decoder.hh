@@ -82,79 +82,15 @@ struct FilterAdjustments
   }
 };
 
-struct ReferenceFlags
-{
-  bool has_last, has_golden, has_alternative;
-
-  ReferenceFlags(bool dflt = false)
-    : has_last( dflt ), has_golden( dflt ), has_alternative( dflt )
-  {}
-
-  ReferenceFlags(EncoderStateDeserializer &idata)
-    : has_last( false ), has_golden( false ), has_alternative( false )
-  {
-    uint8_t val = idata.get<uint8_t>();
-    EncoderSerDesTag data_type = (EncoderSerDesTag) (val & 0x1f);
-    assert(data_type == EncoderSerDesTag::REF_FLAGS);
-    (void) data_type;   // not used except in assert
-
-    has_last = (1 << 7) & val;
-    has_golden = (1 << 6) & val;
-    has_alternative = (1 << 5) & val;
-  }
-
-  void clear_all() {
-    has_last = has_golden = has_alternative = false;
-  }
-
-  void set_all() {
-    has_last = has_golden = has_alternative = true;
-  }
-
-  bool operator==(const ReferenceFlags &other) const {
-    return has_last == other.has_last &&
-           has_golden == other.has_golden &&
-           has_alternative == other.has_alternative;
-  }
-
-  size_t serialize(EncoderStateSerializer &odata) const {
-    uint8_t val = (has_last << 7)
-                | (has_golden << 6)
-                | (has_alternative << 5)
-                | (uint8_t) EncoderSerDesTag::REF_FLAGS;
-    odata.put(val);
-    return 1;
-  }
-  static ReferenceFlags deserialize(EncoderStateDeserializer &idata) {
-    return ReferenceFlags(idata);
-  }
-};
-
 struct References
 {
   RasterHandle last, golden, alternative;
-  ReferenceFlags reference_flags;
 
   References( const uint16_t width, const uint16_t height );
 
   References( MutableRasterHandle && raster );
 
   References(EncoderStateDeserializer &idata, const uint16_t width, const uint16_t height);
-
-  void update_last(RasterHandle update) {
-    last = update;
-    reference_flags.has_last = true;
-  }
-
-  void update_golden(RasterHandle update) {
-    golden = update;
-    reference_flags.has_golden = true;
-  }
-
-  void update_alternative(RasterHandle update) {
-    alternative = update;
-    reference_flags.has_alternative = true;
-  }
 
   const VP8Raster & at( const reference_frame reference_id ) const
   {

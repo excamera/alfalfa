@@ -22,7 +22,6 @@ enum class EncoderSerDesTag : uint8_t
   , OPT_EMPTY
   , OPT_FULL
   , REFERENCES
-  , REF_FLAGS
   , REF_LAST
   , REF_GOLD
   , REF_ALT

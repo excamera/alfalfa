@@ -573,15 +573,6 @@ double Encoder::encode_raster( const VP8Raster & raster,
   return encoded_frame.second;
 }
 
-/** This function decides if this raster should be encoded as a keyframe,
- *  or as an interframe.
- */
-bool Encoder::should_encode_as_keyframe( const VP8Raster & )
-{
-  return not ( references_.reference_flags.has_last or references_.reference_flags.has_golden
-            or references_.reference_flags.has_alternative );
-}
-
 double Encoder::encode( const VP8Raster & raster, const double minimum_ssim,
                         const uint8_t y_ac_qi )
 {
@@ -589,9 +580,7 @@ double Encoder::encode( const VP8Raster & raster, const double minimum_ssim,
     throw runtime_error( "scaling is not supported" );
   }
 
-  if ( should_encode_as_keyframe( raster ) ) {
-    references_.reference_flags.clear_all();
-    decoder_state_ = DecoderState( width_, height_ );
+  if ( frame_count_ == 0 ) { /* XXX need more sophisticated way of deciding whether a key frame is warranted */
     return encode_raster<KeyFrame>( raster, minimum_ssim, y_ac_qi );
   }
   else {
