@@ -51,10 +51,8 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
     uint32_t first_partition_length = frame.bits( 5, 19 );
     uint32_t first_partition_byte_offset = key_frame_ ? 10 : 3;
 
-    if ( not experimental_ ) {
-      if ( frame.size() <= first_partition_byte_offset + first_partition_length ) {
-        throw Invalid( "invalid VP8 first partition length" );
-      }
+    if ( frame.size() <= first_partition_byte_offset + first_partition_length ) {
+      throw Invalid( "invalid VP8 first partition length" );
     }
 
     first_partition_ = frame( first_partition_byte_offset, first_partition_length );

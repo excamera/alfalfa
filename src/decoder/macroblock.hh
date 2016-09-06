@@ -85,10 +85,6 @@ public:
   void reconstruct_inter( const Quantizer & quantizer,
                           const References & references,
                           VP8Raster::Macroblock & raster ) const;
-  void reconstruct_continuation( const VP8Raster & continuation, VP8Raster::Macroblock & raster ) const;
-
-  /* list of coordinates for macroblocks that inter prediction needs */
-  void record_dependencies( std::vector<std::vector<bool>> & required ) const;
 
   void loopfilter( const Optional< FilterAdjustments > & filter_adjustments,
                    const FilterParameters & loopfilter,
@@ -119,10 +115,6 @@ public:
                          const ProbabilityTables & probability_tables ) const;
 
   void accumulate_token_branches( TokenBranchCounts & counts ) const;
-
-  void zero_out();
-
-  void analyze_dependencies( VP8Raster::Macroblock & raster, const VP8Raster & reference ) const;
 
   Scorer motion_vector_census();
 
