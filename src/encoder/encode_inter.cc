@@ -510,7 +510,7 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
       frame_mb.calculate_has_nonzero();
 
       if ( frame_mb.inter_coded() ) {
-        frame_mb.reconstruct_inter( quantizer, references_, reconstructed_mb );
+        frame_mb.reconstruct_inter( quantizer, references_, reconstructed_mb, false );
       }
       else {
         frame_mb.reconstruct_intra( quantizer, reconstructed_mb );

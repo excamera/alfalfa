@@ -84,7 +84,8 @@ public:
   void reconstruct_intra( const Quantizer & quantizer, VP8Raster::Macroblock & raster ) const;
   void reconstruct_inter( const Quantizer & quantizer,
                           const References & references,
-                          VP8Raster::Macroblock & raster ) const;
+                          VP8Raster::Macroblock & raster,
+                          const bool quantize_prediction ) const;
 
   void loopfilter( const Optional< FilterAdjustments > & filter_adjustments,
                    const FilterParameters & loopfilter,

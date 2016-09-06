@@ -8,8 +8,10 @@ template <class FrameHeaderType, class MacroblockType>
 Frame<FrameHeaderType, MacroblockType>::Frame( const bool show,
                                                const unsigned int width,
                                                const unsigned int height,
-                                               BoolDecoder & first_partition )
+                                               BoolDecoder & first_partition,
+                                               const bool switching_frame )
   : show_( show ),
+    switching_frame_( switching_frame ),
     display_width_( width ),
     display_height_( height ),
     header_( first_partition )
@@ -177,7 +179,8 @@ void InterFrame::decode( const Optional<Segmentation> & segmentation, const Refe
                                          if ( macroblock.inter_coded() ) {
                                            macroblock.reconstruct_inter( quantizer,
                                                                          references,
-                                                                         raster.macroblock( column, row ) );
+                                                                         raster.macroblock( column, row ),
+                                                                         switching_frame_ );
                                          } else {
                                            macroblock.reconstruct_intra( quantizer,
                                                                          raster.macroblock( column, row ) );

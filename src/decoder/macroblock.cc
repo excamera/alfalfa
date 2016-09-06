@@ -524,7 +524,8 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::reconstruct_intra( const
 template <>
 void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
                                               const References & references,
-                                              VP8Raster::Macroblock & raster ) const
+                                              VP8Raster::Macroblock & raster,
+                                              const bool quantize_prediction ) const
 {
   const VP8Raster & reference = references.at( header_.reference() );
 
@@ -551,6 +552,11 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
     raster.Y.inter_predict( base_motion_vector(), reference.Y() );
     raster.U.inter_predict( U_.at( 0, 0 ).motion_vector(), reference.U() );
     raster.V.inter_predict( U_.at( 0, 0 ).motion_vector(), reference.V() );
+
+    if ( quantize_prediction ) {
+      /* XXX fill in here */
+      throw Unsupported( "switching frame" );
+    }
 
     if ( has_nonzero_ ) {
       apply_walsh( quantizer, raster );
