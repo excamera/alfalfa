@@ -22,7 +22,7 @@ addons:
 before_script:
   - sudo -E add-apt-repository -y 'deb http://ftp.us.debian.org/debian unstable main contrib non-free'
   - sudo apt-get update -qq
-  - sudo apt-get install -y --force-yes libglfw3-dev
+  - sudo apt-get install -y --force-yes libglfw3-dev binutils
   - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 99
 
 script:
