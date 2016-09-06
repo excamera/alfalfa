@@ -31,7 +31,7 @@ AC_ARG_ENABLE([debug],
        NODEBUG_CXXFLAGS="-DNDEBUG"
        ;;
      '' | yes | sanitize)
-       NODEBUG_CXXFLAGS="-fsanitize=address -fsanitize=undefined"
+       NODEBUG_CXXFLAGS="-fsanitize=address -fsanitize=undefined -fuse-ld=bfd"
        ;;
      asserts)
        NODEBUG_CXXFLAGS=""
