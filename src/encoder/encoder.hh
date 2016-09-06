@@ -40,9 +40,9 @@ private:
                     2> MVComponentCounts;
 
   IVFWriter ivf_writer_;
-  uint16_t width_ { ivf_writer_.width() };
-  uint16_t height_ { ivf_writer_.height() };
-  MutableRasterHandle temp_raster_handle_ { width_, height_ };
+  uint16_t width() const { return ivf_writer_.width(); }
+  uint16_t height() const { return ivf_writer_.height(); }
+  MutableRasterHandle temp_raster_handle_ { width(), height() };
   DecoderState decoder_state_;
   References references_;
 
@@ -194,6 +194,9 @@ private:
 
   static unsigned calc_prob( unsigned false_count, unsigned total );
 
+  template<class FrameType>
+  static FrameType make_empty_frame( const uint16_t width, const uint16_t height );
+
 public:
   Encoder( IVFWriter && output, const bool two_pass );
 
@@ -202,9 +205,6 @@ public:
   double encode( const VP8Raster & raster,
                  const double minimum_ssim,
                  const uint8_t y_ac_qi = std::numeric_limits<uint8_t>::max() );
-
-  template<class FrameType>
-  static FrameType make_empty_frame( const uint16_t width, const uint16_t height );
 
   bool operator==(const Encoder &other) const;
 

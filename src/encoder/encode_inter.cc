@@ -474,13 +474,13 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
 {
   DecoderState decoder_state_copy = decoder_state_;
 
-  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width_, height_ );
+  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height() );
   frame.mutable_header().quant_indices = quant_indices;
   frame.mutable_header().refresh_entropy_probs = true;
   frame.mutable_header().refresh_last = true;
 
   Quantizer quantizer( frame.header().quant_indices );
-  MutableRasterHandle reconstructed_raster_handle { width_, height_ };
+  MutableRasterHandle reconstructed_raster_handle { width(), height() };
 
   costs_.fill_token_costs( ProbabilityTables() );
 

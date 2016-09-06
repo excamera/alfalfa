@@ -78,7 +78,7 @@ void InterFrameMacroblockHeader::set_reference( const reference_frame ref )
 /* Encoder */
 Encoder::Encoder( IVFWriter && output, const bool two_pass )
   : ivf_writer_( move( output ) ),
-    decoder_state_( width_, height_ ), references_( width_, height_ ),
+    decoder_state_( width(), height() ), references_( width(), height() ),
     two_pass_encoder_( two_pass )
 {
   costs_.fill_mode_costs();
@@ -106,10 +106,10 @@ Encoder Encoder::deserialize(EncoderStateDeserializer &idata, IVFWriter && outpu
 }
 
 bool Encoder::operator==(const Encoder &other) const {
-  return width_ == other.width_ &&
-         height_ == other.height_ &&
-         decoder_state_ == other.decoder_state_ &&
-         references_ == other.references_;
+  return width() == other.width() &&
+    height() == other.height() &&
+    decoder_state_ == other.decoder_state_ &&
+    references_ == other.references_;
 }
 
 template<class FrameType>
@@ -514,10 +514,7 @@ double Encoder::encode_raster( const VP8Raster & raster,
     y_ac_qi_max = y_ac_qi;
   }
 
-  const uint16_t width = raster.display_width();
-  const uint16_t height = raster.display_height();
-
-  if ( width != width_ or height != height_ ) {
+  if ( raster.display_width() != width() or raster.display_height() != height() ) {
     throw runtime_error( "scaling is not supported." );
   }
 
@@ -567,7 +564,7 @@ double Encoder::encode_raster( const VP8Raster & raster,
 double Encoder::encode( const VP8Raster & raster, const double minimum_ssim,
                         const uint8_t y_ac_qi )
 {
-  if ( width_ != raster.display_width() or height_ != raster.display_height() ) {
+  if ( width() != raster.display_width() or height() != raster.display_height() ) {
     throw runtime_error( "scaling is not supported" );
   }
 

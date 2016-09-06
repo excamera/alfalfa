@@ -328,14 +328,14 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
                                                                  const bool update_state )
 {
   DecoderState decoder_state_copy = decoder_state_;
-  decoder_state_ = DecoderState( width_, height_ );
+  decoder_state_ = DecoderState( width(), height() );
 
-  KeyFrame frame = Encoder::make_empty_frame<KeyFrame>( width_, height_ );
+  KeyFrame frame = Encoder::make_empty_frame<KeyFrame>( width(), height() );
   frame.mutable_header().quant_indices = quant_indices;
   frame.mutable_header().refresh_entropy_probs = true;
 
   Quantizer quantizer( frame.header().quant_indices );
-  MutableRasterHandle reconstructed_raster_handle { width_, height_ };
+  MutableRasterHandle reconstructed_raster_handle { width(), height() };
 
   /* This is how VP8 sets the coefficients for rd-cost.
    * libvpx:vp8/encoder/rdopt.c:270
