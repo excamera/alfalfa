@@ -605,3 +605,7 @@ void VP8Raster::Block<size>::safe_inter_predict( const MotionVector & mv, const 
     }
   }
 }
+
+template void VP8Raster::Block<16u>::inter_predict( MotionVector const&,
+                                                    TwoD<unsigned char> const&,
+                                                    TwoDSubRange<unsigned char, 16u, 16u>& );

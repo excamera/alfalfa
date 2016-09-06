@@ -13,7 +13,6 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
     loop_filter_(),
     show_frame_(),
     experimental_(),
-    reference_update_(),
     first_partition_( nullptr, 0 ),
     rest_( nullptr, 0 )
 {
@@ -35,13 +34,11 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
       reconstruction_filter_ = ReconstructionFilterType::Bicubic;
       loop_filter_ = LoopFilterType::Normal;
       experimental_ = true;
-      reference_update_ = false;
       break;
     case 6:
       reconstruction_filter_ = ReconstructionFilterType::Bicubic;
       loop_filter_ = LoopFilterType::NoFilter;
       experimental_ = true;
-      reference_update_ = true;
       break;
     default:
       throw Unsupported( "VP8 version of " + to_string( version ) );
@@ -54,7 +51,7 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
     uint32_t first_partition_length = frame.bits( 5, 19 );
     uint32_t first_partition_byte_offset = key_frame_ ? 10 : 3;
 
-    if ( not ( experimental_ and not reference_update_ ) ) {
+    if ( not experimental_ ) {
       if ( frame.size() <= first_partition_byte_offset + first_partition_length ) {
         throw Invalid( "invalid VP8 first partition length" );
       }

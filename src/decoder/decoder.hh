@@ -42,8 +42,6 @@ struct ProbabilityTables
   template <class HeaderType>
   void coeff_prob_update( const HeaderType & header );
   void mv_prob_update( const Enumerate<Enumerate<MVProbUpdate, MV_PROB_CNT>, 2> & mv_prob_updates );
-  void mv_prob_replace( const Enumerate<Enumerate<MVProbReplacement, MV_PROB_CNT>, 2> & mv_replacements );
-
 
   template <class HeaderType>
   void update( const HeaderType & header );

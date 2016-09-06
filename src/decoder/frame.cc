@@ -44,17 +44,6 @@ static UpdateTracker calculate_updates( const InterFrameHeader & header )
   return tracker;
 }
 
-static UpdateTracker calculate_updates( const StateUpdateFrameHeader & )
-{
-  return UpdateTracker( false, false, false, false, false, false, false );
-}
-
-static UpdateTracker calculate_updates( const RefUpdateFrameHeader & header )
-{
-  return UpdateTracker( header.reference() == LAST_FRAME, header.reference() == GOLDEN_FRAME, header.reference() == ALTREF_FRAME,
-                        false, false, false, false );
-}
-
 template <class FrameHeaderType, class MacroblockType>
 Frame<FrameHeaderType, MacroblockType>::Frame( const bool show,
                                                const unsigned int width,
@@ -82,18 +71,6 @@ ProbabilityArray< num_segments > Frame<FrameHeaderType, MacroblockType>::calcula
   }
 
   return mb_segment_tree_probs;
-}
-
-template <>
-ProbabilityArray<num_segments> RefUpdateFrame::calculate_mb_segment_tree_probs( void ) const
-{
-  return ProbabilityArray<num_segments>();
-}
-
-template <>
-ProbabilityArray<num_segments> StateUpdateFrame::calculate_mb_segment_tree_probs( void ) const
-{
-  return ProbabilityArray<num_segments>();
 }
 
 template <>
@@ -202,20 +179,6 @@ void Frame<FrameHeaderType, MacroblockType>::loopfilter( const Optional< Segment
 }
 
 
-// FIXME probably want to subclass so we don't need to specialize all these nops
-template <>
-void RefUpdateFrame::loopfilter( const Optional<Segmentation> &,
-                                 const Optional<FilterAdjustments> &,
-                                 VP8Raster & ) const
-{}
-
-template <>
-void StateUpdateFrame::loopfilter( const Optional<Segmentation> &,
-                                   const Optional<FilterAdjustments> &,
-                                   VP8Raster & ) const
-{}
-
-
 template <class FrameHeaderType, class MacroblockType>
 SafeArray<Quantizer, num_segments> Frame<FrameHeaderType, MacroblockType>::calculate_segment_quantizers( const Optional< Segmentation > & segmentation ) const
 {
@@ -237,18 +200,6 @@ SafeArray<Quantizer, num_segments> Frame<FrameHeaderType, MacroblockType>::calcu
   }
 
   return segment_quantizers;
-}
-
-template <>
-SafeArray<Quantizer, num_segments> RefUpdateFrame::calculate_segment_quantizers( const Optional< Segmentation > &) const
-{
-  return SafeArray<Quantizer, num_segments>();
-}
-
-template <>
-SafeArray<Quantizer, num_segments> StateUpdateFrame::calculate_segment_quantizers( const Optional< Segmentation > &) const
-{
-  return SafeArray<Quantizer, num_segments>();
 }
 
 template <>
@@ -292,26 +243,6 @@ void InterFrame::decode( const Optional<Segmentation> & segmentation, const Refe
                                            macroblock.reconstruct_intra( quantizer,
                                                                          raster.macroblock( column, row ) );
                                          } } );
-}
-
-template <>
-void RefUpdateFrame::decode( const Optional<Segmentation> &, const References & references,
-                             VP8Raster & raster ) const
-{
-  /* RefUpdateFrames only depend on one reference (the one they are updating) */
-  const VP8Raster & reference = references.at( header_.reference() );
-
-  macroblock_headers_.get().forall_ij( [&]( const RefUpdateFrameMacroblock & macroblock,
-                                            const unsigned column,
-                                            const unsigned row ) {
-                                         macroblock.reconstruct_continuation( reference, raster.macroblock( column, row ) );
-                                       } );
-}
-
-template <>
-void StateUpdateFrame::decode( const Optional<Segmentation> &, const References &,
-                               VP8Raster & ) const
-{
 }
 
 /* "above" for a Y2 block refers to the first macroblock above that actually has Y2 coded */
@@ -448,5 +379,3 @@ bool Frame<FrameHeaderType, MacroblockType>::operator==( const Frame & other ) c
 
 template class Frame<KeyFrameHeader, KeyFrameMacroblock>;
 template class Frame<InterFrameHeader, InterFrameMacroblock>;
-template class Frame<StateUpdateFrameHeader, StateUpdateFrameMacroblock>;
-template class Frame<RefUpdateFrameHeader, RefUpdateFrameMacroblock>;

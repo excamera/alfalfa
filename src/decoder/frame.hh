@@ -58,13 +58,6 @@ class Frame
          const unsigned int height,
          BoolDecoder & first_partition );
 
-  /* Construct a StateUpdateFrame */
-  Frame( const ProbabilityTables & source_probs,
-         const ProbabilityTables & target_probs );
-
-  /* Construct a RefUpdateFrame */
-  Frame( const reference_frame & ref_to_update, const ReferenceUpdater & update_info );
-
   /* Rewrite InterFrame */
   Frame( const Frame & original,
          const Optional<Segmentation> & target_segmentation,
@@ -110,8 +103,6 @@ class Frame
 
 using KeyFrame = Frame<KeyFrameHeader, KeyFrameMacroblock>;
 using InterFrame = Frame<InterFrameHeader, InterFrameMacroblock>;
-using RefUpdateFrame = Frame<RefUpdateFrameHeader, RefUpdateFrameMacroblock>;
-using StateUpdateFrame = Frame<StateUpdateFrameHeader, StateUpdateFrameMacroblock>;
 
 /* Tracks which macroblocks we depend on from a raster */
 class ReferenceDependency

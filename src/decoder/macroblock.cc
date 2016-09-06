@@ -398,24 +398,6 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
   }
 }
 
-template<>
-void RefUpdateFrameMacroblock::decode_prediction_modes( BoolDecoder &,
-                                                        const ProbabilityTables & )
-{
-  /* Unset coded since pixel diffs don't need the Y2 block */
-  Y2_.set_coded( false );
-
-  Y_.forall( [&]( YBlock & block )
-             {
-               block.set_Y_without_Y2();
-             } );
-}
-
-template<>
-void StateUpdateFrameMacroblock::decode_prediction_modes( BoolDecoder &,
-                                                          const ProbabilityTables & )
-{}
-
 InterFrameMacroblockHeader::InterFrameMacroblockHeader( BoolDecoder & data,
                                                         const InterFrameHeader & frame_header )
   : is_inter_mb( data, frame_header.prob_inter ),
@@ -539,28 +521,6 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::reconstruct_intra( const
 }
 
 template <>
-void RefUpdateFrameMacroblock::reconstruct_continuation( const VP8Raster & reference,
-                                                         VP8Raster::Macroblock & raster ) const
-{
-  const MotionVector zeromv;
-
-  raster.Y.inter_predict( zeromv, reference.Y() );
-  raster.U.inter_predict( zeromv, reference.U() );
-  raster.V.inter_predict( zeromv, reference.V() );
-
-  assert( raster.Y.contents() == reference.macroblock( context_.column, context_.row ).Y.contents() );
-  assert( raster.U.contents() == reference.macroblock( context_.column, context_.row ).U.contents() );
-  assert( raster.V.contents() == reference.macroblock( context_.column, context_.row ).V.contents() );
-
-  Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
-                { block.add_residue( raster.Y_sub.at( column, row ) ); } );
-  U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-                { block.add_residue( raster.U_sub.at( column, row ) ); } );
-  V_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-                { block.add_residue( raster.V_sub.at( column, row ) ); } );
-}
-
-template <>
 void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
                                               const References & references,
                                               VP8Raster::Macroblock & raster ) const
@@ -641,18 +601,6 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::loopfilter( const Option
   }
 }
 
-template <>
-void RefUpdateFrameMacroblock::loopfilter( const Optional< FilterAdjustments > &,
-                                           const FilterParameters &,
-                                           VP8Raster::Macroblock & ) const
-{}
-
-template <>
-void StateUpdateFrameMacroblock::loopfilter( const Optional< FilterAdjustments > &,
-                                             const FilterParameters &,
-                                             VP8Raster::Macroblock & ) const
-{}
-
 reference_frame InterFrameMacroblockHeader::reference( void ) const
 {
   if ( not is_inter_mb ) {
@@ -672,5 +620,3 @@ reference_frame InterFrameMacroblockHeader::reference( void ) const
 
 template class Macroblock<KeyFrameHeader, KeyFrameMacroblockHeader>;
 template class Macroblock<InterFrameHeader, InterFrameMacroblockHeader>;
-template class Macroblock<RefUpdateFrameHeader, RefUpdateFrameMacroblockHeader>;
-template class Macroblock<StateUpdateFrameHeader, StateUpdateFrameMacroblockHeader>;

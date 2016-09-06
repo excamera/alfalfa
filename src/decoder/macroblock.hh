@@ -180,22 +180,7 @@ struct InterFrameMacroblockHeader
   void set_reference( const reference_frame ref );
 };
 
-/* State update frames don't actually have macroblocks, so this does nothing */
-struct StateUpdateFrameMacroblockHeader
-{
-  StateUpdateFrameMacroblockHeader( BoolDecoder &, const StateUpdateFrameHeader & ) {}
-  StateUpdateFrameMacroblockHeader() {}
-};
-
-struct RefUpdateFrameMacroblockHeader
-{
-  RefUpdateFrameMacroblockHeader( BoolDecoder &, const RefUpdateFrameHeader &) {}
-  RefUpdateFrameMacroblockHeader() {}
-};
-
 using KeyFrameMacroblock = Macroblock<KeyFrameHeader, KeyFrameMacroblockHeader>;
 using InterFrameMacroblock = Macroblock<InterFrameHeader, InterFrameMacroblockHeader>;
-using StateUpdateFrameMacroblock = Macroblock<StateUpdateFrameHeader, StateUpdateFrameMacroblockHeader>;
-using RefUpdateFrameMacroblock = Macroblock<RefUpdateFrameHeader, RefUpdateFrameMacroblockHeader>;
 
 #endif /* MB_RECORDS_HH */

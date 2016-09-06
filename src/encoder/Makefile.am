@@ -6,6 +6,6 @@ noinst_LIBRARIES = libalfalfaencoder.a
 libalfalfaencoder_a_SOURCES = frame_input.hh \
 	ivf_reader.hh ivf_reader.cc \
 	yuv4mpeg.hh yuv4mpeg.cc costs.hh costs.cc \
-	dct.cc bool_encoder.hh serializer.cc encode_tree.cc continuation.cc \
-	continuation_player.hh continuation_player.cc encoder.hh encoder.cc \
+	dct.cc bool_encoder.hh serializer.cc encode_tree.cc \
+	encoder.hh encoder.cc \
 	encode_intra.cc encode_inter.cc

@@ -73,12 +73,6 @@ static void encode( BoolEncoder & encoder, const MVProbUpdate & mv,
   encode( encoder, mv.mv_prob, k_mv_entropy_update_probs.at( i ).at( j ) );
 }
 
-static void encode( BoolEncoder & encoder, const MVProbReplacement & mv,
-                    const unsigned int j, const unsigned int i )
-{
-  encode( encoder, mv.mv_prob, k_mv_entropy_update_probs.at( i ).at( j ) );
-}
-
 template <class T, unsigned int len, typename... Targs>
 static void encode( BoolEncoder & encoder, const Enumerate<T, len> & obj, Targs&&... Fargs )
 {
@@ -115,21 +109,6 @@ static void encode( BoolEncoder & encoder, const UpdateSegmentation & h )
   encode( encoder, h.update_mb_segmentation_map );
   encode( encoder, h.segment_feature_data );
   encode( encoder, h.mb_segmentation_map );
-}
-
-static void encode( BoolEncoder & encoder, const StateUpdateFrameHeader & h )
-{
-  encode( encoder, h.token_prob_update );
-  encode( encoder, h.intra_16x16_prob );
-  encode( encoder, h.intra_chroma_prob );
-  encode( encoder, h.mv_prob_replacement );
-}
-
-static void encode( BoolEncoder & encoder, const RefUpdateFrameHeader & h )
-{
-  encode( encoder, h.ref_to_update );
-  encode( encoder, h.token_prob_update );
-  encode( encoder, h.prob_skip_false );
 }
 
 static void encode( BoolEncoder & encoder, const KeyFrameHeader & header )
@@ -186,12 +165,6 @@ static void encode( BoolEncoder & encoder,
   encode( encoder, header.is_inter_mb, frame_header.prob_inter );
   encode( encoder, header.mb_ref_frame_sel1, frame_header.prob_references_last );
   encode( encoder, header.mb_ref_frame_sel2, frame_header.prob_references_golden );
-}
-
-static void encode( BoolEncoder &,
-                    const RefUpdateFrameMacroblockHeader &,
-                    const RefUpdateFrameHeader & )
-{
 }
 
 static void encode( BoolEncoder & encoder,
@@ -368,11 +341,6 @@ void InterFrameMacroblock::encode_prediction_modes( BoolEncoder & encoder,
   }
 }
 
-template <>
-void RefUpdateFrameMacroblock::encode_prediction_modes( BoolEncoder &,
-                                                        const ProbabilityTables & ) const
-{}
-
 template <class FrameHeaderType, class MacroblockheaderType >
 void Macroblock< FrameHeaderType, MacroblockheaderType >::serialize( BoolEncoder & encoder,
                                                                      const FrameHeaderType & frame_header,
@@ -384,13 +352,6 @@ void Macroblock< FrameHeaderType, MacroblockheaderType >::serialize( BoolEncoder
   encode( encoder, header_, frame_header );
   encode_prediction_modes( encoder, probability_tables );
 }
-
-template <>
-void StateUpdateFrameMacroblock::serialize( BoolEncoder &,
-                                            const StateUpdateFrameHeader &,
-                                            const ProbabilityArray< num_segments > &,
-                                            const ProbabilityTables & ) const
-{}
 
 template <class FrameHeaderType, class MacroblockType>
 vector< uint8_t > Frame< FrameHeaderType, MacroblockType >::serialize_first_partition( const ProbabilityTables & probability_tables ) const
@@ -408,15 +369,6 @@ vector< uint8_t > Frame< FrameHeaderType, MacroblockType >::serialize_first_part
                                                             header(),
                                                             segment_tree_probs,
                                                             probability_tables ); } );
-
-  return encoder.finish();
-}
-
-template <>
-vector<uint8_t> StateUpdateFrame::serialize_first_partition( const ProbabilityTables & ) const
-{
-  BoolEncoder encoder;
-  encode( encoder, header() );
 
   return encoder.finish();
 }
@@ -602,9 +554,6 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::accumulate_token_branche
   U_.forall( [&]( const UVBlock & block ) { ::accumulate_token_branches( block, counts ); } );
   V_.forall( [&]( const UVBlock & block ) { ::accumulate_token_branches( block, counts ); } );
 }
-
-template
-void RefUpdateFrameMacroblock::accumulate_token_branches( TokenBranchCounts & ) const;
 
 template
 void KeyFrameMacroblock::accumulate_token_branches( TokenBranchCounts & ) const;
@@ -846,31 +795,4 @@ vector<uint8_t> InterFrame::serialize( const ProbabilityTables & probability_tab
                      display_width_, display_height_,
                      serialize_first_partition( frame_probability_tables ),
                      serialize_tokens( frame_probability_tables ) );
-}
-
-template <>
-vector<uint8_t> RefUpdateFrame::serialize( const ProbabilityTables & probability_tables ) const
-{
-  ProbabilityTables frame_probability_tables( probability_tables );
-  frame_probability_tables.coeff_prob_update( header() );
-
-  return make_frame( false,
-                     show_,
-                     true,
-                     true,
-                     display_width_, display_height_,
-                     serialize_first_partition( frame_probability_tables ),
-                     serialize_tokens( frame_probability_tables ) );
-}
-
-template <>
-vector<uint8_t> StateUpdateFrame::serialize( const ProbabilityTables & probability_tables ) const
-{
-  return make_frame( false,
-                     show_,
-                     true,
-                     false,
-                     display_width_, display_height_,
-                     serialize_first_partition( probability_tables ),
-                     vector<vector<uint8_t>>{ vector<uint8_t>() } );
 }

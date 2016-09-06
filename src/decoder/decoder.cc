@@ -66,8 +66,6 @@ FrameType Decoder::parse_frame( const UncompressedChunk & decompressed_frame )
 }
 template KeyFrame Decoder::parse_frame<KeyFrame>( const UncompressedChunk & decompressed_frame );
 template InterFrame Decoder::parse_frame<InterFrame>( const UncompressedChunk & decompressed_frame );
-template RefUpdateFrame Decoder::parse_frame<RefUpdateFrame>( const UncompressedChunk & decompressed_frame );
-template StateUpdateFrame Decoder::parse_frame<StateUpdateFrame>( const UncompressedChunk & decompressed_frame );
 
 /* Some callers (such as the code that produces SerializedFrames) needs the output Raster
  * regardless of whether or not it is shown, so return a pair with a bool indicating if the
@@ -93,8 +91,6 @@ pair<bool, RasterHandle> Decoder::decode_frame( const FrameType & frame )
 }
 template pair<bool, RasterHandle> Decoder::decode_frame<KeyFrame>( const KeyFrame & frame );
 template pair<bool, RasterHandle> Decoder::decode_frame<InterFrame>( const InterFrame & frame );
-template pair<bool, RasterHandle> Decoder::decode_frame<RefUpdateFrame>( const RefUpdateFrame & frame );
-template pair<bool, RasterHandle> Decoder::decode_frame<StateUpdateFrame>( const StateUpdateFrame & frame );
 
 /* This function takes care of the full decoding process from decompressing the Chunk
  * to returning a pair with the display status and the decoded raster.
@@ -105,11 +101,7 @@ pair<bool, RasterHandle> Decoder::get_frame_output( const Chunk & compressed_fra
   if ( decompressed_frame.key_frame() ) {
     return decode_frame( parse_frame<KeyFrame>( decompressed_frame ) );
   } else if ( decompressed_frame.experimental() ) {
-    if ( decompressed_frame.reference_update() ) {
-      return decode_frame( parse_frame<RefUpdateFrame>( decompressed_frame ) );
-    } else {
-      return decode_frame( parse_frame<StateUpdateFrame>( decompressed_frame ) );
-    }
+    throw Unsupported( "experimental" );
   } else {
     return decode_frame( parse_frame<InterFrame>( decompressed_frame ) );
   }

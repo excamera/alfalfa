@@ -49,18 +49,6 @@ void ProbabilityTables::mv_prob_update( const Enumerate<Enumerate<MVProbUpdate, 
   }
 }
 
-void ProbabilityTables::mv_prob_replace( const Enumerate<Enumerate<MVProbReplacement, MV_PROB_CNT>, 2> & mv_replacements )
-{
-  for ( uint8_t i = 0; i < mv_replacements.size(); i++ ) {
-    for ( uint8_t j = 0; j < mv_replacements.at( i ).size(); j++ ) {
-      const auto & prob = mv_replacements.at( i ).at( j );
-      if ( prob.initialized() ) {
-        motion_vector_probs.at( i ).at( j ) = prob.get();
-      }
-    }
-  }
-}
-
 template <class HeaderType>
 void ProbabilityTables::coeff_prob_update( const HeaderType & header )
 {
@@ -81,24 +69,6 @@ void ProbabilityTables::coeff_prob_update( const HeaderType & header )
 
 template
 void ProbabilityTables::coeff_prob_update<InterFrameHeader>(const InterFrameHeader &header);
-
-template <>
-void ProbabilityTables::update( const StateUpdateFrameHeader & header )
-{
-  coeff_prob_update( header );
-
-  /* update intra-mode probabilities in inter macroblocks */
-  if ( header.intra_16x16_prob.initialized() ) {
-    assign( y_mode_probs, header.intra_16x16_prob.get() );
-  }
-
-  if ( header.intra_chroma_prob.initialized() ) {
-    assign( uv_mode_probs, header.intra_chroma_prob.get() );
-  }
-
-  /* State update frames currently only update the motion vectors */
-  mv_prob_replace( header.mv_prob_replacement );
-}
 
 template <>
 void ProbabilityTables::update( const InterFrameHeader & header )
@@ -206,5 +176,3 @@ ProbabilityTables::ProbabilityTables(EncoderStateDeserializer &idata) {
 
 template
 void ProbabilityTables::coeff_prob_update<KeyFrameHeader>( const KeyFrameHeader & );
-template
-void ProbabilityTables::coeff_prob_update<RefUpdateFrameHeader>( const RefUpdateFrameHeader & );

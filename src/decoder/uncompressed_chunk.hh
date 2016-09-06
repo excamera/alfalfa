@@ -22,7 +22,6 @@ private:
   LoopFilterType loop_filter_;
   bool show_frame_;
   bool experimental_;
-  bool reference_update_;
   Chunk first_partition_;
   Chunk rest_;
 
@@ -37,7 +36,6 @@ public:
   bool show_frame( void ) const { return show_frame_; }
 
   bool experimental( void ) const { return experimental_; }
-  bool reference_update( void ) const { return reference_update_; }
 };
 
 #endif /* UNCOMPRESSED_CHUNK_HH */

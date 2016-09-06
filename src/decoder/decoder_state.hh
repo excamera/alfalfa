@@ -136,43 +136,6 @@ inline InterFrame DecoderState::parse_and_apply<InterFrame>( const UncompressedC
   return myframe;
 }
 
-template <>
-inline StateUpdateFrame DecoderState::parse_and_apply<StateUpdateFrame>( const UncompressedChunk & uncompressed_chunk )
-{
-  assert( not uncompressed_chunk.key_frame() );
-
-  /* initialize Boolean decoder for the frame and macroblock headers */
-  BoolDecoder first_partition( uncompressed_chunk.first_partition() );
-
-  /* parse interframe header */
-  StateUpdateFrame myframe( false, width, height, first_partition );
-
-  probability_tables.update( myframe.header() );
-
-  return myframe;
-}
-
-template <>
-inline RefUpdateFrame DecoderState::parse_and_apply<RefUpdateFrame>( const UncompressedChunk & uncompressed_chunk )
-{
-  assert( not uncompressed_chunk.key_frame() );
-
-  BoolDecoder first_partition( uncompressed_chunk.first_partition() );
-
-  RefUpdateFrame myframe( false, width, height, first_partition );
-
-  ProbabilityTables frame_probability_tables( probability_tables );
-  frame_probability_tables.coeff_prob_update( myframe.header() );
-
-  /* parse the frame */
-  myframe.parse_macroblock_headers( first_partition, frame_probability_tables );
-
-  myframe.parse_tokens( uncompressed_chunk.dct_partitions( myframe.dct_partition_count() ),
-                        frame_probability_tables );
-
-  return myframe;
-}
-
 template <class HeaderType>
 Segmentation::Segmentation( const HeaderType & header,
                             const unsigned int width,

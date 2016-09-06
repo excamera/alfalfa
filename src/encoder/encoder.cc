@@ -598,3 +598,19 @@ double Encoder::encode( const VP8Raster & raster, const double minimum_ssim,
     return encode_raster<InterFrame>( raster, minimum_ssim, y_ac_qi );
   }
 }
+
+template <BlockType initial_block_type, class PredictionMode>
+void Block<initial_block_type, PredictionMode>::calculate_has_nonzero( void )
+{
+  has_nonzero_ = false;
+  for ( uint8_t i = 0; i < 16; i++ ) {
+    if ( coefficients_.at( i ) ) {
+      has_nonzero_ = true;
+      return;
+    }
+  }
+}
+
+template void YBlock::calculate_has_nonzero();
+template void Y2Block::calculate_has_nonzero();
+template void UVBlock::calculate_has_nonzero();

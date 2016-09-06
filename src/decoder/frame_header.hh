@@ -118,30 +118,6 @@ struct TokenProbUpdate
   }
 };
 
-struct MVProbReplacement
-{
-  Flagged< Unsigned<8> > mv_prob;
-
-  bool initialized( void ) const { return mv_prob.initialized(); }
-  uint8_t get( void ) const { return mv_prob.get(); }
-
-  MVProbReplacement( BoolDecoder & data,
-                     const unsigned int j, const unsigned int i )
-    : mv_prob( data, k_mv_entropy_update_probs.at( i ).at( j ) )
-  {}
-
-  MVProbReplacement( const bool initialized, const uint8_t x )
-    : mv_prob( initialized, x )
-  {}
-
-  MVProbReplacement() : mv_prob() {}
-
-  bool operator==( const MVProbReplacement & other ) const
-  {
-    return mv_prob == other.mv_prob;
-  }
-};
-
 struct MVProbUpdate
 {
   Flagged< Unsigned<7> > mv_prob;
@@ -301,80 +277,6 @@ struct InterFrameHeader
            intra_chroma_prob == other.intra_chroma_prob and
            mv_prob_update == other.mv_prob_update;
   }
-};
-
-struct StateUpdateFrameHeader
-{
-  Enumerate< Enumerate< Enumerate< Enumerate< TokenProbUpdate,
-                                              ENTROPY_NODES >,
-                                   PREV_COEF_CONTEXTS >,
-                        COEF_BANDS >,
-             BLOCK_TYPES > token_prob_update;
-  Flagged<Array<Unsigned<8>, 4>> intra_16x16_prob;
-  Flagged<Array<Unsigned<8>, 3>> intra_chroma_prob;
-  Enumerate<Enumerate<MVProbReplacement, MV_PROB_CNT>, 2> mv_prob_replacement;
-  Unsigned<2> log2_number_of_dct_partitions;
-  Optional<UpdateSegmentation> update_segmentation;
-  Optional<Unsigned<8>> prob_skip_false;
-
-  StateUpdateFrameHeader( BoolDecoder & data )
-
-    : token_prob_update( data ),
-      intra_16x16_prob( data ),
-      intra_chroma_prob( data ),
-      mv_prob_replacement( data ),
-      log2_number_of_dct_partitions( 0 ),
-      update_segmentation(),
-      prob_skip_false()
-  {}
-
-  StateUpdateFrameHeader( const ProbabilityTables & source_probs, const ProbabilityTables & target_probs );
-
-  bool operator==( const StateUpdateFrameHeader & other ) const
-  {
-    return token_prob_update == other.token_prob_update and intra_16x16_prob == other.intra_16x16_prob and
-           intra_chroma_prob == other.intra_chroma_prob and mv_prob_replacement == other.mv_prob_replacement and
-           log2_number_of_dct_partitions == other.log2_number_of_dct_partitions and
-           update_segmentation == other.update_segmentation and
-           prob_skip_false == other.prob_skip_false;
-  }
-};
-
-struct RefUpdateFrameHeader
-{
-  Unsigned<2> ref_to_update;
-  Unsigned<2> log2_number_of_dct_partitions;
-  Enumerate<Enumerate<Enumerate<Enumerate<TokenProbUpdate,
-                                          ENTROPY_NODES>,
-                                PREV_COEF_CONTEXTS>,
-                      COEF_BANDS>,
-            BLOCK_TYPES> token_prob_update;
-  Flagged<Unsigned<8>> prob_skip_false;
-  Optional<UpdateSegmentation> update_segmentation;
-
-
-  RefUpdateFrameHeader( BoolDecoder & data )
-    : ref_to_update( data ),
-      log2_number_of_dct_partitions( 0 ), // FIXME revisit this
-      token_prob_update( data ),
-      prob_skip_false( data ),
-      update_segmentation()
-  {}
-
-  // Construct partial reference update header
-  RefUpdateFrameHeader( const reference_frame & frame, uint8_t skip_prob );
-
-  reference_frame reference() const { return reference_frame( ref_to_update + (unsigned)LAST_FRAME ); }
-
-  bool operator==( const RefUpdateFrameHeader & other ) const
-  {
-    return ref_to_update == other.ref_to_update and
-           log2_number_of_dct_partitions == other.log2_number_of_dct_partitions and
-           token_prob_update == other.token_prob_update and
-           prob_skip_false == other.prob_skip_false and
-           update_segmentation == other.update_segmentation;
-  }
-
 };
 
 #endif /* FRAME_HEADER_HH */
