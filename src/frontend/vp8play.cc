@@ -1,6 +1,7 @@
 /* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 
 #include <iostream>
+#include <unistd.h>
 
 #include "player.hh"
 #include "display.hh"
@@ -24,6 +25,7 @@ int main( int argc, char *argv[] )
 
     while ( not player.eof() ) {
       display.draw( player.advance() );
+      usleep(100000);
     }
   } catch ( const exception & e ) {
     print_exception( argv[ 0 ], e );

@@ -179,7 +179,7 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                      VP8Raster::Macroblock & temp_mb,
                                      InterFrameMacroblock & frame_mb,
                                      const Quantizer & quantizer,
-                                     MVComponentCounts & component_counts,
+                                     MVComponentCounts & /* component_counts */,
                                      const EncoderPass encoder_pass )
 {
   // let's find the best intra-prediction for this macroblock first...
@@ -286,20 +286,33 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
     }
   }
 
-  if ( best_pred.prediction_mode <= B_PRED ) {
+  luma_mb_apply_inter_prediction( original_mb, reconstructed_mb, temp_mb,
+                                  frame_mb, quantizer, best_pred.prediction_mode,
+                                  best_mv, encoder_pass );
+}
+
+void Encoder::luma_mb_apply_inter_prediction( const VP8Raster::Macroblock & original_mb,
+                                              VP8Raster::Macroblock & reconstructed_mb,
+                                              VP8Raster::Macroblock & temp_mb,
+                                              InterFrameMacroblock & frame_mb,
+                                              const Quantizer & quantizer,
+                                              const mbmode best_pred,
+                                              const MotionVector best_mv,
+                                              const EncoderPass encoder_pass )
+{
+  if ( best_pred <= B_PRED ) {
     // This block will be intra-predicted
     frame_mb.mutable_header().is_inter_mb = false;
 
     luma_mb_apply_intra_prediction( original_mb, reconstructed_mb, temp_mb,
-                                    frame_mb, quantizer,
-                                    best_pred.prediction_mode, encoder_pass );
+                                    frame_mb, quantizer, best_pred, encoder_pass );
   }
   else {
     // This block will be inter-predicted
     frame_mb.mutable_header().is_inter_mb = true;
     frame_mb.mutable_header().set_reference( LAST_FRAME );
 
-    frame_mb.Y2().set_prediction_mode( best_pred.prediction_mode );
+    frame_mb.Y2().set_prediction_mode( best_pred );
 
     frame_mb.set_base_motion_vector( best_mv );
 
@@ -332,8 +345,8 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
     frame_mb.Y2().mutable_coefficients() = Y2Block::quantize( quantizer, frame_mb.Y2().coefficients() );
     frame_mb.Y2().calculate_has_nonzero();
 
-    update_mv_component_counts( ( best_mv - best_ref ).x(), true, component_counts );
-    update_mv_component_counts( ( best_mv - best_ref ).y(), false, component_counts );
+    // update_mv_component_counts( ( best_mv - best_ref ).x(), true, component_counts );
+    // update_mv_component_counts( ( best_mv - best_ref ).y(), false, component_counts );
   }
 }
 
@@ -538,4 +551,261 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
   }
 
   return { move( frame ), immutable_raster.get().quality( raster ) };
+}
+
+template<>
+void Encoder::reencode_frame( const VP8Raster & unfiltered_output,
+                              const KeyFrame & original_frame )
+{
+  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height() );
+  auto & kf_header = original_frame.header();
+  auto & if_header = frame.mutable_header();
+
+  if_header.filter_type             = kf_header.filter_type;
+  if_header.update_segmentation     = kf_header.update_segmentation;
+  if_header.loop_filter_level       = kf_header.loop_filter_level;
+  if_header.sharpness_level         = kf_header.sharpness_level;
+  if_header.mode_lf_adjustments     = kf_header.mode_lf_adjustments;
+  if_header.quant_indices           = kf_header.quant_indices;
+  if_header.refresh_last            = true;
+  if_header.refresh_entropy_probs   = true;
+
+  for ( size_t i = 0; i < MV_PROB_CNT; i++ ) {
+    if_header.mv_prob_update.at( 0 ).at( i ).clear();
+    if_header.mv_prob_update.at( 1 ).at( i ).clear();
+  }
+
+  // TODO MV probabilities.
+
+  if_header.intra_16x16_prob.clear();
+
+  for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
+    for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
+      for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
+        for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
+          auto & current_prob = decoder_state_.probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l );
+          auto & kf_header_prob = kf_header.token_prob_update.at( i ).at( j ).at( k ).at( l ).coeff_prob;
+          auto & default_kf_prob = k_default_coeff_probs.at( i ).at( j ).at( k ).at( l );
+
+          if ( kf_header_prob.initialized() ) {
+            if( current_prob != kf_header_prob.get() ) {
+              if_header.token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( true, kf_header_prob.get() );
+            }
+            else {
+              if_header.token_prob_update.at( i ).at( j ).at( k ).at( l ).coeff_prob.clear();
+            }
+          }
+          else {
+            if ( current_prob != default_kf_prob ) {
+              if_header.token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( true, default_kf_prob );
+            }
+            else {
+              if_header.token_prob_update.at( i ).at( j ).at( k ).at( l ).coeff_prob.clear();
+            }
+          }
+        }
+      }
+    }
+  }
+
+  decoder_state_.probability_tables.coeff_prob_update( frame.header() );
+
+  Quantizer quantizer( frame.header().quant_indices );
+  MutableRasterHandle reconstructed_raster_handle { width(), height() };
+  VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
+
+  MVComponentCounts component_counts;
+
+  unfiltered_output.macroblocks().forall_ij(
+    [&] ( VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
+    {
+      auto & reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
+      auto & temp_mb = temp_raster().macroblock( mb_column, mb_row );
+      auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
+
+      // Process Y and Y2
+      luma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb, frame_mb,
+                             quantizer, component_counts, FIRST_PASS );
+
+      if ( frame_mb.inter_coded() ) {
+        chroma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb,
+                                 frame_mb, quantizer, FIRST_PASS );
+      }
+      else {
+        chroma_mb_intra_predict( original_mb, reconstructed_mb, temp_mb,
+                                 frame_mb, quantizer, FIRST_PASS );
+      }
+
+      frame_mb.calculate_has_nonzero();
+
+      if ( frame_mb.inter_coded() ) {
+        frame_mb.reconstruct_inter( quantizer, references_, reconstructed_mb, false );
+      }
+      else {
+        frame_mb.reconstruct_intra( quantizer, reconstructed_mb );
+      }
+    }
+  );
+
+  frame.relink_y2_blocks();
+
+  optimize_prob_skip( frame );
+  optimize_interframe_probs( frame );
+
+  // decoder_state_.filter_adjustments.clear();
+  // decoder_state_.filter_adjustments.initialize( frame.header() );
+  // frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed_raster );
+
+  RasterHandle immutable_raster( move( reconstructed_raster_handle ) );
+  references_.last = immutable_raster;
+
+  ivf_writer_.append_frame( frame.serialize( decoder_state_.probability_tables ) );
+}
+
+template<>
+void Encoder::reencode_frame( const VP8Raster & unfiltered_output,
+                              const InterFrame & original_frame )
+{
+  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height() );
+  frame.mutable_header() = original_frame.header();
+
+  Quantizer quantizer( frame.header().quant_indices );
+  MutableRasterHandle reconstructed_raster_handle { width(), height() };
+  VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
+
+  TokenBranchCounts token_branch_counts;
+
+  unfiltered_output.macroblocks().forall_ij(
+    [&] ( VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
+    {
+      auto & reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
+      auto & temp_mb = temp_raster().macroblock( mb_column, mb_row );
+      auto & original_frame_mb = original_frame.macroblocks().at( mb_column, mb_row );
+      auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
+
+      frame_mb.mutable_header() = original_frame_mb.header();
+
+      mbmode luma_pred_mode = original_frame_mb.y_prediction_mode();
+
+      MotionVector best_mv;
+
+      if ( luma_pred_mode < B_PRED ) {
+        reconstructed_mb.Y.intra_predict( luma_pred_mode );
+      }
+      else if ( luma_pred_mode == B_PRED ) {
+        reconstructed_mb.Y_sub.forall_ij(
+          [&] ( VP8Raster::Block4 & reconstructed_sb, unsigned int sb_column, unsigned int sb_row )
+          {
+            auto & original_sb = original_mb.Y_sub.at( sb_column, sb_row );
+            auto & original_frame_sb = original_frame_mb.Y().at( sb_column, sb_row );
+            auto & frame_sb = frame_mb.Y().at( sb_column, sb_row );
+            bmode sb_prediction_mode = original_frame_sb.prediction_mode();
+
+            reconstructed_sb.intra_predict( sb_prediction_mode );
+            frame_sb.set_prediction_mode( sb_prediction_mode );
+
+            frame_sb.mutable_coefficients().subtract_dct( original_sb,
+              reconstructed_sb.contents() );
+            frame_sb.mutable_coefficients() = YBlock::quantize( quantizer, frame_sb.coefficients() );
+
+            frame_sb.set_Y_without_Y2();
+            frame_sb.calculate_has_nonzero();
+
+            reconstructed_sb.intra_predict( sb_prediction_mode );
+            frame_sb.dequantize( quantizer ).idct_add( reconstructed_sb );
+          }
+        );
+      }
+      else {
+        best_mv = original_frame_mb.base_motion_vector();
+        reconstructed_mb.Y.inter_predict( best_mv, references_.last.get().Y() );
+      }
+
+      luma_mb_apply_inter_prediction( original_mb, reconstructed_mb, temp_mb,
+                                      frame_mb, quantizer, luma_pred_mode,
+                                      best_mv, FIRST_PASS );
+
+      if ( frame_mb.inter_coded() ) {
+        chroma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb,
+                                 frame_mb, quantizer, FIRST_PASS );
+      }
+      else {
+        mbmode chroma_pred_mode = original_frame_mb.uv_prediction_mode();
+
+        reconstructed_mb.U.intra_predict( chroma_pred_mode );
+        reconstructed_mb.V.intra_predict( chroma_pred_mode );
+
+        chroma_mb_apply_intra_prediction( original_mb, reconstructed_mb, temp_mb,
+                                          frame_mb, quantizer, chroma_pred_mode,
+                                          FIRST_PASS );
+      }
+
+      frame_mb.calculate_has_nonzero();
+
+      if ( frame_mb.inter_coded() ) {
+        frame_mb.reconstruct_inter( quantizer, references_, reconstructed_mb, false );
+      }
+      else {
+        frame_mb.reconstruct_intra( quantizer, reconstructed_mb );
+      }
+
+      frame_mb.accumulate_token_branches( token_branch_counts );
+    }
+  );
+
+  frame.relink_y2_blocks();
+
+  optimize_prob_skip( frame );
+  optimize_interframe_probs( frame );
+  optimize_probability_tables( frame, token_branch_counts );
+
+  // decoder_state_.filter_adjustments.clear();
+  // decoder_state_.filter_adjustments.initialize( frame.header() );
+  // frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed_raster );
+
+  RasterHandle immutable_raster( move( reconstructed_raster_handle ) );
+  references_.last = immutable_raster;
+
+  ivf_writer_.append_frame( frame.serialize( decoder_state_.probability_tables ) );
+}
+
+void Encoder::reencode( const shared_ptr<FrameInput> & input,
+                        const IVF & pred_ivf,
+                        Decoder pred_decoder )
+{
+  if ( input->display_width() != width() or input->display_height() != height()
+       or pred_ivf.width() != width() or pred_ivf.height() != height() ) {
+    throw Unsupported( "scaling not supported" );
+  }
+
+  Decoder input_decoder( width(), height() );
+
+  size_t i = 0;
+  Optional<RasterHandle> raster = input->get_next_frame();
+
+  while ( raster.initialized() ) {
+    cerr << "Re-encoding Frame #" << i << "..." << endl;
+
+    const VP8Raster & target_output = raster.get();
+    UncompressedChunk pred_uch { pred_ivf.frame( i++ ), width(), height() };
+
+    if ( not pred_uch.show_frame() ) {
+      throw Unsupported( "unshown frame in the prediction ivf" );
+    }
+
+    if ( pred_uch.switching_frame() and i != pred_ivf.frame_count() - 1 ) {
+      throw Unsupported( "switching frame in the middle of the chunk" );
+    }
+
+    if ( pred_uch.key_frame() ) {
+      KeyFrame frame = pred_decoder.parse_frame<KeyFrame>( pred_uch );
+      reencode_frame( target_output, frame );
+    }
+    else {
+      InterFrame frame = pred_decoder.parse_frame<InterFrame>( pred_uch );
+      reencode_frame( target_output, frame );
+    }
+
+    raster = input->get_next_frame();
+  }
 }

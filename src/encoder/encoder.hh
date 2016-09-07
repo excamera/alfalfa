@@ -10,6 +10,7 @@
 
 #include "decoder.hh"
 #include "frame.hh"
+#include "frame_input.hh"
 #include "vp8_raster.hh"
 #include "ivf_writer.hh"
 #include "costs.hh"
@@ -94,6 +95,15 @@ private:
                               const Quantizer & quantizer,
                               MVComponentCounts & component_counts,
                               const EncoderPass encoder_pass = FIRST_PASS );
+
+  void luma_mb_apply_inter_prediction( const VP8Raster::Macroblock & original_mb,
+                                       VP8Raster::Macroblock & reconstructed_mb,
+                                       VP8Raster::Macroblock & temp_mb,
+                                       InterFrameMacroblock & frame_mb,
+                                       const Quantizer & quantizer,
+                                       const mbmode best_pred,
+                                       const MotionVector best_mv,
+                                       const EncoderPass encoder_pass );
 
   void chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                 VP8Raster::Macroblock & constructed_mb,
@@ -197,6 +207,10 @@ private:
   template<class FrameType>
   static FrameType make_empty_frame( const uint16_t width, const uint16_t height );
 
+  template<class FrameType>
+  void reencode_frame( const VP8Raster & unfiltered_output,
+                       const FrameType & original_frame );
+
 public:
   Encoder( IVFWriter && output, const bool two_pass );
 
@@ -205,6 +219,10 @@ public:
   double encode( const VP8Raster & raster,
                  const double minimum_ssim,
                  const uint8_t y_ac_qi = std::numeric_limits<uint8_t>::max() );
+
+  void reencode( const std::shared_ptr<FrameInput> & input,
+                 const IVF & pred_ivf,
+                 Decoder pred_decoder );
 
   Decoder export_decoder() const { return { decoder_state_, references_ }; }
 };

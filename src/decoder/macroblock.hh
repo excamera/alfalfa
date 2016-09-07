@@ -145,6 +145,11 @@ public:
   TwoDSubRange< UVBlock, 2, 2 > & U() { return U_; }
   TwoDSubRange< UVBlock, 2, 2 > & V() { return V_; }
 
+  const Y2Block & Y2()                      const { return Y2_; }
+  const TwoDSubRange< YBlock, 4, 4 >  & Y() const { return Y_; }
+  const TwoDSubRange< UVBlock, 2, 2 > & U() const { return U_; }
+  const TwoDSubRange< UVBlock, 2, 2 > & V() const { return V_; }
+
   bool calculate_has_nonzero( const bool mb_no_skip_coeff = false );
 };
 

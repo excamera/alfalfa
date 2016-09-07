@@ -36,6 +36,9 @@ void usage_error( const string & program_name )
        << "                                         encoder state (default: none)" << endl
        << " -I <arg>, --input-state=<arg>         Input file name for initial" << endl
        << "                                         encoder state (default: none)" << endl
+       << " -r                                    Re-encode." << endl
+       << " -p <arg>                              Prediction modes IVF (only with re-encode)." << endl
+       << " -S <arg>                              Prediction modes IVF initial state (only with re-encode)." << endl
        << " --two-pass                            Do the second encoding pass" << endl
        << " --y-ac-qi <arg>                       Quantization index for Y" << endl
        << endl;
@@ -57,8 +60,11 @@ int main( int argc, char *argv[] )
     string input_format = "ivf";
     string input_state = "";
     string output_state = "";
+    string pred_file = "";
+    string pred_ivf_initial_state = "";
     double ssim = 0.99;
     bool two_pass = false;
+    bool re_encode_only = false;
 
     size_t y_ac_qi = numeric_limits<size_t>::max();
 
@@ -70,11 +76,14 @@ int main( int argc, char *argv[] )
       { "input-state",  required_argument, nullptr, 'I' },
       { "two-pass",     no_argument,       nullptr, '2' },
       { "y-ac-qi",      required_argument, nullptr, 'y' },
+      { nullptr,        no_argument,       nullptr, 'r' },
+      { nullptr,        required_argument, nullptr, 'p' },
+      { nullptr,        required_argument, nullptr, 'S' },
       { 0, 0, 0, 0 }
     };
 
     while ( true ) {
-      const int opt = getopt_long( argc, argv, "o:s:i:O:I:", command_line_options, nullptr );
+      const int opt = getopt_long( argc, argv, "o:s:i:O:I:p:S:r", command_line_options, nullptr );
 
       if ( opt == -1 ) {
         break;
@@ -107,6 +116,18 @@ int main( int argc, char *argv[] )
 
       case 'y':
         y_ac_qi = stoul( optarg );
+        break;
+
+      case 'r':
+        re_encode_only = true;
+        break;
+
+      case 'p':
+        pred_file = optarg;
+        break;
+
+      case 'S':
+        pred_ivf_initial_state = optarg;
         break;
 
       default:
@@ -142,6 +163,12 @@ int main( int argc, char *argv[] )
       throw runtime_error( "unsupported input format" );
     }
 
+    Decoder pred_decoder( input_reader->display_width(), input_reader->display_height() );
+
+    if ( pred_file != "" and pred_ivf_initial_state != "") {
+      pred_decoder = EncoderStateDeserializer::build<Decoder>( pred_ivf_initial_state );
+    }
+
     IVFWriter output { output_file, "VP80", input_reader->display_width(), input_reader->display_height(), 1, 1 };
 
     Encoder encoder = input_state == ""
@@ -149,16 +176,21 @@ int main( int argc, char *argv[] )
       : Encoder( EncoderStateDeserializer::build<Decoder>( input_state ),
                  move( output ), two_pass );
 
-    Optional<RasterHandle> raster = input_reader->get_next_frame();
+    if ( re_encode_only ) {
+      encoder.reencode( input_reader, pred_file, pred_decoder );
+    }
+    else {
+      Optional<RasterHandle> raster = input_reader->get_next_frame();
 
-    size_t frame_index = 0;
+      size_t frame_index = 0;
 
-    while ( raster.initialized() ) {
-      double result_ssim = encoder.encode( raster.get(), ssim, y_ac_qi );
+      while ( raster.initialized() ) {
+        double result_ssim = encoder.encode( raster.get(), ssim, y_ac_qi );
 
-      cerr << "Frame #" << frame_index++ << ": ssim=" << result_ssim << endl;
+        cerr << "Frame #" << frame_index++ << ": ssim=" << result_ssim << endl;
 
-      raster = input_reader->get_next_frame();
+        raster = input_reader->get_next_frame();
+      }
     }
 
     if (output_state != "") {

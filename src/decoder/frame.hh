@@ -84,6 +84,12 @@ class Frame
 
   bool show_frame( void ) const { return show_; }
 
+  bool switching_frame() const { return switching_frame_; }
+
+  void set_show( bool show_frame ) { show_ = show_frame; }
+  
+  void set_switching( bool switching_frame ) { switching_frame_ = switching_frame; }
+
   bool operator==( const Frame & other ) const;
 };
 
