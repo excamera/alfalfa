@@ -443,8 +443,6 @@ void Encoder::apply_best_loopfilter_settings( const VP8Raster & original,
                                               VP8Raster & reconstructed,
                                               FrameType & frame )
 {
-  return; // XXX re-enable loopfilter!
-
   frame.mutable_header().mode_lf_adjustments.initialize();
   frame.mutable_header().mode_lf_adjustments.get().initialize();
 

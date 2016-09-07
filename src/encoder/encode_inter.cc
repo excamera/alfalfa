@@ -553,6 +553,77 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
   return { move( frame ), immutable_raster.get().quality( raster ) };
 }
 
+void Encoder::encode_switching_frame( const uint8_t y_ac_qi )
+{
+  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height() );
+  auto & if_header = frame.mutable_header();
+
+  MutableRasterHandle reconstructed_raster_handle { width(), height() };
+  VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
+
+  frame.set_switching( true );
+  frame.set_show( false );
+
+  QuantIndices quant_indices;
+  quant_indices.y_ac_qi = y_ac_qi;
+
+  if_header.loop_filter_level = 0; // disable loopfilter for this if_header
+  if_header.mode_lf_adjustments.clear();
+  if_header.quant_indices = quant_indices;
+  if_header.refresh_last = true;
+  if_header.refresh_entropy_probs = false;
+
+  for ( size_t i = 0; i < MV_PROB_CNT; i++ ) {
+    if_header.mv_prob_update.at( 0 ).at( i ).clear();
+    if_header.mv_prob_update.at( 1 ).at( i ).clear();
+  }
+
+  if_header.intra_16x16_prob.clear();
+
+  frame.macroblocks().forall(
+    [&] ( InterFrameMacroblock & frame_mb )
+    {
+      frame_mb.mutable_header().is_inter_mb = true;
+      frame_mb.mutable_header().set_reference( LAST_FRAME );
+
+      frame_mb.Y2().set_prediction_mode( ZEROMV );
+      frame_mb.set_base_motion_vector( MotionVector() );
+      frame_mb.Y().forall(
+        [&] ( YBlock & frame_sb ) {
+          frame_sb.set_motion_vector( MotionVector() );
+          frame_sb.mutable_coefficients().zero_out(); // no residuals
+        }
+      );
+
+      frame_mb.U().forall(
+        [&] ( UVBlock & frame_sb )
+        {
+          frame_sb.mutable_coefficients().zero_out(); // no residuals
+        }
+      );
+
+      frame_mb.V().forall(
+        [&] ( UVBlock & frame_sb )
+        {
+          frame_sb.mutable_coefficients().zero_out(); // no residuals
+        }
+      );
+
+      frame_mb.calculate_has_nonzero();
+    }
+  );
+
+  optimize_prob_skip( frame );
+  optimize_interframe_probs( frame );
+
+  frame.decode( { }, references_, reconstructed_raster );
+
+  RasterHandle immutable_raster{ move( reconstructed_raster_handle ) };
+  references_.last = immutable_raster;
+
+  ivf_writer_.append_frame( frame.serialize( decoder_state_.probability_tables ) );
+}
+
 template<>
 void Encoder::reencode_frame( const VP8Raster & unfiltered_output,
                               const KeyFrame & original_frame )
@@ -652,9 +723,9 @@ void Encoder::reencode_frame( const VP8Raster & unfiltered_output,
   optimize_prob_skip( frame );
   optimize_interframe_probs( frame );
 
-  // decoder_state_.filter_adjustments.clear();
-  // decoder_state_.filter_adjustments.initialize( frame.header() );
-  // frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed_raster );
+  decoder_state_.filter_adjustments.clear();
+  decoder_state_.filter_adjustments.initialize( frame.header() );
+  frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed_raster );
 
   RasterHandle immutable_raster( move( reconstructed_raster_handle ) );
   references_.last = immutable_raster;
@@ -759,9 +830,9 @@ void Encoder::reencode_frame( const VP8Raster & unfiltered_output,
   optimize_interframe_probs( frame );
   optimize_probability_tables( frame, token_branch_counts );
 
-  // decoder_state_.filter_adjustments.clear();
-  // decoder_state_.filter_adjustments.initialize( frame.header() );
-  // frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed_raster );
+  decoder_state_.filter_adjustments.clear();
+  decoder_state_.filter_adjustments.initialize( frame.header() );
+  frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed_raster );
 
   RasterHandle immutable_raster( move( reconstructed_raster_handle ) );
   references_.last = immutable_raster;
@@ -796,6 +867,9 @@ void Encoder::reencode( const shared_ptr<FrameInput> & input,
     if ( pred_uch.switching_frame() and i != pred_ivf.frame_count() - 1 ) {
       throw Unsupported( "switching frame in the middle of the chunk" );
     }
+    else if ( pred_uch.switching_frame() ) {
+      break;
+    }
 
     if ( pred_uch.key_frame() ) {
       KeyFrame frame = pred_decoder.parse_frame<KeyFrame>( pred_uch );
@@ -808,4 +882,7 @@ void Encoder::reencode( const shared_ptr<FrameInput> & input,
 
     raster = input->get_next_frame();
   }
+
+   // now we encode the switching frame :)
+   encode_switching_frame( 63 );
 }

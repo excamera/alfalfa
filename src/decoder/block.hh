@@ -70,6 +70,13 @@ public:
 
   DCTCoefficients dequantize( const std::pair<uint16_t, uint16_t> & factors ) const;
   DCTCoefficients quantize( const std::pair<uint16_t, uint16_t> & factors ) const;
+
+  void zero_out()
+  {
+    for ( size_t i = 0; i < 16; i++ ) {
+      at( i ) = 0;
+    }
+  }
 };
 
 template <BlockType initial_block_type, class PredictionMode>

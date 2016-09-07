@@ -207,9 +207,12 @@ private:
   template<class FrameType>
   static FrameType make_empty_frame( const uint16_t width, const uint16_t height );
 
+  /* Convergence-related stuff */
   template<class FrameType>
   void reencode_frame( const VP8Raster & unfiltered_output,
                        const FrameType & original_frame );
+
+  void encode_switching_frame( const uint8_t y_ac_qi );
 
 public:
   Encoder( IVFWriter && output, const bool two_pass );
