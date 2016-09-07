@@ -19,4 +19,5 @@ libalfalfadecoder_a_SOURCES = vp8_raster.hh block.hh bool_decoder.hh decoder.cc 
 	transform_sse.hh raster_handle.hh raster_handle.cc \
 	player.cc player.hh \
 	probability_tables.cc \
-	config.asm x86_abi_support.asm enc_state_serializer.hh
+	config.asm x86_abi_support.asm enc_state_serializer.hh \
+	dct.cc

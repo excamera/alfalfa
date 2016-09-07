@@ -4,6 +4,7 @@
 #define QUANTIZATION_HH
 
 #include <cstdint>
+#include <utility>
 
 struct QuantIndices;
 
@@ -14,6 +15,10 @@ struct Quantizer
   Quantizer( const QuantIndices & quant_indices );
 
   Quantizer();
+
+  std::pair<uint16_t, uint16_t> y2() const { return { y2_dc, y2_ac }; }
+  std::pair<uint16_t, uint16_t> y() const { return { y_dc, y_ac }; }
+  std::pair<uint16_t, uint16_t> uv() const { return { uv_dc, uv_ac }; }
 };
 
 #endif /* QUANTIZATION_HH */

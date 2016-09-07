@@ -539,6 +539,10 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
                     raster.V_sub.at( column, row ).inter_predict( block.motion_vector(),
                                                                        reference.V() ); } );
 
+    if ( quantize_prediction ) {
+      throw Unsupported( "can't quantize a SPLITMV macroblock" );
+    }
+
     if ( has_nonzero_ ) {
       /* Add residue */
       Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
@@ -554,8 +558,28 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
     raster.V.inter_predict( U_.at( 0, 0 ).motion_vector(), reference.V() );
 
     if ( quantize_prediction ) {
-      /* XXX fill in here */
-      throw Unsupported( "switching frame" );
+      TwoD<uint8_t> blank_block_parent { 4, 4 };
+      blank_block_parent.fill( 0 ); /* XXX do we want to do this every time? */
+      TwoDSubRange<uint8_t, 4, 4> blank_block { blank_block_parent, 0, 0 };
+      DCTCoefficients coeffs;
+
+      raster.Y_sub.forall( [&] ( VP8Raster::Block4 & block ) {
+          coeffs.subtract_dct( block, blank_block );
+          block.mutable_contents().fill( 0 );
+          coeffs.quantize( quantizer.y() ).dequantize( quantizer.y() ).idct_add( block );
+        } );
+
+      raster.U_sub.forall( [&] ( VP8Raster::Block4 & block ) {
+          coeffs.subtract_dct( block, blank_block );
+          block.mutable_contents().fill( 0 );
+          coeffs.quantize( quantizer.uv() ).dequantize( quantizer.uv() ).idct_add( block );
+        } );
+
+      raster.V_sub.forall( [&] ( VP8Raster::Block4 & block ) {
+          coeffs.subtract_dct( block, blank_block );
+          block.mutable_contents().fill( 0 );
+          coeffs.quantize( quantizer.uv() ).dequantize( quantizer.uv() ).idct_add( block );
+        } );
     }
 
     if ( has_nonzero_ ) {

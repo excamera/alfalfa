@@ -62,12 +62,12 @@ Quantizer::Quantizer( const QuantIndices & quant_indices )
   if ( uv_dc > 132 ) uv_dc = 132;
 }
 
-DCTCoefficients DCTCoefficients::dequantize( const uint16_t dc_factor, const uint16_t ac_factor ) const
+DCTCoefficients DCTCoefficients::dequantize( const pair<uint16_t, uint16_t> & factors ) const
 {
   DCTCoefficients new_coefficients;
-  new_coefficients.at( 0 ) = coefficients_.at( 0 ) * dc_factor;
+  new_coefficients.at( 0 ) = coefficients_.at( 0 ) * factors.first;
   for ( uint8_t i = 1; i < 16; i++ ) {
-    new_coefficients.at( i ) = coefficients_.at( i ) * ac_factor;
+    new_coefficients.at( i ) = coefficients_.at( i ) * factors.second;
   }
 
   return new_coefficients;
@@ -78,27 +78,27 @@ DCTCoefficients Y2Block::dequantize( const Quantizer & quantizer ) const
 {
   assert( coded_ );
 
-  return coefficients_.dequantize( quantizer.y2_dc, quantizer.y2_ac );
+  return coefficients_.dequantize( quantizer.y2() );
 }
 
 template <>
 DCTCoefficients YBlock::dequantize( const Quantizer & quantizer ) const
 {
-  return coefficients_.dequantize( quantizer.y_dc, quantizer.y_ac );
+  return coefficients_.dequantize( quantizer.y() );
 }
 
 template <>
 DCTCoefficients UVBlock::dequantize( const Quantizer & quantizer ) const
 {
-  return coefficients_.dequantize( quantizer.uv_dc, quantizer.uv_ac );
+  return coefficients_.dequantize( quantizer.uv() );
 }
 
-DCTCoefficients DCTCoefficients::quantize( const uint16_t dc_factor, const uint16_t ac_factor ) const
+DCTCoefficients DCTCoefficients::quantize( const pair<uint16_t, uint16_t> & factors ) const
 {
   DCTCoefficients new_coefficients;
-  new_coefficients.at( 0 ) = coefficients_.at( 0 ) / dc_factor;
+  new_coefficients.at( 0 ) = coefficients_.at( 0 ) / factors.first;
   for ( uint8_t i = 1; i < 16; i++ ) {
-    new_coefficients.at( i ) = coefficients_.at( i ) / ac_factor;
+    new_coefficients.at( i ) = coefficients_.at( i ) / factors.second;
   }
 
   return new_coefficients;
@@ -108,19 +108,19 @@ template <>
 DCTCoefficients Y2Block::quantize( const Quantizer & quantizer,
                                    const DCTCoefficients & coefficients )
 {
-  return coefficients.quantize( quantizer.y2_dc, quantizer.y2_ac );
+  return coefficients.quantize( quantizer.y2() );
 }
 
 template <>
 DCTCoefficients YBlock::quantize( const Quantizer & quantizer,
                                   const DCTCoefficients & coefficients )
 {
-  return coefficients.quantize( quantizer.y_dc, quantizer.y_ac );
+  return coefficients.quantize( quantizer.y() );
 }
 
 template <>
 DCTCoefficients UVBlock::quantize( const Quantizer & quantizer,
                                    const DCTCoefficients & coefficients)
 {
-  return coefficients.quantize( quantizer.uv_dc, quantizer.uv_ac );
+  return coefficients.quantize( quantizer.uv() );
 }

@@ -68,8 +68,8 @@ public:
     return output;
   }
 
-  DCTCoefficients dequantize( const uint16_t dc_factor, const uint16_t ac_factor ) const;
-  DCTCoefficients quantize( const uint16_t dc_factor, const uint16_t ac_factor ) const;
+  DCTCoefficients dequantize( const std::pair<uint16_t, uint16_t> & factors ) const;
+  DCTCoefficients quantize( const std::pair<uint16_t, uint16_t> & factors ) const;
 };
 
 template <BlockType initial_block_type, class PredictionMode>
