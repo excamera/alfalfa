@@ -265,16 +265,26 @@ void print_frame_info( const Frame<FrameHeaderType, MacroblockType> & frame, con
               cout << "Prediction Mode: " << bmode_names[ yblock.prediction_mode() ] << endl;
             }
 
-            if ( coefficients ) {
+            if ( coefficients and yblock.has_nonzero()  ) {
               cout << "DCT coeffs: { " << yblock.coefficients() << " }" << endl;
               cout << endl;
+            }
+            else if ( coefficients ) {
+              cout << "ALL ZERO" << endl;
             }
           }
         );
 
-        if ( macroblock.Y2().coded() ) {
+        if ( coefficients and macroblock.Y2().coded() ) {
           cout << "<Y2>" << endl;
-          cout << "DCT coeffs: { " << macroblock.Y2().coefficients() << " }" << endl;
+
+          if ( macroblock.Y2().has_nonzero() ) {
+            cout << "DCT coeffs: { " << macroblock.Y2().coefficients() << " }" << endl;
+          }
+          else {
+            cout << "ALL ZERO" << endl;
+          }
+
           cout << endl;
         }
 
@@ -290,9 +300,12 @@ void print_frame_info( const Frame<FrameHeaderType, MacroblockType> & frame, con
           [&] ( const UVBlock & ublock, unsigned int sb_column, unsigned sb_row ) {
             cout << "U Subblock [ " << sb_column << ", " << sb_row << " ]" << endl;
 
-            if ( coefficients ) {
+            if ( coefficients and ublock.has_nonzero() ) {
               cout << "DCT coeffs: { " << ublock.coefficients() << " }" << endl;
               cout << endl;
+            }
+            else if ( coefficients ) {
+              cout << "ALL ZERO" << endl;
             }
           }
         );
@@ -309,9 +322,12 @@ void print_frame_info( const Frame<FrameHeaderType, MacroblockType> & frame, con
           [&] ( const UVBlock & vblock, unsigned int sb_column, unsigned sb_row ) {
             cout << "V Subblock [ " << sb_column << ", " << sb_row << " ]" << endl;
 
-            if ( coefficients ) {
+            if ( coefficients and vblock.has_nonzero() ) {
               cout << "DCT coeffs: { " << vblock.coefficients() << " }" << endl;
               cout << endl;
+            }
+            else if ( coefficients ) {
+              cout << "ALL ZERO" << endl;
             }
           }
         );
