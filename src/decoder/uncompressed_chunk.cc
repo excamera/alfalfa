@@ -25,6 +25,7 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
     /* advisory filter parameters */
     /* these have no effect on the decoding process */
     const uint8_t version = frame.bits( 1, 3 );
+
     switch ( version ) {
     case 0:
       reconstruction_filter_ = ReconstructionFilterType::Bicubic;
@@ -35,12 +36,12 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
       reconstruction_filter_ = ReconstructionFilterType::Bicubic;
       loop_filter_ = LoopFilterType::Normal;
       experimental_ = true;
-      switching_frame_ = true;
       break;
     case 6:
       reconstruction_filter_ = ReconstructionFilterType::Bicubic;
       loop_filter_ = LoopFilterType::NoFilter;
       experimental_ = true;
+      switching_frame_ = true;
       break;
     default:
       throw Unsupported( "VP8 version of " + to_string( version ) );

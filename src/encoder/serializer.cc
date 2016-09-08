@@ -790,8 +790,8 @@ vector<uint8_t> InterFrame::serialize( const ProbabilityTables & probability_tab
 
   return make_frame( false,
                      show_,
-                     false,
-                     false,
+                     switching_frame_,
+                     switching_frame_,
                      display_width_, display_height_,
                      serialize_first_partition( frame_probability_tables ),
                      serialize_tokens( frame_probability_tables ) );

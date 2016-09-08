@@ -101,10 +101,10 @@ pair<bool, RasterHandle> Decoder::get_frame_output( const Chunk & compressed_fra
   UncompressedChunk decompressed_frame = decompress_frame( compressed_frame );
   if ( decompressed_frame.key_frame() ) {
     return decode_frame( parse_frame<KeyFrame>( decompressed_frame ) );
-  } else if ( decompressed_frame.experimental() ) {
-    throw Unsupported( "experimental" );
-  } else {
+  } else if ( not decompressed_frame.experimental() or decompressed_frame.switching_frame() ) {
     return decode_frame( parse_frame<InterFrame>( decompressed_frame ) );
+  } else {
+    throw Unsupported( "experimental" );
   }
 }
 

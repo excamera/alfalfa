@@ -236,8 +236,8 @@ public:
 
   References get_references( void ) const { return references_; }
 
-  uint16_t get_width(void) const { return state_.width; }
-  uint16_t get_height(void) const { return state_.height; }
+  uint16_t get_width() const { return state_.width; }
+  uint16_t get_height() const { return state_.height; }
 
   bool operator==( const Decoder & other ) const;
 

@@ -92,7 +92,8 @@ inline InterFrame DecoderState::parse_and_apply<InterFrame>( const UncompressedC
 
   /* parse interframe header */
   InterFrame myframe( uncompressed_chunk.show_frame(),
-                      width, height, first_partition );
+                      width, height, first_partition,
+                      uncompressed_chunk.switching_frame() );
 
   /* update probability tables. replace persistent copy if prescribed in header */
   ProbabilityTables frame_probability_tables( probability_tables );

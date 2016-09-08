@@ -530,57 +530,66 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
   const VP8Raster & reference = references.at( header_.reference() );
 
   if ( Y2_.prediction_mode() == SPLITMV ) {
-    Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
-                  { raster.Y_sub.at( column, row ).inter_predict( block.motion_vector(),
-                                                                       reference.Y() ); } );
-    U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-                  { raster.U_sub.at( column, row ).inter_predict( block.motion_vector(),
-                                                                       reference.U() );
-                    raster.V_sub.at( column, row ).inter_predict( block.motion_vector(),
-                                                                       reference.V() ); } );
-
-    if ( quantize_prediction ) {
-      throw Unsupported( "can't quantize a SPLITMV macroblock" );
-    }
-
-    if ( has_nonzero_ ) {
-      /* Add residue */
-      Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
-                    { block.dequantize( quantizer ).idct_add( raster.Y_sub.at( column, row ) ); } );
-      U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-                    { block.dequantize( quantizer ).idct_add( raster.U_sub.at( column, row ) ); } );
-      V_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-                    { block.dequantize( quantizer ).idct_add( raster.V_sub.at( column, row ) ); } );
-    }
-  } else {
-    raster.Y.inter_predict( base_motion_vector(), reference.Y() );
-    raster.U.inter_predict( U_.at( 0, 0 ).motion_vector(), reference.U() );
-    raster.V.inter_predict( U_.at( 0, 0 ).motion_vector(), reference.V() );
-
     if ( quantize_prediction ) {
       TwoD<uint8_t> blank_block_parent { 4, 4 };
       blank_block_parent.fill( 0 ); /* XXX do we want to do this every time? */
       TwoDSubRange<uint8_t, 4, 4> blank_block { blank_block_parent, 0, 0 };
       DCTCoefficients coeffs;
 
-      raster.Y_sub.forall( [&] ( VP8Raster::Block4 & block ) {
+      raster.Y_sub.forall_ij(
+        [&] ( VP8Raster::Block4 & block, unsigned int column, unsigned int row )
+        {
           coeffs.subtract_dct( block, blank_block );
           block.mutable_contents().fill( 0 );
-          coeffs.quantize( quantizer.y() ).dequantize( quantizer.y() ).idct_add( block );
-        } );
+          coeffs = coeffs + Y_.at( column, row ).coefficients();
+          coeffs.dequantize( quantizer.y() ).idct_add( raster.Y_sub.at( column, row ) );
+        }
+      );
 
-      raster.U_sub.forall( [&] ( VP8Raster::Block4 & block ) {
+      raster.U_sub.forall_ij(
+        [&] ( VP8Raster::Block4 & block, unsigned int column, unsigned int row )
+        {
           coeffs.subtract_dct( block, blank_block );
           block.mutable_contents().fill( 0 );
-          coeffs.quantize( quantizer.uv() ).dequantize( quantizer.uv() ).idct_add( block );
-        } );
+          coeffs = coeffs + U_.at( column, row ).coefficients();
+          coeffs.dequantize( quantizer.uv() ).idct_add( raster.U_sub.at( column, row ) );
+        }
+      );
 
-      raster.V_sub.forall( [&] ( VP8Raster::Block4 & block ) {
+      raster.V_sub.forall_ij(
+        [&] ( VP8Raster::Block4 & block, unsigned int column, unsigned int row )
+        {
           coeffs.subtract_dct( block, blank_block );
           block.mutable_contents().fill( 0 );
-          coeffs.quantize( quantizer.uv() ).dequantize( quantizer.uv() ).idct_add( block );
-        } );
+          coeffs = coeffs + V_.at( column, row ).coefficients();
+          coeffs.dequantize( quantizer.uv() ).idct_add( raster.V_sub.at( column, row ) );
+        }
+      );
     }
+    else {
+      Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
+                    { raster.Y_sub.at( column, row ).inter_predict( block.motion_vector(),
+                                                                         reference.Y() ); } );
+      U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
+                    { raster.U_sub.at( column, row ).inter_predict( block.motion_vector(),
+                                                                         reference.U() );
+                      raster.V_sub.at( column, row ).inter_predict( block.motion_vector(),
+                                                                         reference.V() ); } );
+
+      if ( has_nonzero_ ) {
+        /* Add residue */
+        Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
+                      { block.dequantize( quantizer ).idct_add( raster.Y_sub.at( column, row ) ); } );
+        U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
+                      { block.dequantize( quantizer ).idct_add( raster.U_sub.at( column, row ) ); } );
+        V_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
+                      { block.dequantize( quantizer ).idct_add( raster.V_sub.at( column, row ) ); } );
+      }
+    }
+  } else {
+    raster.Y.inter_predict( base_motion_vector(), reference.Y() );
+    raster.U.inter_predict( U_.at( 0, 0 ).motion_vector(), reference.U() );
+    raster.V.inter_predict( U_.at( 0, 0 ).motion_vector(), reference.V() );
 
     if ( has_nonzero_ ) {
       apply_walsh( quantizer, raster );

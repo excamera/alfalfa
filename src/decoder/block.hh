@@ -56,9 +56,29 @@ public:
     return not operator==( other );
   }
 
+  DCTCoefficients operator-( const DCTCoefficients & other ) const
+  {
+    DCTCoefficients result;
+    for ( size_t i = 0; i < 16; i++ ) {
+      result.at( i ) = at( i ) - other.at( i );
+    }
+    return result;
+
+  }
+
+  DCTCoefficients operator+( const DCTCoefficients & other ) const
+  {
+    DCTCoefficients result;
+    for ( size_t i = 0; i < 16; i++ ) {
+      result.at( i ) = at( i ) + other.at( i );
+    }
+    return result;
+
+  }
+
   friend std::ostream &operator<<( std::ostream & output, const DCTCoefficients & dctc )
   {
-    for ( int i = 0; i < 16; i++ ) {
+    for ( size_t i = 0; i < 16; i++ ) {
       output << dctc.at( i );
       if ( i != 15 ) {
         output << ", ";
