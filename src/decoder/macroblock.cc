@@ -530,6 +530,15 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
   const VP8Raster & reference = references.at( header_.reference() );
 
   if ( Y2_.prediction_mode() == SPLITMV ) {
+    Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
+                  { raster.Y_sub.at( column, row ).inter_predict( block.motion_vector(),
+                                                                       reference.Y() ); } );
+    U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
+                  { raster.U_sub.at( column, row ).inter_predict( block.motion_vector(),
+                                                                       reference.U() );
+                    raster.V_sub.at( column, row ).inter_predict( block.motion_vector(),
+                                                                       reference.V() ); } );
+
     if ( quantize_prediction ) {
       TwoD<uint8_t> blank_block_parent { 4, 4 };
       blank_block_parent.fill( 0 ); /* XXX do we want to do this every time? */
@@ -541,8 +550,9 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
         {
           coeffs.subtract_dct( block, blank_block );
           block.mutable_contents().fill( 0 );
+          coeffs = coeffs.quantize( quantizer.y() );
           coeffs = coeffs + Y_.at( column, row ).coefficients();
-          coeffs.dequantize( quantizer.y() ).idct_add( raster.Y_sub.at( column, row ) );
+          coeffs.dequantize( quantizer.y() ).idct_add( block );
         }
       );
 
@@ -551,8 +561,9 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
         {
           coeffs.subtract_dct( block, blank_block );
           block.mutable_contents().fill( 0 );
+          coeffs = coeffs.quantize( quantizer.uv() );
           coeffs = coeffs + U_.at( column, row ).coefficients();
-          coeffs.dequantize( quantizer.uv() ).idct_add( raster.U_sub.at( column, row ) );
+          coeffs.dequantize( quantizer.uv() ).idct_add( block );
         }
       );
 
@@ -561,21 +572,13 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
         {
           coeffs.subtract_dct( block, blank_block );
           block.mutable_contents().fill( 0 );
+          coeffs = coeffs.quantize( quantizer.uv() );
           coeffs = coeffs + V_.at( column, row ).coefficients();
-          coeffs.dequantize( quantizer.uv() ).idct_add( raster.V_sub.at( column, row ) );
+          coeffs.dequantize( quantizer.uv() ).idct_add( block );
         }
       );
     }
     else {
-      Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
-                    { raster.Y_sub.at( column, row ).inter_predict( block.motion_vector(),
-                                                                         reference.Y() ); } );
-      U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-                    { raster.U_sub.at( column, row ).inter_predict( block.motion_vector(),
-                                                                         reference.U() );
-                      raster.V_sub.at( column, row ).inter_predict( block.motion_vector(),
-                                                                         reference.V() ); } );
-
       if ( has_nonzero_ ) {
         /* Add residue */
         Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )

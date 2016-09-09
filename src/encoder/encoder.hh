@@ -212,7 +212,13 @@ private:
   void reencode_frame( const VP8Raster & unfiltered_output,
                        const FrameType & original_frame );
 
-  void encode_switching_frame( const uint8_t y_ac_qi );
+  InterFrame create_switching_frame( const uint8_t y_ac_qi );
+
+  void refine_switching_frame( InterFrame & frame,
+                               const InterFrame & prev_frame,
+                               const VP8Raster & d1 );
+
+  void write_switching_frame( const InterFrame & frame );
 
 public:
   Encoder( IVFWriter && output, const bool two_pass );
@@ -223,9 +229,8 @@ public:
                  const double minimum_ssim,
                  const uint8_t y_ac_qi = std::numeric_limits<uint8_t>::max() );
 
-  void reencode( const std::shared_ptr<FrameInput> & input,
-                 const IVF & pred_ivf,
-                 Decoder pred_decoder );
+  void reencode( FrameInput & input, const IVF & pred_ivf, Decoder pred_decoder,
+                 const uint8_t s_ac_qi );
 
   Decoder export_decoder() const { return { decoder_state_, references_ }; }
 };

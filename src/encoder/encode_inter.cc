@@ -553,13 +553,134 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
   return { move( frame ), immutable_raster.get().quality( raster ) };
 }
 
-void Encoder::encode_switching_frame( const uint8_t y_ac_qi )
+/*
+ * Legend:
+ *  --X(Y)-- => Normal frame with output raster X and frame name Y
+ *  ==X(Y)== => Switching frame with output raster X and frame name Y
+ *      O => Marks a state
+ *
+ * previous round (1)   -----O-----O--d1--O==D1(F1)==O
+ *  current round (2)   -----O-----O--d2--O==D2(F2)==O
+ *
+ * The goal is to make D1 == D2. We have d1 from the previous run,
+ * we have d2 from the current run and also we have the residuals from the
+ * frame that is producing D1 (which we call prev_swf-- previous switching frame).
+ *
+ * Based on the definition of a switching frame, we can say:
+ * D1 = idct(deq(q(dct(d1)) + r1))
+ * D2 = idct(deq(q(dct(d2)) + r2))
+ * To make D1 == D2, we must have:
+ * q(dct(d1)) + r1 == q(dct(d2)) + r2
+ * => r2 = q(dct(d1)) - q(dct(d2)) + r1
+ */
+
+void Encoder::refine_switching_frame( InterFrame & F2, const InterFrame & F1,
+                                      const VP8Raster & d1 )
+{
+  assert( F1.switching_frame() and F2.switching_frame() );
+
+  const VP8Raster & d2 = references_.at( LAST_FRAME );
+
+  TwoD<uint8_t> blank_block_parent { 4, 4 };
+  blank_block_parent.fill( 0 ); /* XXX do we want to do this every time? */
+  TwoDSubRange<uint8_t, 4, 4> blank_block { blank_block_parent, 0, 0 };
+
+  Quantizer quantizer( F2.header().quant_indices );
+
+  F2.macroblocks().forall_ij(
+    [&] ( InterFrameMacroblock & F2_mb, unsigned int mb_column, unsigned int mb_row )
+    {
+      auto & F1_mb = F1.macroblocks().at( mb_column, mb_row );
+      auto & d1_mb = d1.macroblock( mb_column, mb_row );
+      auto & d2_mb = d2.macroblock( mb_column, mb_row );
+
+      DCTCoefficients F2_coeffs;
+      DCTCoefficients F1_coeffs;
+
+      F2_mb.Y().forall_ij(
+        [&] ( YBlock & F2_sb, unsigned int sb_column, unsigned int sb_row )
+        {
+          auto & F1_sb = F1_mb.Y().at( sb_column, sb_row );
+          auto & d1_sb = d1_mb.Y_sub.at( sb_column, sb_row );
+          auto & d2_sb = d2_mb.Y_sub.at( sb_column, sb_row );
+
+          // q(dct(d1))
+          F1_coeffs.subtract_dct( d1_sb, blank_block );
+          F1_coeffs = F1_coeffs.quantize( quantizer.y() );
+
+          // q(dct(d2))
+          F2_coeffs.subtract_dct( d2_sb, blank_block );
+          F2_coeffs = F2_coeffs.quantize( quantizer.y() );
+
+          // q(dct(d1)) - q(dct(d2))
+          F2_sb.mutable_coefficients() = F1_coeffs - F2_coeffs;
+
+          // r2 = q(dct(d1)) - q(dct(d2)) + r1
+          F2_sb.mutable_coefficients() = F2_sb.coefficients() + F1_sb.coefficients();
+          F2_sb.calculate_has_nonzero();
+        }
+      );
+
+      F2_mb.U().forall_ij(
+        [&] ( UVBlock & F2_sb, unsigned int sb_column, unsigned int sb_row )
+        {
+          auto & F1_sb = F1_mb.U().at( sb_column, sb_row );
+          auto & d1_sb = d1_mb.U_sub.at( sb_column, sb_row );
+          auto & d2_sb = d2_mb.U_sub.at( sb_column, sb_row );
+
+          // q(dct(d1))
+          F1_coeffs.subtract_dct( d1_sb, blank_block );
+          F1_coeffs = F1_coeffs.quantize( quantizer.uv() );
+
+          // q(dct(d2))
+          F2_coeffs.subtract_dct( d2_sb, blank_block );
+          F2_coeffs = F2_coeffs.quantize( quantizer.uv() );
+
+          // q(dct(d1)) - q(dct(d2))
+          F2_sb.mutable_coefficients() = F1_coeffs - F2_coeffs;
+
+          // r2 = q(dct(d1)) - q(dct(d2)) + r1
+          F2_sb.mutable_coefficients() = F2_sb.coefficients() + F1_sb.coefficients();
+          F2_sb.calculate_has_nonzero();
+        }
+      );
+
+      F2_mb.V().forall_ij(
+        [&] ( UVBlock & F2_sb, unsigned int sb_column, unsigned int sb_row )
+        {
+          auto & F1_sb = F1_mb.V().at( sb_column, sb_row );
+          auto & d1_sb = d1_mb.V_sub.at( sb_column, sb_row );
+          auto & d2_sb = d2_mb.V_sub.at( sb_column, sb_row );
+
+          // q(dct(d1))
+          F1_coeffs.subtract_dct( d1_sb, blank_block );
+          F1_coeffs = F1_coeffs.quantize( quantizer.uv() );
+
+          // q(dct(d2))
+          F2_coeffs.subtract_dct( d2_sb, blank_block );
+          F2_coeffs = F2_coeffs.quantize( quantizer.uv() );
+
+          // q(dct(d1)) - q(dct(d2))
+          F2_sb.mutable_coefficients() = F1_coeffs - F2_coeffs;
+
+          // r2 = q(dct(d1)) - q(dct(d2)) + r1
+          F2_sb.mutable_coefficients() = F2_sb.coefficients() + F1_sb.coefficients();
+          F2_sb.calculate_has_nonzero();
+        }
+      );
+
+      F2_mb.calculate_has_nonzero();
+    }
+  );
+
+  optimize_prob_skip( F2 );
+  optimize_interframe_probs( F2 );
+}
+
+InterFrame Encoder::create_switching_frame( const uint8_t y_ac_qi )
 {
   InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height() );
   auto & if_header = frame.mutable_header();
-
-  MutableRasterHandle reconstructed_raster_handle { width(), height() };
-  VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
 
   frame.set_switching( true );
   frame.set_show( false );
@@ -586,10 +707,16 @@ void Encoder::encode_switching_frame( const uint8_t y_ac_qi )
       frame_mb.mutable_header().is_inter_mb = true;
       frame_mb.mutable_header().set_reference( LAST_FRAME );
 
-      frame_mb.Y2().set_prediction_mode( ZEROMV );
+      frame_mb.Y2().set_prediction_mode( SPLITMV );
+      frame_mb.Y2().set_if_coded();
+      frame_mb.Y2().mutable_coefficients().zero_out();
+
       frame_mb.set_base_motion_vector( MotionVector() );
+
       frame_mb.Y().forall(
         [&] ( YBlock & frame_sb ) {
+          frame_sb.set_Y_without_Y2();
+          frame_sb.set_prediction_mode( ZERO4X4 );
           frame_sb.set_motion_vector( MotionVector() );
           frame_sb.mutable_coefficients().zero_out(); // no residuals
         }
@@ -616,12 +743,7 @@ void Encoder::encode_switching_frame( const uint8_t y_ac_qi )
   optimize_prob_skip( frame );
   optimize_interframe_probs( frame );
 
-  frame.decode( { }, references_, reconstructed_raster );
-
-  RasterHandle immutable_raster{ move( reconstructed_raster_handle ) };
-  references_.last = immutable_raster;
-
-  ivf_writer_.append_frame( frame.serialize( decoder_state_.probability_tables ) );
+  return frame;
 }
 
 template<>
@@ -639,7 +761,11 @@ void Encoder::reencode_frame( const VP8Raster & unfiltered_output,
   if_header.mode_lf_adjustments     = kf_header.mode_lf_adjustments;
   if_header.quant_indices           = kf_header.quant_indices;
   if_header.refresh_last            = true;
+  if_header.refresh_golden_frame    = true;
+  if_header.refresh_alternate_frame = true;
   if_header.refresh_entropy_probs   = true;
+  if_header.copy_buffer_to_golden.clear();
+  if_header.copy_buffer_to_alternate.clear();
 
   for ( size_t i = 0; i < MV_PROB_CNT; i++ ) {
     if_header.mv_prob_update.at( 0 ).at( i ).clear();
@@ -840,49 +966,78 @@ void Encoder::reencode_frame( const VP8Raster & unfiltered_output,
   ivf_writer_.append_frame( frame.serialize( decoder_state_.probability_tables ) );
 }
 
-void Encoder::reencode( const shared_ptr<FrameInput> & input,
-                        const IVF & pred_ivf,
-                        Decoder pred_decoder )
+void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
+                        Decoder pred_decoder, const uint8_t s_ac_qi )
 {
-  if ( input->display_width() != width() or input->display_height() != height()
+  if ( input.display_width() != width() or input.display_height() != height()
        or pred_ivf.width() != width() or pred_ivf.height() != height() ) {
     throw Unsupported( "scaling not supported" );
   }
 
   Decoder input_decoder( width(), height() );
 
-  size_t i = 0;
-  Optional<RasterHandle> raster = input->get_next_frame();
+  size_t frame_index = 0;
+  Optional<RasterHandle> raster;
 
-  while ( raster.initialized() ) {
-    cerr << "Re-encoding Frame #" << i << "..." << endl;
+  for ( frame_index = 0, raster = input.get_next_frame();
+        raster.initialized();
+        frame_index++, raster = input.get_next_frame()) {
+    cerr << "Re-encoding Frame #" << frame_index << "..." << endl;
 
     const VP8Raster & target_output = raster.get();
-    UncompressedChunk pred_uch { pred_ivf.frame( i++ ), width(), height() };
+    UncompressedChunk pred_uch { pred_ivf.frame( frame_index ), width(), height() };
 
     if ( not pred_uch.show_frame() ) {
       throw Unsupported( "unshown frame in the prediction ivf" );
     }
 
-    if ( pred_uch.switching_frame() and i != pred_ivf.frame_count() - 1 ) {
-      throw Unsupported( "switching frame in the middle of the chunk" );
-    }
-    else if ( pred_uch.switching_frame() ) {
-      break;
-    }
-
     if ( pred_uch.key_frame() ) {
       KeyFrame frame = pred_decoder.parse_frame<KeyFrame>( pred_uch );
+      pred_decoder.decode_frame( frame );
       reencode_frame( target_output, frame );
     }
     else {
       InterFrame frame = pred_decoder.parse_frame<InterFrame>( pred_uch );
+      pred_decoder.decode_frame( frame );
       reencode_frame( target_output, frame );
     }
-
-    raster = input->get_next_frame();
   }
 
-   // now we encode the switching frame :)
-   encode_switching_frame( 63 );
+  if ( s_ac_qi != numeric_limits<uint8_t>::max() ) {
+    if ( s_ac_qi > 127 ) {
+      throw runtime_error( "s_ac_qi should be less than or equal to 127" );
+    }
+
+    InterFrame switching_frame = create_switching_frame( s_ac_qi );
+
+    if ( frame_index == pred_ivf.frame_count() - 1 ) {
+      /* Variable names are explained in refine_switching_frame method */
+      RasterHandle d1 = pred_decoder.get_references().last;
+
+      UncompressedChunk pred_uch { pred_ivf.frame( frame_index ), width(), height() };
+      InterFrame F1 = pred_decoder.parse_frame<InterFrame>( pred_uch );
+      pred_decoder.decode_frame( F1 );
+
+      if ( F1.header().quant_indices.y_ac_qi != s_ac_qi ) {
+        throw runtime_error( "s_ac_qi mismatch" );
+      }
+
+      refine_switching_frame( switching_frame, F1, d1 );
+    }
+
+    write_switching_frame( switching_frame );
+  }
+}
+
+void Encoder::write_switching_frame( const InterFrame & frame )
+{
+  assert( frame.switching_frame() );
+
+  MutableRasterHandle reconstructed_raster_handle { width(), height() };
+  VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
+
+  frame.decode( { }, references_, reconstructed_raster );
+  references_.last = move( reconstructed_raster_handle );
+
+  ivf_writer_.append_frame( frame.serialize( decoder_state_.probability_tables )  );
 }

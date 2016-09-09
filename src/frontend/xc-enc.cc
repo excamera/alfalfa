@@ -36,11 +36,14 @@ void usage_error( const string & program_name )
        << "                                         encoder state (default: none)" << endl
        << " -I <arg>, --input-state=<arg>         Input file name for initial" << endl
        << "                                         encoder state (default: none)" << endl
-       << " -r                                    Re-encode." << endl
-       << " -p <arg>                              Prediction modes IVF (only with re-encode)." << endl
-       << " -S <arg>                              Prediction modes IVF initial state (only with re-encode)." << endl
        << " --two-pass                            Do the second encoding pass" << endl
-       << " --y-ac-qi <arg>                       Quantization index for Y" << endl
+       << " -y, --y-ac-qi <arg>                   Quantization index for Y" << endl
+       << endl
+       << "Re-encode:" << endl
+       << " -r, --reencode                        Re-encode." << endl
+       << " -p, --pred-ivf <arg>                  Prediction modes IVF" << endl
+       << " -S, --pred-state <arg>                Prediction modes IVF initial state" << endl
+       << " --s-ac-qi <arg>                       Switching frame quantizer index" << endl
        << endl;
 }
 
@@ -67,6 +70,7 @@ int main( int argc, char *argv[] )
     bool re_encode_only = false;
 
     size_t y_ac_qi = numeric_limits<size_t>::max();
+    size_t s_ac_qi = numeric_limits<size_t>::max();
 
     const option command_line_options[] = {
       { "output",       required_argument, nullptr, 'o' },
@@ -76,14 +80,15 @@ int main( int argc, char *argv[] )
       { "input-state",  required_argument, nullptr, 'I' },
       { "two-pass",     no_argument,       nullptr, '2' },
       { "y-ac-qi",      required_argument, nullptr, 'y' },
-      { nullptr,        no_argument,       nullptr, 'r' },
-      { nullptr,        required_argument, nullptr, 'p' },
-      { nullptr,        required_argument, nullptr, 'S' },
+      { "reencode",     no_argument,       nullptr, 'r' },
+      { "pred-ivf",     required_argument, nullptr, 'p' },
+      { "pred-state",   required_argument, nullptr, 'S' },
+      { "s-ac-qi",      required_argument, nullptr, 'Y' },
       { 0, 0, 0, 0 }
     };
 
     while ( true ) {
-      const int opt = getopt_long( argc, argv, "o:s:i:O:I:p:S:r", command_line_options, nullptr );
+      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:Y:p:S:r", command_line_options, nullptr );
 
       if ( opt == -1 ) {
         break;
@@ -128,6 +133,10 @@ int main( int argc, char *argv[] )
 
       case 'S':
         pred_ivf_initial_state = optarg;
+        break;
+
+      case 'Y':
+        s_ac_qi = stoul( optarg );
         break;
 
       default:
@@ -177,7 +186,7 @@ int main( int argc, char *argv[] )
                  move( output ), two_pass );
 
     if ( re_encode_only ) {
-      encoder.reencode( input_reader, pred_file, pred_decoder );
+      encoder.reencode( *input_reader, pred_file, pred_decoder, s_ac_qi );
     }
     else {
       Optional<RasterHandle> raster = input_reader->get_next_frame();

@@ -25,7 +25,7 @@ int main( int argc, char *argv[] )
 
     while ( not player.eof() ) {
       display.draw( player.advance() );
-      usleep(100000);
+      getchar();
     }
   } catch ( const exception & e ) {
     print_exception( argv[ 0 ], e );

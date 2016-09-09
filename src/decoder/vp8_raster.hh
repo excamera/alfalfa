@@ -3,6 +3,8 @@
 #ifndef VP8_RASTER_H
 #define VP8_RASTER_H
 
+#include <iostream>
+
 #include "config.h"
 #include "raster.hh"
 
@@ -159,6 +161,18 @@ public:
     static constexpr unsigned int dimension { size };
 
     SafeArray<SafeArray<int16_t, size>, size> operator-( const Block & other ) const;
+
+    friend std::ostream &operator<<( std::ostream & output, const Block<size> & block )
+    {
+      for ( size_t i = 0; i < size; i++ ) {
+        for ( size_t j = 0; j < size; j++ ) {
+          std::cout << static_cast<int>( block.contents().at( i, j ) );
+          if ( j != size - 1 or i != size - 1 ) std::cout << ", ";
+        }
+      }
+
+      return output;
+    }
   };
 
   using Block4  = Block<4>;
