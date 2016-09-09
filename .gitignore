@@ -37,8 +37,7 @@ Makefile.in
 /src/frontend/xc-dissect
 /src/frontend/xc-framesize
 /src/frontend/comp-states
-/src/frontend/collisions
-/src/frontend/xc-stitch
+/src/frontend/xc-dump
 
 /src/tests/decode-to-stdout
 /src/tests/encode-loopback
