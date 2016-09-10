@@ -3,6 +3,8 @@
 #ifndef YUV4MPEG_HH
 #define YUV4MPEG_HH
 
+#include <string>
+
 #include "frame_input.hh"
 #include "exception.hh"
 #include "raster_handle.hh"
@@ -18,6 +20,7 @@ public:
   enum ColorSpace { C420jpeg, C420paldv, C420, C422, C444 };
 
   YUV4MPEGHeader();
+  YUV4MPEGHeader( RasterHandle &rh );
 
   uint16_t width;
   uint16_t height;
@@ -31,6 +34,8 @@ public:
   size_t frame_length();
   size_t y_plane_length();
   size_t uv_plane_length();
+
+  std::string to_string();
 };
 
 class YUV4MPEGReader : public FrameInput
@@ -52,6 +57,12 @@ public:
   size_t frame_length() { return header_.frame_length(); }
   size_t y_plane_length() { return header_.y_plane_length(); }
   size_t uv_plane_length() { return header_.uv_plane_length(); }
+};
+
+class YUV4MPEGFrameWriter
+{
+public:
+  static void write( RasterHandle &rh, FileDescriptor &fd );
 };
 
 #endif /* YUV4MPEG_HH */

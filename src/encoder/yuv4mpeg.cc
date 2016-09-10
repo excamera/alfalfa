@@ -14,6 +14,14 @@ YUV4MPEGHeader::YUV4MPEGHeader()
     interlacing_mode( PROGRESSIVE ), color_space( C420 )
 {}
 
+YUV4MPEGHeader::YUV4MPEGHeader( RasterHandle &rh )
+  : width( rh.get().display_width() )
+  , height( rh.get().display_height() )
+  , fps_numerator( 1 ), fps_denominator( 1 )
+  , pixel_aspect_ratio_numerator( 1 ), pixel_aspect_ratio_denominator( 1 )
+  , interlacing_mode( PROGRESSIVE ), color_space( C420 )
+{}
+
 size_t YUV4MPEGHeader::frame_length()
 {
   switch ( color_space ) {
@@ -45,6 +53,51 @@ size_t YUV4MPEGHeader::uv_plane_length()
       return ( width * height / 4 );
     default: throw LogicError();
   }
+}
+
+string YUV4MPEGHeader::to_string()
+{
+  stringstream ss;
+  ss << "YUV4MPEG2 "
+     << 'W' << width
+     << ' '
+     << 'H' << height
+     << ' '
+     << 'F' << fps_numerator << ':' << fps_denominator
+     << ' '
+     << 'I';
+
+  switch ( interlacing_mode ) {
+    case PROGRESSIVE:
+      ss << 'p'; break;
+    case TOP_FIELD_FIRST:
+      ss << 't'; break;
+    case BOTTOM_FIELD_FIRST:
+      ss << 'b'; break;
+    case MIXED_MODES:
+      ss << 'm'; break;
+  }
+
+  ss << ' '
+     << 'A' << pixel_aspect_ratio_numerator << ':' << pixel_aspect_ratio_denominator
+     << ' ';
+
+  switch ( color_space ) {
+    case C420jpeg:
+      ss << "C420jpeg XYSCSS=420JPEG"; break;
+    case C420paldv:
+      ss << "C420paldv XYSCSS=420PALDV"; break;
+    case C420:
+      ss << "C420 XYSCSS=420"; break;
+    case C422:
+      ss << "C422 XYSCSS=422"; break;
+    case C444:
+      ss << "C444 XYSCSS=444"; break;
+  }
+
+  ss << '\n';
+
+  return ss.str();
 }
 
 pair< size_t, size_t > YUV4MPEGReader::parse_fraction( const string & fraction_str )
@@ -195,4 +248,14 @@ Optional<RasterHandle> YUV4MPEGReader::get_next_frame()
 
   RasterHandle handle( move( raster ) );
   return make_optional<RasterHandle>( true, handle );
+}
+
+void YUV4MPEGFrameWriter::write( RasterHandle &rh, FileDescriptor &fd )
+{
+  fd.write("FRAME\n");
+
+  // display_rectangle_as_planar returns Y, U, V chunks in row-major order
+  for ( const auto & chunk : rh.get().display_rectangle_as_planar() ) {
+    fd.write( chunk );
+  }
 }

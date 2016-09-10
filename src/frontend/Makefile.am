@@ -6,7 +6,7 @@ bin_PROGRAMS = vp8decode vp8play xc-enc xc-ssim xc-dissect xc-framesize xc-dump 
                xc-diff comp-states
 
 vp8decode_SOURCES = vp8decode.cc
-vp8decode_LDADD = ../decoder/libalfalfadecoder.a ../util/libalfalfautil.a $(X264_LIBS)
+vp8decode_LDADD = ../encoder/libalfalfaencoder.a ../decoder/libalfalfadecoder.a ../util/libalfalfautil.a $(X264_LIBS)
 
 vp8play_SOURCES = vp8play.cc
 vp8play_LDADD = ../decoder/libalfalfadecoder.a ../display/libalfalfadisplay.a ../util/libalfalfautil.a $(GLU_LIBS) $(X264_LIBS) $(GLEW_LIBS) $(GLFW3_LIBS)
