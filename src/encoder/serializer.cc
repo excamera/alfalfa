@@ -348,6 +348,11 @@ void Macroblock< FrameHeaderType, MacroblockheaderType >::serialize( BoolEncoder
                                                                      const ProbabilityTables & probability_tables ) const
 {
   encode( encoder, segment_id_update_, mb_segment_tree_probs );
+
+  if ( mb_skip_coeff_.initialized() and not frame_header.prob_skip_false.initialized() ) {
+    throw Invalid( "mb_skip_coeff_ set but frame_header.prob_skip_false not set" );
+  }
+
   encode( encoder, mb_skip_coeff_, frame_header.prob_skip_false.get_or( 0 ) );
   encode( encoder, header_, frame_header );
   encode_prediction_modes( encoder, probability_tables );

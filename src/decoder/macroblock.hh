@@ -150,7 +150,8 @@ public:
   const TwoDSubRange< UVBlock, 2, 2 > & U() const { return U_; }
   const TwoDSubRange< UVBlock, 2, 2 > & V() const { return V_; }
 
-  bool calculate_has_nonzero( const bool mb_no_skip_coeff = false );
+  bool has_nonzero() const { return has_nonzero_; }
+  void calculate_has_nonzero();
 };
 
 struct KeyFrameMacroblockHeader

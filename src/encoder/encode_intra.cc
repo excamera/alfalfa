@@ -385,6 +385,8 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
     optimize_probability_tables( frame, token_branch_counts );
   }
 
+  optimize_prob_skip( frame );
+
   frame.relink_y2_blocks();
 
   // optimize_prob_skip( frame );

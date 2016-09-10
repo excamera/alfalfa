@@ -438,35 +438,6 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::parse_tokens( BoolDecode
 }
 
 template <class FrameHeaderType, class MacroblockHeaderType>
-bool Macroblock<FrameHeaderType, MacroblockHeaderType>::calculate_has_nonzero( const bool mb_no_skip_coeff )
-{
-  has_nonzero_ = false;
-
-  if ( Y2_.coded() ) {
-    has_nonzero_ |= Y2_.has_nonzero();
-  }
-
-  Y_.forall( [&]( YBlock & block ) {
-      has_nonzero_ |= block.has_nonzero();
-    } );
-
-  /* parse U and V blocks */
-  U_.forall( [&]( UVBlock & block ) {
-      has_nonzero_ |= block.has_nonzero();
-    } );
-
-  V_.forall( [&]( UVBlock & block ) {
-      has_nonzero_ |= block.has_nonzero();
-    } );
-
-  if ( mb_no_skip_coeff ) {
-    mb_skip_coeff_.initialize( not has_nonzero_ );
-  }
-
-  return has_nonzero_;
-}
-
-template <class FrameHeaderType, class MacroblockHeaderType>
 void Macroblock<FrameHeaderType, MacroblockHeaderType>::apply_walsh( const Quantizer & quantizer,
                                                                      VP8Raster::Macroblock & raster ) const
 {

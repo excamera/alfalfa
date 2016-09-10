@@ -428,7 +428,7 @@ void Encoder::optimize_prob_skip( Frame<FrameHeaderType, MacroblockType> & frame
   frame.mutable_macroblocks().forall(
     [&] ( MacroblockType & frame_mb )
     {
-      bool has_nonzero = frame_mb.calculate_has_nonzero( true );
+      bool has_nonzero = frame_mb.has_nonzero();
       no_skip_count += has_nonzero;
       total_count++;
     }
@@ -559,6 +559,36 @@ double Encoder::encode( const VP8Raster & raster, const double minimum_ssim,
   else {
     return encode_raster<InterFrame>( raster, minimum_ssim, y_ac_qi );
   }
+}
+
+template <class FrameHeaderType, class MacroblockHeaderType>
+void Macroblock<FrameHeaderType, MacroblockHeaderType>::calculate_has_nonzero()
+{
+  has_nonzero_ = false;
+
+  if ( Y2_.coded() ) {
+    Y2_.calculate_has_nonzero();
+    has_nonzero_ |= Y2_.has_nonzero();
+  }
+
+  Y_.forall( [&]( YBlock & block ) {
+      block.calculate_has_nonzero();
+      has_nonzero_ |= block.has_nonzero();
+    } );
+
+  /* parse U and V blocks */
+  U_.forall( [&]( UVBlock & block ) {
+      block.calculate_has_nonzero();
+      has_nonzero_ |= block.has_nonzero();
+    } );
+
+  V_.forall( [&]( UVBlock & block ) {
+      block.calculate_has_nonzero();
+      has_nonzero_ |= block.has_nonzero();
+    } );
+
+  mb_skip_coeff_.clear();
+  mb_skip_coeff_.initialize( not has_nonzero_ );
 }
 
 template <BlockType initial_block_type, class PredictionMode>
