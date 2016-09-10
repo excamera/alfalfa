@@ -44,6 +44,7 @@ void usage_error( const string & program_name )
        << " -p, --pred-ivf <arg>                  Prediction modes IVF" << endl
        << " -S, --pred-state <arg>                Prediction modes IVF initial state" << endl
        << " --s-ac-qi <arg>                       Switching frame quantizer index" << endl
+       << " --refine-sw <arg>                     Refine switching frame" << endl
        << endl;
 }
 
@@ -68,6 +69,7 @@ int main( int argc, char *argv[] )
     double ssim = 0.99;
     bool two_pass = false;
     bool re_encode_only = false;
+    bool refine_sw = false;
 
     size_t y_ac_qi = numeric_limits<size_t>::max();
     size_t s_ac_qi = numeric_limits<size_t>::max();
@@ -84,6 +86,7 @@ int main( int argc, char *argv[] )
       { "pred-ivf",     required_argument, nullptr, 'p' },
       { "pred-state",   required_argument, nullptr, 'S' },
       { "s-ac-qi",      required_argument, nullptr, 'Y' },
+      { "refine-sw",    no_argument,       nullptr, 'R' },
       { 0, 0, 0, 0 }
     };
 
@@ -139,6 +142,10 @@ int main( int argc, char *argv[] )
         s_ac_qi = stoul( optarg );
         break;
 
+      case 'R':
+        refine_sw = true;
+        break;
+
       default:
         throw runtime_error( "getopt_long: unexpected return value." );
       }
@@ -186,7 +193,7 @@ int main( int argc, char *argv[] )
                  move( output ), two_pass );
 
     if ( re_encode_only ) {
-      encoder.reencode( *input_reader, pred_file, pred_decoder, s_ac_qi );
+      encoder.reencode( *input_reader, pred_file, pred_decoder, s_ac_qi, refine_sw );
     }
     else {
       Optional<RasterHandle> raster = input_reader->get_next_frame();

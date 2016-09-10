@@ -396,7 +396,7 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
     decoder_state_ = decoder_state_copy;
   }
   else {
-    references_.last = immutable_raster;
+    frame.copy_to( immutable_raster, references_ );
   }
 
   return { move( frame ), immutable_raster.get().quality( raster ) };

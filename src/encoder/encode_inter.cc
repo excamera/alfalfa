@@ -547,7 +547,7 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
     decoder_state_ = decoder_state_copy;
   }
   else {
-    references_.last = immutable_raster;
+    frame.copy_to( immutable_raster, references_ );
   }
 
   return { move( frame ), immutable_raster.get().quality( raster ) };
@@ -772,7 +772,7 @@ void Encoder::reencode_frame( const VP8Raster & unfiltered_output,
     if_header.mv_prob_update.at( 1 ).at( i ).clear();
   }
 
-  // TODO MV probabilities.
+  // TODO MV probabilities (?)
 
   if_header.intra_16x16_prob.clear();
 
@@ -854,7 +854,7 @@ void Encoder::reencode_frame( const VP8Raster & unfiltered_output,
   frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed_raster );
 
   RasterHandle immutable_raster( move( reconstructed_raster_handle ) );
-  references_.last = immutable_raster;
+  frame.copy_to( immutable_raster, references_ );
 
   ivf_writer_.append_frame( frame.serialize( decoder_state_.probability_tables ) );
 }
@@ -961,13 +961,14 @@ void Encoder::reencode_frame( const VP8Raster & unfiltered_output,
   frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed_raster );
 
   RasterHandle immutable_raster( move( reconstructed_raster_handle ) );
-  references_.last = immutable_raster;
+  frame.copy_to( immutable_raster, references_ );
 
   ivf_writer_.append_frame( frame.serialize( decoder_state_.probability_tables ) );
 }
 
 void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
-                        Decoder pred_decoder, const uint8_t s_ac_qi )
+                        Decoder pred_decoder, const uint8_t s_ac_qi,
+                        const bool refine_sw )
 {
   if ( input.display_width() != width() or input.display_height() != height()
        or pred_ivf.width() != width() or pred_ivf.height() != height() ) {
@@ -1010,7 +1011,7 @@ void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
 
     InterFrame switching_frame = create_switching_frame( s_ac_qi );
 
-    if ( frame_index == pred_ivf.frame_count() - 1 ) {
+    if ( refine_sw and frame_index == pred_ivf.frame_count() - 1 ) {
       /* Variable names are explained in refine_switching_frame method */
       RasterHandle d1 = pred_decoder.get_references().last;
 
@@ -1037,7 +1038,7 @@ void Encoder::write_switching_frame( const InterFrame & frame )
   VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
 
   frame.decode( { }, references_, reconstructed_raster );
-  references_.last = move( reconstructed_raster_handle );
+  frame.copy_to( move( reconstructed_raster_handle ), references_ );
 
   ivf_writer_.append_frame( frame.serialize( decoder_state_.probability_tables )  );
 }
