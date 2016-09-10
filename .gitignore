@@ -38,6 +38,7 @@ Makefile.in
 /src/frontend/xc-framesize
 /src/frontend/comp-states
 /src/frontend/xc-dump
+/src/frontend/xc-diff
 
 /src/tests/decode-to-stdout
 /src/tests/encode-loopback

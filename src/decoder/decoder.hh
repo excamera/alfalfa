@@ -48,6 +48,8 @@ struct ProbabilityTables
 
   bool operator==( const ProbabilityTables & other ) const;
 
+  bool operator!=( const ProbabilityTables & other ) const { return not operator==( other ); }
+
   uint32_t serialize(EncoderStateSerializer &odata) const;
   static ProbabilityTables deserialize(EncoderStateDeserializer &idata) {
     return ProbabilityTables(idata);
@@ -76,6 +78,8 @@ struct FilterAdjustments
 
   bool operator==( const FilterAdjustments & other ) const;
 
+  bool operator!=( const FilterAdjustments & other ) const { return not operator==( other ); }
+
   size_t serialize(EncoderStateSerializer &odata) const;
   static FilterAdjustments deserialize(EncoderStateDeserializer &idata) {
     return FilterAdjustments(idata);
@@ -102,7 +106,9 @@ struct References
     }
   }
 
-  bool operator==(const References &other) const;
+  bool operator==( const References & other ) const;
+
+  bool operator!=( const References & other ) const { return not operator==( other ); }
 
   size_t serialize(EncoderStateSerializer &odata) const;
   static References deserialize(EncoderStateDeserializer &idata);
@@ -173,6 +179,8 @@ struct DecoderState
 
   bool operator==( const DecoderState & other ) const;
 
+  bool operator!=( const DecoderState & other ) const { return not operator==( other ); }
+
   Optional<ModeRefLFDeltaUpdate> get_filter_update( void ) const;
   Optional<SegmentFeatureData> get_segment_update( void ) const;
 
@@ -240,6 +248,8 @@ public:
   uint16_t get_height() const { return state_.height; }
 
   bool operator==( const Decoder & other ) const;
+
+  bool operator!=( const Decoder & other ) const { return not operator==( other ); }
 
   size_t serialize(EncoderStateSerializer &odata) const;
 
