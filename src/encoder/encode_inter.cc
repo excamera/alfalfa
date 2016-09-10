@@ -708,6 +708,7 @@ InterFrame Encoder::create_switching_frame( const uint8_t y_ac_qi )
       frame_mb.mutable_header().set_reference( LAST_FRAME );
 
       frame_mb.Y2().set_prediction_mode( SPLITMV );
+      frame_mb.mutable_header().partition_id.initialize( 0 );
       frame_mb.Y2().set_if_coded();
       frame_mb.Y2().mutable_coefficients().zero_out();
 
