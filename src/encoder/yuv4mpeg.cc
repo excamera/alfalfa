@@ -14,9 +14,9 @@ YUV4MPEGHeader::YUV4MPEGHeader()
     interlacing_mode( PROGRESSIVE ), color_space( C420 )
 {}
 
-YUV4MPEGHeader::YUV4MPEGHeader( RasterHandle &rh )
-  : width( rh.get().display_width() )
-  , height( rh.get().display_height() )
+YUV4MPEGHeader::YUV4MPEGHeader( const BaseRaster &rh )
+  : width( rh.display_width() )
+  , height( rh.display_height() )
   , fps_numerator( 1 ), fps_denominator( 1 )
   , pixel_aspect_ratio_numerator( 1 ), pixel_aspect_ratio_denominator( 1 )
   , interlacing_mode( PROGRESSIVE ), color_space( C420 )
@@ -250,12 +250,12 @@ Optional<RasterHandle> YUV4MPEGReader::get_next_frame()
   return make_optional<RasterHandle>( true, handle );
 }
 
-void YUV4MPEGFrameWriter::write( RasterHandle &rh, FileDescriptor &fd )
+void YUV4MPEGFrameWriter::write( const BaseRaster &rh, FileDescriptor &fd )
 {
   fd.write("FRAME\n");
 
   // display_rectangle_as_planar returns Y, U, V chunks in row-major order
-  for ( const auto & chunk : rh.get().display_rectangle_as_planar() ) {
+  for ( const auto & chunk : rh.display_rectangle_as_planar() ) {
     fd.write( chunk );
   }
 }

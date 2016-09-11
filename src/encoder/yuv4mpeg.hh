@@ -20,7 +20,7 @@ public:
   enum ColorSpace { C420jpeg, C420paldv, C420, C422, C444 };
 
   YUV4MPEGHeader();
-  YUV4MPEGHeader( RasterHandle &rh );
+  YUV4MPEGHeader( const BaseRaster &rh );
 
   uint16_t width;
   uint16_t height;
@@ -62,7 +62,7 @@ public:
 class YUV4MPEGFrameWriter
 {
 public:
-  static void write( RasterHandle &rh, FileDescriptor &fd );
+  static void write( const BaseRaster &rh, FileDescriptor &fd );
 };
 
 #endif /* YUV4MPEG_HH */
