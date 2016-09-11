@@ -212,6 +212,9 @@ private:
   void reencode_frame( const VP8Raster & unfiltered_output,
                        const FrameType & original_frame );
 
+  void update_residues( const VP8Raster & unfiltered_output,
+                        const InterFrame & original_frame );
+
   InterFrame create_switching_frame( const uint8_t y_ac_qi );
 
   void refine_switching_frame( InterFrame & frame,

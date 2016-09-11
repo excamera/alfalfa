@@ -445,6 +445,7 @@ void Encoder::apply_best_loopfilter_settings( const VP8Raster & original,
                                               VP8Raster & reconstructed,
                                               FrameType & frame )
 {
+  frame.mutable_header().mode_lf_adjustments.clear();
   frame.mutable_header().mode_lf_adjustments.initialize();
   frame.mutable_header().mode_lf_adjustments.get().initialize();
 

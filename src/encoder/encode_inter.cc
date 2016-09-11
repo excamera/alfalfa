@@ -741,9 +741,9 @@ InterFrame Encoder::create_switching_frame( const uint8_t y_ac_qi )
   return frame;
 }
 
-template<>
+template<class FrameType>
 void Encoder::reencode_frame( const VP8Raster & unfiltered_output,
-                              const KeyFrame & original_frame )
+                              const FrameType & original_frame )
 {
   InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height() );
   auto & kf_header = original_frame.header();
@@ -817,9 +817,11 @@ void Encoder::reencode_frame( const VP8Raster & unfiltered_output,
   optimize_interframe_probs( frame );
   optimize_probability_tables( frame, token_branch_counts );
 
-  decoder_state_.filter_adjustments.clear();
-  decoder_state_.filter_adjustments.initialize( frame.header() );
-  frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed_raster );
+  apply_best_loopfilter_settings( unfiltered_output, reconstructed_raster, frame );
+
+  // decoder_state_.filter_adjustments.clear();
+  // decoder_state_.filter_adjustments.initialize( frame.header() );
+  // frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed_raster );
 
   RasterHandle immutable_raster( move( reconstructed_raster_handle ) );
   frame.copy_to( immutable_raster, references_ );
@@ -827,9 +829,8 @@ void Encoder::reencode_frame( const VP8Raster & unfiltered_output,
   ivf_writer_.append_frame( frame.serialize( decoder_state_.probability_tables ) );
 }
 
-template<>
-void Encoder::reencode_frame( const VP8Raster & unfiltered_output,
-                              const InterFrame & original_frame )
+void Encoder::update_residues( const VP8Raster & unfiltered_output,
+                               const InterFrame & original_frame )
 {
   InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height() );
   frame.mutable_header() = original_frame.header();
@@ -963,12 +964,19 @@ void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
     if ( pred_uch.key_frame() ) {
       KeyFrame frame = pred_decoder.parse_frame<KeyFrame>( pred_uch );
       pred_decoder.decode_frame( frame );
+
       reencode_frame( target_output, frame );
     }
     else {
       InterFrame frame = pred_decoder.parse_frame<InterFrame>( pred_uch );
       pred_decoder.decode_frame( frame );
-      reencode_frame( target_output, frame );
+
+      if ( frame_index == 0 ) {
+        reencode_frame( target_output, frame );
+      }
+      else {
+        update_residues( target_output, frame );
+      }
     }
   }
 
