@@ -352,17 +352,12 @@ void Encoder::luma_mb_apply_inter_prediction( const VP8Raster::Macroblock & orig
 
 void Encoder::chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                        VP8Raster::Macroblock & reconstructed_mb,
-                                       VP8Raster::Macroblock & temp_mb,
+                                       VP8Raster::Macroblock & /* temp_mb */,
                                        InterFrameMacroblock & frame_mb,
                                        const Quantizer & quantizer,
                                        const EncoderPass ) const
 {
   const VP8Raster & reference = references_.last.get();
-  const auto & reference_mb = reference.macroblock( frame_mb.context().column,
-                                                    frame_mb.context().row );
-
-  TwoDSubRange<uint8_t, 8, 8> & u_prediction = temp_mb.U.mutable_contents();
-  TwoDSubRange<uint8_t, 8, 8> & v_prediction = temp_mb.V.mutable_contents();
 
   frame_mb.U().forall_ij(
     [&]( UVBlock & block, const unsigned int column, const unsigned int row )
@@ -375,13 +370,10 @@ void Encoder::chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb
     }
   );
 
-  reference_mb.U.inter_predict( frame_mb.U().at( 0, 0 ).motion_vector(),
-                                reference.U(), u_prediction );
-  reference_mb.V.inter_predict( frame_mb.U().at( 0, 0 ).motion_vector(),
-                                reference.V(), v_prediction );
-
-  reconstructed_mb.U.mutable_contents().copy_from( u_prediction );
-  reconstructed_mb.V.mutable_contents().copy_from( v_prediction );
+  reconstructed_mb.U.inter_predict( frame_mb.U().at( 0, 0 ).motion_vector(),
+                                    reference.U() );
+  reconstructed_mb.V.inter_predict( frame_mb.U().at( 0, 0 ).motion_vector(),
+                                    reference.V() );
 
   frame_mb.U().forall_ij(
     [&] ( UVBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
@@ -408,6 +400,8 @@ void Encoder::chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb
       frame_sb.calculate_has_nonzero();
     }
   );
+
+  frame_mb.calculate_has_nonzero();
 }
 
 void Encoder::optimize_mv_probs( InterFrame & frame, const MVComponentCounts & counts )
