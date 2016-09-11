@@ -23,6 +23,7 @@ void usage_error( const string & program_name )
        << " -p, --probability-tables       Print the prob tables for each frame" << endl
        << " -c, --coefficients             Print DCT coefficients for each block" << endl
        << " -f, --frame <arg>              Print information for frame #<arg>" << endl
+       << " -s, --initial-state <arg>      IVF initial state" << endl
        << endl;
 }
 
@@ -353,17 +354,19 @@ int main( int argc, char *argv[] )
   bool coefficients = false;
   bool macroblocks = false;
   size_t target_frame_number = SIZE_MAX;
+  string input_state = "";
 
   const option command_line_options[] = {
     { "macroblocks",               no_argument, nullptr, 'm' },
     { "probability-tables",        no_argument, nullptr, 'p' },
     { "coefficients",              no_argument, nullptr, 'c' },
     { "frame",               required_argument, nullptr, 'f' },
+    { "initial-state",       required_argument, nullptr, 's' },
     { 0, 0, nullptr, 0 }
   };
 
   while ( true ) {
-    const int opt = getopt_long( argc, argv, "mpcf:", command_line_options, nullptr );
+    const int opt = getopt_long( argc, argv, "mpcf:s:", command_line_options, nullptr );
 
     if ( opt == -1 ) {
       break;
@@ -386,6 +389,10 @@ int main( int argc, char *argv[] )
       target_frame_number = stoul( optarg );
       break;
 
+    case 's':
+      input_state = optarg;
+      break;
+
     default:
       throw runtime_error( "getopt_long: unexpected return value." );
     }
@@ -403,7 +410,11 @@ int main( int argc, char *argv[] )
   uint16_t width = ivf.width();
   uint16_t height = ivf.height();
 
-  DecoderState decoder_state { width, height };
+  Decoder decoder = ( input_state == "" )
+                  ? Decoder( ivf.width(), ivf.height() )
+                  : EncoderStateDeserializer::build<Decoder>( input_state );
+
+  DecoderState decoder_state = decoder.get_state();
 
   for ( size_t frame_number = 0; frame_number < ivf.frame_count(); frame_number++ ) {
     UncompressedChunk uncompressed_chunk { ivf.frame( frame_number ), width, height };
