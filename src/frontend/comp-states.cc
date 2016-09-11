@@ -44,7 +44,14 @@ int main( int argc, char *argv[] )
 
         diffs += set_bits[u1 ^ u2];
       }
-      cout << diffs << ' ';
+      cout << diffs;
+      
+      if (diffs == 0) {
+        cout << '\n';
+        return EXIT_SUCCESS;
+      } else {
+        cout << ' ';
+      }
     }
 
     // count differing pixels in first ref in serialized data
@@ -115,5 +122,5 @@ int main( int argc, char *argv[] )
     return EXIT_FAILURE;
   }
 
-  return EXIT_SUCCESS;
+  return EXIT_FAILURE;
 }
