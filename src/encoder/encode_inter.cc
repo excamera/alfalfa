@@ -191,14 +191,14 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                                              encoder_pass,
                                                              true );
 
-  /* MBPredictionData best_uv_pred = chroma_mb_best_prediction_mode( original_mb,
+  MBPredictionData best_uv_pred = chroma_mb_best_prediction_mode( original_mb,
                                                                   reconstructed_mb,
                                                                   temp_mb,
                                                                   true );
 
   best_pred.distortion += best_uv_pred.distortion;
   best_pred.rate       += best_uv_pred.rate;
-  best_pred.cost       += best_uv_pred.cost; */
+  best_pred.cost       += best_uv_pred.cost;
 
   MotionVector best_mv;
   const VP8Raster & reference = references_.last.get();
@@ -270,11 +270,11 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
       pred.rate += costs_.motion_vector_cost( mv - best_ref, 96 );
     }
 
-    /* chroma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb, frame_mb,
+    chroma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb, frame_mb,
                              quantizer, encoder_pass );
 
     pred.distortion += sse( original_mb.U, reconstructed_mb.U.contents() );
-    pred.distortion += sse( original_mb.V, reconstructed_mb.V.contents() ); */
+    pred.distortion += sse( original_mb.V, reconstructed_mb.V.contents() );
 
     pred.cost = rdcost( pred.rate, pred.distortion, RATE_MULTIPLIER,
                         DISTORTION_MULTIPLIER );
@@ -771,42 +771,12 @@ void Encoder::reencode_frame( const VP8Raster & unfiltered_output,
 
   if_header.intra_16x16_prob.clear();
 
-  for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
-    for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
-      for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
-        for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
-          auto & current_prob = decoder_state_.probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l );
-          auto & kf_header_prob = kf_header.token_prob_update.at( i ).at( j ).at( k ).at( l ).coeff_prob;
-          auto & default_kf_prob = k_default_coeff_probs.at( i ).at( j ).at( k ).at( l );
-
-          if ( kf_header_prob.initialized() ) {
-            if( current_prob != kf_header_prob.get() ) {
-              if_header.token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( true, kf_header_prob.get() );
-            }
-            else {
-              if_header.token_prob_update.at( i ).at( j ).at( k ).at( l ).coeff_prob.clear();
-            }
-          }
-          else {
-            if ( current_prob != default_kf_prob ) {
-              if_header.token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( true, default_kf_prob );
-            }
-            else {
-              if_header.token_prob_update.at( i ).at( j ).at( k ).at( l ).coeff_prob.clear();
-            }
-          }
-        }
-      }
-    }
-  }
-
-  decoder_state_.probability_tables.coeff_prob_update( frame.header() );
-
   Quantizer quantizer( frame.header().quant_indices );
   MutableRasterHandle reconstructed_raster_handle { width(), height() };
   VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
 
   MVComponentCounts component_counts;
+  TokenBranchCounts token_branch_counts;
 
   unfiltered_output.macroblocks().forall_ij(
     [&] ( VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
@@ -836,6 +806,8 @@ void Encoder::reencode_frame( const VP8Raster & unfiltered_output,
       else {
         frame_mb.reconstruct_intra( quantizer, reconstructed_mb );
       }
+
+      frame_mb.accumulate_token_branches( token_branch_counts );
     }
   );
 
@@ -843,6 +815,7 @@ void Encoder::reencode_frame( const VP8Raster & unfiltered_output,
 
   optimize_prob_skip( frame );
   optimize_interframe_probs( frame );
+  optimize_probability_tables( frame, token_branch_counts );
 
   decoder_state_.filter_adjustments.clear();
   decoder_state_.filter_adjustments.initialize( frame.header() );
