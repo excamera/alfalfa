@@ -17,7 +17,7 @@ YUV4MPEGHeader::YUV4MPEGHeader()
 YUV4MPEGHeader::YUV4MPEGHeader( const BaseRaster &rh )
   : width( rh.display_width() )
   , height( rh.display_height() )
-  , fps_numerator( 1 ), fps_denominator( 1 )
+  , fps_numerator( 24 ), fps_denominator( 1 )
   , pixel_aspect_ratio_numerator( 1 ), pixel_aspect_ratio_denominator( 1 )
   , interlacing_mode( PROGRESSIVE ), color_space( C420 )
 {}
