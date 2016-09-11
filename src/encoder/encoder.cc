@@ -94,6 +94,8 @@ Encoder::Encoder( const Decoder & decoder, IVFWriter && output, const bool two_p
     throw runtime_error( "height/width mismatch" );
   }
 
+  has_state_ = true;
+
   costs_.fill_mode_costs();
 }
 
@@ -541,8 +543,6 @@ double Encoder::encode_raster( const VP8Raster & raster,
 
   ivf_writer_.append_frame( encoded_frame.first.serialize( current_state.probability_tables ) );
 
-  frame_count_++;
-
   return encoded_frame.second;
 }
 
@@ -553,7 +553,8 @@ double Encoder::encode( const VP8Raster & raster, const double minimum_ssim,
     throw runtime_error( "scaling is not supported" );
   }
 
-  if ( frame_count_ == 0 ) { /* XXX need more sophisticated way of deciding whether a key frame is warranted */
+  if ( not has_state_ ) { /* XXX need more sophisticated way of deciding whether a key frame is warranted */
+    has_state_ = true;
     return encode_raster<KeyFrame>( raster, minimum_ssim, y_ac_qi );
   }
   else {

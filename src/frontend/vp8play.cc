@@ -25,6 +25,7 @@ int main( int argc, char *argv[] )
 
     while ( not player.eof() ) {
       display.draw( player.advance() );
+      cerr << "Displaying frame #" << player.cur_frame_no() << "...";
       getchar();
     }
   } catch ( const exception & e ) {

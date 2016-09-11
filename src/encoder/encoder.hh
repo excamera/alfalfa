@@ -47,7 +47,7 @@ private:
   DecoderState decoder_state_;
   References references_;
 
-  uint32_t frame_count_ { 0 };
+  bool has_state_ { false };
 
   size_t qindex_ { 0 };
 
