@@ -241,12 +241,12 @@ void Encoder::chroma_mb_apply_intra_prediction( const VP8Raster::Macroblock & or
       frame_sb.mutable_coefficients().subtract_dct( original_sb,
         reconstructed_mb.U_sub.at( sb_column, sb_row ).contents() );
 
-        if ( encoder_pass == FIRST_PASS ) {
-          frame_sb.mutable_coefficients() = UVBlock::quantize( quantizer, frame_sb.coefficients() );
-        }
-        else {
-          trellis_quantize( frame_sb, quantizer );
-        }
+      if ( encoder_pass == FIRST_PASS ) {
+        frame_sb.mutable_coefficients() = UVBlock::quantize( quantizer, frame_sb.coefficients() );
+      }
+      else {
+        trellis_quantize( frame_sb, quantizer );
+      }
 
       frame_sb.calculate_has_nonzero();
     }
