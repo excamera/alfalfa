@@ -88,6 +88,39 @@ int main( int argc, char *argv[] )
 
       if ( state[ 0 ].probability_tables != state[ 1 ].probability_tables ) {
         print_message( "Probability tables are different.", 2 );
+
+        if ( state[ 0 ].probability_tables.coeff_probs !=
+             state[ 1 ].probability_tables.coeff_probs ) {
+          print_message( "Coefficient probabilities are different.", 3 );
+
+          // for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
+          //   for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
+          //     for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
+          //       for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
+          //         if ( state[ 0 ].probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l ) !=
+          //              state[ 1 ].probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l ) ) {
+          //           cout << i << ", " << j << ", " << k << ", " << l << endl;
+          //         }
+          //       }
+          //     }
+          //   }
+          // }
+        }
+
+        if ( state[ 0 ].probability_tables.y_mode_probs !=
+             state[ 1 ].probability_tables.y_mode_probs ) {
+          print_message( "Y-mode probabilities are different.", 3 );
+        }
+
+        if ( state[ 0 ].probability_tables.uv_mode_probs !=
+             state[ 1 ].probability_tables.uv_mode_probs ) {
+          print_message( "UV-mode probabilities are different.", 3 );
+        }
+
+        if ( state[ 0 ].probability_tables.motion_vector_probs !=
+             state[ 1 ].probability_tables.motion_vector_probs ) {
+          print_message( "Motion vector probabilities are different.", 3 );
+        }
       }
 
       if ( state[ 0 ].segmentation != state[ 1 ].segmentation ) {

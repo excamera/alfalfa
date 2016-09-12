@@ -45,6 +45,7 @@ void usage_error( const string & program_name )
        << " -S, --pred-state <arg>                Prediction modes IVF initial state" << endl
        << " --s-ac-qi <arg>                       Switching frame quantizer index" << endl
        << " --refine-sw <arg>                     Refine switching frame" << endl
+       << " --fix-prob-tables                     Force probability tables to converge" << endl
        << endl;
 }
 
@@ -70,23 +71,25 @@ int main( int argc, char *argv[] )
     bool two_pass = false;
     bool re_encode_only = false;
     bool refine_sw = false;
+    bool fix_prob_tables = false;
 
     size_t y_ac_qi = numeric_limits<size_t>::max();
     size_t s_ac_qi = numeric_limits<size_t>::max();
 
     const option command_line_options[] = {
-      { "output",       required_argument, nullptr, 'o' },
-      { "ssim",         required_argument, nullptr, 's' },
-      { "input-format", required_argument, nullptr, 'i' },
-      { "output-state", required_argument, nullptr, 'O' },
-      { "input-state",  required_argument, nullptr, 'I' },
-      { "two-pass",     no_argument,       nullptr, '2' },
-      { "y-ac-qi",      required_argument, nullptr, 'y' },
-      { "reencode",     no_argument,       nullptr, 'r' },
-      { "pred-ivf",     required_argument, nullptr, 'p' },
-      { "pred-state",   required_argument, nullptr, 'S' },
-      { "s-ac-qi",      required_argument, nullptr, 'Y' },
-      { "refine-sw",    no_argument,       nullptr, 'R' },
+      { "output",          required_argument, nullptr, 'o' },
+      { "ssim",            required_argument, nullptr, 's' },
+      { "input-format",    required_argument, nullptr, 'i' },
+      { "output-state",    required_argument, nullptr, 'O' },
+      { "input-state",     required_argument, nullptr, 'I' },
+      { "two-pass",        no_argument,       nullptr, '2' },
+      { "y-ac-qi",         required_argument, nullptr, 'y' },
+      { "reencode",        no_argument,       nullptr, 'r' },
+      { "pred-ivf",        required_argument, nullptr, 'p' },
+      { "pred-state",      required_argument, nullptr, 'S' },
+      { "s-ac-qi",         required_argument, nullptr, 'Y' },
+      { "refine-sw",       no_argument,       nullptr, 'R' },
+      { "fix-prob-tables", no_argument,       nullptr, 'x' },
       { 0, 0, 0, 0 }
     };
 
@@ -146,6 +149,10 @@ int main( int argc, char *argv[] )
         refine_sw = true;
         break;
 
+      case 'x':
+        fix_prob_tables = true;
+        break;
+
       default:
         throw runtime_error( "getopt_long: unexpected return value." );
       }
@@ -193,7 +200,8 @@ int main( int argc, char *argv[] )
                  move( output ), two_pass );
 
     if ( re_encode_only ) {
-      encoder.reencode( *input_reader, pred_file, pred_decoder, s_ac_qi, refine_sw );
+      encoder.reencode( *input_reader, pred_file, pred_decoder, s_ac_qi,
+                        refine_sw, fix_prob_tables );
     }
     else {
       Optional<RasterHandle> raster = input_reader->get_next_frame();

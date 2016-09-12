@@ -207,13 +207,19 @@ private:
   template<class FrameType>
   static FrameType make_empty_frame( const uint16_t width, const uint16_t height );
 
+  template<class FrameType>
+  void write_frame( const FrameType & frame );
+
+  template<class FrameType>
+  void write_frame( const FrameType & frame, const ProbabilityTables & prob_tables );
+
   /* Convergence-related stuff */
   template<class FrameType>
-  void reencode_frame( const VP8Raster & unfiltered_output,
+  InterFrame reencode_frame( const VP8Raster & unfiltered_output,
                        const FrameType & original_frame );
 
-  void update_residues( const VP8Raster & unfiltered_output,
-                        const InterFrame & original_frame );
+  InterFrame update_residues( const VP8Raster & unfiltered_output,
+                              const InterFrame & original_frame );
 
   InterFrame create_switching_frame( const uint8_t y_ac_qi );
 
@@ -222,6 +228,9 @@ private:
                                const VP8Raster & d1 );
 
   void write_switching_frame( const InterFrame & frame );
+
+  void fix_probability_tables( InterFrame & frame,
+                               const ProbabilityTables & target );
 
 public:
   Encoder( IVFWriter && output, const bool two_pass );
@@ -233,7 +242,8 @@ public:
                  const uint8_t y_ac_qi = std::numeric_limits<uint8_t>::max() );
 
   void reencode( FrameInput & input, const IVF & pred_ivf, Decoder pred_decoder,
-                 const uint8_t s_ac_qi, const bool refine_sw );
+                 const uint8_t s_ac_qi, const bool refine_sw,
+                 const bool fix_prob_tables );
 
   Decoder export_decoder() const { return { decoder_state_, references_ }; }
 };

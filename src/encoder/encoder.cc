@@ -108,6 +108,19 @@ FrameType Encoder::make_empty_frame( const uint16_t width, const uint16_t height
   return frame;
 }
 
+template<class FrameType>
+void Encoder::write_frame( const FrameType & frame,
+                           const ProbabilityTables & prob_tables )
+{
+  ivf_writer_.append_frame( frame.serialize( prob_tables ) );
+}
+
+template<class FrameType>
+void Encoder::write_frame( const FrameType & frame )
+{
+  write_frame( frame, decoder_state_.probability_tables );
+}
+
 template<unsigned int size>
 int32_t Encoder::avg( const VP8Raster::Block<size> & block,
                        const TwoDSubRange<uint8_t, size, size> & prediction )
@@ -413,12 +426,17 @@ void Encoder::optimize_probability_tables( FrameType & frame, const TokenBranchC
           if ( prob > 0 and prob != decoder_state_.probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l ) ) {
             frame.mutable_header().token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( true, prob );
           }
+          else {
+            frame.mutable_header().token_prob_update.at( i ).at( j ).at( k ).at( l ).coeff_prob.clear();
+          }
         }
       }
     }
   }
 
-  decoder_state_.probability_tables.coeff_prob_update( frame.header() );
+  if ( frame.header().refresh_entropy_probs ) {
+    decoder_state_.probability_tables.coeff_prob_update( frame.header() );
+  }
 }
 
 template<class FrameHeaderType, class MacroblockType>
@@ -542,7 +560,7 @@ double Encoder::encode_raster( const VP8Raster & raster,
   DecoderState current_state = decoder_state_;
   pair<FrameType, double> encoded_frame = encode_with_quantizer<FrameType>( raster, quant_indices, true );
 
-  ivf_writer_.append_frame( encoded_frame.first.serialize( current_state.probability_tables ) );
+  write_frame( encoded_frame.first, current_state.probability_tables );
 
   return encoded_frame.second;
 }

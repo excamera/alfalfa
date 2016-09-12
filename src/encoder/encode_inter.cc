@@ -581,6 +581,8 @@ void Encoder::refine_switching_frame( InterFrame & F2, const InterFrame & F1,
 
   Quantizer quantizer( F2.header().quant_indices );
 
+  TokenBranchCounts token_branch_counts;
+
   F2.macroblocks().forall_ij(
     [&] ( InterFrameMacroblock & F2_mb, unsigned int mb_column, unsigned int mb_row )
     {
@@ -664,11 +666,13 @@ void Encoder::refine_switching_frame( InterFrame & F2, const InterFrame & F1,
       );
 
       F2_mb.calculate_has_nonzero();
+      F2_mb.accumulate_token_branches( token_branch_counts );
     }
   );
 
   optimize_prob_skip( F2 );
   optimize_interframe_probs( F2 );
+  optimize_probability_tables( F2, token_branch_counts );
 }
 
 InterFrame Encoder::create_switching_frame( const uint8_t y_ac_qi )
@@ -694,6 +698,8 @@ InterFrame Encoder::create_switching_frame( const uint8_t y_ac_qi )
   }
 
   if_header.intra_16x16_prob.clear();
+
+  TokenBranchCounts token_branch_counts;
 
   frame.macroblocks().forall(
     [&] ( InterFrameMacroblock & frame_mb )
@@ -732,18 +738,20 @@ InterFrame Encoder::create_switching_frame( const uint8_t y_ac_qi )
       );
 
       frame_mb.calculate_has_nonzero();
+      frame_mb.accumulate_token_branches( token_branch_counts );
     }
   );
 
   optimize_prob_skip( frame );
   optimize_interframe_probs( frame );
+  optimize_probability_tables( frame, token_branch_counts );
 
   return frame;
 }
 
 template<class FrameType>
-void Encoder::reencode_frame( const VP8Raster & unfiltered_output,
-                              const FrameType & original_frame )
+InterFrame Encoder::reencode_frame( const VP8Raster & unfiltered_output,
+                                    const FrameType & original_frame )
 {
   InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height() );
   auto & kf_header = original_frame.header();
@@ -826,11 +834,11 @@ void Encoder::reencode_frame( const VP8Raster & unfiltered_output,
   RasterHandle immutable_raster( move( reconstructed_raster_handle ) );
   frame.copy_to( immutable_raster, references_ );
 
-  ivf_writer_.append_frame( frame.serialize( decoder_state_.probability_tables ) );
+  return frame;
 }
 
-void Encoder::update_residues( const VP8Raster & unfiltered_output,
-                               const InterFrame & original_frame )
+InterFrame Encoder::update_residues( const VP8Raster & unfiltered_output,
+                                     const InterFrame & original_frame )
 {
   InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height() );
   frame.mutable_header() = original_frame.header();
@@ -932,12 +940,34 @@ void Encoder::update_residues( const VP8Raster & unfiltered_output,
   RasterHandle immutable_raster( move( reconstructed_raster_handle ) );
   frame.copy_to( immutable_raster, references_ );
 
-  ivf_writer_.append_frame( frame.serialize( decoder_state_.probability_tables ) );
+  return frame;
+}
+
+void Encoder::fix_probability_tables( InterFrame & frame,
+                                      const ProbabilityTables & target )
+{
+  for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
+    for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
+      for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
+        for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
+          uint8_t current_prob = decoder_state_.probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l );
+          uint8_t target_prob = target.coeff_probs.at( i ).at( j ).at( k ).at( l );
+          if ( current_prob != target_prob ) {
+            frame.mutable_header().token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( true, target_prob );
+          }
+        }
+      }
+    }
+  }
+
+  if ( frame.header().refresh_entropy_probs ) {
+    decoder_state_.probability_tables.coeff_prob_update( frame.header() );
+  }
 }
 
 void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
                         Decoder pred_decoder, const uint8_t s_ac_qi,
-                        const bool refine_sw )
+                        const bool refine_sw, const bool fix_prob_tables )
 {
   if ( input.display_width() != width() or input.display_height() != height()
        or pred_ivf.width() != width() or pred_ivf.height() != height() ) {
@@ -965,17 +995,23 @@ void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
       KeyFrame frame = pred_decoder.parse_frame<KeyFrame>( pred_uch );
       pred_decoder.decode_frame( frame );
 
-      reencode_frame( target_output, frame );
+      write_frame( reencode_frame( target_output, frame ) );
     }
     else {
       InterFrame frame = pred_decoder.parse_frame<InterFrame>( pred_uch );
       pred_decoder.decode_frame( frame );
 
       if ( frame_index == 0 ) {
-        reencode_frame( target_output, frame );
+        write_frame( reencode_frame( target_output, frame ) );
       }
       else {
-        update_residues( target_output, frame );
+        InterFrame rframe = update_residues( target_output, frame );
+
+        if ( fix_prob_tables and frame_index == pred_ivf.frame_count() - 2 ) {
+          fix_probability_tables( rframe, pred_decoder.get_state().probability_tables );
+        }
+
+        write_frame( rframe );
       }
     }
   }
@@ -1016,5 +1052,5 @@ void Encoder::write_switching_frame( const InterFrame & frame )
   frame.decode( { }, references_, reconstructed_raster );
   frame.copy_to( move( reconstructed_raster_handle ), references_ );
 
-  ivf_writer_.append_frame( frame.serialize( decoder_state_.probability_tables )  );
+  write_frame( frame );
 }

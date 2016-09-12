@@ -58,6 +58,11 @@ struct SafeArray
   {
     return 0 == memcmp( storage_, other.storage_, size_param * sizeof( T ) );
   }
+
+  bool operator!=( const SafeArray<T, size_param> & other ) const
+  {
+    return not operator==( other );
+  }
 };
 
 #endif /* ARRAY_HH */
