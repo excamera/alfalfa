@@ -6,6 +6,31 @@
 
 using namespace std;
 
+void Encoder::luma_sb_apply_intra_prediction( const VP8Raster::Block4 & original_sb,
+                                              VP8Raster::Block4 & reconstructed_sb,
+                                              YBlock & frame_sb,
+                                              const Quantizer & quantizer,
+                                              bmode sb_prediction_mode,
+                                              const EncoderPass encoder_pass ) const
+{
+  frame_sb.mutable_coefficients().subtract_dct( original_sb,
+    reconstructed_sb.contents() );
+
+  if ( encoder_pass == FIRST_PASS ) {
+    frame_sb.mutable_coefficients() = YBlock::quantize( quantizer, frame_sb.coefficients() );
+  }
+  else {
+    trellis_quantize( frame_sb, quantizer );
+  }
+
+  frame_sb.set_prediction_mode( sb_prediction_mode );
+  frame_sb.set_Y_without_Y2();
+  frame_sb.calculate_has_nonzero();
+
+  reconstructed_sb.intra_predict( sb_prediction_mode );
+  frame_sb.dequantize( quantizer ).idct_add( reconstructed_sb );
+}
+
 /*
  * This function selects the best intra-prediction mode based on rd-cost.
  * In the case of B_PRED mode, the image is already reconstructed in
@@ -55,26 +80,11 @@ Encoder::MBPredictionData Encoder::luma_mb_best_prediction_mode( const VP8Raster
           bmode sb_prediction_mode = luma_sb_intra_predict( original_sb,
             reconstructed_sb, temp_sb, costs_.bmode_costs.at( above_mode ).at( left_mode ) );
 
+          pred.rate += costs_.bmode_costs.at( above_mode ).at( left_mode ).at( sb_prediction_mode );
           pred.distortion += sse( original_sb, reconstructed_sb.contents() );
 
-          frame_sb.mutable_coefficients().subtract_dct( original_sb,
-            reconstructed_sb.contents() );
-
-          if ( encoder_pass == FIRST_PASS ) {
-            frame_sb.mutable_coefficients() = YBlock::quantize( quantizer, frame_sb.coefficients() );
-          }
-          else {
-            trellis_quantize( frame_sb, quantizer );
-          }
-
-          frame_sb.set_prediction_mode( sb_prediction_mode );
-          frame_sb.set_Y_without_Y2();
-          frame_sb.calculate_has_nonzero();
-
-          reconstructed_sb.intra_predict( sb_prediction_mode );
-          frame_sb.dequantize( quantizer ).idct_add( reconstructed_sb );
-
-          pred.rate += costs_.bmode_costs.at( above_mode ).at( left_mode ).at( sb_prediction_mode );
+          luma_sb_apply_intra_prediction( original_sb, reconstructed_sb, frame_sb,
+                                          quantizer, sb_prediction_mode, encoder_pass );
         }
       );
 

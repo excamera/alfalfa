@@ -296,11 +296,11 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
   else {
     frame_mb.mutable_header().is_inter_mb = true;
     frame_mb.mutable_header().set_reference( LAST_FRAME );
-  }
 
-  luma_mb_apply_inter_prediction( original_mb, reconstructed_mb, temp_mb,
-                                  frame_mb, quantizer, best_pred.prediction_mode,
-                                  best_mv, encoder_pass );
+    luma_mb_apply_inter_prediction( original_mb, reconstructed_mb, frame_mb,
+                                    quantizer, best_pred.prediction_mode,
+                                    best_mv );
+  }
 }
 
 /*
@@ -309,12 +309,10 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
  */
 void Encoder::luma_mb_apply_inter_prediction( const VP8Raster::Macroblock & original_mb,
                                               VP8Raster::Macroblock & reconstructed_mb,
-                                              VP8Raster::Macroblock & temp_mb,
                                               InterFrameMacroblock & frame_mb,
                                               const Quantizer & quantizer,
                                               const mbmode best_pred,
-                                              const MotionVector best_mv,
-                                              const EncoderPass encoder_pass )
+                                              const MotionVector best_mv )
 {
   frame_mb.Y2().set_prediction_mode( best_pred );
 

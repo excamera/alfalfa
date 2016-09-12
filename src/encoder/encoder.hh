@@ -98,12 +98,10 @@ private:
 
   void luma_mb_apply_inter_prediction( const VP8Raster::Macroblock & original_mb,
                                        VP8Raster::Macroblock & reconstructed_mb,
-                                       VP8Raster::Macroblock & temp_mb,
                                        InterFrameMacroblock & frame_mb,
                                        const Quantizer & quantizer,
                                        const mbmode best_pred,
-                                       const MotionVector best_mv,
-                                       const EncoderPass encoder_pass );
+                                       const MotionVector best_mv );
 
   void chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                 VP8Raster::Macroblock & constructed_mb,
@@ -167,6 +165,13 @@ private:
                                VP8Raster::Block4 & temp_sb,
                                const SafeArray<uint16_t, num_intra_b_modes> & mode_costs ) const;
 
+  void luma_sb_apply_intra_prediction( const VP8Raster::Block4 & original_sb,
+                                       VP8Raster::Block4 & reconstructed_sb,
+                                       YBlock & frame_sb,
+                                       const Quantizer & quantizer,
+                                       bmode sb_prediction_mode,
+                                       const EncoderPass encoder_pass ) const;
+
   template<class FrameType>
   std::pair<FrameType, double> encode_with_quantizer( const VP8Raster & raster,
                                                       const QuantIndices & quant_indices,
@@ -224,6 +229,13 @@ private:
                               const InterFrame & original_frame );
 
   InterFrame create_switching_frame( const uint8_t y_ac_qi );
+
+  void update_macroblock( const VP8Raster::Macroblock & original_rmb,
+                          VP8Raster::Macroblock & reconstructed_rmb,
+                          VP8Raster::Macroblock & temp_mb,
+                          InterFrameMacroblock & frame_mb,
+                          const InterFrameMacroblock & original_fmb,
+                          const Quantizer & quantizer );
 
   void refine_switching_frame( InterFrame & frame,
                                const InterFrame & prev_frame,

@@ -29,12 +29,16 @@ using namespace std;
  */
 
 template<class FrameType>
-InterFrame Encoder::reencode_frame( const VP8Raster & unfiltered_output,
+InterFrame Encoder::reencode_frame( const VP8Raster & original_raster,
                                     const FrameType & original_frame )
 {
   InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height(), true, false );
   auto & kf_header = original_frame.header();
   auto & if_header = frame.mutable_header();
+
+  if ( kf_header.update_segmentation.initialized() ) {
+    throw Unsupported( "segmentation not supported" );
+  }
 
   if_header.filter_type             = kf_header.filter_type;
   if_header.update_segmentation     = kf_header.update_segmentation;
@@ -65,7 +69,7 @@ InterFrame Encoder::reencode_frame( const VP8Raster & unfiltered_output,
   MVComponentCounts component_counts;
   TokenBranchCounts token_branch_counts;
 
-  unfiltered_output.macroblocks().forall_ij(
+  original_raster.macroblocks().forall_ij(
     [&] ( VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
     {
       auto & reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
@@ -104,11 +108,7 @@ InterFrame Encoder::reencode_frame( const VP8Raster & unfiltered_output,
   optimize_interframe_probs( frame );
   optimize_probability_tables( frame, token_branch_counts );
 
-  apply_best_loopfilter_settings( unfiltered_output, reconstructed_raster, frame );
-
-  // decoder_state_.filter_adjustments.clear();
-  // decoder_state_.filter_adjustments.initialize( frame.header() );
-  // frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed_raster );
+  apply_best_loopfilter_settings( original_raster, reconstructed_raster, frame );
 
   RasterHandle immutable_raster( move( reconstructed_raster_handle ) );
   frame.copy_to( immutable_raster, references_ );
@@ -116,7 +116,93 @@ InterFrame Encoder::reencode_frame( const VP8Raster & unfiltered_output,
   return frame;
 }
 
-InterFrame Encoder::update_residues( const VP8Raster & unfiltered_output,
+void Encoder::update_macroblock( const VP8Raster::Macroblock & original_mb,
+                                 VP8Raster::Macroblock & reconstructed_mb,
+                                 VP8Raster::Macroblock & temp_mb,
+                                 InterFrameMacroblock & frame_mb,
+                                 const InterFrameMacroblock & original_fmb,
+                                 const Quantizer & quantizer )
+{
+  frame_mb.mutable_header() = original_fmb.header();
+
+  mbmode luma_pred_mode = original_fmb.y_prediction_mode();
+
+  MotionVector best_mv;
+
+  switch( luma_pred_mode ) {
+  case DC_PRED:
+  case V_PRED:
+  case H_PRED:
+  case TM_PRED:
+    reconstructed_mb.Y.intra_predict( luma_pred_mode );
+    break;
+
+  case B_PRED:
+    reconstructed_mb.Y_sub.forall_ij(
+      [&] ( VP8Raster::Block4 & reconstructed_sb, unsigned int sb_column, unsigned int sb_row )
+      {
+        auto & original_sb = original_mb.Y_sub.at( sb_column, sb_row );
+        auto & frame_sb = frame_mb.Y().at( sb_column, sb_row );
+        bmode sb_prediction_mode = original_fmb.Y().at( sb_column, sb_row ).prediction_mode();
+
+        reconstructed_sb.intra_predict( sb_prediction_mode );
+
+        luma_sb_apply_intra_prediction( original_sb, reconstructed_sb,
+                                        frame_sb, quantizer,
+                                        sb_prediction_mode, FIRST_PASS );
+      }
+    );
+
+    break;
+
+  case NEARESTMV:
+  case NEARMV:
+  case ZEROMV:
+  case NEWMV:
+  {
+    const VP8Raster & reference = references_.at( frame_mb.header().reference() );
+
+    best_mv = original_fmb.base_motion_vector();
+    reconstructed_mb.Y.inter_predict( best_mv, reference.Y() );
+    break;
+  }
+
+  case SPLITMV:
+  default:
+    throw Unsupported( "unsupported prediction mode" );
+  }
+
+  if ( frame_mb.inter_coded() ) {
+    luma_mb_apply_inter_prediction( original_mb, reconstructed_mb,
+                                    frame_mb, quantizer, luma_pred_mode,
+                                    best_mv );
+
+    chroma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb,
+                             frame_mb, quantizer, FIRST_PASS );
+
+    frame_mb.calculate_has_nonzero();
+    frame_mb.reconstruct_inter( quantizer, references_, reconstructed_mb );
+  }
+  else {
+    luma_mb_apply_intra_prediction( original_mb, reconstructed_mb, temp_mb,
+                                    frame_mb, quantizer, luma_pred_mode,
+                                    FIRST_PASS );
+
+    mbmode chroma_pred_mode = original_fmb.uv_prediction_mode();
+
+    reconstructed_mb.U.intra_predict( chroma_pred_mode );
+    reconstructed_mb.V.intra_predict( chroma_pred_mode );
+
+    chroma_mb_apply_intra_prediction( original_mb, reconstructed_mb, temp_mb,
+                                      frame_mb, quantizer, chroma_pred_mode,
+                                      FIRST_PASS );
+
+    frame_mb.calculate_has_nonzero();
+    frame_mb.reconstruct_intra( quantizer, reconstructed_mb );
+  }
+}
+
+InterFrame Encoder::update_residues( const VP8Raster & original_raster,
                                      const InterFrame & original_frame )
 {
   InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height(),
@@ -129,80 +215,18 @@ InterFrame Encoder::update_residues( const VP8Raster & unfiltered_output,
 
   TokenBranchCounts token_branch_counts;
 
-  unfiltered_output.macroblocks().forall_ij(
+  original_raster.macroblocks().forall_ij(
     [&] ( VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
     {
       auto & reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
       auto & temp_mb = temp_raster().macroblock( mb_column, mb_row );
-      auto & original_frame_mb = original_frame.macroblocks().at( mb_column, mb_row );
+      auto & original_fmb = original_frame.macroblocks().at( mb_column, mb_row );
       auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
 
-      frame_mb.mutable_header() = original_frame_mb.header();
-
-      mbmode luma_pred_mode = original_frame_mb.y_prediction_mode();
-
-      MotionVector best_mv;
-
-      if ( luma_pred_mode < B_PRED ) {
-        reconstructed_mb.Y.intra_predict( luma_pred_mode );
-      }
-      else if ( luma_pred_mode == B_PRED ) {
-        reconstructed_mb.Y_sub.forall_ij(
-          [&] ( VP8Raster::Block4 & reconstructed_sb, unsigned int sb_column, unsigned int sb_row )
-          {
-            auto & original_sb = original_mb.Y_sub.at( sb_column, sb_row );
-            auto & original_frame_sb = original_frame_mb.Y().at( sb_column, sb_row );
-            auto & frame_sb = frame_mb.Y().at( sb_column, sb_row );
-            bmode sb_prediction_mode = original_frame_sb.prediction_mode();
-
-            reconstructed_sb.intra_predict( sb_prediction_mode );
-            frame_sb.set_prediction_mode( sb_prediction_mode );
-
-            frame_sb.mutable_coefficients().subtract_dct( original_sb,
-              reconstructed_sb.contents() );
-            frame_sb.mutable_coefficients() = YBlock::quantize( quantizer, frame_sb.coefficients() );
-
-            frame_sb.set_Y_without_Y2();
-            frame_sb.calculate_has_nonzero();
-
-            reconstructed_sb.intra_predict( sb_prediction_mode );
-            frame_sb.dequantize( quantizer ).idct_add( reconstructed_sb );
-          }
-        );
-      }
-      else {
-        best_mv = original_frame_mb.base_motion_vector();
-        reconstructed_mb.Y.inter_predict( best_mv, references_.last.get().Y() );
-      }
-
-      luma_mb_apply_inter_prediction( original_mb, reconstructed_mb, temp_mb,
-                                      frame_mb, quantizer, luma_pred_mode,
-                                      best_mv, FIRST_PASS );
-
-      if ( frame_mb.inter_coded() ) {
-        chroma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb,
-                                 frame_mb, quantizer, FIRST_PASS );
-      }
-      else {
-        mbmode chroma_pred_mode = original_frame_mb.uv_prediction_mode();
-
-        reconstructed_mb.U.intra_predict( chroma_pred_mode );
-        reconstructed_mb.V.intra_predict( chroma_pred_mode );
-
-        chroma_mb_apply_intra_prediction( original_mb, reconstructed_mb, temp_mb,
-                                          frame_mb, quantizer, chroma_pred_mode,
-                                          FIRST_PASS );
-      }
+      update_macroblock( original_mb, reconstructed_mb, temp_mb, frame_mb,
+                         original_fmb, quantizer );
 
       frame_mb.calculate_has_nonzero();
-
-      if ( frame_mb.inter_coded() ) {
-        frame_mb.reconstruct_inter( quantizer, references_, reconstructed_mb );
-      }
-      else {
-        frame_mb.reconstruct_intra( quantizer, reconstructed_mb );
-      }
-
       frame_mb.accumulate_token_branches( token_branch_counts );
     }
   );
