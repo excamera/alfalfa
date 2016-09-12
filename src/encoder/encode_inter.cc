@@ -286,6 +286,18 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
     }
   }
 
+  if ( best_pred.prediction_mode <= B_PRED ) {
+    frame_mb.mutable_header().is_inter_mb = false;
+
+    luma_mb_apply_intra_prediction( original_mb, reconstructed_mb, temp_mb,
+                                    frame_mb, quantizer, best_pred.prediction_mode,
+                                    encoder_pass );
+  }
+  else {
+    frame_mb.mutable_header().is_inter_mb = true;
+    frame_mb.mutable_header().set_reference( LAST_FRAME );
+  }
+
   luma_mb_apply_inter_prediction( original_mb, reconstructed_mb, temp_mb,
                                   frame_mb, quantizer, best_pred.prediction_mode,
                                   best_mv, encoder_pass );
@@ -300,20 +312,12 @@ void Encoder::luma_mb_apply_inter_prediction( const VP8Raster::Macroblock & orig
                                               const MotionVector best_mv,
                                               const EncoderPass encoder_pass )
 {
-  if ( best_pred <= B_PRED ) {
-    // This block will be intra-predicted
-    frame_mb.mutable_header().is_inter_mb = false;
+  frame_mb.Y2().set_prediction_mode( best_pred );
 
-    luma_mb_apply_intra_prediction( original_mb, reconstructed_mb, temp_mb,
-                                    frame_mb, quantizer, best_pred, encoder_pass );
+  if ( best_pred == SPLITMV ) {
+    throw Unsupported( "SPLITMV is not supported" );
   }
   else {
-    // This block will be inter-predicted
-    frame_mb.mutable_header().is_inter_mb = true;
-    frame_mb.mutable_header().set_reference( LAST_FRAME );
-
-    frame_mb.Y2().set_prediction_mode( best_pred );
-
     frame_mb.set_base_motion_vector( best_mv );
 
     frame_mb.Y().forall(
@@ -344,9 +348,6 @@ void Encoder::luma_mb_apply_inter_prediction( const VP8Raster::Macroblock & orig
     frame_mb.Y2().mutable_coefficients().wht( walsh_input );
     frame_mb.Y2().mutable_coefficients() = Y2Block::quantize( quantizer, frame_mb.Y2().coefficients() );
     frame_mb.Y2().calculate_has_nonzero();
-
-    // update_mv_component_counts( ( best_mv - best_ref ).x(), true, component_counts );
-    // update_mv_component_counts( ( best_mv - best_ref ).y(), false, component_counts );
   }
 }
 
