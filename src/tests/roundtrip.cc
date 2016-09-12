@@ -5,14 +5,15 @@
 #include "ivf.hh"
 #include "uncompressed_chunk.hh"
 #include "decoder_state.hh"
+#include "enc_state_serializer.hh"
 
 using namespace std;
 
 int main( int argc, char *argv[] )
 {
   try {
-    if ( argc != 2 ) {
-      cerr << "Usage: " << argv[ 0 ] << " FILENAME" << endl;
+    if ( argc < 2 ) {
+      cerr << "Usage: " << argv[ 0 ] << " FILENAME [initial_state]" << endl;
       return EXIT_FAILURE;
     }
 
@@ -22,18 +23,28 @@ int main( int argc, char *argv[] )
       throw Unsupported( "not a VP8 file" );
     }
 
+    string input_state = "";
+
+    if ( argc == 3 ) {
+      input_state = argv[ 2 ];
+    }
+
+    Decoder decoder = ( input_state == "" )
+                    ? Decoder( file.width(), file.height() )
+                    : EncoderStateDeserializer::build<Decoder>( input_state );
+
     /* find first key frame */
     uint32_t frame_no = 0;
 
-    while ( frame_no < file.frame_count() ) {
+    /*while ( frame_no < file.frame_count() ) {
       UncompressedChunk uncompressed_chunk( file.frame( frame_no ), file.width(), file.height() );
       if ( uncompressed_chunk.key_frame() ) {
         break;
       }
       frame_no++;
-    }
+    }*/
 
-    DecoderState decoder_state( file.width(), file.height() );
+    DecoderState decoder_state = decoder.get_state();
 
     /* write IVF header */
     cout << "DKIF";
@@ -53,7 +64,8 @@ int main( int argc, char *argv[] )
     for ( uint32_t i = frame_no; i < file.frame_count(); i++ ) {
       vector< uint8_t > serialized_frame;
 
-    UncompressedChunk whole_frame( file.frame( i ), file.width(), file.height() );
+      UncompressedChunk whole_frame( file.frame( i ), file.width(), file.height() );
+
       if ( whole_frame.key_frame() ) {
         const KeyFrame parsed_frame = decoder_state.parse_and_apply<KeyFrame>( whole_frame );
         serialized_frame = parsed_frame.serialize( decoder_state.probability_tables );
@@ -64,7 +76,7 @@ int main( int argc, char *argv[] )
 
       /* verify equality of original and re-encoded frame */
       if ( file.frame( i ).size() != serialized_frame.size() ) {
-        throw internal_error( "roundtrip failure", "frame size mismatch. wanted " + to_string( file.frame( i ).size() ) + ", got " + to_string( serialized_frame.size() ) );
+        throw internal_error( "roundtrip failure", "frame " + to_string( i ) + " size mismatch. wanted " + to_string( file.frame( i ).size() ) + ", got " + to_string( serialized_frame.size() ) );
       } else {
         for ( unsigned int j = 0; j < file.frame( i ).size(); j++ ) {
           if ( file.frame( i )( j ).octet() != serialized_frame.at( j ) ) {
