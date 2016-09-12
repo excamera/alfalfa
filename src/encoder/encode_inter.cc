@@ -303,6 +303,10 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                   best_mv, encoder_pass );
 }
 
+/*
+ * Please refer to luma_mb_apply_intra_prediction for some information
+ * about this method.
+ */
 void Encoder::luma_mb_apply_inter_prediction( const VP8Raster::Macroblock & original_mb,
                                               VP8Raster::Macroblock & reconstructed_mb,
                                               VP8Raster::Macroblock & temp_mb,
