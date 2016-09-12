@@ -10,7 +10,7 @@ using namespace std;
 
 template <unsigned int size>
 VP8Raster::Block<size>::Block( const typename TwoD< Block >::Context & c,
-                            TwoD< uint8_t > & raster_component )
+                               TwoD< uint8_t > & raster_component )
   : contents_( raster_component, size * c.column, size * c.row ),
     context_( c ),
     predictors_( context_ )
@@ -40,8 +40,8 @@ VP8Raster::Macroblock::Macroblock( const TwoD< Macroblock >::Context & c, VP8Ras
 }
 
 VP8Raster::VP8Raster( const unsigned int display_width, const unsigned int display_height )
-  : BaseRaster( display_width, display_height,
-      16 * macroblock_dimension( display_width ), 16 * macroblock_dimension( display_height ) )
+: BaseRaster( display_width, display_height,
+              16 * macroblock_dimension( display_width ), 16 * macroblock_dimension( display_height ) )
 {}
 
 template <unsigned int size>
@@ -65,21 +65,21 @@ VP8Raster::Block<size>::Predictors::Predictors( const typename TwoD< Block >::Co
   : above_row( context.above.initialized()
                ? context.above.get()->contents().row( size - 1 )
                : row127() ),
-    left_column( context.left.initialized()
-                 ? context.left.get()->contents().column( size - 1 )
-                 : col129() ),
-    above_left( context.above_left.initialized()
-                ? context.above_left.get()->at( size - 1, size - 1 )
-                : ( context.above.initialized()
-                    ? col129().at( 0, 0 )
-                    : row127().at( 0, 0 ) ) ),
-    above_right_bottom_row_predictor( { context.above_right.initialized()
-          ? context.above_right.get()->contents().row( size - 1 )
-          : row127(),
-          context.above.initialized()
-          ? &context.above.get()->at( size - 1, size - 1 )
-          : &row127().at( 0, 0 ),
-          context.above_right.initialized() } )
+  left_column( context.left.initialized()
+               ? context.left.get()->contents().column( size - 1 )
+               : col129() ),
+  above_left( context.above_left.initialized()
+              ? context.above_left.get()->at( size - 1, size - 1 )
+              : ( context.above.initialized()
+                  ? col129().at( 0, 0 )
+                  : row127().at( 0, 0 ) ) ),
+  above_right_bottom_row_predictor( { context.above_right.initialized()
+        ? context.above_right.get()->contents().row( size - 1 )
+        : row127(),
+        context.above.initialized()
+        ? &context.above.get()->at( size - 1, size - 1 )
+        : &row127().at( 0, 0 ),
+        context.above_right.initialized() } )
 {}
 
 template <unsigned int size>
@@ -120,8 +120,8 @@ void VP8Raster::Block<size>::true_motion_predict( TwoDSubRange< uint8_t, size, s
   output.forall_ij( [&] ( uint8_t & b, unsigned int column, unsigned int row )
                     {
                       b = clamp255( predictors().left_column.at( 0, row )
-                        + predictors().above_row.at( column, 0 )
-                        - predictors().above_left );
+                                    + predictors().above_row.at( column, 0 )
+                                    - predictors().above_left );
                     } );
 }
 
@@ -147,9 +147,9 @@ void VP8Raster::Block<size>::dc_predict_simple( TwoDSubRange< uint8_t, size, siz
   static_assert( size == 4 or size == 8 or size == 16, "invalid Block size" );
   static constexpr uint8_t log2size = size == 4 ? 2 : size == 8 ? 3 : size == 16 ? 4 : 0;
 
-        uint8_t value = ((predictors().above_row.sum(int16_t())
+  uint8_t value = ((predictors().above_row.sum(int16_t())
                     + predictors().left_column.sum(int16_t())) + (1 << log2size))
-                  >> (log2size+1);
+    >> (log2size+1);
 
   output.fill( value );
 }
