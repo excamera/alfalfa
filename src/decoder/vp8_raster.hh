@@ -201,14 +201,7 @@ public:
       return not operator==( other );
     }
 
-    Macroblock & operator=( const Macroblock & other )
-    {
-      Y.mutable_contents().copy_from( other.Y.contents() );
-      U.mutable_contents().copy_from( other.U.contents() );
-      V.mutable_contents().copy_from( other.V.contents() );
-
-      return *this;
-    }
+    Macroblock & operator=( const Macroblock & other ) = delete;
   };
 
 private:
