@@ -20,8 +20,8 @@ using namespace std;
 int main( int argc, char *argv[] )
 {
   try {
-    if ( argc != 1 ) {
-      cerr << "Usage: " << argv[ 0 ] << endl;
+    if ( argc > 2 ) {
+      cerr << "Usage: " << argv[ 0 ] << " [starting_state]" << endl;
       return EXIT_FAILURE;
     }
 
@@ -44,7 +44,13 @@ int main( int argc, char *argv[] )
       /* initialize player and output if necessary */
       if ( not player ) {
         cerr << "Initializing with size " << ivf.width() << "x" << ivf.height() << "\n";
-        player.reset( new FramePlayer { ivf.width(), ivf.height() } );
+        if (argc > 1) {
+          player.reset( new FramePlayer { move( EncoderStateDeserializer::build<FramePlayer>(argv[1]) ) } );
+          assert(ivf.width() == player->width());
+          assert(ivf.height() == player->height());
+        } else {
+          player.reset( new FramePlayer { ivf.width(), ivf.height() } );
+        }
         stdout.write( YUV4MPEGHeader( player->example_raster() ).to_string() );
       }
 
