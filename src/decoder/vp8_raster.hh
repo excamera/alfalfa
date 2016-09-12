@@ -50,19 +50,19 @@ public:
     void horizontal_down_predict() { horizontal_down_predict( this->contents_ ); }
     void horizontal_up_predict() { horizontal_up_predict( this->contents_ ); }
 
-    void dc_predict( TwoDSubRange<uint8_t, size, size> & output );
-    void dc_predict_simple( TwoDSubRange<uint8_t, size, size> & output );
-    void vertical_predict( TwoDSubRange<uint8_t, size, size> & output );
-    void horizontal_predict( TwoDSubRange<uint8_t, size, size> & output );
-    void true_motion_predict( TwoDSubRange<uint8_t, size, size> & output );
-    void vertical_smoothed_predict( TwoDSubRange<uint8_t, size, size> & output );
-    void horizontal_smoothed_predict( TwoDSubRange<uint8_t, size, size> & output );
-    void left_down_predict( TwoDSubRange<uint8_t, size, size> & output );
-    void right_down_predict( TwoDSubRange<uint8_t, size, size> & output );
-    void vertical_right_predict( TwoDSubRange<uint8_t, size, size> & output );
-    void vertical_left_predict( TwoDSubRange<uint8_t, size, size> & output );
-    void horizontal_down_predict( TwoDSubRange<uint8_t, size, size> & output );
-    void horizontal_up_predict( TwoDSubRange<uint8_t, size, size> & output );
+    void dc_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
+    void dc_predict_simple( TwoDSubRange<uint8_t, size, size> & output ) const;
+    void vertical_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
+    void horizontal_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
+    void true_motion_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
+    void vertical_smoothed_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
+    void horizontal_smoothed_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
+    void left_down_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
+    void right_down_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
+    void vertical_right_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
+    void vertical_left_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
+    void horizontal_down_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
+    void horizontal_up_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
 
     struct Predictors {
       static const Row & row127( void );
@@ -113,23 +113,23 @@ public:
 
     template <class PredictionMode>
     void intra_predict( const PredictionMode mb_mode,
-                        TwoDSubRange<uint8_t, size, size> & output );
+                        TwoDSubRange<uint8_t, size, size> & output ) const;
 
     /* for encoder use */
     template <class PredictionMode>
-    void intra_predict( const PredictionMode mb_mode, TwoD<uint8_t> & output );
+    void intra_predict( const PredictionMode mb_mode, TwoD<uint8_t> & output ) const;
 
     void inter_predict( const MotionVector & mv,
                         const TwoD<uint8_t> & reference ) { inter_predict( mv, reference, this->contents_ ); }
 
     void inter_predict( const MotionVector & mv,
                         const TwoD<uint8_t> & reference,
-                        TwoDSubRange<uint8_t, size, size> & output );
+                        TwoDSubRange<uint8_t, size, size> & output ) const;
 
     /* for encoder use */
     void inter_predict( const MotionVector & mv,
                         const TwoD<uint8_t> & reference,
-                        TwoD<uint8_t> & output );
+                        TwoD<uint8_t> & output ) const;
 
     void analyze_inter_predict( const MotionVector & mv, const TwoD<uint8_t> & reference );
 
@@ -137,21 +137,21 @@ public:
     void safe_inter_predict( const MotionVector & mv,
                              const ReferenceType & reference,
                              const int source_column, const int source_row,
-                             TwoDSubRange<uint8_t, size, size> & output );
+                             TwoDSubRange<uint8_t, size, size> & output ) const;
 
     void unsafe_inter_predict( const MotionVector & mv,
                                const TwoD<uint8_t> & reference,
                                const int source_column, const int source_row,
-                               TwoDSubRange<uint8_t, size, size> & output );
+                               TwoDSubRange<uint8_t, size, size> & output ) const;
 
 #ifdef HAVE_SSE2
-    void sse_horiz_inter_predict( const uint8_t * src, const unsigned int pixels_per_line,
-      const uint8_t * dst, const unsigned int dst_pitch,
-      const unsigned int dst_height, const unsigned int filter_idx );
+    static void sse_horiz_inter_predict( const uint8_t * src, const unsigned int pixels_per_line,
+                                         const uint8_t * dst, const unsigned int dst_pitch,
+                                         const unsigned int dst_height, const unsigned int filter_idx );
 
-    void sse_vert_inter_predict( const uint8_t * src, const unsigned int pixels_per_line,
-      const uint8_t * dst, const unsigned int dst_pitch,
-      const unsigned int dst_height, const unsigned int filter_idx );
+    static void sse_vert_inter_predict( const uint8_t * src, const unsigned int pixels_per_line,
+                                        const uint8_t * dst, const unsigned int dst_pitch,
+                                        const unsigned int dst_height, const unsigned int filter_idx );
 #endif
 
     void set_above_right_bottom_row_predictor( const typename Predictors::AboveRightBottomRowPredictor & replacement );
