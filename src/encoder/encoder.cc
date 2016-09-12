@@ -13,6 +13,7 @@
 
 #include "encode_inter.cc"
 #include "encode_intra.cc"
+#include "reencode.cc"
 
 using namespace std;
 
