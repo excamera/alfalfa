@@ -97,8 +97,8 @@ InterFrame Encoder::reencode_frame( const VP8Raster & original_raster,
   MVComponentCounts component_counts;
   TokenBranchCounts token_branch_counts;
 
-  original_raster.macroblocks().forall_ij(
-    [&] ( VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
+  original_raster.macroblocks_forall_ij(
+    [&] ( const VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
     {
       auto & reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
       auto & temp_mb = temp_raster().macroblock( mb_column, mb_row );
@@ -268,8 +268,8 @@ InterFrame Encoder::update_residues( const VP8Raster & original_raster,
 
   TokenBranchCounts token_branch_counts;
 
-  original_raster.macroblocks().forall_ij(
-    [&] ( VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
+  original_raster.macroblocks_forall_ij(
+    [&] ( const VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
     {
       auto & reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
       auto & temp_mb = temp_raster().macroblock( mb_column, mb_row );

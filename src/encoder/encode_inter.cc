@@ -526,8 +526,8 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
   TokenBranchCounts token_branch_counts;
   MVComponentCounts component_counts;
 
-  raster.macroblocks().forall_ij(
-    [&] ( VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
+  raster.macroblocks_forall_ij(
+    [&] ( const VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
     {
       auto & reconstructed_mb = reconstructed_raster_handle.get().macroblock( mb_column, mb_row );
       auto & temp_mb = temp_raster().macroblock( mb_column, mb_row );

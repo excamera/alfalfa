@@ -237,7 +237,15 @@ public:
 
   static unsigned int macroblock_dimension( const unsigned int num ) { return ( num + 15 ) / 16; }
 
-  const TwoD<Macroblock> & macroblocks() const { return macroblocks_; }
+  template <class lambda>
+  void macroblocks_forall_ij( const lambda & f ) const
+  {
+    for ( unsigned int row = 0; row < macroblocks_.height(); row++ ) {
+      for ( unsigned int column = 0; column < macroblocks_.width(); column++ ) {
+        f( macroblock( column, row ), column, row );
+      }
+    }
+  }
 };
 
 class EdgeExtendedRaster
