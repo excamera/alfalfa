@@ -107,7 +107,7 @@ void SimpleLoopFilter::filter( VP8Raster::Macroblock & , const bool )
 void NormalLoopFilter::filter( VP8Raster::Macroblock & raster, const bool skip_subblock_edges )
 {
   /* 1: filter the left inter-macroblock edge */
-  if ( raster.Y.context().left.initialized() ) {
+  if ( raster.Y.column() > 0 ) {
     filter_mb_vertical( raster );
   }
 
@@ -117,7 +117,7 @@ void NormalLoopFilter::filter( VP8Raster::Macroblock & raster, const bool skip_s
   }
 
   /* 3: filter the top inter-macroblock edge */
-  if ( raster.Y.context().above.initialized() ) {
+  if ( raster.Y.row() > 0 ) {
     filter_mb_horizontal( raster );
   }
 

@@ -12,8 +12,9 @@ template <unsigned int size>
 VP8Raster::Block<size>::Block( const typename TwoD< Block >::Context & c,
                                TwoD< uint8_t > & raster_component )
   : contents_( raster_component, size * c.column, size * c.row ),
-    context_( c ),
-    predictors_( context_ )
+    column_( c.column ),
+    row_( c.row ),
+    predictors_( c )
 {}
 
 /* the rightmost Y-subblocks in a macroblock (other than the upper-right subblock) are special-cased */
@@ -157,7 +158,7 @@ void VP8Raster::Block<size>::dc_predict_simple( TwoDSubRange< uint8_t, size, siz
 template <unsigned int size>
 void VP8Raster::Block<size>::dc_predict( TwoDSubRange< uint8_t, size, size > & output ) const
 {
-  if ( context_.above.initialized() and context_.left.initialized() ) {
+  if ( column_ and row_ ) {
     return dc_predict_simple( output );
   }
 
@@ -165,9 +166,9 @@ void VP8Raster::Block<size>::dc_predict( TwoDSubRange< uint8_t, size, size > & o
   static_assert( size == 4 or size == 8 or size == 16, "invalid Block size" );
   static constexpr uint8_t log2size = size == 4 ? 2 : size == 8 ? 3 : size == 16 ? 4 : 0;
 
-  if ( context_.above.initialized() ) {
+  if ( row_ > 0 ) {
     value = (predictors().above_row.sum(int16_t()) + (1 << (log2size-1))) >> log2size;
-  } else if ( context_.left.initialized() ) {
+  } else if ( column_ > 0 ) {
     value = (predictors().left_column.sum(int16_t()) + (1 << (log2size-1))) >> log2size;
   }
 
@@ -355,8 +356,8 @@ void VP8Raster::Block<size>::inter_predict( const MotionVector & mv,
                                             const TwoD<uint8_t> & reference,
                                             TwoDSubRange<uint8_t, size, size> & output ) const
 {
-  const int source_column = context().column * size + ( mv.x() >> 3 );
-  const int source_row = context().row * size + ( mv.y() >> 3 );
+  const int source_column = column_ * size + ( mv.x() >> 3 );
+  const int source_row = row_ * size + ( mv.y() >> 3 );
 
   if ( source_column - 2 < 0
        or source_column + size + 3 > reference.width()

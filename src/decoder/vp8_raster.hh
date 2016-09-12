@@ -34,7 +34,7 @@ public:
 
   private:
     TwoDSubRange<uint8_t, size, size> contents_;
-    typename TwoD<Block>::Context context_;
+    unsigned int column_, row_;
 
     void dc_predict() { dc_predict( this->contents_ ); }
     void dc_predict_simple() { dc_predict_simple( this->contents_ ); }
@@ -93,7 +93,9 @@ public:
     uint8_t left( const int column ) const { return predictors_.left( column ); }
     uint8_t east( const int column ) const { return predictors_.east( column ); }
 
-  public:
+    unsigned int column() const { return column_; }
+    unsigned int row() const { return row_; }
+
     Block( const typename TwoD<Block>::Context & c, TwoD<uint8_t> & raster_component );
 
     uint8_t & at( const unsigned int column, const unsigned int row )
@@ -155,8 +157,6 @@ public:
 #endif
 
     void set_above_right_bottom_row_predictor( const typename Predictors::AboveRightBottomRowPredictor & replacement );
-
-    const typename TwoD<Block>::Context & context( void ) const { return context_; }
 
     static constexpr unsigned int dimension { size };
 
