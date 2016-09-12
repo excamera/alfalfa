@@ -202,6 +202,12 @@ public:
 
   void calculate_has_nonzero();
 
+  void zero_out()
+  {
+    has_nonzero_ = false;
+    coefficients_.zero_out();
+  }
+
   bool operator==( const Block & other ) const
   {
     return type_ == other.type_ and

@@ -481,7 +481,7 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
 {
   DecoderState decoder_state_copy = decoder_state_;
 
-  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height() );
+  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height(), true, false );
   frame.mutable_header().quant_indices = quant_indices;
   frame.mutable_header().refresh_entropy_probs = true;
   frame.mutable_header().refresh_last = true;
@@ -517,7 +517,7 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
       frame_mb.calculate_has_nonzero();
 
       if ( frame_mb.inter_coded() ) {
-        frame_mb.reconstruct_inter( quantizer, references_, reconstructed_mb, false );
+        frame_mb.reconstruct_inter( quantizer, references_, reconstructed_mb );
       }
       else {
         frame_mb.reconstruct_intra( quantizer, reconstructed_mb );
@@ -551,7 +551,7 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
  * Legend:
  *  --X(Y)-- => Normal frame with output raster X and frame name Y
  *  ==X(Y)== => Switching frame with output raster X and frame name Y
- *      O => Marks a state
+ *         O => Marks a state
  *
  * previous round (1)   -----O-----O--d1--O==D1(F1)==O
  *  current round (2)   -----O-----O--d2--O==D2(F2)==O
@@ -670,6 +670,8 @@ void Encoder::refine_switching_frame( InterFrame & F2, const InterFrame & F1,
     }
   );
 
+  F2.relink_y2_blocks();
+
   optimize_prob_skip( F2 );
   optimize_interframe_probs( F2 );
   optimize_probability_tables( F2, token_branch_counts );
@@ -677,11 +679,8 @@ void Encoder::refine_switching_frame( InterFrame & F2, const InterFrame & F1,
 
 InterFrame Encoder::create_switching_frame( const uint8_t y_ac_qi )
 {
-  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height() );
+  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height(), false, true );
   auto & if_header = frame.mutable_header();
-
-  frame.set_switching( true );
-  frame.set_show( false );
 
   QuantIndices quant_indices;
   quant_indices.y_ac_qi = y_ac_qi;
@@ -701,39 +700,37 @@ InterFrame Encoder::create_switching_frame( const uint8_t y_ac_qi )
 
   TokenBranchCounts token_branch_counts;
 
-  frame.macroblocks().forall(
+  frame.mutable_macroblocks().forall(
     [&] ( InterFrameMacroblock & frame_mb )
     {
       frame_mb.mutable_header().is_inter_mb = true;
       frame_mb.mutable_header().set_reference( LAST_FRAME );
 
-      frame_mb.Y2().set_prediction_mode( SPLITMV );
-      frame_mb.mutable_header().partition_id.initialize( 0 );
-      frame_mb.Y2().set_if_coded();
-      frame_mb.Y2().mutable_coefficients().zero_out();
+      frame_mb.Y2().set_prediction_mode( ZEROMV );
+      frame_mb.Y2().set_coded( false );
+      frame_mb.Y2().zero_out();
 
       frame_mb.set_base_motion_vector( MotionVector() );
 
       frame_mb.Y().forall(
         [&] ( YBlock & frame_sb ) {
           frame_sb.set_Y_without_Y2();
-          frame_sb.set_prediction_mode( ZERO4X4 );
           frame_sb.set_motion_vector( MotionVector() );
-          frame_sb.mutable_coefficients().zero_out(); // no residuals
+          frame_sb.zero_out(); // no residuals
         }
       );
 
       frame_mb.U().forall(
         [&] ( UVBlock & frame_sb )
         {
-          frame_sb.mutable_coefficients().zero_out(); // no residuals
+          frame_sb.zero_out(); // no residuals
         }
       );
 
       frame_mb.V().forall(
         [&] ( UVBlock & frame_sb )
         {
-          frame_sb.mutable_coefficients().zero_out(); // no residuals
+          frame_sb.zero_out(); // no residuals
         }
       );
 
@@ -741,6 +738,8 @@ InterFrame Encoder::create_switching_frame( const uint8_t y_ac_qi )
       frame_mb.accumulate_token_branches( token_branch_counts );
     }
   );
+
+  frame.relink_y2_blocks();
 
   optimize_prob_skip( frame );
   optimize_interframe_probs( frame );
@@ -753,7 +752,7 @@ template<class FrameType>
 InterFrame Encoder::reencode_frame( const VP8Raster & unfiltered_output,
                                     const FrameType & original_frame )
 {
-  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height() );
+  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height(), true, false );
   auto & kf_header = original_frame.header();
   auto & if_header = frame.mutable_header();
 
@@ -809,7 +808,7 @@ InterFrame Encoder::reencode_frame( const VP8Raster & unfiltered_output,
       frame_mb.calculate_has_nonzero();
 
       if ( frame_mb.inter_coded() ) {
-        frame_mb.reconstruct_inter( quantizer, references_, reconstructed_mb, false );
+        frame_mb.reconstruct_inter( quantizer, references_, reconstructed_mb );
       }
       else {
         frame_mb.reconstruct_intra( quantizer, reconstructed_mb );
@@ -840,7 +839,8 @@ InterFrame Encoder::reencode_frame( const VP8Raster & unfiltered_output,
 InterFrame Encoder::update_residues( const VP8Raster & unfiltered_output,
                                      const InterFrame & original_frame )
 {
-  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height() );
+  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height(),
+                                                            true, false );
   frame.mutable_header() = original_frame.header();
 
   Quantizer quantizer( frame.header().quant_indices );
@@ -917,7 +917,7 @@ InterFrame Encoder::update_residues( const VP8Raster & unfiltered_output,
       frame_mb.calculate_has_nonzero();
 
       if ( frame_mb.inter_coded() ) {
-        frame_mb.reconstruct_inter( quantizer, references_, reconstructed_mb, false );
+        frame_mb.reconstruct_inter( quantizer, references_, reconstructed_mb );
       }
       else {
         frame_mb.reconstruct_intra( quantizer, reconstructed_mb );
@@ -1048,7 +1048,6 @@ void Encoder::write_switching_frame( const InterFrame & frame )
 
   MutableRasterHandle reconstructed_raster_handle { width(), height() };
   VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
-
   frame.decode( { }, references_, reconstructed_raster );
   frame.copy_to( move( reconstructed_raster_handle ), references_ );
 

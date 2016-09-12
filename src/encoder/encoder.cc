@@ -47,34 +47,6 @@ void VP8Raster::Block<size>::inter_predict( const MotionVector & mv,
   inter_predict( mv, reference, subrange );
 }
 
-/* Encoder-specific Macroblock Methods */
-void InterFrameMacroblockHeader::set_reference( const reference_frame ref )
-{
-  is_inter_mb = true;
-  mb_ref_frame_sel1.clear();
-  mb_ref_frame_sel2.clear();
-
-  switch ( ref ) {
-  case CURRENT_FRAME:
-    is_inter_mb = false;
-    break;
-
-  case LAST_FRAME:
-    mb_ref_frame_sel1.initialize( false );
-    break;
-
-  case GOLDEN_FRAME:
-    mb_ref_frame_sel1.initialize( true );
-    mb_ref_frame_sel2.initialize( false );
-    break;
-
-  case ALTREF_FRAME:
-    mb_ref_frame_sel1.initialize( true );
-    mb_ref_frame_sel2.initialize( true );
-    break;
-  }
-}
-
 /* Encoder */
 Encoder::Encoder( IVFWriter && output, const bool two_pass )
   : ivf_writer_( move( output ) ),
@@ -100,10 +72,14 @@ Encoder::Encoder( const Decoder & decoder, IVFWriter && output, const bool two_p
 }
 
 template<class FrameType>
-FrameType Encoder::make_empty_frame( const uint16_t width, const uint16_t height )
+FrameType Encoder::make_empty_frame( const uint16_t width, const uint16_t height,
+                                     const bool show_frame,
+                                     const bool switching_frame )
 {
+  assert( not ( switching_frame and show_frame ) );
+
   BoolDecoder data { { nullptr, 0 } };
-  FrameType frame { true, width, height, data };
+  FrameType frame { show_frame, width, height, data, switching_frame };
   frame.parse_macroblock_headers( data, ProbabilityTables {} );
   return frame;
 }

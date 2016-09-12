@@ -46,7 +46,7 @@ void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers( BoolDecod
                                   rest_of_first_partition, header_,
                                   mb_segment_tree_probs,
                                   probability_tables,
-                                  Y2_, Y_, U_, V_ );
+                                  Y2_, Y_, U_, V_, switching_frame_ );
 
   /* repoint Y2 above/left pointers to skip missing subblocks */
   relink_y2_blocks();
@@ -179,8 +179,7 @@ void InterFrame::decode( const Optional<Segmentation> & segmentation, const Refe
                                          if ( macroblock.inter_coded() ) {
                                            macroblock.reconstruct_inter( quantizer,
                                                                          references,
-                                                                         raster.macroblock( column, row ),
-                                                                         switching_frame_ );
+                                                                         raster.macroblock( column, row ) );
                                          } else {
                                            macroblock.reconstruct_intra( quantizer,
                                                                          raster.macroblock( column, row ) );

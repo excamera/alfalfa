@@ -41,6 +41,8 @@ private:
 
   bool has_nonzero_ { false };
 
+  bool switching_mb_ { false };
+
   void decode_prediction_modes( BoolDecoder & data,
                                 const ProbabilityTables & probability_tables );
 
@@ -58,23 +60,8 @@ public:
               TwoD< Y2Block > & frame_Y2,
               TwoD< YBlock > & frame_Y,
               TwoD< UVBlock > & frame_U,
-              TwoD< UVBlock > & frame_V );
-
-  /* Partial Reference Update */
-  Macroblock( const typename TwoD< Macroblock >::Context & c,
-              const ReferenceUpdater & ref_update,
-              TwoD< Y2Block > & frame_Y2,
-              TwoD< YBlock > & frame_Y,
-              TwoD< UVBlock > & frame_U,
-              TwoD< UVBlock > & frame_V );
-
-  /* Copy */
-  Macroblock( const typename TwoD< Macroblock >::Context & c,
-              const TwoD< Macroblock > & old_macroblocks,
-              TwoD< Y2Block > & frame_Y2,
-              TwoD< YBlock > & frame_Y,
-              TwoD< UVBlock > & frame_U,
-              TwoD< UVBlock > & frame_V );
+              TwoD< UVBlock > & frame_V,
+              const bool switching_mb );
 
   void update_segmentation( SegmentationMap & mutable_segmentation_map );
 
@@ -84,8 +71,7 @@ public:
   void reconstruct_intra( const Quantizer & quantizer, VP8Raster::Macroblock & raster ) const;
   void reconstruct_inter( const Quantizer & quantizer,
                           const References & references,
-                          VP8Raster::Macroblock & raster,
-                          const bool quantize_prediction ) const;
+                          VP8Raster::Macroblock & raster ) const;
 
   void loopfilter( const Optional< FilterAdjustments > & filter_adjustments,
                    const FilterParameters & loopfilter,

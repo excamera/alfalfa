@@ -330,7 +330,7 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
   DecoderState decoder_state_copy = decoder_state_;
   decoder_state_ = DecoderState( width(), height() );
 
-  KeyFrame frame = Encoder::make_empty_frame<KeyFrame>( width(), height() );
+  KeyFrame frame = Encoder::make_empty_frame<KeyFrame>( width(), height(), true, false );
   frame.mutable_header().quant_indices = quant_indices;
   frame.mutable_header().refresh_entropy_probs = true;
 

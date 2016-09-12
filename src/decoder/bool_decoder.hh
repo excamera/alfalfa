@@ -20,7 +20,7 @@ class BoolDecoder
 {
 private:
   Chunk chunk_;
-  
+
   uint32_t range_, value_;
   char bit_count_;
 

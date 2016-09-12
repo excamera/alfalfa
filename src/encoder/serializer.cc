@@ -285,7 +285,10 @@ template <>
 void InterFrameMacroblock::encode_prediction_modes( BoolEncoder & encoder,
                                                     const ProbabilityTables & probability_tables ) const
 {
-  if ( not inter_coded() ) {
+  if ( switching_mb_ ) {
+    return; // no need to encode a prediction mode!
+  }
+  else if ( not inter_coded() ) {
     encode( encoder,
             Tree< mbmode, num_y_modes, y_mode_tree >( Y2_.prediction_mode() ),
             probability_tables.y_mode_probs );

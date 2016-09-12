@@ -23,7 +23,8 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
                                                                TwoD<Y2Block> & frame_Y2,
                                                                TwoD<YBlock> & frame_Y,
                                                                TwoD<UVBlock> & frame_U,
-                                                               TwoD<UVBlock> & frame_V )
+                                                               TwoD<UVBlock> & frame_V,
+                                                               const bool switching_mb )
   : context_( c ),
     segment_id_update_( frame_header.update_segmentation.initialized() and
                         frame_header.update_segmentation.get().update_mb_segmentation_map,
@@ -35,29 +36,11 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
     Y2_( frame_Y2.at( c.column, c.row ) ),
     Y_( frame_Y, c.column * 4, c.row * 4 ),
     U_( frame_U, c.column * 2, c.row * 2 ),
-    V_( frame_V, c.column * 2, c.row * 2 )
+    V_( frame_V, c.column * 2, c.row * 2 ),
+    switching_mb_ ( switching_mb )
 {
   decode_prediction_modes( data, probability_tables );
 }
-
-template<>
-InterFrameMacroblock::Macroblock( const typename TwoD< Macroblock >::Context & c,
-                                  const TwoD< InterFrameMacroblock > & old_macroblocks,
-                                        TwoD< Y2Block > & frame_Y2,
-                                        TwoD< YBlock > & frame_Y,
-                                        TwoD< UVBlock > & frame_U,
-                                        TwoD< UVBlock > & frame_V )
-  : context_( c ),
-    segment_id_update_( old_macroblocks.at( c.column, c.row ).segment_id_update_ ),
-    segment_id_( old_macroblocks.at( c.column, c.row ).segment_id_ ),
-    mb_skip_coeff_( old_macroblocks.at( c.column, c.row ).mb_skip_coeff_ ),
-    header_( old_macroblocks.at( c.column, c.row ).header_ ),
-    Y2_( frame_Y2.at( c.column, c.row ) ),
-    Y_( frame_Y, c.column * 4, c.row * 4 ),
-    U_( frame_U, c.column * 2, c.row * 2 ),
-    V_( frame_V, c.column * 2, c.row * 2 ),
-    has_nonzero_( old_macroblocks.at( c.column, c.row ).has_nonzero_ )
-{}
 
 template <class FrameHeaderType, class MacroblockHeaderType>
 void Macroblock<FrameHeaderType, MacroblockHeaderType>::update_segmentation( SegmentationMap & mutable_segmentation_map ) {
@@ -299,11 +282,50 @@ Scorer InterFrameMacroblock::motion_vector_census()
   return census;
 }
 
+/* Encoder-specific Macroblock Methods */
+void InterFrameMacroblockHeader::set_reference( const reference_frame ref )
+{
+  is_inter_mb = true;
+  mb_ref_frame_sel1.clear();
+  mb_ref_frame_sel2.clear();
+
+  switch ( ref ) {
+  case CURRENT_FRAME:
+    is_inter_mb = false;
+    break;
+
+  case LAST_FRAME:
+    mb_ref_frame_sel1.initialize( false );
+    break;
+
+  case GOLDEN_FRAME:
+    mb_ref_frame_sel1.initialize( true );
+    mb_ref_frame_sel2.initialize( false );
+    break;
+
+  case ALTREF_FRAME:
+    mb_ref_frame_sel1.initialize( true );
+    mb_ref_frame_sel2.initialize( true );
+    break;
+  }
+}
+
 template <>
 void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
                                                     const ProbabilityTables & probability_tables )
 {
-  if ( not inter_coded() ) {
+  if ( switching_mb_ ) {
+    Y2_.set_prediction_mode( ZEROMV );
+    Y2_.set_coded( false );
+    Y2_.zero_out();
+
+    set_base_motion_vector( MotionVector() );
+    header_.is_inter_mb = true;
+    header_.set_reference( LAST_FRAME );
+
+    Y_.forall( [&] ( YBlock & block ) { block.set_Y_without_Y2(); } );
+  }
+  else if ( not inter_coded() ) {
     /* Set Y prediction mode */
     Y2_.set_prediction_mode( Tree< mbmode, num_y_modes, y_mode_tree >( data, probability_tables.y_mode_probs ) );
     Y2_.set_if_coded();
@@ -323,7 +345,8 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
     /* Set chroma prediction modes */
     U_.at( 0, 0 ).set_prediction_mode( Tree< mbmode, num_uv_modes, uv_mode_tree >( data,
                                                                                    probability_tables.uv_mode_probs ) );
-  } else {
+  }
+  else {
     Scorer census = motion_vector_census();
 
     const auto counts = census.mode_contexts();
@@ -382,20 +405,25 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
     default:
       throw LogicError();
     }
+  }
 
+  if ( inter_coded() or switching_mb_ ) {
     /* set motion vectors of Y subblocks */
     if ( Y2_.prediction_mode() != SPLITMV ) {
       Y_.forall( [&] ( YBlock & block ) { block.set_motion_vector( base_motion_vector() ); } );
     }
 
     /* set motion vectors of chroma subblocks */
-    U_.forall_ij( [&]( UVBlock & block, const unsigned int column, const unsigned int row ) {
+    U_.forall_ij(
+      [&]( UVBlock & block, const unsigned int column, const unsigned int row )
+      {
         block.set_motion_vector( MotionVector::luma_to_chroma(
           Y_.at( column * 2, row * 2 ).motion_vector(),
           Y_.at( column * 2 + 1, row * 2 ).motion_vector(),
           Y_.at( column * 2, row * 2 + 1 ).motion_vector(),
           Y_.at( column * 2 + 1, row * 2 + 1 ).motion_vector() ) );
-      } );
+      }
+    );
   }
 }
 
@@ -495,70 +523,79 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::reconstruct_intra( const
 template <>
 void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
                                               const References & references,
-                                              VP8Raster::Macroblock & raster,
-                                              const bool quantize_prediction ) const
+                                              VP8Raster::Macroblock & raster ) const
 {
   const VP8Raster & reference = references.at( header_.reference() );
 
-  if ( Y2_.prediction_mode() == SPLITMV ) {
-    Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
-                  { raster.Y_sub.at( column, row ).inter_predict( block.motion_vector(),
-                                                                       reference.Y() ); } );
-    U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-                  { raster.U_sub.at( column, row ).inter_predict( block.motion_vector(),
-                                                                       reference.U() );
-                    raster.V_sub.at( column, row ).inter_predict( block.motion_vector(),
-                                                                       reference.V() ); } );
+  if ( switching_mb_ ) {
+    raster.Y.inter_predict( MotionVector(), reference.Y() );
+    raster.U.inter_predict( MotionVector(), reference.U() );
+    raster.V.inter_predict( MotionVector(), reference.V() );
 
-    if ( quantize_prediction ) {
-      TwoD<uint8_t> blank_block_parent { 4, 4 };
-      blank_block_parent.fill( 0 ); /* XXX do we want to do this every time? */
-      TwoDSubRange<uint8_t, 4, 4> blank_block { blank_block_parent, 0, 0 };
-      DCTCoefficients coeffs;
+    TwoD<uint8_t> blank_block_parent { 4, 4 };
+    blank_block_parent.fill( 0 ); /* XXX do we want to do this every time? */
+    TwoDSubRange<uint8_t, 4, 4> blank_block { blank_block_parent, 0, 0 };
+    DCTCoefficients coeffs;
 
-      raster.Y_sub.forall_ij(
-        [&] ( VP8Raster::Block4 & block, unsigned int column, unsigned int row )
-        {
-          coeffs.subtract_dct( block, blank_block );
-          block.mutable_contents().fill( 0 );
-          coeffs = coeffs.quantize( quantizer.y() );
-          coeffs = coeffs + Y_.at( column, row ).coefficients();
-          coeffs.dequantize( quantizer.y() ).idct_add( block );
-        }
-      );
-
-      raster.U_sub.forall_ij(
-        [&] ( VP8Raster::Block4 & block, unsigned int column, unsigned int row )
-        {
-          coeffs.subtract_dct( block, blank_block );
-          block.mutable_contents().fill( 0 );
-          coeffs = coeffs.quantize( quantizer.uv() );
-          coeffs = coeffs + U_.at( column, row ).coefficients();
-          coeffs.dequantize( quantizer.uv() ).idct_add( block );
-        }
-      );
-
-      raster.V_sub.forall_ij(
-        [&] ( VP8Raster::Block4 & block, unsigned int column, unsigned int row )
-        {
-          coeffs.subtract_dct( block, blank_block );
-          block.mutable_contents().fill( 0 );
-          coeffs = coeffs.quantize( quantizer.uv() );
-          coeffs = coeffs + V_.at( column, row ).coefficients();
-          coeffs.dequantize( quantizer.uv() ).idct_add( block );
-        }
-      );
-    }
-    else {
-      if ( has_nonzero_ ) {
-        /* Add residue */
-        Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
-                      { block.dequantize( quantizer ).idct_add( raster.Y_sub.at( column, row ) ); } );
-        U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-                      { block.dequantize( quantizer ).idct_add( raster.U_sub.at( column, row ) ); } );
-        V_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-                      { block.dequantize( quantizer ).idct_add( raster.V_sub.at( column, row ) ); } );
+    raster.Y_sub.forall_ij(
+      [&] ( VP8Raster::Block4 & block, unsigned int column, unsigned int row )
+      {
+        coeffs.subtract_dct( block, blank_block );
+        block.mutable_contents().fill( 0 );
+        coeffs = coeffs.quantize( quantizer.y() );
+        coeffs = coeffs + Y_.at( column, row ).coefficients();
+        coeffs.dequantize( quantizer.y() ).idct_add( block );
       }
+    );
+
+    raster.U_sub.forall_ij(
+      [&] ( VP8Raster::Block4 & block, unsigned int column, unsigned int row )
+      {
+        coeffs.subtract_dct( block, blank_block );
+        block.mutable_contents().fill( 0 );
+        coeffs = coeffs.quantize( quantizer.uv() );
+        coeffs = coeffs + U_.at( column, row ).coefficients();
+        coeffs.dequantize( quantizer.uv() ).idct_add( block );
+      }
+    );
+
+    raster.V_sub.forall_ij(
+      [&] ( VP8Raster::Block4 & block, unsigned int column, unsigned int row )
+      {
+        coeffs.subtract_dct( block, blank_block );
+        block.mutable_contents().fill( 0 );
+        coeffs = coeffs.quantize( quantizer.uv() );
+        coeffs = coeffs + V_.at( column, row ).coefficients();
+        coeffs.dequantize( quantizer.uv() ).idct_add( block );
+      }
+    );
+  } else if ( Y2_.prediction_mode() == SPLITMV ) {
+    Y_.forall_ij(
+      [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
+      {
+        raster.Y_sub.at( column, row ).inter_predict( block.motion_vector(),
+                                                      reference.Y() );
+      }
+    );
+
+    U_.forall_ij(
+      [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
+      {
+        raster.U_sub.at( column, row ).inter_predict( block.motion_vector(),
+                                                      reference.U() );
+        raster.V_sub.at( column, row ).inter_predict( block.motion_vector(),
+                                                      reference.V() );
+      }
+    );
+
+    if ( has_nonzero_ ) {
+      /* Add residue */
+      Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
+                    { block.dequantize( quantizer ).idct_add( raster.Y_sub.at( column, row ) ); } );
+      U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
+                    { block.dequantize( quantizer ).idct_add( raster.U_sub.at( column, row ) ); } );
+      V_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
+                    { block.dequantize( quantizer ).idct_add( raster.V_sub.at( column, row ) ); } );
     }
   } else {
     raster.Y.inter_predict( base_motion_vector(), reference.Y() );
