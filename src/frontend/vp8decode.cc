@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <getopt.h>
 #include <iostream>
 
 #include "file_descriptor.hh"
@@ -11,29 +12,51 @@
 
 using namespace std;
 
+int usage(char *argv0);
+
 int main( int argc, char *argv[] )
 {
   try {
     if ( argc < 2 ) {
-      cerr << "Usage: " << argv[ 0 ] << " FILENAME [decoder_state] [output_file]" << endl;
-      return EXIT_FAILURE;
+      return usage(argv[0]);
     }
 
-    bool to_y4m = false;
     Optional<FileDescriptor> y4m_fd;
-    if (argc > 3) {
-      to_y4m = true;
-      y4m_fd.initialize(fopen(argv[3], "wb"));
+    char *decoder_state = NULL;
+
+    while (true) {
+      const int opt = getopt(argc, argv, "s:o:");
+
+      if (opt == -1) {
+        break;
+      }
+
+      switch ((char) opt) {
+        case 's':
+          decoder_state = optarg;
+          break;
+
+        case 'o':
+          y4m_fd.initialize(fopen(optarg, "wb"));
+          break;
+
+        default:
+          return usage(argv[0]);
+      }
     }
 
-    Player player = argc < 3
-      ? Player( argv[ 1 ] )
-      : EncoderStateDeserializer::build<Player>(argv[2], argv[1]);
+    if (optind >= argc) {
+      return usage(argv[0]);
+    }
+
+    Player player = decoder_state == NULL
+      ? Player( argv[optind] )
+      : EncoderStateDeserializer::build<Player>(decoder_state, argv[optind]);
 
     while ( not player.eof() ) {
       RasterHandle raster = player.advance();
 
-      if (to_y4m) {
+      if (y4m_fd.initialized()) {
         if (lseek(y4m_fd.get().num(), 0, SEEK_CUR) == 0) {
           // position 0: we haven't written a header yet
           y4m_fd.get().write(YUV4MPEGHeader(raster).to_string());
@@ -49,4 +72,9 @@ int main( int argc, char *argv[] )
   }
 
   return EXIT_SUCCESS;
+}
+
+int usage(char *argv0) {
+  cerr << "Usage: " << argv0 << " [-s decoder_state] [-o y4m_output] input_file" << endl;
+  return EXIT_FAILURE;
 }
