@@ -28,186 +28,6 @@ using namespace std;
  * => r2 = q(dct(d1)) - q(dct(d2)) + r1
  */
 
-void Encoder::refine_switching_frame( InterFrame & F2, const InterFrame & F1,
-                                      const VP8Raster & d1 )
-{
-  assert( F1.switching_frame() and F2.switching_frame() );
-
-  const VP8Raster & d2 = references_.at( LAST_FRAME );
-
-  TwoD<uint8_t> blank_block_parent { 4, 4 };
-  blank_block_parent.fill( 0 ); /* XXX do we want to do this every time? */
-  TwoDSubRange<uint8_t, 4, 4> blank_block { blank_block_parent, 0, 0 };
-
-  Quantizer quantizer( F2.header().quant_indices );
-
-  TokenBranchCounts token_branch_counts;
-
-  F2.macroblocks().forall_ij(
-    [&] ( InterFrameMacroblock & F2_mb, unsigned int mb_column, unsigned int mb_row )
-    {
-      auto & F1_mb = F1.macroblocks().at( mb_column, mb_row );
-      auto & d1_mb = d1.macroblock( mb_column, mb_row );
-      auto & d2_mb = d2.macroblock( mb_column, mb_row );
-
-      DCTCoefficients F2_coeffs;
-      DCTCoefficients F1_coeffs;
-
-      F2_mb.Y().forall_ij(
-        [&] ( YBlock & F2_sb, unsigned int sb_column, unsigned int sb_row )
-        {
-          auto & F1_sb = F1_mb.Y().at( sb_column, sb_row );
-          auto & d1_sb = d1_mb.Y_sub.at( sb_column, sb_row );
-          auto & d2_sb = d2_mb.Y_sub.at( sb_column, sb_row );
-
-          // q(dct(d1))
-          F1_coeffs.subtract_dct( d1_sb, blank_block );
-          F1_coeffs = F1_coeffs.quantize( quantizer.y() );
-
-          // q(dct(d2))
-          F2_coeffs.subtract_dct( d2_sb, blank_block );
-          F2_coeffs = F2_coeffs.quantize( quantizer.y() );
-
-          // q(dct(d1)) - q(dct(d2))
-          F2_sb.mutable_coefficients() = F1_coeffs - F2_coeffs;
-
-          // r2 = q(dct(d1)) - q(dct(d2)) + r1
-          F2_sb.mutable_coefficients() = F2_sb.coefficients() + F1_sb.coefficients();
-          F2_sb.calculate_has_nonzero();
-        }
-      );
-
-      F2_mb.U().forall_ij(
-        [&] ( UVBlock & F2_sb, unsigned int sb_column, unsigned int sb_row )
-        {
-          auto & F1_sb = F1_mb.U().at( sb_column, sb_row );
-          auto & d1_sb = d1_mb.U_sub.at( sb_column, sb_row );
-          auto & d2_sb = d2_mb.U_sub.at( sb_column, sb_row );
-
-          // q(dct(d1))
-          F1_coeffs.subtract_dct( d1_sb, blank_block );
-          F1_coeffs = F1_coeffs.quantize( quantizer.uv() );
-
-          // q(dct(d2))
-          F2_coeffs.subtract_dct( d2_sb, blank_block );
-          F2_coeffs = F2_coeffs.quantize( quantizer.uv() );
-
-          // q(dct(d1)) - q(dct(d2))
-          F2_sb.mutable_coefficients() = F1_coeffs - F2_coeffs;
-
-          // r2 = q(dct(d1)) - q(dct(d2)) + r1
-          F2_sb.mutable_coefficients() = F2_sb.coefficients() + F1_sb.coefficients();
-          F2_sb.calculate_has_nonzero();
-        }
-      );
-
-      F2_mb.V().forall_ij(
-        [&] ( UVBlock & F2_sb, unsigned int sb_column, unsigned int sb_row )
-        {
-          auto & F1_sb = F1_mb.V().at( sb_column, sb_row );
-          auto & d1_sb = d1_mb.V_sub.at( sb_column, sb_row );
-          auto & d2_sb = d2_mb.V_sub.at( sb_column, sb_row );
-
-          // q(dct(d1))
-          F1_coeffs.subtract_dct( d1_sb, blank_block );
-          F1_coeffs = F1_coeffs.quantize( quantizer.uv() );
-
-          // q(dct(d2))
-          F2_coeffs.subtract_dct( d2_sb, blank_block );
-          F2_coeffs = F2_coeffs.quantize( quantizer.uv() );
-
-          // q(dct(d1)) - q(dct(d2))
-          F2_sb.mutable_coefficients() = F1_coeffs - F2_coeffs;
-
-          // r2 = q(dct(d1)) - q(dct(d2)) + r1
-          F2_sb.mutable_coefficients() = F2_sb.coefficients() + F1_sb.coefficients();
-          F2_sb.calculate_has_nonzero();
-        }
-      );
-
-      F2_mb.calculate_has_nonzero();
-      F2_mb.accumulate_token_branches( token_branch_counts );
-    }
-  );
-
-  F2.relink_y2_blocks();
-
-  optimize_prob_skip( F2 );
-  optimize_interframe_probs( F2 );
-  optimize_probability_tables( F2, token_branch_counts );
-}
-
-InterFrame Encoder::create_switching_frame( const uint8_t y_ac_qi )
-{
-  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height(), false, true );
-  auto & if_header = frame.mutable_header();
-
-  QuantIndices quant_indices;
-  quant_indices.y_ac_qi = y_ac_qi;
-
-  if_header.loop_filter_level = 0; // disable loopfilter for this if_header
-  if_header.mode_lf_adjustments.clear();
-  if_header.quant_indices = quant_indices;
-  if_header.refresh_last = true;
-  if_header.refresh_entropy_probs = false;
-
-  for ( size_t i = 0; i < MV_PROB_CNT; i++ ) {
-    if_header.mv_prob_update.at( 0 ).at( i ).clear();
-    if_header.mv_prob_update.at( 1 ).at( i ).clear();
-  }
-
-  if_header.intra_16x16_prob.clear();
-
-  TokenBranchCounts token_branch_counts;
-
-  frame.mutable_macroblocks().forall(
-    [&] ( InterFrameMacroblock & frame_mb )
-    {
-      frame_mb.mutable_header().is_inter_mb = true;
-      frame_mb.mutable_header().set_reference( LAST_FRAME );
-
-      frame_mb.Y2().set_prediction_mode( ZEROMV );
-      frame_mb.Y2().set_coded( false );
-      frame_mb.Y2().zero_out();
-
-      frame_mb.set_base_motion_vector( MotionVector() );
-
-      frame_mb.Y().forall(
-        [&] ( YBlock & frame_sb ) {
-          frame_sb.set_Y_without_Y2();
-          frame_sb.set_motion_vector( MotionVector() );
-          frame_sb.zero_out(); // no residuals
-        }
-      );
-
-      frame_mb.U().forall(
-        [&] ( UVBlock & frame_sb )
-        {
-          frame_sb.zero_out(); // no residuals
-        }
-      );
-
-      frame_mb.V().forall(
-        [&] ( UVBlock & frame_sb )
-        {
-          frame_sb.zero_out(); // no residuals
-        }
-      );
-
-      frame_mb.calculate_has_nonzero();
-      frame_mb.accumulate_token_branches( token_branch_counts );
-    }
-  );
-
-  frame.relink_y2_blocks();
-
-  optimize_prob_skip( frame );
-  optimize_interframe_probs( frame );
-  optimize_probability_tables( frame, token_branch_counts );
-
-  return frame;
-}
-
 template<class FrameType>
 InterFrame Encoder::reencode_frame( const VP8Raster & unfiltered_output,
                                     const FrameType & original_frame )
@@ -399,6 +219,186 @@ InterFrame Encoder::update_residues( const VP8Raster & unfiltered_output,
 
   RasterHandle immutable_raster( move( reconstructed_raster_handle ) );
   frame.copy_to( immutable_raster, references_ );
+
+  return frame;
+}
+
+void Encoder::refine_switching_frame( InterFrame & F2, const InterFrame & F1,
+                                      const VP8Raster & d1 )
+{
+  assert( F1.switching_frame() and F2.switching_frame() );
+
+  const VP8Raster & d2 = references_.at( LAST_FRAME );
+
+  TwoD<uint8_t> blank_block_parent { 4, 4 };
+  blank_block_parent.fill( 0 ); /* XXX do we want to do this every time? */
+  TwoDSubRange<uint8_t, 4, 4> blank_block { blank_block_parent, 0, 0 };
+
+  Quantizer quantizer( F2.header().quant_indices );
+
+  TokenBranchCounts token_branch_counts;
+
+  F2.macroblocks().forall_ij(
+    [&] ( InterFrameMacroblock & F2_mb, unsigned int mb_column, unsigned int mb_row )
+    {
+      auto & F1_mb = F1.macroblocks().at( mb_column, mb_row );
+      auto & d1_mb = d1.macroblock( mb_column, mb_row );
+      auto & d2_mb = d2.macroblock( mb_column, mb_row );
+
+      DCTCoefficients F2_coeffs;
+      DCTCoefficients F1_coeffs;
+
+      F2_mb.Y().forall_ij(
+        [&] ( YBlock & F2_sb, unsigned int sb_column, unsigned int sb_row )
+        {
+          auto & F1_sb = F1_mb.Y().at( sb_column, sb_row );
+          auto & d1_sb = d1_mb.Y_sub.at( sb_column, sb_row );
+          auto & d2_sb = d2_mb.Y_sub.at( sb_column, sb_row );
+
+          // q(dct(d1))
+          F1_coeffs.subtract_dct( d1_sb, blank_block );
+          F1_coeffs = F1_coeffs.quantize( quantizer.y() );
+
+          // q(dct(d2))
+          F2_coeffs.subtract_dct( d2_sb, blank_block );
+          F2_coeffs = F2_coeffs.quantize( quantizer.y() );
+
+          // q(dct(d1)) - q(dct(d2))
+          F2_sb.mutable_coefficients() = F1_coeffs - F2_coeffs;
+
+          // r2 = q(dct(d1)) - q(dct(d2)) + r1
+          F2_sb.mutable_coefficients() = F2_sb.coefficients() + F1_sb.coefficients();
+          F2_sb.calculate_has_nonzero();
+        }
+      );
+
+      F2_mb.U().forall_ij(
+        [&] ( UVBlock & F2_sb, unsigned int sb_column, unsigned int sb_row )
+        {
+          auto & F1_sb = F1_mb.U().at( sb_column, sb_row );
+          auto & d1_sb = d1_mb.U_sub.at( sb_column, sb_row );
+          auto & d2_sb = d2_mb.U_sub.at( sb_column, sb_row );
+
+          // q(dct(d1))
+          F1_coeffs.subtract_dct( d1_sb, blank_block );
+          F1_coeffs = F1_coeffs.quantize( quantizer.uv() );
+
+          // q(dct(d2))
+          F2_coeffs.subtract_dct( d2_sb, blank_block );
+          F2_coeffs = F2_coeffs.quantize( quantizer.uv() );
+
+          // q(dct(d1)) - q(dct(d2))
+          F2_sb.mutable_coefficients() = F1_coeffs - F2_coeffs;
+
+          // r2 = q(dct(d1)) - q(dct(d2)) + r1
+          F2_sb.mutable_coefficients() = F2_sb.coefficients() + F1_sb.coefficients();
+          F2_sb.calculate_has_nonzero();
+        }
+      );
+
+      F2_mb.V().forall_ij(
+        [&] ( UVBlock & F2_sb, unsigned int sb_column, unsigned int sb_row )
+        {
+          auto & F1_sb = F1_mb.V().at( sb_column, sb_row );
+          auto & d1_sb = d1_mb.V_sub.at( sb_column, sb_row );
+          auto & d2_sb = d2_mb.V_sub.at( sb_column, sb_row );
+
+          // q(dct(d1))
+          F1_coeffs.subtract_dct( d1_sb, blank_block );
+          F1_coeffs = F1_coeffs.quantize( quantizer.uv() );
+
+          // q(dct(d2))
+          F2_coeffs.subtract_dct( d2_sb, blank_block );
+          F2_coeffs = F2_coeffs.quantize( quantizer.uv() );
+
+          // q(dct(d1)) - q(dct(d2))
+          F2_sb.mutable_coefficients() = F1_coeffs - F2_coeffs;
+
+          // r2 = q(dct(d1)) - q(dct(d2)) + r1
+          F2_sb.mutable_coefficients() = F2_sb.coefficients() + F1_sb.coefficients();
+          F2_sb.calculate_has_nonzero();
+        }
+      );
+
+      F2_mb.calculate_has_nonzero();
+      F2_mb.accumulate_token_branches( token_branch_counts );
+    }
+  );
+
+  F2.relink_y2_blocks();
+
+  optimize_prob_skip( F2 );
+  optimize_interframe_probs( F2 );
+  optimize_probability_tables( F2, token_branch_counts );
+}
+
+InterFrame Encoder::create_switching_frame( const uint8_t y_ac_qi )
+{
+  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height(), false, true );
+  auto & if_header = frame.mutable_header();
+
+  QuantIndices quant_indices;
+  quant_indices.y_ac_qi = y_ac_qi;
+
+  if_header.loop_filter_level = 0; // disable loopfilter for this if_header
+  if_header.mode_lf_adjustments.clear();
+  if_header.quant_indices = quant_indices;
+  if_header.refresh_last = true;
+  if_header.refresh_entropy_probs = false;
+
+  for ( size_t i = 0; i < MV_PROB_CNT; i++ ) {
+    if_header.mv_prob_update.at( 0 ).at( i ).clear();
+    if_header.mv_prob_update.at( 1 ).at( i ).clear();
+  }
+
+  if_header.intra_16x16_prob.clear();
+
+  TokenBranchCounts token_branch_counts;
+
+  frame.mutable_macroblocks().forall(
+    [&] ( InterFrameMacroblock & frame_mb )
+    {
+      frame_mb.mutable_header().is_inter_mb = true;
+      frame_mb.mutable_header().set_reference( LAST_FRAME );
+
+      frame_mb.Y2().set_prediction_mode( ZEROMV );
+      frame_mb.Y2().set_coded( false );
+      frame_mb.Y2().zero_out();
+
+      frame_mb.set_base_motion_vector( MotionVector() );
+
+      frame_mb.Y().forall(
+        [&] ( YBlock & frame_sb ) {
+          frame_sb.set_Y_without_Y2();
+          frame_sb.set_motion_vector( MotionVector() );
+          frame_sb.zero_out(); // no residuals
+        }
+      );
+
+      frame_mb.U().forall(
+        [&] ( UVBlock & frame_sb )
+        {
+          frame_sb.zero_out(); // no residuals
+        }
+      );
+
+      frame_mb.V().forall(
+        [&] ( UVBlock & frame_sb )
+        {
+          frame_sb.zero_out(); // no residuals
+        }
+      );
+
+      frame_mb.calculate_has_nonzero();
+      frame_mb.accumulate_token_branches( token_branch_counts );
+    }
+  );
+
+  frame.relink_y2_blocks();
+
+  optimize_prob_skip( frame );
+  optimize_interframe_probs( frame );
+  optimize_probability_tables( frame, token_branch_counts );
 
   return frame;
 }
