@@ -242,23 +242,23 @@ public:
   void copy_from( const TwoD & other ) { storage_->copy_from( *( other.storage_ ) ); }
 
   /* expose storage */
-  const std::shared_ptr<TwoDStorage<T>> & storage( void ) const { return storage_; }
+  TwoDStorage<T> * storage( void ) { return storage_.get(); }
 };
 
 template< class T, unsigned int sub_width, unsigned int sub_height >
 class TwoDSubRange
 {
 private:
-  std::shared_ptr<TwoDStorage<T>> master_;
+  TwoDStorage<T> * master_;
 
   unsigned int column_, row_;
 
 public:
-  TwoDSubRange( const TwoD<T> & master, const unsigned int column, const unsigned int row )
+  TwoDSubRange( TwoD<T> & master, const unsigned int column, const unsigned int row )
     : TwoDSubRange( master.storage(), column, row )
   {}
 
-  TwoDSubRange( const std::shared_ptr<TwoDStorage<T>> & storage, const unsigned int column, const unsigned int row )
+  TwoDSubRange( TwoDStorage<T> * storage, const unsigned int column, const unsigned int row )
     : master_( storage ), column_( column ), row_( row )
   {
     assert( column_ + sub_width <= master_->width() );
