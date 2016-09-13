@@ -188,9 +188,9 @@ public:
 
   struct Macroblock
   {
-    Block16 & Y;
-    Block8 & U;
-    Block8 & V;
+    Block16 Y;
+    Block8 U;
+    Block8 V;
     TwoDSubRange<Block4, 4, 4> Y_sub;
     TwoDSubRange<Block4, 2, 2> U_sub, V_sub;
 
@@ -215,10 +215,6 @@ private:
   TwoD<Block4> Y_subblocks_ { width_ / 4, height_ / 4, 0, 0, Y_ },
     U_subblocks_ { width_ / 8, height_ / 8, 0, 0, U_ },
     V_subblocks_ { width_ / 8, height_ / 8, 0, 0, V_ };
-
-  TwoD<Block16> Y_bigblocks_ { width_ / 16, height_ / 16, 0, 0, Y_ };
-  TwoD<Block8>  U_bigblocks_ { width_ / 16, height_ / 16, 0, 0, U_ };
-  TwoD<Block8>  V_bigblocks_ { width_ / 16, height_ / 16, 0, 0, V_ };
 
   TwoD<Macroblock> macroblocks_ { width_ / 16, height_ / 16, *this };
 

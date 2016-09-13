@@ -35,12 +35,12 @@ void VP8Raster::Block4::set_above_right_bottom_row_predictor( const typename Pre
 }
 
 VP8Raster::Macroblock::Macroblock( const TwoD< Macroblock >::Context & c, VP8Raster & raster )
-  : Y( raster.Y_bigblocks_.at( c.column, c.row ) ),
-    U( raster.U_bigblocks_.at( c.column, c.row ) ),
-    V( raster.V_bigblocks_.at( c.column, c.row ) ),
-    Y_sub( raster.Y_subblocks_, 4 * c.column, 4 * c.row ),
-    U_sub( raster.U_subblocks_, 2 * c.column, 2 * c.row ),
-    V_sub( raster.V_subblocks_, 2 * c.column, 2 * c.row )
+: Y( c.column, c.row, raster.Y() ),
+  U( c.column, c.row, raster.U() ),
+  V( c.column, c.row, raster.V() ),
+  Y_sub( raster.Y_subblocks_, 4 * c.column, 4 * c.row ),
+  U_sub( raster.U_subblocks_, 2 * c.column, 2 * c.row ),
+  V_sub( raster.V_subblocks_, 2 * c.column, 2 * c.row )
 {
   /* adjust "extra pixels" for rightmost Y subblocks in macroblock (other than the top one) */
   for ( unsigned int row = 1; row < 4; row++ ) {
