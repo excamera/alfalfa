@@ -38,13 +38,37 @@ VP8Raster::Macroblock::Macroblock( const TwoD< Macroblock >::Context & c, VP8Ras
 : Y( c.column, c.row, raster.Y() ),
   U( c.column, c.row, raster.U() ),
   V( c.column, c.row, raster.V() ),
-  Y_sub( raster.Y_subblocks_, 4 * c.column, 4 * c.row ),
-  U_sub( raster.U_subblocks_, 2 * c.column, 2 * c.row ),
-  V_sub( raster.V_subblocks_, 2 * c.column, 2 * c.row )
+  Y_sub( {
+      Block4( 4 * c.column + 0, 4 * c.row + 0, raster.Y() ),
+      Block4( 4 * c.column + 1, 4 * c.row + 0, raster.Y() ),
+      Block4( 4 * c.column + 2, 4 * c.row + 0, raster.Y() ),
+      Block4( 4 * c.column + 3, 4 * c.row + 0, raster.Y() ),
+      Block4( 4 * c.column + 0, 4 * c.row + 1, raster.Y() ),
+      Block4( 4 * c.column + 1, 4 * c.row + 1, raster.Y() ),
+      Block4( 4 * c.column + 2, 4 * c.row + 1, raster.Y() ),
+      Block4( 4 * c.column + 3, 4 * c.row + 1, raster.Y() ),
+      Block4( 4 * c.column + 0, 4 * c.row + 2, raster.Y() ),
+      Block4( 4 * c.column + 1, 4 * c.row + 2, raster.Y() ),
+      Block4( 4 * c.column + 2, 4 * c.row + 2, raster.Y() ),
+      Block4( 4 * c.column + 3, 4 * c.row + 2, raster.Y() ),
+      Block4( 4 * c.column + 0, 4 * c.row + 3, raster.Y() ),
+      Block4( 4 * c.column + 1, 4 * c.row + 3, raster.Y() ),
+      Block4( 4 * c.column + 2, 4 * c.row + 3, raster.Y() ),
+      Block4( 4 * c.column + 3, 4 * c.row + 3, raster.Y() ) } ),
+  U_sub( {
+      Block4( 2 * c.column + 0, 2 * c.row + 0, raster.U() ),
+      Block4( 2 * c.column + 1, 2 * c.row + 0, raster.U() ),
+      Block4( 2 * c.column + 0, 2 * c.row + 1, raster.U() ),
+      Block4( 2 * c.column + 1, 2 * c.row + 1, raster.U() ) } ),
+  V_sub( {
+      Block4( 2 * c.column + 0, 2 * c.row + 0, raster.V() ),
+      Block4( 2 * c.column + 1, 2 * c.row + 0, raster.V() ),
+      Block4( 2 * c.column + 0, 2 * c.row + 1, raster.V() ),
+      Block4( 2 * c.column + 1, 2 * c.row + 1, raster.V() ) } )
 {
   /* adjust "extra pixels" for rightmost Y subblocks in macroblock (other than the top one) */
   for ( unsigned int row = 1; row < 4; row++ ) {
-    Y_sub.at( 3, row ).set_above_right_bottom_row_predictor( Y_sub.at( 3, 0 ).predictors().above_right_bottom_row_predictor );
+    Y_sub_at( 3, row ).set_above_right_bottom_row_predictor( Y_sub_at( 3, 0 ).predictors().above_right_bottom_row_predictor );
   }
 }
 

@@ -65,11 +65,11 @@ Encoder::MBPredictionData Encoder::luma_mb_best_prediction_mode( const VP8Raster
       pred.rate = costs_.mbmode_costs.at( interframe ? 1 : 0 ).at( B_PRED );
       pred.distortion = 0;
 
-      reconstructed_mb.Y_sub.forall_ij(
+      reconstructed_mb.Y_sub_forall_ij(
         [&] ( VP8Raster::Block4 & reconstructed_sb, unsigned int sb_column, unsigned int sb_row )
         {
-          auto & original_sb = original_mb.Y_sub.at( sb_column, sb_row );
-          auto & temp_sb = temp_mb.Y_sub.at( sb_column, sb_row );
+          auto & original_sb = original_mb.Y_sub_at( sb_column, sb_row );
+          auto & temp_sb = temp_mb.Y_sub_at( sb_column, sb_row );
           auto & frame_sb = frame_mb.Y().at( sb_column, sb_row );
 
           const auto above_mode = frame_sb.context().above.initialized()
@@ -138,11 +138,11 @@ void Encoder::luma_mb_apply_intra_prediction( const VP8Raster::Macroblock & orig
   frame_mb.Y().forall_ij(
     [&] ( YBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
     {
-      auto & original_sb = original_mb.Y_sub.at( sb_column, sb_row );
+      auto & original_sb = original_mb.Y_sub_at( sb_column, sb_row );
       frame_sb.set_prediction_mode( KeyFrameMacroblock::implied_subblock_mode( min_prediction_mode ) );
 
       frame_sb.mutable_coefficients().subtract_dct( original_sb,
-        reconstructed_mb.Y_sub.at( sb_column, sb_row ).contents() );
+        reconstructed_mb.Y_sub_at( sb_column, sb_row ).contents() );
 
       walsh_input.at( sb_column + 4 * sb_row ) = frame_sb.coefficients().at( 0 );
       frame_sb.set_dc_coefficient( 0 );
@@ -246,10 +246,10 @@ void Encoder::chroma_mb_apply_intra_prediction( const VP8Raster::Macroblock & or
   frame_mb.U().forall_ij(
     [&] ( UVBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
     {
-      auto & original_sb = original_mb.U_sub.at( sb_column, sb_row );
+      auto & original_sb = original_mb.U_sub_at( sb_column, sb_row );
 
       frame_sb.mutable_coefficients().subtract_dct( original_sb,
-        reconstructed_mb.U_sub.at( sb_column, sb_row ).contents() );
+        reconstructed_mb.U_sub_at( sb_column, sb_row ).contents() );
 
       if ( encoder_pass == FIRST_PASS ) {
         frame_sb.mutable_coefficients() = UVBlock::quantize( quantizer, frame_sb.coefficients() );
@@ -265,10 +265,10 @@ void Encoder::chroma_mb_apply_intra_prediction( const VP8Raster::Macroblock & or
   frame_mb.V().forall_ij(
     [&] ( UVBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
     {
-      auto & original_sb = original_mb.V_sub.at( sb_column, sb_row );
+      auto & original_sb = original_mb.V_sub_at( sb_column, sb_row );
 
       frame_sb.mutable_coefficients().subtract_dct( original_sb,
-        reconstructed_mb.V_sub.at( sb_column, sb_row ).contents() );
+        reconstructed_mb.V_sub_at( sb_column, sb_row ).contents() );
 
       if ( encoder_pass == FIRST_PASS ) {
         frame_sb.mutable_coefficients() = UVBlock::quantize( quantizer, frame_sb.coefficients() );

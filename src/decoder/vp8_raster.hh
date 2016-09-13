@@ -191,8 +191,8 @@ public:
     Block16 Y;
     Block8 U;
     Block8 V;
-    TwoDSubRange<Block4, 4, 4> Y_sub;
-    TwoDSubRange<Block4, 2, 2> U_sub, V_sub;
+    SafeArray<Block4, 16> Y_sub;
+    SafeArray<Block4, 4> U_sub, V_sub;
 
     Macroblock( const TwoD<Macroblock>::Context & c, VP8Raster & raster );
 
@@ -209,13 +209,47 @@ public:
     }
 
     Macroblock & operator=( const Macroblock & other ) = delete;
+
+    Block4 & Y_sub_at( const unsigned int column, const unsigned int row ) {
+      return Y_sub.at( row * 4 + column );
+    }
+
+    Block4 & U_sub_at( const unsigned int column, const unsigned int row ) {
+      return U_sub.at( row * 2 + column );
+    }
+
+    Block4 & V_sub_at( const unsigned int column, const unsigned int row ) {
+      return V_sub.at( row * 2 + column );
+    }
+
+    const Block4 & Y_sub_at( const unsigned int column, const unsigned int row ) const {
+      return Y_sub.at( row * 4 + column );
+    }
+
+    const Block4 & U_sub_at( const unsigned int column, const unsigned int row ) const {
+      return U_sub.at( row * 2 + column );
+    }
+
+    const Block4 & V_sub_at( const unsigned int column, const unsigned int row ) const {
+      return V_sub.at( row * 2 + column );
+    }
+
+    template <class lambda> void Y_sub_forall_ij( const lambda & f ) { forall_ij<4, 4>( Y_sub, f ); }
+    template <class lambda> void U_sub_forall_ij( const lambda & f ) { forall_ij<2, 2>( U_sub, f ); }
+    template <class lambda> void V_sub_forall_ij( const lambda & f ) { forall_ij<2, 2>( V_sub, f ); }
+
+    template <unsigned int s_width, unsigned int s_height, class lambda>
+    void forall_ij( SafeArray<Block4, s_width * s_height> & sub, const lambda & f )
+    {
+      for ( unsigned int row = 0; row < s_height; row++ ) {
+        for ( unsigned int column = 0; column < s_width; column++ ) {
+          f( sub.at( row * s_width + column ), column, row );
+        }
+      }
+    }
   };
 
 private:
-  TwoD<Block4> Y_subblocks_ { width_ / 4, height_ / 4, 0, 0, Y_ },
-    U_subblocks_ { width_ / 8, height_ / 8, 0, 0, U_ },
-    V_subblocks_ { width_ / 8, height_ / 8, 0, 0, V_ };
-
   TwoD<Macroblock> macroblocks_ { width_ / 16, height_ / 16, *this };
 
 public:

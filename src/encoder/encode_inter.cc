@@ -321,10 +321,10 @@ void Encoder::luma_mb_apply_inter_prediction( const VP8Raster::Macroblock & orig
     frame_mb.Y().forall_ij(
       [&] ( YBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
       {
-        auto & original_sb = original_mb.Y_sub.at( sb_column, sb_row );
+        auto & original_sb = original_mb.Y_sub_at( sb_column, sb_row );
 
         frame_sb.mutable_coefficients().subtract_dct( original_sb,
-          reconstructed_mb.Y_sub.at( sb_column, sb_row ).contents() );
+          reconstructed_mb.Y_sub_at( sb_column, sb_row ).contents() );
 
         frame_sb.set_Y_without_Y2();
         frame_sb.mutable_coefficients() = YBlock::quantize( quantizer, frame_sb.coefficients() );
@@ -348,10 +348,10 @@ void Encoder::luma_mb_apply_inter_prediction( const VP8Raster::Macroblock & orig
     frame_mb.Y().forall_ij(
       [&] ( YBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
       {
-        auto & original_sb = original_mb.Y_sub.at( sb_column, sb_row );
+        auto & original_sb = original_mb.Y_sub_at( sb_column, sb_row );
 
         frame_sb.mutable_coefficients().subtract_dct( original_sb,
-          reconstructed_mb.Y_sub.at( sb_column, sb_row ).contents() );
+          reconstructed_mb.Y_sub_at( sb_column, sb_row ).contents() );
 
         walsh_input.at( sb_column + 4 * sb_row ) = frame_sb.coefficients().at( 0 );
         frame_sb.set_dc_coefficient( 0 );
@@ -395,8 +395,8 @@ void Encoder::chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb
     frame_mb.U().forall_ij(
       [&] ( UVBlock & block, const unsigned int column, const unsigned int row )
       {
-        reconstructed_mb.U_sub.at( column, row ).inter_predict( block.motion_vector(), reference.U() );
-        reconstructed_mb.V_sub.at( column, row ).inter_predict( block.motion_vector(), reference.V() );
+        reconstructed_mb.U_sub_at( column, row ).inter_predict( block.motion_vector(), reference.U() );
+        reconstructed_mb.V_sub_at( column, row ).inter_predict( block.motion_vector(), reference.V() );
       }
     );
   }
@@ -410,10 +410,10 @@ void Encoder::chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb
   frame_mb.U().forall_ij(
     [&] ( UVBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
     {
-      auto & original_sb = original_mb.U_sub.at( sb_column, sb_row );
+      auto & original_sb = original_mb.U_sub_at( sb_column, sb_row );
 
       frame_sb.mutable_coefficients().subtract_dct( original_sb,
-        reconstructed_mb.U_sub.at( sb_column, sb_row ).contents() );
+        reconstructed_mb.U_sub_at( sb_column, sb_row ).contents() );
 
       frame_sb.mutable_coefficients() = UVBlock::quantize( quantizer, frame_sb.coefficients() );
       frame_sb.calculate_has_nonzero();
@@ -423,10 +423,10 @@ void Encoder::chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb
   frame_mb.V().forall_ij(
     [&] ( UVBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
     {
-      auto & original_sb = original_mb.V_sub.at( sb_column, sb_row );
+      auto & original_sb = original_mb.V_sub_at( sb_column, sb_row );
 
       frame_sb.mutable_coefficients().subtract_dct( original_sb,
-        reconstructed_mb.V_sub.at( sb_column, sb_row ).contents() );
+        reconstructed_mb.V_sub_at( sb_column, sb_row ).contents() );
 
       frame_sb.mutable_coefficients() = UVBlock::quantize( quantizer, frame_sb.coefficients() );
       frame_sb.calculate_has_nonzero();

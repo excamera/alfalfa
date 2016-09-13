@@ -166,10 +166,10 @@ void Encoder::update_macroblock( const VP8Raster::Macroblock & original_mb,
     break;
 
   case B_PRED:
-    reconstructed_mb.Y_sub.forall_ij(
+    reconstructed_mb.Y_sub_forall_ij(
       [&] ( VP8Raster::Block4 & reconstructed_sb, unsigned int sb_column, unsigned int sb_row )
       {
-        auto & original_sb = original_mb.Y_sub.at( sb_column, sb_row );
+        auto & original_sb = original_mb.Y_sub_at( sb_column, sb_row );
         auto & frame_sb = frame_mb.Y().at( sb_column, sb_row );
         bmode sb_prediction_mode = original_fmb.Y().at( sb_column, sb_row ).prediction_mode();
 
@@ -208,7 +208,7 @@ void Encoder::update_macroblock( const VP8Raster::Macroblock & original_mb,
         block.set_Y_without_Y2();
         block.set_prediction_mode( original_fmb.Y().at( column, row ).prediction_mode() );
 
-        reconstructed_mb.Y_sub.at( column, row ).inter_predict( block.motion_vector(), reference.Y() );
+        reconstructed_mb.Y_sub_at( column, row ).inter_predict( block.motion_vector(), reference.Y() );
       }
     );
 
@@ -329,8 +329,8 @@ void Encoder::refine_switching_frame( InterFrame & F2, const InterFrame & F1,
         [&] ( YBlock & F2_sb, unsigned int sb_column, unsigned int sb_row )
         {
           auto & F1_sb = F1_mb.Y().at( sb_column, sb_row );
-          auto & d1_sb = d1_mb.Y_sub.at( sb_column, sb_row );
-          auto & d2_sb = d2_mb.Y_sub.at( sb_column, sb_row );
+          auto & d1_sb = d1_mb.Y_sub_at( sb_column, sb_row );
+          auto & d2_sb = d2_mb.Y_sub_at( sb_column, sb_row );
 
           // q(dct(d1))
           F1_coeffs.subtract_dct( d1_sb, blank_block );
@@ -353,8 +353,8 @@ void Encoder::refine_switching_frame( InterFrame & F2, const InterFrame & F1,
         [&] ( UVBlock & F2_sb, unsigned int sb_column, unsigned int sb_row )
         {
           auto & F1_sb = F1_mb.U().at( sb_column, sb_row );
-          auto & d1_sb = d1_mb.U_sub.at( sb_column, sb_row );
-          auto & d2_sb = d2_mb.U_sub.at( sb_column, sb_row );
+          auto & d1_sb = d1_mb.U_sub_at( sb_column, sb_row );
+          auto & d2_sb = d2_mb.U_sub_at( sb_column, sb_row );
 
           // q(dct(d1))
           F1_coeffs.subtract_dct( d1_sb, blank_block );
@@ -377,8 +377,8 @@ void Encoder::refine_switching_frame( InterFrame & F2, const InterFrame & F1,
         [&] ( UVBlock & F2_sb, unsigned int sb_column, unsigned int sb_row )
         {
           auto & F1_sb = F1_mb.V().at( sb_column, sb_row );
-          auto & d1_sb = d1_mb.V_sub.at( sb_column, sb_row );
-          auto & d2_sb = d2_mb.V_sub.at( sb_column, sb_row );
+          auto & d1_sb = d1_mb.V_sub_at( sb_column, sb_row );
+          auto & d2_sb = d2_mb.V_sub_at( sb_column, sb_row );
 
           // q(dct(d1))
           F1_coeffs.subtract_dct( d1_sb, blank_block );

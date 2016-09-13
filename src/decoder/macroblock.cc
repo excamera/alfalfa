@@ -485,7 +485,7 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::apply_walsh( const Quant
 
     for ( int row = 0; row < 4; row++ ) {
       for ( int column = 0; column < 4; column++ ) {
-        Y_dequant_coeffs.at( row ).at( column ).idct_add( raster.Y_sub.at( column, row ) );
+        Y_dequant_coeffs.at( row ).at( column ).idct_add( raster.Y_sub_at( column, row ) );
       }
     }
 }
@@ -500,17 +500,17 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::reconstruct_intra( const
 
   if ( has_nonzero_ ) {
     U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-                  { block.dequantize( quantizer ).idct_add( raster.U_sub.at( column, row ) ); } );
+                  { block.dequantize( quantizer ).idct_add( raster.U_sub_at( column, row ) ); } );
     V_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-                  { block.dequantize( quantizer ).idct_add( raster.V_sub.at( column, row ) ); } );
+                  { block.dequantize( quantizer ).idct_add( raster.V_sub_at( column, row ) ); } );
   }
 
   /* Luma */
   if ( Y2_.prediction_mode() == B_PRED ) {
     /* Prediction and inverse transform done in line! */
     Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row ) {
-        raster.Y_sub.at( column, row ).intra_predict( block.prediction_mode() );
-        if ( has_nonzero_ ) block.dequantize( quantizer ).idct_add( raster.Y_sub.at( column, row ) );
+        raster.Y_sub_at( column, row ).intra_predict( block.prediction_mode() );
+        if ( has_nonzero_ ) block.dequantize( quantizer ).idct_add( raster.Y_sub_at( column, row ) );
       } );
   } else {
     raster.Y.intra_predict( Y2_.prediction_mode() );
@@ -537,7 +537,7 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
     TwoDSubRange<uint8_t, 4, 4> blank_block { blank_block_parent, 0, 0 };
     DCTCoefficients coeffs;
 
-    raster.Y_sub.forall_ij(
+    raster.Y_sub_forall_ij(
       [&] ( VP8Raster::Block4 & block, unsigned int column, unsigned int row )
       {
         coeffs.subtract_dct( block, blank_block );
@@ -548,7 +548,7 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
       }
     );
 
-    raster.U_sub.forall_ij(
+    raster.U_sub_forall_ij(
       [&] ( VP8Raster::Block4 & block, unsigned int column, unsigned int row )
       {
         coeffs.subtract_dct( block, blank_block );
@@ -559,7 +559,7 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
       }
     );
 
-    raster.V_sub.forall_ij(
+    raster.V_sub_forall_ij(
       [&] ( VP8Raster::Block4 & block, unsigned int column, unsigned int row )
       {
         coeffs.subtract_dct( block, blank_block );
@@ -573,7 +573,7 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
     Y_.forall_ij(
       [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
       {
-        raster.Y_sub.at( column, row ).inter_predict( block.motion_vector(),
+        raster.Y_sub_at( column, row ).inter_predict( block.motion_vector(),
                                                       reference.Y() );
       }
     );
@@ -581,9 +581,9 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
     U_.forall_ij(
       [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
       {
-        raster.U_sub.at( column, row ).inter_predict( block.motion_vector(),
+        raster.U_sub_at( column, row ).inter_predict( block.motion_vector(),
                                                       reference.U() );
-        raster.V_sub.at( column, row ).inter_predict( block.motion_vector(),
+        raster.V_sub_at( column, row ).inter_predict( block.motion_vector(),
                                                       reference.V() );
       }
     );
@@ -591,11 +591,11 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
     if ( has_nonzero_ ) {
       /* Add residue */
       Y_.forall_ij( [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
-                    { block.dequantize( quantizer ).idct_add( raster.Y_sub.at( column, row ) ); } );
+                    { block.dequantize( quantizer ).idct_add( raster.Y_sub_at( column, row ) ); } );
       U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-                    { block.dequantize( quantizer ).idct_add( raster.U_sub.at( column, row ) ); } );
+                    { block.dequantize( quantizer ).idct_add( raster.U_sub_at( column, row ) ); } );
       V_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-                    { block.dequantize( quantizer ).idct_add( raster.V_sub.at( column, row ) ); } );
+                    { block.dequantize( quantizer ).idct_add( raster.V_sub_at( column, row ) ); } );
     }
   } else {
     raster.Y.inter_predict( base_motion_vector(), reference.Y() );
@@ -605,9 +605,9 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
     if ( has_nonzero_ ) {
       apply_walsh( quantizer, raster );
       U_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-                    { block.dequantize( quantizer ).idct_add( raster.U_sub.at( column, row ) ); } );
+                    { block.dequantize( quantizer ).idct_add( raster.U_sub_at( column, row ) ); } );
       V_.forall_ij( [&] ( const UVBlock & block, const unsigned int column, const unsigned int row )
-                    { block.dequantize( quantizer ).idct_add( raster.V_sub.at( column, row ) ); } );
+                    { block.dequantize( quantizer ).idct_add( raster.V_sub_at( column, row ) ); } );
     }
   }
 }
