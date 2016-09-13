@@ -587,6 +587,7 @@ void Encoder::write_switching_frame( const InterFrame & frame )
 
   MutableRasterHandle reconstructed_raster_handle { width(), height() };
   VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
+
   frame.decode( { }, references_, reconstructed_raster );
   frame.copy_to( move( reconstructed_raster_handle ), references_ );
 

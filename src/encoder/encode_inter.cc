@@ -219,6 +219,9 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
   costs_.fill_mv_component_costs( decoder_state_.probability_tables.motion_vector_probs );
   costs_.fill_mv_sad_costs();
 
+  frame_mb.mutable_header().is_inter_mb = true;
+  frame_mb.mutable_header().set_reference( LAST_FRAME );
+
   constexpr array<mbmode, 4> inter_modes = { ZEROMV, NEARESTMV, NEARMV, NEWMV, /* SPLIMV */ };
 
   for ( const mbmode prediction_mode : inter_modes ) {
@@ -288,6 +291,7 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
 
   if ( best_pred.prediction_mode <= B_PRED ) {
     frame_mb.mutable_header().is_inter_mb = false;
+    frame_mb.mutable_header().set_reference( CURRENT_FRAME );
 
     luma_mb_apply_intra_prediction( original_mb, reconstructed_mb, temp_mb,
                                     frame_mb, quantizer, best_pred.prediction_mode,
