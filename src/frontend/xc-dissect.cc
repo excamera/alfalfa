@@ -150,6 +150,10 @@ void print_header( const InterFrameHeader & header )
 
   print_header_common( header );
 
+  print_key_value( "refresh_last", header.refresh_last );
+  print_key_value( "refresh_golden_frame", header.refresh_golden_frame );
+  print_key_value( "refresh_alternate_frame", header.refresh_alternate_frame );
+
   print_key_value( "prob_inter", (int)header.prob_inter );
   print_key_value( "prob_last", (int)header.prob_references_last );
   print_key_value( "prob_golden", (int)header.prob_references_golden );

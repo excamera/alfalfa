@@ -191,14 +191,14 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                                              encoder_pass,
                                                              true );
 
-  MBPredictionData best_uv_pred = chroma_mb_best_prediction_mode( original_mb,
+  /* MBPredictionData best_uv_pred = chroma_mb_best_prediction_mode( original_mb,
                                                                   reconstructed_mb,
                                                                   temp_mb,
                                                                   true );
 
   best_pred.distortion += best_uv_pred.distortion;
   best_pred.rate       += best_uv_pred.rate;
-  best_pred.cost       += best_uv_pred.cost;
+  best_pred.cost       += best_uv_pred.cost; */
 
   MotionVector best_mv;
   const VP8Raster & reference = references_.last.get();
@@ -270,11 +270,11 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
       pred.rate += costs_.motion_vector_cost( mv - best_ref, 96 );
     }
 
-    chroma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb, frame_mb,
+    /* chroma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb, frame_mb,
                              quantizer, encoder_pass );
 
     pred.distortion += sse( original_mb.U, reconstructed_mb.U.contents() );
-    pred.distortion += sse( original_mb.V, reconstructed_mb.V.contents() );
+    pred.distortion += sse( original_mb.V, reconstructed_mb.V.contents() ); */
 
     pred.cost = rdcost( pred.rate, pred.distortion, RATE_MULTIPLIER,
                         DISTORTION_MULTIPLIER );
@@ -315,13 +315,29 @@ void Encoder::luma_mb_apply_inter_prediction( const VP8Raster::Macroblock & orig
                                               const MotionVector best_mv )
 {
   frame_mb.Y2().set_prediction_mode( best_pred );
+  frame_mb.set_base_motion_vector( best_mv );
 
   if ( best_pred == SPLITMV ) {
-    throw Unsupported( "SPLITMV is not supported" );
+    frame_mb.Y().forall_ij(
+      [&] ( YBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )
+      {
+        auto & original_sb = original_mb.Y_sub.at( sb_column, sb_row );
+
+        frame_sb.mutable_coefficients().subtract_dct( original_sb,
+          reconstructed_mb.Y_sub.at( sb_column, sb_row ).contents() );
+
+        frame_sb.set_Y_without_Y2();
+        frame_sb.mutable_coefficients() = YBlock::quantize( quantizer, frame_sb.coefficients() );
+        frame_sb.calculate_has_nonzero();
+      }
+    );
+
+    frame_mb.Y2().set_coded( false );
+    frame_mb.Y2().calculate_has_nonzero();
+
+    frame_mb.calculate_has_nonzero();
   }
   else {
-    frame_mb.set_base_motion_vector( best_mv );
-
     frame_mb.Y().forall(
       [&] ( YBlock & frame_sb ) { frame_sb.set_motion_vector( frame_mb.base_motion_vector() ); }
     );
@@ -360,7 +376,9 @@ void Encoder::chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb
                                        const Quantizer & quantizer,
                                        const EncoderPass ) const
 {
-  const VP8Raster & reference = references_.last.get();
+  assert( frame_mb.inter_coded() );
+
+  const VP8Raster & reference = references_.at( frame_mb.header().reference() );
 
   frame_mb.U().forall_ij(
     [&]( UVBlock & block, const unsigned int column, const unsigned int row )
@@ -373,10 +391,21 @@ void Encoder::chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb
     }
   );
 
-  reconstructed_mb.U.inter_predict( frame_mb.U().at( 0, 0 ).motion_vector(),
-                                    reference.U() );
-  reconstructed_mb.V.inter_predict( frame_mb.U().at( 0, 0 ).motion_vector(),
-                                    reference.V() );
+  if ( frame_mb.y_prediction_mode() == SPLITMV ) {
+    frame_mb.U().forall_ij(
+      [&] ( UVBlock & block, const unsigned int column, const unsigned int row )
+      {
+        reconstructed_mb.U_sub.at( column, row ).inter_predict( block.motion_vector(), reference.U() );
+        reconstructed_mb.V_sub.at( column, row ).inter_predict( block.motion_vector(), reference.V() );
+      }
+    );
+  }
+  else {
+    reconstructed_mb.U.inter_predict( frame_mb.U().at( 0, 0 ).motion_vector(),
+                                      reference.U() );
+    reconstructed_mb.V.inter_predict( frame_mb.U().at( 0, 0 ).motion_vector(),
+                                      reference.V() );
+  }
 
   frame_mb.U().forall_ij(
     [&] ( UVBlock & frame_sb, unsigned int sb_column, unsigned int sb_row )

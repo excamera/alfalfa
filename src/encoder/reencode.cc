@@ -28,6 +28,35 @@ using namespace std;
  * => r2 = q(dct(d1)) - q(dct(d2)) + r1
  */
 
+void Encoder::set_mv_probs( InterFrame & current_frame,
+                            const Enumerate<Enumerate<MVProbUpdate, MV_PROB_CNT>, 2> & mv_prob_update )
+{
+  return; // XXX let's do nothing for now, it only increases the framesize :|
+  SafeArray<SafeArray<Probability, MV_PROB_CNT>, 2> current_probs;
+
+  for ( size_t i = 0; i < 2; i++ ) {
+    for ( size_t j = 0; j < MV_PROB_CNT; j++ ) {
+      if ( mv_prob_update.at( i ).at( j ).initialized() ) {
+        current_probs.at( i ).at( j ) = mv_prob_update.at( i ).at( j ).get();
+      }
+      else {
+        current_probs.at( i ).at( j ) = k_default_mv_probs.at( i ).at( j );
+      }
+    }
+  }
+
+  for ( size_t i = 0; i < 2; i++ ) {
+    for ( size_t j = 0; j < MV_PROB_CNT; j++ ) {
+      uint8_t state_prob = decoder_state_.probability_tables.motion_vector_probs.at( i ).at( j );
+      if ( abs ( current_probs.at( i ).at( j ) - state_prob ) > 1 ) {
+        current_frame.mutable_header().mv_prob_update.at( i ).at( j ) = MVProbUpdate( true, current_probs.at( i ).at( j ) & 0xFE );
+      }
+    }
+  }
+
+  decoder_state_.probability_tables.mv_prob_update( current_frame.header().mv_prob_update );
+}
+
 template<class FrameType>
 InterFrame Encoder::reencode_frame( const VP8Raster & original_raster,
                                     const FrameType & original_frame )
@@ -53,12 +82,11 @@ InterFrame Encoder::reencode_frame( const VP8Raster & original_raster,
   if_header.copy_buffer_to_golden.clear();
   if_header.copy_buffer_to_alternate.clear();
 
-  for ( size_t i = 0; i < MV_PROB_CNT; i++ ) {
-    if_header.mv_prob_update.at( 0 ).at( i ).clear();
-    if_header.mv_prob_update.at( 1 ).at( i ).clear();
+  for ( size_t i = 0; i < 2; i++ ) {
+    for ( size_t j = 0; j < MV_PROB_CNT; j++ ) {
+      if_header.mv_prob_update.at( i ).at( j ).clear();
+    }
   }
-
-  // TODO MV probabilities (?)
 
   if_header.intra_16x16_prob.clear();
 
@@ -161,13 +189,32 @@ void Encoder::update_macroblock( const VP8Raster::Macroblock & original_mb,
   case NEWMV:
   {
     const VP8Raster & reference = references_.at( frame_mb.header().reference() );
-
     best_mv = original_fmb.base_motion_vector();
+
     reconstructed_mb.Y.inter_predict( best_mv, reference.Y() );
     break;
   }
 
   case SPLITMV:
+  {
+    const VP8Raster & reference = references_.at( frame_mb.header().reference() );
+    best_mv = original_fmb.base_motion_vector();
+    frame_mb.set_base_motion_vector( best_mv );
+
+    frame_mb.Y().forall_ij(
+      [&] ( YBlock & block, const unsigned int column, const unsigned int row )
+      {
+        block.set_motion_vector( original_fmb.Y().at( column, row ).motion_vector() );
+        block.set_Y_without_Y2();
+        block.set_prediction_mode( original_fmb.Y().at( column, row ).prediction_mode() );
+
+        reconstructed_mb.Y_sub.at( column, row ).inter_predict( block.motion_vector(), reference.Y() );
+      }
+    );
+
+    break;
+  }
+
   default:
     throw Unsupported( "unsupported prediction mode" );
   }
@@ -208,6 +255,12 @@ InterFrame Encoder::update_residues( const VP8Raster & original_raster,
   InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height(),
                                                             true, false );
   frame.mutable_header() = original_frame.header();
+
+  for ( size_t i = 0; i < 2; i++ ) {
+    for ( size_t j = 0; j < MV_PROB_CNT; j++ ) {
+      frame.mutable_header().mv_prob_update.at( i ).at( j ).clear();
+    }
+  }
 
   Quantizer quantizer( frame.header().quant_indices );
   MutableRasterHandle reconstructed_raster_handle { width(), height() };
@@ -354,6 +407,7 @@ void Encoder::refine_switching_frame( InterFrame & F2, const InterFrame & F1,
   optimize_prob_skip( F2 );
   optimize_interframe_probs( F2 );
   optimize_probability_tables( F2, token_branch_counts );
+  decoder_state_.probability_tables.mv_prob_update( F2.header().mv_prob_update );
 }
 
 InterFrame Encoder::create_switching_frame( const uint8_t y_ac_qi )
@@ -423,6 +477,7 @@ InterFrame Encoder::create_switching_frame( const uint8_t y_ac_qi )
   optimize_prob_skip( frame );
   optimize_interframe_probs( frame );
   optimize_probability_tables( frame, token_branch_counts );
+  decoder_state_.probability_tables.mv_prob_update( frame.header().mv_prob_update );
 
   return frame;
 }
