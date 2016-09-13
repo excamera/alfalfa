@@ -100,11 +100,6 @@ public:
 
     Block( const unsigned int column, const unsigned int row, TwoD<uint8_t> & raster_component );
 
-    /* XXX will go away */
-    Block( const typename TwoD<Block>::Context & c,
-           const unsigned int column_offset, const unsigned int row_offset,
-           TwoD<uint8_t> & raster_component );
-
     uint8_t & at( const unsigned int column, const unsigned int row )
     { return contents_.at( column, row ); }
 

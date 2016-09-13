@@ -17,14 +17,6 @@ VP8Raster::Block<size>::Block( const unsigned int column, const unsigned int row
     predictors_( raster_component, column, row )
 {}
 
-/* XXX will go away */
-template <unsigned int size>
-VP8Raster::Block<size>::Block( const typename TwoD<Block>::Context & c,
-                               const unsigned int column_offset, const unsigned int row_offset,
-                               TwoD< uint8_t > & raster_component )
-  : Block( c.column + column_offset, c.row + row_offset, raster_component )
-{}
-
 /* the rightmost Y-subblocks in a macroblock (other than the upper-right subblock) are special-cased */
 template <>
 void VP8Raster::Block4::set_above_right_bottom_row_predictor( const typename Predictors::AboveRightBottomRowPredictor & replacement )
