@@ -202,6 +202,48 @@ YUV4MPEGReader::YUV4MPEGReader( FileDescriptor && fd )
   }
 }
 
+void edge_extend_component( TwoD<uint8_t> & component,
+                            const unsigned int display_width,
+                            const unsigned int display_height )
+{
+  if ( component.width() == 0
+       or component.height() == 0 ) {
+    throw Invalid( "image is zero size" );
+  }
+
+  /* edge-extend to the right */
+  for ( unsigned int row = 0; row < display_height; row++ ) {
+    const uint8_t repeated_sample = component.at( display_width - 1, row );
+    for ( unsigned int column = display_width; column < component.width(); column++ ) {
+      component.at( column, row ) = repeated_sample;
+    }
+  }
+
+  /* edge-extend to the bottom */
+  for ( unsigned int row = display_height; row < component.height(); row++ ) {
+    for ( unsigned int column = 0; column < display_width; column++ ) {
+      const uint8_t repeated_sample = component.at( column, display_height - 1 );
+      component.at( column, row ) = repeated_sample;
+    }
+  }
+
+  /* edge-extend to the lower-right quadrant */
+  const uint8_t repeated_sample = component.at( display_width - 1, display_height - 1 );
+
+  for ( unsigned int row = display_height; row < component.height(); row++ ) {
+    for ( unsigned int column = display_width; column < component.width(); column++ ) {
+      component.at( column, row ) = repeated_sample;
+    }
+  }
+}
+
+void edge_extend( BaseRaster & raster )
+{
+  edge_extend_component( raster.Y(), raster.display_width(), raster.display_height() );
+  edge_extend_component( raster.U(), raster.chroma_display_width(), raster.chroma_display_height() );
+  edge_extend_component( raster.V(), raster.chroma_display_width(), raster.chroma_display_height() );
+}
+
 Optional<RasterHandle> YUV4MPEGReader::get_next_frame()
 {
   MutableRasterHandle raster { header_.width, header_.height };
@@ -245,6 +287,9 @@ Optional<RasterHandle> YUV4MPEGReader::get_next_frame()
                            ( i + byte ) / ( header_.width / 2 ) ) = read_data[ i ];
     }
   }
+
+  /* edge-extend the raster */
+  edge_extend( raster.get() );
 
   RasterHandle handle( move( raster ) );
   return make_optional<RasterHandle>( true, handle );
