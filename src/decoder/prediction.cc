@@ -9,12 +9,20 @@
 using namespace std;
 
 template <unsigned int size>
-VP8Raster::Block<size>::Block( const typename TwoD< Block >::Context & c,
+VP8Raster::Block<size>::Block( const unsigned int column, const unsigned int row,
                                TwoD< uint8_t > & raster_component )
-  : contents_( raster_component, size * c.column, size * c.row ),
-    column_( c.column ),
-    row_( c.row ),
-    predictors_( raster_component, c.column, c.row )
+  : contents_( raster_component, size * column, size * row ),
+    column_( column ),
+    row_( row ),
+    predictors_( raster_component, column, row )
+{}
+
+/* XXX will go away */
+template <unsigned int size>
+VP8Raster::Block<size>::Block( const typename TwoD<Block>::Context & c,
+                               const unsigned int column_offset, const unsigned int row_offset,
+                               TwoD< uint8_t > & raster_component )
+  : Block( c.column + column_offset, c.row + row_offset, raster_component )
 {}
 
 /* the rightmost Y-subblocks in a macroblock (other than the upper-right subblock) are special-cased */

@@ -98,7 +98,12 @@ public:
     unsigned int column() const { return column_; }
     unsigned int row() const { return row_; }
 
-    Block( const typename TwoD<Block>::Context & c, TwoD<uint8_t> & raster_component );
+    Block( const unsigned int column, const unsigned int row, TwoD<uint8_t> & raster_component );
+
+    /* XXX will go away */
+    Block( const typename TwoD<Block>::Context & c,
+           const unsigned int column_offset, const unsigned int row_offset,
+           TwoD<uint8_t> & raster_component );
 
     uint8_t & at( const unsigned int column, const unsigned int row )
     { return contents_.at( column, row ); }
@@ -207,13 +212,13 @@ public:
   };
 
 private:
-  TwoD<Block4> Y_subblocks_ { width_ / 4, height_ / 4, Y_ },
-    U_subblocks_ { width_ / 8, height_ / 8, U_ },
-    V_subblocks_ { width_ / 8, height_ / 8, V_ };
+  TwoD<Block4> Y_subblocks_ { width_ / 4, height_ / 4, 0, 0, Y_ },
+    U_subblocks_ { width_ / 8, height_ / 8, 0, 0, U_ },
+    V_subblocks_ { width_ / 8, height_ / 8, 0, 0, V_ };
 
-  TwoD<Block16> Y_bigblocks_ { width_ / 16, height_ / 16, Y_ };
-  TwoD<Block8>  U_bigblocks_ { width_ / 16, height_ / 16, U_ };
-  TwoD<Block8>  V_bigblocks_ { width_ / 16, height_ / 16, V_ };
+  TwoD<Block16> Y_bigblocks_ { width_ / 16, height_ / 16, 0, 0, Y_ };
+  TwoD<Block8>  U_bigblocks_ { width_ / 16, height_ / 16, 0, 0, U_ };
+  TwoD<Block8>  V_bigblocks_ { width_ / 16, height_ / 16, 0, 0, V_ };
 
   TwoD<Macroblock> macroblocks_ { width_ / 16, height_ / 16, *this };
 
