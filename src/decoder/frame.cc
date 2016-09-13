@@ -111,11 +111,13 @@ void Frame<FrameHeaderType, MacroblockType>::loopfilter( const Optional< Segment
     macroblock_headers_.get().forall_ij( [&]( const MacroblockType & macroblock,
                                               const unsigned int column,
                                               const unsigned int row )
-                                         { macroblock.loopfilter( filter_adjustments,
+                                         {
+                                           VP8Raster::Macroblock output = raster.macroblock( column, row );
+                                           macroblock.loopfilter( filter_adjustments,
                                                                   segmentation.initialized()
                                                                   ? segment_loopfilters.at( macroblock.segment_id() )
                                                                   : frame_loopfilter,
-                                                                  raster.macroblock( column, row ) ); } );
+                                                                  output ); } );
   }
 }
 
@@ -157,8 +159,8 @@ void KeyFrame::decode( const Optional< Segmentation > & segmentation, const Refe
                                          const auto & quantizer = segmentation.initialized()
                                            ? segment_quantizers.at( macroblock.segment_id() )
                                            : frame_quantizer;
-                                         macroblock.reconstruct_intra( quantizer,
-                                                                       raster.macroblock( column, row ) );
+                                         VP8Raster::Macroblock output = raster.macroblock( column, row );
+                                         macroblock.reconstruct_intra( quantizer, output );
                                        } );
 }
 
@@ -176,13 +178,14 @@ void InterFrame::decode( const Optional<Segmentation> & segmentation, const Refe
                                          const auto & quantizer = segmentation.initialized()
                                            ? segment_quantizers.at( macroblock.segment_id() )
                                            : frame_quantizer;
+                                         VP8Raster::Macroblock output = raster.macroblock( column, row );
                                          if ( macroblock.inter_coded() ) {
                                            macroblock.reconstruct_inter( quantizer,
                                                                          references,
-                                                                         raster.macroblock( column, row ) );
+                                                                         output );
                                          } else {
                                            macroblock.reconstruct_intra( quantizer,
-                                                                         raster.macroblock( column, row ) );
+                                                                         output );
                                          } } );
 }
 

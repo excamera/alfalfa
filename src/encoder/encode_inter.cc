@@ -202,8 +202,8 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
 
   MotionVector best_mv;
   const VP8Raster & reference = references_.last.get();
-  const auto & reference_mb = reference.macroblock( frame_mb.context().column,
-                                                    frame_mb.context().row );
+  const auto reference_mb = reference.macroblock( frame_mb.context().column,
+                                                  frame_mb.context().row );
 
   TwoDSubRange<uint8_t, 16, 16> & prediction = temp_mb.Y.mutable_contents();
 
@@ -261,7 +261,7 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
       throw runtime_error( "not supported" );
     }
 
-    reference_mb.Y.inter_predict( mv, reference.Y(), prediction );
+    reference_mb.macroblock().Y.inter_predict( mv, reference.Y(), prediction );
 
     pred.distortion = variance( original_mb.Y, prediction );
     pred.rate = costs_.mbmode_costs.at( 1 ).at( prediction_mode );
@@ -527,22 +527,22 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
   MVComponentCounts component_counts;
 
   raster.macroblocks_forall_ij(
-    [&] ( const VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
+    [&] ( VP8Raster::ConstMacroblock original_mb, unsigned int mb_column, unsigned int mb_row )
     {
-      auto & reconstructed_mb = reconstructed_raster_handle.get().macroblock( mb_column, mb_row );
-      auto & temp_mb = temp_raster().macroblock( mb_column, mb_row );
+      auto reconstructed_mb = reconstructed_raster_handle.get().macroblock( mb_column, mb_row );
+      auto temp_mb = temp_raster().macroblock( mb_column, mb_row );
       auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
 
       // Process Y and Y2
-      luma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb, frame_mb,
+      luma_mb_inter_predict( original_mb.macroblock(), reconstructed_mb, temp_mb, frame_mb,
                              quantizer, component_counts, FIRST_PASS );
 
       if ( frame_mb.inter_coded() ) {
-        chroma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb,
+        chroma_mb_inter_predict( original_mb.macroblock(), reconstructed_mb, temp_mb,
                                  frame_mb, quantizer, FIRST_PASS );
       }
       else {
-        chroma_mb_intra_predict( original_mb, reconstructed_mb, temp_mb,
+        chroma_mb_intra_predict( original_mb.macroblock(), reconstructed_mb, temp_mb,
                                  frame_mb, quantizer, FIRST_PASS );
       }
 

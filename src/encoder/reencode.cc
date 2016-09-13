@@ -98,22 +98,22 @@ InterFrame Encoder::reencode_frame( const VP8Raster & original_raster,
   TokenBranchCounts token_branch_counts;
 
   original_raster.macroblocks_forall_ij(
-    [&] ( const VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
+    [&] ( VP8Raster::ConstMacroblock original_mb, unsigned int mb_column, unsigned int mb_row )
     {
-      auto & reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
-      auto & temp_mb = temp_raster().macroblock( mb_column, mb_row );
+      auto reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
+      auto temp_mb = temp_raster().macroblock( mb_column, mb_row );
       auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
 
       // Process Y and Y2
-      luma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb, frame_mb,
+      luma_mb_inter_predict( original_mb.macroblock(), reconstructed_mb, temp_mb, frame_mb,
                              quantizer, component_counts, FIRST_PASS );
 
       if ( frame_mb.inter_coded() ) {
-        chroma_mb_inter_predict( original_mb, reconstructed_mb, temp_mb,
+        chroma_mb_inter_predict( original_mb.macroblock(), reconstructed_mb, temp_mb,
                                  frame_mb, quantizer, FIRST_PASS );
       }
       else {
-        chroma_mb_intra_predict( original_mb, reconstructed_mb, temp_mb,
+        chroma_mb_intra_predict( original_mb.macroblock(), reconstructed_mb, temp_mb,
                                  frame_mb, quantizer, FIRST_PASS );
       }
 
@@ -269,14 +269,14 @@ InterFrame Encoder::update_residues( const VP8Raster & original_raster,
   TokenBranchCounts token_branch_counts;
 
   original_raster.macroblocks_forall_ij(
-    [&] ( const VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
+    [&] ( VP8Raster::ConstMacroblock original_mb, unsigned int mb_column, unsigned int mb_row )
     {
-      auto & reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
-      auto & temp_mb = temp_raster().macroblock( mb_column, mb_row );
+      auto reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
+      auto temp_mb = temp_raster().macroblock( mb_column, mb_row );
       auto & original_fmb = original_frame.macroblocks().at( mb_column, mb_row );
       auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
 
-      update_macroblock( original_mb, reconstructed_mb, temp_mb, frame_mb,
+      update_macroblock( original_mb.macroblock(), reconstructed_mb, temp_mb, frame_mb,
                          original_fmb, quantizer );
 
       frame_mb.calculate_has_nonzero();
@@ -319,8 +319,8 @@ void Encoder::refine_switching_frame( InterFrame & F2, const InterFrame & F1,
     [&] ( InterFrameMacroblock & F2_mb, unsigned int mb_column, unsigned int mb_row )
     {
       auto & F1_mb = F1.macroblocks().at( mb_column, mb_row );
-      auto & d1_mb = d1.macroblock( mb_column, mb_row );
-      auto & d2_mb = d2.macroblock( mb_column, mb_row );
+      auto d1_mb = d1.macroblock( mb_column, mb_row );
+      auto d2_mb = d2.macroblock( mb_column, mb_row );
 
       DCTCoefficients F2_coeffs;
       DCTCoefficients F1_coeffs;
@@ -329,8 +329,8 @@ void Encoder::refine_switching_frame( InterFrame & F2, const InterFrame & F1,
         [&] ( YBlock & F2_sb, unsigned int sb_column, unsigned int sb_row )
         {
           auto & F1_sb = F1_mb.Y().at( sb_column, sb_row );
-          auto & d1_sb = d1_mb.Y_sub_at( sb_column, sb_row );
-          auto & d2_sb = d2_mb.Y_sub_at( sb_column, sb_row );
+          auto & d1_sb = d1_mb.macroblock().Y_sub_at( sb_column, sb_row );
+          auto & d2_sb = d2_mb.macroblock().Y_sub_at( sb_column, sb_row );
 
           // q(dct(d1))
           F1_coeffs.subtract_dct( d1_sb, blank_block );
@@ -353,8 +353,8 @@ void Encoder::refine_switching_frame( InterFrame & F2, const InterFrame & F1,
         [&] ( UVBlock & F2_sb, unsigned int sb_column, unsigned int sb_row )
         {
           auto & F1_sb = F1_mb.U().at( sb_column, sb_row );
-          auto & d1_sb = d1_mb.U_sub_at( sb_column, sb_row );
-          auto & d2_sb = d2_mb.U_sub_at( sb_column, sb_row );
+          auto & d1_sb = d1_mb.macroblock().U_sub_at( sb_column, sb_row );
+          auto & d2_sb = d2_mb.macroblock().U_sub_at( sb_column, sb_row );
 
           // q(dct(d1))
           F1_coeffs.subtract_dct( d1_sb, blank_block );
@@ -377,8 +377,8 @@ void Encoder::refine_switching_frame( InterFrame & F2, const InterFrame & F1,
         [&] ( UVBlock & F2_sb, unsigned int sb_column, unsigned int sb_row )
         {
           auto & F1_sb = F1_mb.V().at( sb_column, sb_row );
-          auto & d1_sb = d1_mb.V_sub_at( sb_column, sb_row );
-          auto & d2_sb = d2_mb.V_sub_at( sb_column, sb_row );
+          auto & d1_sb = d1_mb.macroblock().V_sub_at( sb_column, sb_row );
+          auto & d2_sb = d2_mb.macroblock().V_sub_at( sb_column, sb_row );
 
           // q(dct(d1))
           F1_coeffs.subtract_dct( d1_sb, blank_block );

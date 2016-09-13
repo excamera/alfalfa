@@ -373,16 +373,16 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
     }
 
     raster.macroblocks_forall_ij(
-      [&] ( const VP8Raster::Macroblock & original_mb, unsigned int mb_column, unsigned int mb_row )
+      [&] ( VP8Raster::ConstMacroblock original_mb, unsigned int mb_column, unsigned int mb_row )
       {
-        auto & reconstructed_mb = reconstructed_raster_handle.get().macroblock( mb_column, mb_row );
-        auto & temp_mb = temp_raster().macroblock( mb_column, mb_row );
+        auto reconstructed_mb = reconstructed_raster_handle.get().macroblock( mb_column, mb_row );
+        auto temp_mb = temp_raster().macroblock( mb_column, mb_row );
         auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
 
         // Process Y and Y2
-        luma_mb_intra_predict( original_mb, reconstructed_mb, temp_mb,
+        luma_mb_intra_predict( original_mb.macroblock(), reconstructed_mb, temp_mb,
                                frame_mb, quantizer, (EncoderPass)pass );
-        chroma_mb_intra_predict( original_mb, reconstructed_mb, temp_mb,
+        chroma_mb_intra_predict( original_mb.macroblock(), reconstructed_mb, temp_mb,
                                  frame_mb, quantizer, (EncoderPass)pass );
 
         frame_mb.calculate_has_nonzero();

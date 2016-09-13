@@ -26,37 +26,51 @@ void VP8Raster::Block4::set_above_right_bottom_row_predictor( const typename Pre
   predictors_.above_right_bottom_row_predictor.use_row = replacement.use_row;
 }
 
+VP8Raster::Macroblock::Macroblock( Macroblock && other )
+: Y( move( other.Y ) ),
+  U( move( other.U ) ),
+  V( move( other.V ) ),
+  Y_sub( move( other.Y_sub ) ),
+  U_sub( move( other.U_sub ) ),
+  V_sub( move( other.V_sub ) )
+{}
+
 VP8Raster::Macroblock::Macroblock( const TwoD< Macroblock >::Context & c, VP8Raster & raster )
-: Y( c.column, c.row, raster.Y() ),
-  U( c.column, c.row, raster.U() ),
-  V( c.column, c.row, raster.V() ),
+: Macroblock( c.column, c.row, raster )
+{}
+
+VP8Raster::Macroblock::Macroblock( const unsigned int column, const unsigned int row,
+                                   VP8Raster & raster )
+: Y( column, row, raster.Y() ),
+  U( column, row, raster.U() ),
+  V( column, row, raster.V() ),
   Y_sub( {
-      Block4( 4 * c.column + 0, 4 * c.row + 0, raster.Y() ),
-      Block4( 4 * c.column + 1, 4 * c.row + 0, raster.Y() ),
-      Block4( 4 * c.column + 2, 4 * c.row + 0, raster.Y() ),
-      Block4( 4 * c.column + 3, 4 * c.row + 0, raster.Y() ),
-      Block4( 4 * c.column + 0, 4 * c.row + 1, raster.Y() ),
-      Block4( 4 * c.column + 1, 4 * c.row + 1, raster.Y() ),
-      Block4( 4 * c.column + 2, 4 * c.row + 1, raster.Y() ),
-      Block4( 4 * c.column + 3, 4 * c.row + 1, raster.Y() ),
-      Block4( 4 * c.column + 0, 4 * c.row + 2, raster.Y() ),
-      Block4( 4 * c.column + 1, 4 * c.row + 2, raster.Y() ),
-      Block4( 4 * c.column + 2, 4 * c.row + 2, raster.Y() ),
-      Block4( 4 * c.column + 3, 4 * c.row + 2, raster.Y() ),
-      Block4( 4 * c.column + 0, 4 * c.row + 3, raster.Y() ),
-      Block4( 4 * c.column + 1, 4 * c.row + 3, raster.Y() ),
-      Block4( 4 * c.column + 2, 4 * c.row + 3, raster.Y() ),
-      Block4( 4 * c.column + 3, 4 * c.row + 3, raster.Y() ) } ),
+      Block4( 4 * column + 0, 4 * row + 0, raster.Y() ),
+      Block4( 4 * column + 1, 4 * row + 0, raster.Y() ),
+      Block4( 4 * column + 2, 4 * row + 0, raster.Y() ),
+      Block4( 4 * column + 3, 4 * row + 0, raster.Y() ),
+      Block4( 4 * column + 0, 4 * row + 1, raster.Y() ),
+      Block4( 4 * column + 1, 4 * row + 1, raster.Y() ),
+      Block4( 4 * column + 2, 4 * row + 1, raster.Y() ),
+      Block4( 4 * column + 3, 4 * row + 1, raster.Y() ),
+      Block4( 4 * column + 0, 4 * row + 2, raster.Y() ),
+      Block4( 4 * column + 1, 4 * row + 2, raster.Y() ),
+      Block4( 4 * column + 2, 4 * row + 2, raster.Y() ),
+      Block4( 4 * column + 3, 4 * row + 2, raster.Y() ),
+      Block4( 4 * column + 0, 4 * row + 3, raster.Y() ),
+      Block4( 4 * column + 1, 4 * row + 3, raster.Y() ),
+      Block4( 4 * column + 2, 4 * row + 3, raster.Y() ),
+      Block4( 4 * column + 3, 4 * row + 3, raster.Y() ) } ),
   U_sub( {
-      Block4( 2 * c.column + 0, 2 * c.row + 0, raster.U() ),
-      Block4( 2 * c.column + 1, 2 * c.row + 0, raster.U() ),
-      Block4( 2 * c.column + 0, 2 * c.row + 1, raster.U() ),
-      Block4( 2 * c.column + 1, 2 * c.row + 1, raster.U() ) } ),
+      Block4( 2 * column + 0, 2 * row + 0, raster.U() ),
+      Block4( 2 * column + 1, 2 * row + 0, raster.U() ),
+      Block4( 2 * column + 0, 2 * row + 1, raster.U() ),
+      Block4( 2 * column + 1, 2 * row + 1, raster.U() ) } ),
   V_sub( {
-      Block4( 2 * c.column + 0, 2 * c.row + 0, raster.V() ),
-      Block4( 2 * c.column + 1, 2 * c.row + 0, raster.V() ),
-      Block4( 2 * c.column + 0, 2 * c.row + 1, raster.V() ),
-      Block4( 2 * c.column + 1, 2 * c.row + 1, raster.V() ) } )
+      Block4( 2 * column + 0, 2 * row + 0, raster.V() ),
+      Block4( 2 * column + 1, 2 * row + 0, raster.V() ),
+      Block4( 2 * column + 0, 2 * row + 1, raster.V() ),
+      Block4( 2 * column + 1, 2 * row + 1, raster.V() ) } )
 {
   /* adjust "extra pixels" for rightmost Y subblocks in macroblock (other than the top one) */
   for ( unsigned int row = 1; row < 4; row++ ) {

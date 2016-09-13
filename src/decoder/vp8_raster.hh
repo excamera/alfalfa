@@ -191,6 +191,8 @@ public:
 
     Macroblock( const TwoD<Macroblock>::Context & c, VP8Raster & raster );
 
+    Macroblock( const unsigned int column, const unsigned int row, VP8Raster & raster );
+
     bool operator==( const Macroblock & other ) const
     {
       return Y.contents() == other.Y.contents()
@@ -202,6 +204,8 @@ public:
     {
       return not operator==( other );
     }
+
+    Macroblock( Macroblock && other );
 
     Macroblock & operator=( const Macroblock & other ) = delete;
 
@@ -234,7 +238,7 @@ public:
     template <class lambda> void V_sub_forall_ij( const lambda & f ) { forall_ij<2, 2>( V_sub, f ); }
 
     template <unsigned int s_width, unsigned int s_height, class lambda>
-    void forall_ij( SafeArray<Block4, s_width * s_height> & sub, const lambda & f )
+    void forall_ij( SafeArray<Block4, s_width * s_height> & sub, const lambda & f ) const
     {
       for ( unsigned int row = 0; row < s_height; row++ ) {
         for ( unsigned int column = 0; column < s_width; column++ ) {
@@ -244,20 +248,34 @@ public:
     }
   };
 
-private:
-  TwoD<Macroblock> macroblocks_ { width_ / 16, height_ / 16, *this };
+  struct ConstMacroblock
+  {
+  private:
+    Macroblock macroblock_;
+
+  public:
+    ConstMacroblock( const unsigned int column, const unsigned int row, const VP8Raster & raster )
+      : macroblock_( column, row, const_cast<VP8Raster &>( raster ) )
+    {}
+
+    ConstMacroblock( ConstMacroblock && other )
+    : macroblock_( std::move( const_cast<Macroblock &> ( other.macroblock_ ) ) )
+    {}
+
+    const Macroblock & macroblock() const { return macroblock_; }
+  };
 
 public:
   VP8Raster( const unsigned int display_width, const unsigned int display_height );
 
-  Macroblock & macroblock( const unsigned int column, const unsigned int row )
+  Macroblock macroblock( const unsigned int column, const unsigned int row )
   {
-    return macroblocks_.at( column, row );
+    return { column, row, *this };
   }
 
-  const Macroblock & macroblock( const unsigned int column, const unsigned int row ) const
+  ConstMacroblock macroblock( const unsigned int column, const unsigned int row ) const
   {
-    return macroblocks_.at( column, row );
+    return { column, row, *this };
   }
 
   static unsigned int macroblock_dimension( const unsigned int num ) { return ( num + 15 ) / 16; }
@@ -265,8 +283,8 @@ public:
   template <class lambda>
   void macroblocks_forall_ij( const lambda & f ) const
   {
-    for ( unsigned int row = 0; row < macroblocks_.height(); row++ ) {
-      for ( unsigned int column = 0; column < macroblocks_.width(); column++ ) {
+    for ( unsigned int row = 0; row < height_ / 16; row++ ) {
+      for ( unsigned int column = 0; column < width_ / 16; column++ ) {
         f( macroblock( column, row ), column, row );
       }
     }
