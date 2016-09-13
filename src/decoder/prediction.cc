@@ -14,7 +14,7 @@ VP8Raster::Block<size>::Block( const typename TwoD< Block >::Context & c,
   : contents_( raster_component, size * c.column, size * c.row ),
     column_( c.column ),
     row_( c.row ),
-    predictors_( c )
+    predictors_( raster_component, c.column, c.row )
 {}
 
 /* the rightmost Y-subblocks in a macroblock (other than the upper-right subblock) are special-cased */
@@ -62,25 +62,28 @@ const typename VP8Raster::Block<size>::Column & VP8Raster::Block<size>::Predicto
 }
 
 template <unsigned int size>
-VP8Raster::Block<size>::Predictors::Predictors( const typename TwoD< Block >::Context & context )
-  : above_row( context.above.initialized()
-               ? context.above.get()->contents().row( size - 1 )
+VP8Raster::Block<size>::Predictors::Predictors( TwoD<uint8_t> & component,
+                                                const unsigned int column,
+                                                const unsigned int row )
+  : above_row( row
+               ? component.slice<size, 1>( size * column, size * row - 1 )
                : row127() ),
-  left_column( context.left.initialized()
-               ? context.left.get()->contents().column( size - 1 )
+  left_column( column
+               ? component.slice<1, size>( size * column - 1, size * row )
                : col129() ),
-  above_left( context.above_left.initialized()
-              ? context.above_left.get()->at( size - 1, size - 1 )
-              : ( context.above.initialized()
+  above_left( column and row
+              ? component.at( size * column - 1, size * row - 1 )
+              : ( row
                   ? col129().at( 0, 0 )
                   : row127().at( 0, 0 ) ) ),
-  above_right_bottom_row_predictor( { context.above_right.initialized()
-        ? context.above_right.get()->contents().row( size - 1 )
-        : row127(),
-        context.above.initialized()
-        ? &context.above.get()->at( size - 1, size - 1 )
-        : &row127().at( 0, 0 ),
-        context.above_right.initialized() } )
+  above_right_bottom_row_predictor( {
+      ((row and (size * (column + 1) < component.width()))
+       ? component.slice<size, 1>( size * (column + 1), size * row - 1 )
+       : row127()),
+        (row
+         ? &above_row.at( size - 1, 0 )
+         : &row127().at( 0, 0 )),
+        (row and (size * (column + 1) < component.width())) } )
 {}
 
 template <unsigned int size>

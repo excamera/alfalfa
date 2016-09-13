@@ -85,7 +85,9 @@ public:
       uint8_t left( const int8_t row ) const;
       uint8_t east( const int8_t num ) const;
 
-      Predictors( const typename TwoD<Block>::Context & context );
+      Predictors( TwoD<uint8_t> & component,
+                  const unsigned int column,
+                  const unsigned int row );
     } predictors_;
 
   public:

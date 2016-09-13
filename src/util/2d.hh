@@ -170,6 +170,9 @@ public:
   TwoDStorage & operator=( TwoDStorage && other ) = delete;
 };
 
+template< class T, unsigned int sub_width, unsigned int sub_height >
+class TwoDSubRange;
+
 template <class T>
 class TwoD
 {
@@ -220,6 +223,12 @@ public:
   bool operator==( const TwoD<T> & other ) const { return *storage_ == *( other.storage_ ); }
 
   bool operator!=( const TwoD<T> & other ) const { return not operator==( other ); }
+
+  template <unsigned int sub_width, unsigned int sub_height>
+  TwoDSubRange<T, sub_width, sub_height> slice( unsigned int column, unsigned int row )
+  {
+    return TwoDSubRange<T, sub_width, sub_height>( storage(), column, row );
+  }
 
   /* forbid copying */
   TwoD( const TwoD & other ) = delete;
