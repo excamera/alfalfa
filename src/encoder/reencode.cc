@@ -541,20 +541,35 @@ void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
       throw Unsupported( "unshown frame in the prediction ivf" );
     }
 
-    if ( pred_uch.key_frame() ) {
-      KeyFrame frame = pred_decoder.parse_frame<KeyFrame>( pred_uch );
-      pred_decoder.decode_frame( frame );
+    if ( frame_index == 0 ) {
+      /* always re-encode the first frame of the chunk
+         (i.e. search for the best prediction modes and
+         motion vectors) and turn it into an InterFrame */
 
-      write_frame( reencode_frame( target_output, frame ) );
-    }
-    else {
-      InterFrame frame = pred_decoder.parse_frame<InterFrame>( pred_uch );
-      pred_decoder.decode_frame( frame );
+      if ( pred_uch.key_frame() ) {
+        KeyFrame frame = pred_decoder.parse_frame<KeyFrame>( pred_uch );
+        pred_decoder.decode_frame( frame );
 
-      if ( frame_index == 0 ) {
+        write_frame( reencode_frame( target_output, frame ) );
+      } else {
+        InterFrame frame = pred_decoder.parse_frame<InterFrame>( pred_uch );
+        pred_decoder.decode_frame( frame );
+
         write_frame( reencode_frame( target_output, frame ) );
       }
-      else {
+    } else {
+      /* for subsequent frames, preserve KeyFrames exactly,
+         and just update the residues in an InterFrame */
+
+      if ( pred_uch.key_frame() ) {
+        KeyFrame frame = pred_decoder.parse_frame<KeyFrame>( pred_uch );
+        pred_decoder.decode_frame( frame );
+
+        write_frame( frame );
+      } else {
+        InterFrame frame = pred_decoder.parse_frame<InterFrame>( pred_uch );
+        pred_decoder.decode_frame( frame );
+
         write_frame( update_residues( target_output, frame ) );
       }
     }
