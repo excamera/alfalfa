@@ -404,9 +404,6 @@ void Encoder::optimize_probability_tables( FrameType & frame, const TokenBranchC
           if ( prob > 0 and prob != decoder_state_.probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l ) ) {
             frame.mutable_header().token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( true, prob );
           }
-          else {
-            frame.mutable_header().token_prob_update.at( i ).at( j ).at( k ).at( l ).coeff_prob.clear();
-          }
         }
       }
     }
@@ -531,10 +528,10 @@ double Encoder::encode_raster( const VP8Raster & raster,
 
   quant_indices.y_ac_qi = best_y_ac_qi;
   qindex_ = quant_indices.y_ac_qi;
-  DecoderState current_state = decoder_state_;
+  //DecoderState current_state = decoder_state_;
   pair<FrameType, double> encoded_frame = encode_with_quantizer<FrameType>( raster, quant_indices, true );
 
-  write_frame( encoded_frame.first, current_state.probability_tables );
+  write_frame( encoded_frame.first );//, current_state.probability_tables );
 
   return encoded_frame.second;
 }

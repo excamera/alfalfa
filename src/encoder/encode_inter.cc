@@ -582,7 +582,6 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
   frame.relink_y2_blocks();
 
   optimize_prob_skip( frame );
-  // optimize_mv_probs( frame, component_counts );
   optimize_interframe_probs( frame );
   optimize_probability_tables( frame, token_branch_counts );
   apply_best_loopfilter_settings( raster, reconstructed_raster_handle.get(), frame );

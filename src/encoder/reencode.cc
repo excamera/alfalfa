@@ -66,6 +66,17 @@ InterFrame Encoder::reencode_frame( const VP8Raster & original_raster,
     if_header.intra_chroma_prob.get().at( i ) = k_default_uv_mode_probs.at( i );
   }
 
+  // for ( unsigned int i = 0; i < BLOCK_TYPES; i++ ) {
+  //   for ( unsigned int j = 0; j < COEF_BANDS; j++ ) {
+  //     for ( unsigned int k = 0; k < PREV_COEF_CONTEXTS; k++ ) {
+  //       for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
+  //         TokenProbUpdate & frame_prob = frame.mutable_header().token_prob_update.at( i ).at( j ).at( k ).at( l );
+  //         frame_prob = TokenProbUpdate( true, k_default_coeff_probs.at( i ).at( j ).at( k ).at( l ) );
+  //       }
+  //     }
+  //   }
+  // }
+
   Quantizer quantizer( frame.header().quant_indices );
   MutableRasterHandle reconstructed_raster_handle { width(), height() };
   VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
@@ -230,10 +241,27 @@ InterFrame Encoder::update_residues( const VP8Raster & original_raster,
 {
   InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height(),
                                                             true, false );
-  frame.mutable_header() = original_frame.header();
+  //frame.mutable_header() = original_frame.header();
 
   const InterFrameHeader & of_header = original_frame.header();
   InterFrameHeader & if_header = frame.mutable_header();
+
+  if_header.update_segmentation      = of_header.update_segmentation;
+  if_header.filter_type              = of_header.filter_type;
+  if_header.loop_filter_level        = of_header.loop_filter_level;
+  if_header.sharpness_level          = of_header.sharpness_level;
+  if_header.mode_lf_adjustments      = of_header.mode_lf_adjustments;
+  if_header.quant_indices            = of_header.quant_indices;
+  if_header.refresh_last             = of_header.refresh_last;
+  if_header.refresh_golden_frame     = of_header.refresh_golden_frame;
+  if_header.refresh_alternate_frame  = of_header.refresh_alternate_frame;
+  if_header.copy_buffer_to_golden    = of_header.copy_buffer_to_golden;
+  if_header.copy_buffer_to_alternate = of_header.copy_buffer_to_alternate;
+  if_header.sign_bias_golden         = of_header.sign_bias_golden;
+  if_header.sign_bias_alternate      = of_header.sign_bias_alternate;
+  if_header.refresh_entropy_probs    = of_header.refresh_entropy_probs;
+  if_header.prob_references_last     = of_header.prob_references_last;
+  if_header.prob_references_golden   = of_header.prob_references_golden;
 
   for ( size_t i = 0; i < 2; i++ ) {
     for ( size_t j = 0; j < MV_PROB_CNT; j++ ) {
@@ -286,6 +314,9 @@ void Encoder::refine_switching_frame( InterFrame & F2, const InterFrame & F1,
                                       const VP8Raster & d1 )
 {
   assert( F1.switching_frame() and F2.switching_frame() );
+  assert( F2.header().refresh_entropy_probs );
+  // switching frame tries to force probabilities convergence, so this must be
+  // true.
 
   const VP8Raster & d2 = references_.at( LAST_FRAME );
 
@@ -399,7 +430,7 @@ InterFrame Encoder::create_switching_frame( const uint8_t y_ac_qi )
   QuantIndices quant_indices;
   quant_indices.y_ac_qi = y_ac_qi;
 
-  if_header.loop_filter_level = 0; // disable loopfilter for this if_header
+  if_header.loop_filter_level = 0;
   if_header.mode_lf_adjustments.clear();
   if_header.quant_indices = quant_indices;
   if_header.refresh_last = true;
@@ -408,7 +439,7 @@ InterFrame Encoder::create_switching_frame( const uint8_t y_ac_qi )
   for ( size_t i = 0; i < 2; i++ ) {
     for ( size_t j = 0; j < MV_PROB_CNT; j++ ) {
       uint8_t current_prob = decoder_state_.probability_tables.motion_vector_probs.at( i ).at( j );
-      frame.mutable_header().mv_prob_update.at( i ).at( j ) = MVProbUpdate( true, MVProbUpdate::read_half_prob( MVProbUpdate::write_prob( current_prob ) ) );
+      if_header.mv_prob_update.at( i ).at( j ) = MVProbUpdate( true, MVProbUpdate::read_half_prob( MVProbUpdate::write_prob( current_prob ) ) );
     }
   }
 
@@ -437,19 +468,8 @@ InterFrame Encoder::create_switching_frame( const uint8_t y_ac_qi )
         }
       );
 
-      frame_mb.U().forall(
-        [&] ( UVBlock & frame_sb )
-        {
-          frame_sb.zero_out(); // no residuals
-        }
-      );
-
-      frame_mb.V().forall(
-        [&] ( UVBlock & frame_sb )
-        {
-          frame_sb.zero_out(); // no residuals
-        }
-      );
+      frame_mb.U().forall( [&] ( UVBlock & frame_sb ) { frame_sb.zero_out(); } );
+      frame_mb.V().forall( [&] ( UVBlock & frame_sb ) { frame_sb.zero_out(); } );
 
       frame_mb.calculate_has_nonzero();
       frame_mb.accumulate_token_branches( token_branch_counts );
@@ -474,12 +494,13 @@ void Encoder::fix_probability_tables( InterFrame & frame,
         for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
           uint8_t current_prob = decoder_state_.probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l );
           uint8_t target_prob = target.coeff_probs.at( i ).at( j ).at( k ).at( l );
+          TokenProbUpdate & frame_prob = frame.mutable_header().token_prob_update.at( i ).at( j ).at( k ).at( l );
 
-          if ( current_prob != target_prob ) {
-            frame.mutable_header().token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( true, target_prob );
+          if ( target_prob != current_prob ) {
+            frame_prob = TokenProbUpdate( true, target_prob );
           }
           else {
-            frame.mutable_header().token_prob_update.at( i ).at( j ).at( k ).at( l ).coeff_prob.clear();
+            frame_prob = TokenProbUpdate();
           }
         }
       }
@@ -542,8 +563,7 @@ void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
         write_frame( reencode_frame( target_output, frame ) );
       }
       else {
-        InterFrame rframe = update_residues( target_output, frame );
-        write_frame( rframe );
+        write_frame( update_residues( target_output, frame ) );
       }
     }
   }
@@ -586,8 +606,8 @@ void Encoder::write_switching_frame( const InterFrame & frame )
   MutableRasterHandle reconstructed_raster_handle { width(), height() };
   VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
 
+  write_frame( frame );
+
   frame.decode( { }, references_, reconstructed_raster );
   frame.copy_to( move( reconstructed_raster_handle ), references_ );
-
-  write_frame( frame );
 }
