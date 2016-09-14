@@ -85,6 +85,7 @@ void print_key_value( const KeyType & key, const ValueType & value, const size_t
 template<class FrameHeaderType>
 void print_header_common( const FrameHeaderType & header )
 {
+  print_key_value( "refresh_entropy_probs", header.refresh_entropy_probs );
   print_key_value( "update_segmentation", header.update_segmentation.initialized() );
   print_key_value( "filter_type",         header.filter_type );
   print_key_value( "mode_lf_adjustments", header.mode_lf_adjustments.initialized() );
