@@ -90,6 +90,13 @@ void Encoder::write_frame( const FrameType & frame,
                            const ProbabilityTables & prob_tables )
 {
   update_decoder_state( frame );
+
+  MutableRasterHandle raster { width(), height() };
+  frame.decode( decoder_state_.segmentation, references_, raster );
+  frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, raster );
+  RasterHandle immutable_raster( move( raster ) );
+  frame.copy_to( immutable_raster, references_ );
+
   ivf_writer_.append_frame( frame.serialize( prob_tables ) );
 }
 

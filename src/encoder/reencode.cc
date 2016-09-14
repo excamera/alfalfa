@@ -125,9 +125,6 @@ InterFrame Encoder::reencode_frame( const VP8Raster & original_raster,
 
   apply_best_loopfilter_settings( original_raster, reconstructed_raster, frame );
 
-  RasterHandle immutable_raster( move( reconstructed_raster_handle ) );
-  frame.copy_to( immutable_raster, references_ );
-
   return frame;
 }
 
@@ -301,11 +298,6 @@ InterFrame Encoder::update_residues( const VP8Raster & original_raster,
   optimize_prob_skip( frame );
   optimize_interframe_probs( frame );
   optimize_probability_tables( frame, token_branch_counts );
-
-  frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed_raster );
-
-  RasterHandle immutable_raster( move( reconstructed_raster_handle ) );
-  frame.copy_to( immutable_raster, references_ );
 
   return frame;
 }
@@ -603,11 +595,5 @@ void Encoder::write_switching_frame( const InterFrame & frame )
 {
   assert( frame.switching_frame() );
 
-  MutableRasterHandle reconstructed_raster_handle { width(), height() };
-  VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
-
   write_frame( frame );
-
-  frame.decode( { }, references_, reconstructed_raster );
-  frame.copy_to( move( reconstructed_raster_handle ), references_ );
 }

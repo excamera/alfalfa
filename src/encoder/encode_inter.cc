@@ -591,9 +591,6 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
   if ( not update_state ) {
     decoder_state_ = decoder_state_copy;
   }
-  else {
-    frame.copy_to( immutable_raster, references_ );
-  }
 
   return { move( frame ), immutable_raster.get().quality( raster ) };
 }

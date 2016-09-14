@@ -9,6 +9,10 @@ using namespace std;
 template<>
 void Encoder::update_decoder_state( const KeyFrame & frame )
 {
+  // this is a keyframe! reset the decoder state
+  decoder_state_ = DecoderState( frame.header(), width(), height() );
+  references_ = References( width(), height() );
+
   if ( frame.header().refresh_entropy_probs ) {
     decoder_state_.probability_tables.coeff_prob_update( frame.header() );
   }
@@ -414,9 +418,6 @@ pair<KeyFrame, double> Encoder::encode_with_quantizer<KeyFrame>( const VP8Raster
 
   if ( not update_state ) {
     decoder_state_ = decoder_state_copy;
-  }
-  else {
-    frame.copy_to( immutable_raster, references_ );
   }
 
   return { move( frame ), immutable_raster.get().quality( raster ) };
