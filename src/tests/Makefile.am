@@ -19,7 +19,8 @@ dist_check_SCRIPTS = fetch-vectors.test fetch-encoder-vectors.test decoding.test
                      switch-test ivfcopy.test xc-enc-ssim.test convergence.test \
                      serdes.test
 
-TESTS = fetch-vectors.test decoding.test encode-loopback roundtrip-verify.test \
+TESTS = fetch-vectors.test fetch-convergence-test.test decoding.test \
+        encode-loopback roundtrip-verify.test \
         ivfcopy.test fetch-encoder-vectors.test xc-enc-ssim.test \
         convergence.test serdes.test
 

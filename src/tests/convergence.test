@@ -5,15 +5,15 @@ import sys
 import subprocess as sub
 
 TEST_DIR = "convergence_test/"
-TEST_INPUTS_DIR = os.path.join(TEST_DIR, "inputs")
+TEST_INPUTS = "inputs/*.y4m"
 TEST_OUTPUTS_DIR = os.path.join(TEST_DIR, "outputs")
-INPUT_FILES = os.listdir(TEST_INPUTS_DIR)
 
 os.environ['PATH'] = os.getcwd() + "/../frontend:" + os.environ['PATH']
 
-TEST_COMMAND = "cd convergence_test && ./looper {}".format( " ".join( INPUT_FILES ) )
+TEST_COMMAND = "cd convergence_test && ./looper {}".format(TEST_INPUTS)
 
-ret_val = sub.call(TEST_COMMAND, shell=True)
+ret_val = os.system(TEST_COMMAND)
+
 os.system("rm {}".format(os.path.join(TEST_OUTPUTS_DIR, '*')))
 
 sys.exit(ret_val)
