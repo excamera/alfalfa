@@ -89,6 +89,7 @@ template<class FrameType>
 void Encoder::write_frame( const FrameType & frame,
                            const ProbabilityTables & prob_tables )
 {
+  update_decoder_state( frame );
   ivf_writer_.append_frame( frame.serialize( prob_tables ) );
 }
 

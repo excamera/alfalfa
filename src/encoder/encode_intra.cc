@@ -6,6 +6,14 @@
 
 using namespace std;
 
+template<>
+void Encoder::update_decoder_state( const KeyFrame & frame )
+{
+  if ( frame.header().refresh_entropy_probs ) {
+    decoder_state_.probability_tables.coeff_prob_update( frame.header() );
+  }
+}
+
 void Encoder::luma_sb_apply_intra_prediction( const VP8Raster::Block4 & original_sb,
                                               VP8Raster::Block4 & reconstructed_sb,
                                               YBlock & frame_sb,

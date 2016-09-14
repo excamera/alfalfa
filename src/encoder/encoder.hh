@@ -249,6 +249,10 @@ private:
   void fix_mv_probabilities( InterFrame & frame,
                              const ProbabilityTables & target );
 
+
+  template<class FrameType>
+  void update_decoder_state( const FrameType & frame );
+
 public:
   Encoder( IVFWriter && output, const bool two_pass );
 

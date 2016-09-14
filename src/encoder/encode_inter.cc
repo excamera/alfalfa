@@ -125,6 +125,24 @@ static const array<int, 128> sad_per_bit16lut = {
   11, 11, 12, 12, 12, 12, 12, 12, 13, 13, 13, 13, 14, 14
 };
 
+template<>
+void Encoder::update_decoder_state( const InterFrame & frame )
+{
+  if ( frame.header().refresh_entropy_probs ) {
+    decoder_state_.probability_tables.update( frame.header() );
+  }
+
+  if ( frame.header().mode_lf_adjustments.initialized() ) {
+    if ( decoder_state_.filter_adjustments.initialized() ) {
+      decoder_state_.filter_adjustments.get().update( frame.header() );
+    } else {
+      decoder_state_.filter_adjustments.initialize( frame.header() );
+    }
+  } else {
+    decoder_state_.filter_adjustments.clear();
+  }
+}
+
 MotionVector Encoder::diamond_search( const VP8Raster::Macroblock & original_mb,
                                       VP8Raster::Macroblock & reconstructed_mb,
                                       VP8Raster::Macroblock & temp_mb,
@@ -454,8 +472,6 @@ void Encoder::optimize_mv_probs( InterFrame & frame, const MVComponentCounts & c
       }
     }
   }
-
-  decoder_state_.probability_tables.mv_prob_update( frame.header().mv_prob_update );
 }
 
 void Encoder::optimize_interframe_probs( InterFrame & frame )
