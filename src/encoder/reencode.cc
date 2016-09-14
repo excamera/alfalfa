@@ -482,6 +482,22 @@ void Encoder::fix_probability_tables( InterFrame & frame,
     }
   }
 
+  frame.mutable_header().intra_16x16_prob.clear();
+  frame.mutable_header().intra_16x16_prob.initialize();
+
+  frame.mutable_header().intra_chroma_prob.clear();
+  frame.mutable_header().intra_chroma_prob.initialize();
+
+  for ( size_t i = 0; i < 4; i++ ) {
+    decoder_state_.probability_tables.y_mode_probs.at( i ) = frame.mutable_header().intra_16x16_prob.get().at( i )
+                                                           = target.y_mode_probs.at( i );
+  }
+
+  for ( size_t i = 0; i < 3; i++ ) {
+    decoder_state_.probability_tables.uv_mode_probs.at( i ) = frame.mutable_header().intra_chroma_prob.get().at( i )
+                                                            = target.uv_mode_probs.at( i );
+  }
+
   if ( frame.header().refresh_entropy_probs ) {
     decoder_state_.probability_tables.coeff_prob_update( frame.header() );
   }
