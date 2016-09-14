@@ -35,3 +35,4 @@ convergence.log: fetch-convergence-test.log
 clean-local:
 	-rm -rf test_vectors
 	-rm -rf encoder_test_vectors
+	-rm -rf convergence_test
