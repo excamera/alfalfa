@@ -133,7 +133,11 @@ struct MVProbUpdate
   MVProbUpdate( const bool initialized, const uint8_t x )
     : mv_prob( initialized, x >> 1 )
   {
-    assert( !initialized or get() == x );
+    if ( initialized ) {
+      if ( get() != x ) {
+        throw Invalid( "can't MVProbUpdate to " + std::to_string( x ) );
+      }
+    }
   }
 
   MVProbUpdate() : mv_prob() {}

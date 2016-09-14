@@ -53,18 +53,6 @@ InterFrame Encoder::reencode_frame( const VP8Raster & original_raster,
   if_header.copy_buffer_to_golden.clear();
   if_header.copy_buffer_to_alternate.clear();
 
-  /* If a motion vector probability in the state is different from the default value,
-   * we will reset that to the default value. Otherwise, we do nothing.
-   */
-  for ( size_t i = 0; i < 2; i++ ) {
-    for ( size_t j = 0; j < MV_PROB_CNT; j++ ) {
-      if ( decoder_state_.probability_tables.motion_vector_probs.at( i ).at( j ) !=
-           k_default_mv_probs.at( i ).at( j ) ) {
-        if_header.mv_prob_update.at( i ).at( j ) = MVProbUpdate( true, k_default_mv_probs.at( i ).at( j ) & 0xFE );
-      }
-    }
-  }
-
   if_header.intra_16x16_prob.clear();
 
   Quantizer quantizer( frame.header().quant_indices );
@@ -498,7 +486,7 @@ void Encoder::fix_mv_probabilities( InterFrame & frame,
       uint8_t current_prob = decoder_state_.probability_tables.motion_vector_probs.at( i ).at( j );
       uint8_t target_prob = target.motion_vector_probs.at( i ).at( j );
 
-      if ( current_prob != target_prob and target_prob % 2 == 0 ) {
+      if ( current_prob != target_prob ) {
         frame.mutable_header().mv_prob_update.at( i ).at( j ) = MVProbUpdate( true, target_prob );
       }
     }
