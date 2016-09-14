@@ -52,3 +52,4 @@ Makefile.in
 /src/tests/test_vectors/
 /src/tests/encoder_test_vectors/
 /src/tests/encoder_output/
+/src/tests/convergence_test/
