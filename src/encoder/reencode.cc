@@ -474,8 +474,12 @@ void Encoder::fix_probability_tables( InterFrame & frame,
         for ( unsigned int l = 0; l < ENTROPY_NODES; l++ ) {
           uint8_t current_prob = decoder_state_.probability_tables.coeff_probs.at( i ).at( j ).at( k ).at( l );
           uint8_t target_prob = target.coeff_probs.at( i ).at( j ).at( k ).at( l );
+
           if ( current_prob != target_prob ) {
             frame.mutable_header().token_prob_update.at( i ).at( j ).at( k ).at( l ) = TokenProbUpdate( true, target_prob );
+          }
+          else {
+            frame.mutable_header().token_prob_update.at( i ).at( j ).at( k ).at( l ).coeff_prob.clear();
           }
         }
       }
