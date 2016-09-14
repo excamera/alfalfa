@@ -119,23 +119,16 @@ public:
 
   std::string getline()
   {
-    static const size_t MAX_LENGTH = 1048576;
     std::string ret;
 
-    while ( ret.length() < MAX_LENGTH ) {
-      char c;
+    while ( true ) {
+      std::string char_read = read( 1 );
 
-      ssize_t chars_read = SystemCall( "read", ::read( fd_, &c, 1 ) );
-
-      if ( chars_read == 0 ) {
-        eof_ = true;
-      }
-
-      if ( chars_read <= 0 or c == '\n' ) {
+      if ( eof() or char_read == "\n" ) {
         break;
       }
 
-      ret.append( 1, c );
+      ret.append( char_read );
     }
 
     return ret;
