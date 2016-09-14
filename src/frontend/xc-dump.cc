@@ -61,6 +61,7 @@ int main( int argc, char *argv[] )
 
       case 'S':
         input_state = optarg;
+        break;
 
       default:
         throw runtime_error( "getopt_long: unexpected return value." );
