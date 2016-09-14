@@ -539,11 +539,6 @@ void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
       }
       else {
         InterFrame rframe = update_residues( target_output, frame );
-
-        if ( fix_prob_tables and frame_index == pred_ivf.frame_count() - 2 ) {
-          fix_probability_tables( rframe, pred_decoder.get_state().probability_tables );
-        }
-
         write_frame( rframe );
       }
     }
@@ -571,6 +566,7 @@ void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
       refine_switching_frame( switching_frame, F1, d1 );
 
       if ( fix_prob_tables ) {
+        fix_probability_tables( switching_frame, pred_decoder.get_state().probability_tables );
         fix_mv_probabilities( switching_frame, pred_decoder.get_state().probability_tables );
       }
     }
