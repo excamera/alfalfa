@@ -251,18 +251,21 @@ Optional<RasterHandle> YUV4MPEGReader::get_next_frame()
   string frame_header = fd_.getline();
 
   if ( fd_.eof() ) {
-    return Optional<RasterHandle>();
+    return {};
   }
 
   if ( frame_header != "FRAME" ) {
     throw runtime_error( "invalid yuv4mpeg2 input format" );
   }
 
-  const size_t CHUNK_SIZE = 500 * 1024;
   string read_data;
 
   for ( size_t byte = 0; byte < y_plane_length(); byte += read_data.length() ) {
-    read_data = fd_.read( min( CHUNK_SIZE, y_plane_length() - byte ) );
+    read_data = fd_.read( y_plane_length() - byte );
+
+    if ( fd_.eof() ) {
+      throw Invalid( "partial YUV4MPEG frame" );
+    }
 
     for ( size_t i = 0; i < read_data.length(); i++ ) {
       raster.get().Y().at( ( i + byte ) % header_.width,
@@ -271,7 +274,11 @@ Optional<RasterHandle> YUV4MPEGReader::get_next_frame()
   }
 
   for ( size_t byte = 0; byte < uv_plane_length(); byte += read_data.length() ) {
-    read_data = fd_.read( min( CHUNK_SIZE, uv_plane_length() - byte ) );
+    read_data = fd_.read( uv_plane_length() - byte );
+
+    if ( fd_.eof() ) {
+      throw Invalid( "partial YUV4MPEG frame" );
+    }
 
     for ( size_t i = 0; i < read_data.length(); i++ ) {
       raster.get().U().at( ( i + byte ) % ( header_.width / 2 ),
@@ -280,7 +287,11 @@ Optional<RasterHandle> YUV4MPEGReader::get_next_frame()
   }
 
   for ( size_t byte = 0; byte < uv_plane_length(); byte += read_data.length() ) {
-    read_data = fd_.read( min( CHUNK_SIZE, uv_plane_length() - byte ) );
+    read_data = fd_.read( uv_plane_length() - byte );
+
+    if ( fd_.eof() ) {
+      throw Invalid( "partial YUV4MPEG frame" );
+    }
 
     for ( size_t i = 0; i < read_data.length(); i++ ) {
       raster.get().V().at( ( i + byte ) % ( header_.width / 2 ),
@@ -291,8 +302,7 @@ Optional<RasterHandle> YUV4MPEGReader::get_next_frame()
   /* edge-extend the raster */
   edge_extend( raster.get() );
 
-  RasterHandle handle( move( raster ) );
-  return make_optional<RasterHandle>( true, handle );
+  return { move( raster ) };
 }
 
 void YUV4MPEGFrameWriter::write( const BaseRaster &rh, FileDescriptor &fd )
