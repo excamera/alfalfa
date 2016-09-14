@@ -143,9 +143,9 @@ References::References( MutableRasterHandle && raster )
 {}
 
 References::References(EncoderStateDeserializer &idata, const uint16_t width, const uint16_t height)
-  : last(move(idata.get_ref(EncoderSerDesTag::REF_LAST, width, height)))
-  , golden(move(idata.get_ref(EncoderSerDesTag::REF_GOLD, width, height)))
-  , alternative(move(idata.get_ref(EncoderSerDesTag::REF_ALT, width, height)))
+  : last( move( idata.get_ref( EncoderSerDesTag::REF_LAST, width, height ) ) )
+  , golden( last )
+  , alternative( last )
 {}
 
 size_t References::serialize(EncoderStateSerializer &odata) const {
@@ -160,9 +160,10 @@ size_t References::serialize(EncoderStateSerializer &odata) const {
 
   len += odata.put(last, EncoderSerDesTag::REF_LAST);
 
-  len += odata.put(golden, EncoderSerDesTag::REF_GOLD);
+  // We don't care about golden or alternative reference!
+  /*len += odata.put(golden, EncoderSerDesTag::REF_GOLD);
 
-  len += odata.put(alternative, EncoderSerDesTag::REF_ALT);
+  len += odata.put(alternative, EncoderSerDesTag::REF_ALT);*/
 
   odata.put(len, placeholder);
 

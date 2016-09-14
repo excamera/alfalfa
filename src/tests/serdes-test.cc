@@ -163,12 +163,12 @@ Segmentation random_segmentation(default_random_engine &rng, uint16_t width, uin
   Segmentation s(width, height);
 
   s.absolute_segment_adjustments = rng();
-  
+
   for (unsigned i = 0; i < num_segments; i++) {
     s.segment_quantizer_adjustments.at(i) = rng();
     s.segment_filter_adjustments.at(i) = rng();
   }
-  
+
   s.map.forall([&](uint8_t &f){ f = rng(); });
 
   return s;
@@ -199,7 +199,7 @@ DecoderState random_decoder_state(default_random_engine &rng, uint16_t width, ui
   if (rng()) {
     s = move(random_segmentation(rng, width, height));
   }
-  
+
   if (rng()) {
     f = move(random_filter_adjustments(rng));
   }
@@ -215,8 +215,8 @@ References random_references(default_random_engine &rng, uint16_t width, uint16_
   References r(MutableRasterHandle(width, height));
 
   r.last = random_mutable_raster_handle(rng, width, height);
-  r.golden = random_mutable_raster_handle(rng, width, height);
-  r.alternative = random_mutable_raster_handle(rng, width, height);
+  r.golden = r.last;
+  r.alternative = r.last;
 
   return r;
 }
