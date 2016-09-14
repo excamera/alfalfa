@@ -246,8 +246,8 @@ private:
   void fix_probability_tables( InterFrame & frame,
                                const ProbabilityTables & target );
 
- void set_mv_probs( InterFrame & current_frame,
-                    const Enumerate<Enumerate<MVProbUpdate, MV_PROB_CNT>, 2> & mv_prob_update );
+  void fix_mv_probabilities( InterFrame & frame,
+                             const ProbabilityTables & target );
 
 public:
   Encoder( IVFWriter && output, const bool two_pass );

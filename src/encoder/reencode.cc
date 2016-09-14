@@ -28,35 +28,6 @@ using namespace std;
  * => r2 = q(dct(d1)) - q(dct(d2)) + r1
  */
 
-void Encoder::set_mv_probs( InterFrame & current_frame,
-                            const Enumerate<Enumerate<MVProbUpdate, MV_PROB_CNT>, 2> & mv_prob_update )
-{
-  return; // XXX let's do nothing for now, it only increases the framesize :|
-  SafeArray<SafeArray<Probability, MV_PROB_CNT>, 2> current_probs;
-
-  for ( size_t i = 0; i < 2; i++ ) {
-    for ( size_t j = 0; j < MV_PROB_CNT; j++ ) {
-      if ( mv_prob_update.at( i ).at( j ).initialized() ) {
-        current_probs.at( i ).at( j ) = mv_prob_update.at( i ).at( j ).get();
-      }
-      else {
-        current_probs.at( i ).at( j ) = k_default_mv_probs.at( i ).at( j );
-      }
-    }
-  }
-
-  for ( size_t i = 0; i < 2; i++ ) {
-    for ( size_t j = 0; j < MV_PROB_CNT; j++ ) {
-      uint8_t state_prob = decoder_state_.probability_tables.motion_vector_probs.at( i ).at( j );
-      if ( abs ( current_probs.at( i ).at( j ) - state_prob ) > 1 ) {
-        current_frame.mutable_header().mv_prob_update.at( i ).at( j ) = MVProbUpdate( true, current_probs.at( i ).at( j ) & 0xFE );
-      }
-    }
-  }
-
-  decoder_state_.probability_tables.mv_prob_update( current_frame.header().mv_prob_update );
-}
-
 template<class FrameType>
 InterFrame Encoder::reencode_frame( const VP8Raster & original_raster,
                                     const FrameType & original_frame )
@@ -82,9 +53,15 @@ InterFrame Encoder::reencode_frame( const VP8Raster & original_raster,
   if_header.copy_buffer_to_golden.clear();
   if_header.copy_buffer_to_alternate.clear();
 
+  /* If a motion vector probability in the state is different from the default value,
+   * we will reset that to the default value. Otherwise, we do nothing.
+   */
   for ( size_t i = 0; i < 2; i++ ) {
     for ( size_t j = 0; j < MV_PROB_CNT; j++ ) {
-      if_header.mv_prob_update.at( i ).at( j ).clear();
+      if ( decoder_state_.probability_tables.motion_vector_probs.at( i ).at( j ) !=
+           k_default_mv_probs.at( i ).at( j ) ) {
+        if_header.mv_prob_update.at( i ).at( j ) = MVProbUpdate( true, k_default_mv_probs.at( i ).at( j ) & 0xFE );
+      }
     }
   }
 
@@ -135,6 +112,7 @@ InterFrame Encoder::reencode_frame( const VP8Raster & original_raster,
   optimize_prob_skip( frame );
   optimize_interframe_probs( frame );
   optimize_probability_tables( frame, token_branch_counts );
+  decoder_state_.probability_tables.mv_prob_update( frame.header().mv_prob_update );
 
   apply_best_loopfilter_settings( original_raster, reconstructed_raster, frame );
 
@@ -256,9 +234,17 @@ InterFrame Encoder::update_residues( const VP8Raster & original_raster,
                                                             true, false );
   frame.mutable_header() = original_frame.header();
 
+  const InterFrameHeader & of_header = original_frame.header();
+  InterFrameHeader & if_header = frame.mutable_header();
+
   for ( size_t i = 0; i < 2; i++ ) {
     for ( size_t j = 0; j < MV_PROB_CNT; j++ ) {
-      frame.mutable_header().mv_prob_update.at( i ).at( j ).clear();
+      if ( not of_header.mv_prob_update.at( i ).at( j ).initialized() ) continue;
+
+      if ( decoder_state_.probability_tables.motion_vector_probs.at( i ).at( j ) !=
+           of_header.mv_prob_update.at( i ).at( j ).get() ) {
+        if_header.mv_prob_update.at( i ).at( j ) = of_header.mv_prob_update.at( i ).at( j );
+      }
     }
   }
 
@@ -289,6 +275,7 @@ InterFrame Encoder::update_residues( const VP8Raster & original_raster,
   optimize_prob_skip( frame );
   optimize_interframe_probs( frame );
   optimize_probability_tables( frame, token_branch_counts );
+  decoder_state_.probability_tables.mv_prob_update( frame.header().mv_prob_update );
 
   decoder_state_.filter_adjustments.clear();
   decoder_state_.filter_adjustments.initialize( frame.header() );
@@ -407,7 +394,6 @@ void Encoder::refine_switching_frame( InterFrame & F2, const InterFrame & F1,
   optimize_prob_skip( F2 );
   optimize_interframe_probs( F2 );
   optimize_probability_tables( F2, token_branch_counts );
-  decoder_state_.probability_tables.mv_prob_update( F2.header().mv_prob_update );
 }
 
 InterFrame Encoder::create_switching_frame( const uint8_t y_ac_qi )
@@ -504,6 +490,23 @@ void Encoder::fix_probability_tables( InterFrame & frame,
   }
 }
 
+void Encoder::fix_mv_probabilities( InterFrame & frame,
+                                    const ProbabilityTables & target )
+{
+  for ( size_t i = 0; i < 2; i++ ) {
+    for ( size_t j = 0; j < MV_PROB_CNT; j++ ) {
+      uint8_t current_prob = decoder_state_.probability_tables.motion_vector_probs.at( i ).at( j );
+      uint8_t target_prob = target.motion_vector_probs.at( i ).at( j );
+
+      if ( current_prob != target_prob ) {
+        frame.mutable_header().mv_prob_update.at( i ).at( j ) = MVProbUpdate( true, target_prob );
+      }
+    }
+  }
+
+  decoder_state_.probability_tables.mv_prob_update( frame.header().mv_prob_update );
+}
+
 void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
                         Decoder pred_decoder, const uint8_t s_ac_qi,
                         const bool refine_sw, const bool fix_prob_tables )
@@ -575,6 +578,10 @@ void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
       }
 
       refine_switching_frame( switching_frame, F1, d1 );
+
+      if ( fix_prob_tables ) {
+        fix_mv_probabilities( switching_frame, decoder_state_.probability_tables );
+      }
     }
 
     write_switching_frame( switching_frame );
