@@ -411,10 +411,6 @@ void Encoder::optimize_probability_tables( FrameType & frame, const TokenBranchC
       }
     }
   }
-
-  if ( frame.header().refresh_entropy_probs ) {
-    decoder_state_.probability_tables.coeff_prob_update( frame.header() );
-  }
 }
 
 template<class FrameHeaderType, class MacroblockType>
