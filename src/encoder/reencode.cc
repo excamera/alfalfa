@@ -498,7 +498,7 @@ void Encoder::fix_mv_probabilities( InterFrame & frame,
       uint8_t current_prob = decoder_state_.probability_tables.motion_vector_probs.at( i ).at( j );
       uint8_t target_prob = target.motion_vector_probs.at( i ).at( j );
 
-      if ( current_prob != target_prob ) {
+      if ( current_prob != target_prob and target_prob % 2 == 0 ) {
         frame.mutable_header().mv_prob_update.at( i ).at( j ) = MVProbUpdate( true, target_prob );
       }
     }
