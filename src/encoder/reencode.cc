@@ -54,6 +54,7 @@ InterFrame Encoder::reencode_frame( const VP8Raster & original_raster,
   if_header.copy_buffer_to_alternate.clear();
 
   if_header.intra_16x16_prob.clear();
+  if_header.intra_chroma_prob.clear();
 
   Quantizer quantizer( frame.header().quant_indices );
   MutableRasterHandle reconstructed_raster_handle { width(), height() };
@@ -413,6 +414,7 @@ InterFrame Encoder::create_switching_frame( const uint8_t y_ac_qi )
 //  decoder_state_.probability_tables.mv_prob_update( switching_frame.header().mv_prob_update );
 
   if_header.intra_16x16_prob.clear();
+  if_header.intra_chroma_prob.clear();
 
   TokenBranchCounts token_branch_counts;
 
@@ -482,22 +484,6 @@ void Encoder::fix_probability_tables( InterFrame & frame,
     }
   }
 
-  frame.mutable_header().intra_16x16_prob.clear();
-  frame.mutable_header().intra_16x16_prob.initialize();
-
-  frame.mutable_header().intra_chroma_prob.clear();
-  frame.mutable_header().intra_chroma_prob.initialize();
-
-  for ( size_t i = 0; i < 4; i++ ) {
-    decoder_state_.probability_tables.y_mode_probs.at( i ) = frame.mutable_header().intra_16x16_prob.get().at( i )
-                                                           = target.y_mode_probs.at( i );
-  }
-
-  for ( size_t i = 0; i < 3; i++ ) {
-    decoder_state_.probability_tables.uv_mode_probs.at( i ) = frame.mutable_header().intra_chroma_prob.get().at( i )
-                                                            = target.uv_mode_probs.at( i );
-  }
-
   if ( frame.header().refresh_entropy_probs ) {
     decoder_state_.probability_tables.coeff_prob_update( frame.header() );
   }
@@ -518,6 +504,23 @@ void Encoder::fix_mv_probabilities( InterFrame & frame,
   }
 
   decoder_state_.probability_tables.mv_prob_update( frame.header().mv_prob_update );
+
+  // UPDATE INTRA-MODES PROBABILITIES
+  frame.mutable_header().intra_16x16_prob.clear();
+  frame.mutable_header().intra_16x16_prob.initialize();
+
+  frame.mutable_header().intra_chroma_prob.clear();
+  frame.mutable_header().intra_chroma_prob.initialize();
+
+  for ( size_t i = 0; i < 4; i++ ) {
+    decoder_state_.probability_tables.y_mode_probs.at( i ) = frame.mutable_header().intra_16x16_prob.get().at( i )
+                                                           = target.y_mode_probs.at( i );
+  }
+
+  for ( size_t i = 0; i < 3; i++ ) {
+    decoder_state_.probability_tables.uv_mode_probs.at( i ) = frame.mutable_header().intra_chroma_prob.get().at( i )
+                                                            = target.uv_mode_probs.at( i );
+  }
 }
 
 void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
