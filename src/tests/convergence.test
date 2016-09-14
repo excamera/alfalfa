@@ -9,6 +9,8 @@ TEST_INPUTS_DIR = os.path.join(TEST_DIR, "inputs")
 TEST_OUTPUTS_DIR = os.path.join(TEST_DIR, "outputs")
 INPUT_FILES = os.listdir(TEST_INPUTS_DIR)
 
+os.environ['PATH'] = os.getcwd() + "/../frontend:" + os.environ['PATH']
+
 TEST_COMMAND = "cd convergence_test && ./looper {}".format( " ".join( INPUT_FILES ) )
 
 ret_val = sub.call(TEST_COMMAND, shell=True)
