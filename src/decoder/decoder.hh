@@ -20,6 +20,14 @@ class VP8Raster;
 struct KeyFrameHeader;
 struct InterFrameHeader;
 
+template<unsigned int size>
+static void assign( SafeArray< Probability, size > & dest, const Array< Unsigned<8>, size > & src )
+{
+  for ( unsigned int i = 0; i < size; i++ ) {
+    dest.at( i ) = src.at( i );
+  }
+}
+
 struct ProbabilityTables
 {
   SafeArray<SafeArray<SafeArray<SafeArray<Probability,

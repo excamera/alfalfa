@@ -7,14 +7,6 @@
 
 using namespace std;
 
-template <unsigned int size>
-static void assign( SafeArray< Probability, size > & dest, const Array< Unsigned<8>, size > & src )
-{
-  for ( unsigned int i = 0; i < size; i++ ) {
-    dest.at( i ) = src.at( i );
-  }
-}
-
 size_t ProbabilityTables::hash( void ) const
 {
   size_t hash_val = 0;

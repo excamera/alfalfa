@@ -54,7 +54,20 @@ InterFrame Encoder::reencode_frame( const VP8Raster & original_raster,
   if_header.copy_buffer_to_alternate.clear();
 
   if_header.intra_16x16_prob.clear();
+  if_header.intra_16x16_prob.initialize();
   if_header.intra_chroma_prob.clear();
+  if_header.intra_chroma_prob.initialize();
+
+  for ( size_t i = 0; i < k_default_y_mode_probs.size(); i++ ) {
+    if_header.intra_16x16_prob.get().at( i ) = k_default_y_mode_probs.at( i );
+  }
+
+  for ( size_t i = 0; i < k_default_uv_mode_probs.size(); i++ ) {
+    if_header.intra_chroma_prob.get().at( i ) = k_default_uv_mode_probs.at( i );
+  }
+
+  decoder_state_.probability_tables.y_mode_probs = k_default_y_mode_probs;
+  decoder_state_.probability_tables.uv_mode_probs = k_default_uv_mode_probs;
 
   Quantizer quantizer( frame.header().quant_indices );
   MutableRasterHandle reconstructed_raster_handle { width(), height() };
@@ -236,6 +249,15 @@ InterFrame Encoder::update_residues( const VP8Raster & original_raster,
       }
     }
   }
+
+  if ( if_header.intra_16x16_prob.initialized() ) {
+    assign( decoder_state_.probability_tables.y_mode_probs, if_header.intra_16x16_prob.get() );
+  }
+
+  if ( if_header.intra_chroma_prob.initialized() ) {
+    assign( decoder_state_.probability_tables.uv_mode_probs, if_header.intra_chroma_prob.get() );
+  }
+
 
   Quantizer quantizer( frame.header().quant_indices );
   MutableRasterHandle reconstructed_raster_handle { width(), height() };
@@ -506,21 +528,21 @@ void Encoder::fix_mv_probabilities( InterFrame & frame,
   decoder_state_.probability_tables.mv_prob_update( frame.header().mv_prob_update );
 
   // UPDATE INTRA-MODES PROBABILITIES
-  frame.mutable_header().intra_16x16_prob.clear();
-  frame.mutable_header().intra_16x16_prob.initialize();
-
-  frame.mutable_header().intra_chroma_prob.clear();
-  frame.mutable_header().intra_chroma_prob.initialize();
-
-  for ( size_t i = 0; i < 4; i++ ) {
-    decoder_state_.probability_tables.y_mode_probs.at( i ) = frame.mutable_header().intra_16x16_prob.get().at( i )
-                                                           = target.y_mode_probs.at( i );
-  }
-
-  for ( size_t i = 0; i < 3; i++ ) {
-    decoder_state_.probability_tables.uv_mode_probs.at( i ) = frame.mutable_header().intra_chroma_prob.get().at( i )
-                                                            = target.uv_mode_probs.at( i );
-  }
+  // frame.mutable_header().intra_16x16_prob.clear();
+  // frame.mutable_header().intra_16x16_prob.initialize();
+  //
+  // frame.mutable_header().intra_chroma_prob.clear();
+  // frame.mutable_header().intra_chroma_prob.initialize();
+  //
+  // for ( size_t i = 0; i < 4; i++ ) {
+  //   decoder_state_.probability_tables.y_mode_probs.at( i ) = frame.mutable_header().intra_16x16_prob.get().at( i )
+  //                                                          = target.y_mode_probs.at( i );
+  // }
+  //
+  // for ( size_t i = 0; i < 3; i++ ) {
+  //   decoder_state_.probability_tables.uv_mode_probs.at( i ) = frame.mutable_header().intra_chroma_prob.get().at( i )
+  //                                                           = target.uv_mode_probs.at( i );
+  // }
 }
 
 void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
