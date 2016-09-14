@@ -123,7 +123,7 @@ struct MVProbUpdate
   Flagged< Unsigned<7> > mv_prob;
 
   bool initialized( void ) const { return mv_prob.initialized(); }
-  uint8_t get( void ) const { return mv_prob.get() ? (mv_prob.get() << 1) : 1; }
+  uint8_t get( void ) const { return read_half_prob( mv_prob.get() ); }
 
   MVProbUpdate( BoolDecoder & data,
                 const unsigned int j, const unsigned int i )
@@ -131,7 +131,7 @@ struct MVProbUpdate
   {}
 
   MVProbUpdate( const bool initialized, const uint8_t x )
-    : mv_prob( initialized, x >> 1 )
+    : mv_prob( initialized, write_prob( x ) )
   {
     if ( initialized ) {
       if ( get() != x ) {
@@ -148,6 +148,21 @@ struct MVProbUpdate
   }
 
   void clear() { mv_prob.clear(); }
+
+  static uint8_t read_half_prob( const uint8_t half_prob )
+  {
+    return half_prob ? ( half_prob << 1 ) : 1;
+  }
+
+  static uint8_t write_prob( const uint8_t prob )
+  {
+    return prob >> 1;
+  }
+
+  static bool is_settable_value( const uint8_t prob )
+  {
+    return ( prob == read_half_prob( write_prob( prob ) ) );
+  }
 };
 
 struct KeyFrameHeader
