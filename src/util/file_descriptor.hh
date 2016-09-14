@@ -139,6 +139,10 @@ public:
     static const size_t BUFFER_SIZE = 1048576;
     char buffer[ BUFFER_SIZE ];
 
+    if ( eof() ) {
+      throw std::runtime_error( "read() called after eof was set" );
+    }
+
     ssize_t bytes_read = SystemCall( "read",
       ::read( fd_, buffer, std::min( BUFFER_SIZE, limit ) ) );
 
