@@ -406,7 +406,7 @@ InterFrame Encoder::create_switching_frame( const uint8_t y_ac_qi )
   for ( size_t i = 0; i < 2; i++ ) {
     for ( size_t j = 0; j < MV_PROB_CNT; j++ ) {
       uint8_t current_prob = decoder_state_.probability_tables.motion_vector_probs.at( i ).at( j );
-      frame.mutable_header().mv_prob_update.at( i ).at( j ) = MVProbUpdate( true, current_prob & 0xfe );
+      frame.mutable_header().mv_prob_update.at( i ).at( j ) = MVProbUpdate( true, MVProbUpdate::read_half_prob( MVProbUpdate::write_prob( current_prob ) ) );
     }
   }
 
