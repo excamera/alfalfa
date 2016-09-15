@@ -93,8 +93,9 @@ InterFrame Encoder::reencode_as_interframe( const VP8Raster & original_raster,
       auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
 
       // Process Y and Y2
-      luma_mb_inter_predict( original_mb.macroblock(), reconstructed_mb, temp_mb, frame_mb,
-                             quantizer, component_counts, FIRST_PASS );
+      luma_mb_inter_predict( original_mb.macroblock(), reconstructed_mb, temp_mb,
+                             frame_mb, quantizer, component_counts,
+                             frame.header().quant_indices.y_ac_qi, FIRST_PASS );
 
       if ( frame_mb.inter_coded() ) {
         chroma_mb_inter_predict( original_mb.macroblock(), reconstructed_mb, temp_mb,
@@ -239,7 +240,6 @@ InterFrame Encoder::update_residues( const VP8Raster & original_raster,
 {
   InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height(),
                                                             true, false );
-  //frame.mutable_header() = original_frame.header();
 
   const InterFrameHeader & of_header = original_frame.header();
   InterFrameHeader & if_header = frame.mutable_header();
@@ -516,8 +516,8 @@ void Encoder::fix_mv_probabilities( InterFrame & frame,
   }
 }
 
-void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
-                        Decoder pred_decoder, const uint8_t s_ac_qi,
+void Encoder::reencode( FrameInput & input,
+                        const IVF & pred_ivf, Decoder pred_decoder,
                         const bool refine_sw, const bool fix_prob_tables,
                         const bool reencode_first_frame )
 {
@@ -531,9 +531,11 @@ void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
   size_t frame_index = 0;
   Optional<RasterHandle> raster;
 
+  Optional<uint8_t> s_ac_qi;
+
   for ( frame_index = 0, raster = input.get_next_frame();
         raster.initialized();
-        frame_index++, raster = input.get_next_frame()) {
+        frame_index++, raster = input.get_next_frame() ) {
     cerr << "Re-encoding Frame #" << frame_index << "..." << endl;
 
     const VP8Raster & target_output = raster.get();
@@ -544,7 +546,7 @@ void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
     }
 
     /* Question 1: Do we want to turn an InterFrame into a KeyFrame? */
-    if ( not pred_uch.key_frame() and (not pred_uch.switching_frame()) ) {
+    if ( not pred_uch.key_frame() and ( not pred_uch.switching_frame() ) ) {
       BoolDecoder first_partition { pred_uch.first_partition() };
       InterFrame frame { pred_uch.show_frame(), width(), height(), first_partition,
                          pred_uch.switching_frame() };
@@ -553,6 +555,10 @@ void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
         KeyFrame rewritten_frame = encode_with_quantizer<KeyFrame>( raster.get(),
                                                                     frame.header().quant_indices,
                                                                     true ).first;
+
+        /* We are encoding a keyframe. Let's keep the quantizer to use in the
+           switching frame */
+        s_ac_qi = static_cast<uint8_t>( rewritten_frame.header().quant_indices.y_ac_qi );
 
         InterFrame frame_again = pred_decoder.parse_frame<InterFrame>( pred_uch );
         pred_decoder.decode_frame( frame_again );
@@ -573,9 +579,12 @@ void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
         KeyFrame frame = pred_decoder.parse_frame<KeyFrame>( pred_uch );
         pred_decoder.decode_frame( frame );
 
+        /* Yeay, the first first is a keyframe! Let's keep the quantizer for
+           using in the switching frame. */
+        s_ac_qi = static_cast<uint8_t>( frame.header().quant_indices.y_ac_qi );
+
         /* try to steal the quantizer from the next frame
            (if it's an InterFrame) */
-
         QuantIndices new_quantizer = frame.header().quant_indices;
         if ( frame_index + 1 < pred_ivf.frame_count() ) {
           UncompressedChunk next_uncompressed_chunk { pred_ivf.frame( frame_index + 1 ), width(), height() };
@@ -623,40 +632,46 @@ void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
     }
   }
 
-  if ( s_ac_qi != numeric_limits<uint8_t>::max() ) {
-    if ( s_ac_qi > 127 ) {
-      throw runtime_error( "s_ac_qi should be less than or equal to 127" );
-    }
+  /* This is reencoding, so we always put a switching frame at the end.
+     If there is a keyframe in the current chunk, we will use the same quantizer
+     as that keyframe. Otherwise, we will use the same quantizer as the previous
+     iteration. */
 
-    InterFrame switching_frame = create_switching_frame( s_ac_qi );
+  if ( frame_index == pred_ivf.frame_count() - 1 ) {
+    /* There is a switching frame at the end of the pred_ivf. Let's decode that
+       first. */
 
-    if ( refine_sw and frame_index == pred_ivf.frame_count() - 1 ) {
-      /* Variable names are explained in refine_switching_frame method */
-      RasterHandle d1 = pred_decoder.get_references().last;
+   RasterHandle d1 = pred_decoder.get_references().last;
 
-      UncompressedChunk pred_uch { pred_ivf.frame( frame_index ), width(), height() };
-      InterFrame F1 = pred_decoder.parse_frame<InterFrame>( pred_uch );
-      pred_decoder.decode_frame( F1 );
+   UncompressedChunk pred_uch { pred_ivf.frame( frame_index ), width(), height() };
+   InterFrame F1 = pred_decoder.parse_frame<InterFrame>( pred_uch );
+   pred_decoder.decode_frame( F1 );
 
-      if ( F1.header().quant_indices.y_ac_qi != s_ac_qi ) {
-        throw runtime_error( "s_ac_qi mismatch" );
-      }
+   if ( not F1.switching_frame() ) {
+     throw runtime_error( "unexpected non-switching frame at the end of pred_ivf" );
+   }
 
-      refine_switching_frame( switching_frame, F1, d1 );
+   s_ac_qi = static_cast<uint8_t>( F1.header().quant_indices.y_ac_qi );
+   InterFrame switching_frame = create_switching_frame( s_ac_qi.get() );
 
-      if ( fix_prob_tables ) {
-        fix_probability_tables( switching_frame, pred_decoder.get_state().probability_tables );
-        fix_mv_probabilities( switching_frame, pred_decoder.get_state().probability_tables );
-      }
-    }
+   if ( refine_sw ) {
+     refine_switching_frame( switching_frame, F1, d1 );
 
-    write_switching_frame( switching_frame );
+     if ( fix_prob_tables ) {
+       fix_probability_tables( switching_frame, pred_decoder.get_state().probability_tables );
+       fix_mv_probabilities( switching_frame, pred_decoder.get_state().probability_tables );
+     }
+   }
+
+   write_frame( switching_frame );
   }
-}
-
-void Encoder::write_switching_frame( const InterFrame & frame )
-{
-  assert( frame.switching_frame() );
-
-  write_frame( frame );
+  else if ( s_ac_qi.initialized() ) {
+    /* There is no switching frame at the end of the previous chunk,
+       but we have a value for s_ac_qi, which is taken from the last keyframe
+       in the current chunk. */
+    write_frame( create_switching_frame( s_ac_qi.get() ) );
+  }
+  else {
+    throw Unsupported( "no way to figure out s_ac_qi" );
+  }
 }

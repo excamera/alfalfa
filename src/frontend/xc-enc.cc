@@ -41,10 +41,10 @@ void usage_error( const string & program_name )
        << endl
        << "Re-encode:" << endl
        << " -r, --reencode                        Re-encode." << endl
+       << "                                         Re-encode always adds a switching frame" << endl
        << " -p, --pred-ivf <arg>                  Prediction modes IVF" << endl
        << " -S, --pred-state <arg>                Prediction modes IVF initial state" << endl
-       << " --s-ac-qi <arg>                       Switching frame quantizer index" << endl
-       << " --refine-sw <arg>                     Refine switching frame" << endl
+       << " --refine-sw                           Refine switching frame" << endl
        << " --fix-prob-tables                     Force probability tables to converge" << endl
        << " -e, --reencode-first-frame            Re-encode the residuals for the first frame" << endl
        << "                                         If the first frame in pred ivf is," << endl
@@ -79,7 +79,6 @@ int main( int argc, char *argv[] )
     bool reencode_first_frame = false;
 
     size_t y_ac_qi = numeric_limits<size_t>::max();
-    size_t s_ac_qi = numeric_limits<size_t>::max();
 
     const option command_line_options[] = {
       { "output",               required_argument, nullptr, 'o' },
@@ -92,7 +91,6 @@ int main( int argc, char *argv[] )
       { "reencode",             no_argument,       nullptr, 'r' },
       { "pred-ivf",             required_argument, nullptr, 'p' },
       { "pred-state",           required_argument, nullptr, 'S' },
-      { "s-ac-qi",              required_argument, nullptr, 'Y' },
       { "refine-sw",            no_argument,       nullptr, 'R' },
       { "fix-prob-tables",      no_argument,       nullptr, 'x' },
       { "reencode-first-frame", no_argument,       nullptr, 'e' },
@@ -100,7 +98,7 @@ int main( int argc, char *argv[] )
     };
 
     while ( true ) {
-      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:Y:p:S:re", command_line_options, nullptr );
+      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:p:S:re", command_line_options, nullptr );
 
       if ( opt == -1 ) {
         break;
@@ -145,10 +143,6 @@ int main( int argc, char *argv[] )
 
       case 'S':
         pred_ivf_initial_state = optarg;
-        break;
-
-      case 'Y':
-        s_ac_qi = stoul( optarg );
         break;
 
       case 'R':
@@ -210,8 +204,8 @@ int main( int argc, char *argv[] )
                  move( output ), two_pass );
 
     if ( re_encode_only ) {
-      encoder.reencode( *input_reader, pred_file, pred_decoder, s_ac_qi,
-                        refine_sw, fix_prob_tables, reencode_first_frame );
+      encoder.reencode( *input_reader, pred_file, pred_decoder, refine_sw,
+                        fix_prob_tables, reencode_first_frame );
     }
     else {
       Optional<RasterHandle> raster = input_reader->get_next_frame();

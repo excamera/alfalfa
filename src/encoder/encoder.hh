@@ -94,7 +94,7 @@ private:
                               const Quantizer & quantizer,
                               MVComponentCounts & component_counts,
                               const size_t y_ac_qi,
-                              const EncoderPass encoder_pass = FIRST_PASS );
+                              const EncoderPass encoder_pass );
 
   void luma_mb_apply_inter_prediction( const VP8Raster::Macroblock & original_mb,
                                        VP8Raster::Macroblock & reconstructed_mb,
@@ -242,8 +242,6 @@ private:
                                const InterFrame & prev_frame,
                                const VP8Raster & d1 );
 
-  void write_switching_frame( const InterFrame & frame );
-
   void fix_probability_tables( InterFrame & frame,
                                const ProbabilityTables & target );
 
@@ -263,8 +261,8 @@ public:
                  const double minimum_ssim,
                  const uint8_t y_ac_qi = std::numeric_limits<uint8_t>::max() );
 
-  void reencode( FrameInput & input, const IVF & pred_ivf, Decoder pred_decoder,
-                 const uint8_t s_ac_qi,
+  void reencode( FrameInput & input,
+                 const IVF & pred_ivf, Decoder pred_decoder,
                  const bool refine_sw,
                  const bool fix_prob_tables,
                  const bool reencode_first_frame );
