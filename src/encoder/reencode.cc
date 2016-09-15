@@ -30,7 +30,8 @@ using namespace std;
 
 template<class FrameType>
 InterFrame Encoder::reencode_frame( const VP8Raster & original_raster,
-                                    const FrameType & original_frame )
+                                    const FrameType & original_frame,
+                                    const QuantIndices & quant_indices )
 {
   InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height(), true, false );
   auto & kf_header = original_frame.header();
@@ -45,7 +46,7 @@ InterFrame Encoder::reencode_frame( const VP8Raster & original_raster,
   if_header.loop_filter_level       = kf_header.loop_filter_level;
   if_header.sharpness_level         = kf_header.sharpness_level;
   if_header.mode_lf_adjustments     = kf_header.mode_lf_adjustments;
-  if_header.quant_indices           = kf_header.quant_indices;
+  if_header.quant_indices           = quant_indices;
   if_header.refresh_last            = true;
   if_header.refresh_golden_frame    = true;
   if_header.refresh_alternate_frame = true;
@@ -550,12 +551,27 @@ void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
         KeyFrame frame = pred_decoder.parse_frame<KeyFrame>( pred_uch );
         pred_decoder.decode_frame( frame );
 
-        write_frame( reencode_frame( target_output, frame ) );
+        /* try to steal the quantizer from the next frame
+           (if it's an InterFrame) */
+
+        QuantIndices new_quantizer = frame.header().quant_indices;
+        if ( frame_index + 1 < pred_ivf.frame_count() ) {
+          UncompressedChunk next_uncompressed_chunk { pred_ivf.frame( frame_index + 1 ), width(), height() };
+          if ( not next_uncompressed_chunk.key_frame() ) {
+            BoolDecoder first_partition { next_uncompressed_chunk.first_partition() };
+            InterFrame next_frame { next_uncompressed_chunk.show_frame(),
+                                    width(), height(), first_partition,
+                                    next_uncompressed_chunk.switching_frame() };
+            new_quantizer = next_frame.header().quant_indices;
+          }
+        }
+
+        write_frame( reencode_frame( target_output, frame, new_quantizer ) );
       } else {
         InterFrame frame = pred_decoder.parse_frame<InterFrame>( pred_uch );
         pred_decoder.decode_frame( frame );
 
-        write_frame( reencode_frame( target_output, frame ) );
+        write_frame( reencode_frame( target_output, frame, frame.header().quant_indices ) );
       }
     } else {
       /* for subsequent frames, preserve KeyFrames exactly,
