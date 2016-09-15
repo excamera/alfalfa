@@ -264,8 +264,10 @@ public:
                  const uint8_t y_ac_qi = std::numeric_limits<uint8_t>::max() );
 
   void reencode( FrameInput & input, const IVF & pred_ivf, Decoder pred_decoder,
-                 const uint8_t s_ac_qi, const bool refine_sw,
-                 const bool fix_prob_tables );
+                 const uint8_t s_ac_qi,
+                 const bool refine_sw,
+                 const bool fix_prob_tables,
+                 const bool reencode_first_frame );
 
   Decoder export_decoder() const { return { decoder_state_, references_ }; }
 };
