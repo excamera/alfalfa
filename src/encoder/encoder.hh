@@ -49,8 +49,6 @@ private:
 
   bool has_state_ { false };
 
-  size_t qindex_ { 0 };
-
   Costs costs_ {};
 
   bool two_pass_encoder_ { false };
@@ -86,7 +84,8 @@ private:
                                const VP8Raster & reference,
                                MotionVector base_mv,
                                MotionVector origin,
-                               size_t step_size ) const;
+                               size_t step_size,
+                               const size_t y_ac_qi ) const;
 
   void luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                               VP8Raster::Macroblock & constructed_mb,
@@ -94,6 +93,7 @@ private:
                               InterFrameMacroblock & frame_mb,
                               const Quantizer & quantizer,
                               MVComponentCounts & component_counts,
+                              const size_t y_ac_qi,
                               const EncoderPass encoder_pass = FIRST_PASS );
 
   void luma_mb_apply_inter_prediction( const VP8Raster::Macroblock & original_mb,

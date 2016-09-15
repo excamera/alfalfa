@@ -150,7 +150,8 @@ MotionVector Encoder::diamond_search( const VP8Raster::Macroblock & original_mb,
                                       const VP8Raster & reference,
                                       MotionVector base_mv,
                                       MotionVector origin,
-                                      size_t step_size ) const
+                                      size_t step_size,
+                                      const size_t y_ac_qi ) const
 {
   TwoDSubRange<uint8_t, 16, 16> & prediction = temp_mb.Y.mutable_contents();
 
@@ -176,7 +177,7 @@ MotionVector Encoder::diamond_search( const VP8Raster::Macroblock & original_mb,
 
         reconstructed_mb.Y.inter_predict( this_mv, reference.Y(), prediction );
         pred.distortion = sad( original_mb.Y, prediction );
-        pred.rate = costs_.sad_motion_vector_cost( pred.mv, MotionVector(), sad_per_bit16lut[ qindex_ ] );
+        pred.rate = costs_.sad_motion_vector_cost( pred.mv, MotionVector(), sad_per_bit16lut[ y_ac_qi ] );
         pred.cost = rdcost( pred.rate, pred.distortion, 1, 1 );
 
         if ( pred.cost < best_pred.cost  ) {
@@ -198,6 +199,7 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                      InterFrameMacroblock & frame_mb,
                                      const Quantizer & quantizer,
                                      MVComponentCounts & /* component_counts */,
+                                     const size_t y_ac_qi,
                                      const EncoderPass encoder_pass )
 {
   // let's find the best intra-prediction for this macroblock first...
@@ -251,7 +253,7 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
     case NEWMV:
       for ( size_t step = 9; step > 0; step-- ) {
         mv = diamond_search( original_mb, reconstructed_mb, temp_mb, frame_mb,
-                             reference, best_ref, mv, ( 1 << step ) );
+                             reference, best_ref, mv, ( 1 << step ), y_ac_qi );
       }
 
       mv += best_ref;
@@ -555,7 +557,8 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
 
       // Process Y and Y2
       luma_mb_inter_predict( original_mb.macroblock(), reconstructed_mb, temp_mb, frame_mb,
-                             quantizer, component_counts, FIRST_PASS );
+                             quantizer, component_counts,
+                             frame.header().quant_indices.y_ac_qi, FIRST_PASS );
 
       if ( frame_mb.inter_coded() ) {
         chroma_mb_inter_predict( original_mb.macroblock(), reconstructed_mb, temp_mb,

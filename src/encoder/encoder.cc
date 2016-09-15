@@ -89,8 +89,10 @@ template<class FrameType>
 void Encoder::write_frame( const FrameType & frame,
                            const ProbabilityTables & prob_tables )
 {
+  // update the state
   update_decoder_state( frame );
 
+  // update the references
   MutableRasterHandle raster { width(), height() };
   frame.decode( decoder_state_.segmentation, references_, raster );
   frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, raster );
@@ -509,7 +511,6 @@ double Encoder::encode_raster( const VP8Raster & raster,
 
   while ( y_ac_qi_min <= y_ac_qi_max ) {
     quant_indices.y_ac_qi = ( y_ac_qi_min + y_ac_qi_max ) / 2;
-    qindex_ = quant_indices.y_ac_qi;
 
     pair<FrameType, double> encoded_frame = encode_with_quantizer<FrameType>( raster, quant_indices, false );
 
@@ -534,11 +535,9 @@ double Encoder::encode_raster( const VP8Raster & raster,
   }
 
   quant_indices.y_ac_qi = best_y_ac_qi;
-  qindex_ = quant_indices.y_ac_qi;
-  //DecoderState current_state = decoder_state_;
   pair<FrameType, double> encoded_frame = encode_with_quantizer<FrameType>( raster, quant_indices, true );
 
-  write_frame( encoded_frame.first );//, current_state.probability_tables );
+  write_frame( encoded_frame.first );
 
   return encoded_frame.second;
 }
