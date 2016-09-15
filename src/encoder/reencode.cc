@@ -29,9 +29,9 @@ using namespace std;
  */
 
 template<class FrameType>
-InterFrame Encoder::reencode_frame( const VP8Raster & original_raster,
-                                    const FrameType & original_frame,
-                                    const QuantIndices & quant_indices )
+InterFrame Encoder::reencode_as_interframe( const VP8Raster & original_raster,
+                                            const FrameType & original_frame,
+                                            const QuantIndices & quant_indices )
 {
   InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height(), true, false );
   auto & kf_header = original_frame.header();
@@ -567,13 +567,13 @@ void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
           }
         }
 
-        write_frame( reencode_frame( target_output, frame, new_quantizer ) );
+        write_frame( reencode_as_interframe( target_output, frame, new_quantizer ) );
       } else {
         InterFrame frame = pred_decoder.parse_frame<InterFrame>( pred_uch );
         pred_decoder.decode_frame( frame );
 
         if ( reencode_first_frame ) {
-          write_frame( reencode_frame( target_output, frame, frame.header().quant_indices ) );
+          write_frame( reencode_as_interframe( target_output, frame, frame.header().quant_indices ) );
         }
         else {
           write_frame( update_residues( target_output, frame ) );

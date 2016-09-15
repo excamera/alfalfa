@@ -222,9 +222,9 @@ private:
 
   /* Convergence-related stuff */
   template<class FrameType>
-  InterFrame reencode_frame( const VP8Raster & unfiltered_output,
-                             const FrameType & original_frame,
-                             const QuantIndices & quant_indices );
+  InterFrame reencode_as_interframe( const VP8Raster & unfiltered_output,
+                                     const FrameType & original_frame,
+                                     const QuantIndices & quant_indices );
 
   InterFrame update_residues( const VP8Raster & unfiltered_output,
                               const InterFrame & original_frame );
