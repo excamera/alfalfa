@@ -543,6 +543,27 @@ void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
       throw Unsupported( "unshown frame in the prediction ivf" );
     }
 
+    /* Question 1: Do we want to turn an InterFrame into a KeyFrame? */
+    if ( not pred_uch.key_frame() and (not pred_uch.switching_frame()) ) {
+      BoolDecoder first_partition { pred_uch.first_partition() };
+      InterFrame frame { pred_uch.show_frame(), width(), height(), first_partition,
+                         pred_uch.switching_frame() };
+      if ( frame.header().prob_inter > 220 ) {
+        /* rewrite as keyframe */
+        KeyFrame rewritten_frame = encode_with_quantizer<KeyFrame>( raster.get(),
+                                                                    frame.header().quant_indices,
+                                                                    true ).first;
+
+        InterFrame frame_again = pred_decoder.parse_frame<InterFrame>( pred_uch );
+        pred_decoder.decode_frame( frame_again );
+
+        write_frame( rewritten_frame );
+
+        continue; /* next frame */
+      }
+    }
+
+    /* Question 2: Otherwise, do we have an initial keyframe that needs to be recoded to an interframe? */
     if ( frame_index == 0 ) {
       /* always re-encode the first frame of the chunk
          (i.e. search for the best prediction modes and
@@ -569,6 +590,10 @@ void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
 
         write_frame( reencode_as_interframe( target_output, frame, new_quantizer ) );
       } else {
+        /* Question 3: Otherwise, we have an initial InterFrame that is going to stay an InterFrame,
+           but may or may not be "reencoded" (i.e., have a new search for prediction modes and
+           motion vectors). */
+
         InterFrame frame = pred_decoder.parse_frame<InterFrame>( pred_uch );
         pred_decoder.decode_frame( frame );
 
@@ -580,8 +605,9 @@ void Encoder::reencode( FrameInput & input, const IVF & pred_ivf,
         }
       }
     } else {
-      /* for subsequent frames, preserve KeyFrames exactly,
-         and just update the residues in an InterFrame */
+      /* Finally, we have a frame that's not a highly-intra InterFrame,
+         and not the first frame. For these, preserve KeyFrames exactly,
+         and just update the residues in an InterFrame. */
 
       if ( pred_uch.key_frame() ) {
         KeyFrame frame = pred_decoder.parse_frame<KeyFrame>( pred_uch );
