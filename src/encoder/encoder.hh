@@ -265,7 +265,8 @@ public:
                  const IVF & pred_ivf, Decoder pred_decoder,
                  const bool refine_sw,
                  const bool fix_prob_tables,
-                 const bool reencode_first_frame );
+                 const bool reencode_first_frame,
+                 const uint8_t s_ac_qi = std::numeric_limits<uint8_t>::max() );
 
   Decoder export_decoder() const { return { decoder_state_, references_ }; }
 };
