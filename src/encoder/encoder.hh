@@ -229,25 +229,12 @@ private:
   InterFrame update_residues( const VP8Raster & unfiltered_output,
                               const InterFrame & original_frame );
 
-  InterFrame create_switching_frame( const uint8_t y_ac_qi );
-
   void update_macroblock( const VP8Raster::Macroblock & original_rmb,
                           VP8Raster::Macroblock & reconstructed_rmb,
                           VP8Raster::Macroblock & temp_mb,
                           InterFrameMacroblock & frame_mb,
                           const InterFrameMacroblock & original_fmb,
                           const Quantizer & quantizer );
-
-  void refine_switching_frame( InterFrame & frame,
-                               const InterFrame & prev_frame,
-                               const VP8Raster & d1 );
-
-  void fix_probability_tables( InterFrame & frame,
-                               const ProbabilityTables & target );
-
-  void fix_mv_probabilities( InterFrame & frame,
-                             const ProbabilityTables & target );
-
 
   template<class FrameType>
   void update_decoder_state( const FrameType & frame );
