@@ -517,8 +517,7 @@ void Encoder::fix_mv_probabilities( InterFrame & frame,
 }
 
 void Encoder::reencode( FrameInput & input,
-                        const IVF & pred_ivf, Decoder pred_decoder,
-                        const bool reencode_first_frame )
+                        const IVF & pred_ivf, Decoder pred_decoder )
 {
   if ( input.display_width() != width() or input.display_height() != height()
        or pred_ivf.width() != width() or pred_ivf.height() != height() ) {
@@ -578,12 +577,7 @@ void Encoder::reencode( FrameInput & input,
         InterFrame frame = pred_decoder.parse_frame<InterFrame>( pred_uch );
         pred_decoder.decode_frame( frame );
 
-        if ( reencode_first_frame ) {
-          write_frame( reencode_as_interframe( target_output, frame, frame.header().quant_indices ) );
-        }
-        else {
-          write_frame( update_residues( target_output, frame ) );
-        }
+        write_frame( update_residues( target_output, frame ) );
       }
     } else {
       /* Finally, we have a frame that's not a highly-intra InterFrame,
