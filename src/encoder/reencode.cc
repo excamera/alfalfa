@@ -518,10 +518,7 @@ void Encoder::fix_mv_probabilities( InterFrame & frame,
 
 void Encoder::reencode( FrameInput & input,
                         const IVF & pred_ivf, Decoder pred_decoder,
-                        const bool refine_sw,
-                        const bool fix_prob_tables,
-                        const bool reencode_first_frame,
-                        const uint8_t s_ac_qi )
+                        const bool reencode_first_frame )
 {
   if ( input.display_width() != width() or input.display_height() != height()
        or pred_ivf.width() != width() or pred_ivf.height() != height() ) {
@@ -532,8 +529,6 @@ void Encoder::reencode( FrameInput & input,
 
   size_t frame_index = 0;
   Optional<RasterHandle> raster;
-
-  Optional<uint8_t> kf_s_ac_qi;
 
   for ( frame_index = 0, raster = input.get_next_frame();
         raster.initialized();
@@ -548,28 +543,7 @@ void Encoder::reencode( FrameInput & input,
     }
 
     /* Question 1: Do we want to turn an InterFrame into a KeyFrame? */
-    if ( not pred_uch.key_frame() and ( not pred_uch.switching_frame() ) ) {
-      BoolDecoder first_partition { pred_uch.first_partition() };
-      InterFrame frame { pred_uch.show_frame(), width(), height(), first_partition,
-                         pred_uch.switching_frame() };
-      if ( frame.header().prob_inter > 220 ) {
-        /* rewrite as keyframe */
-        KeyFrame rewritten_frame = encode_with_quantizer<KeyFrame>( raster.get(),
-                                                                    frame.header().quant_indices,
-                                                                    true ).first;
-
-        /* We are encoding a keyframe. Let's keep the quantizer to use in the
-           switching frame */
-        kf_s_ac_qi = static_cast<uint8_t>( rewritten_frame.header().quant_indices.y_ac_qi );
-
-        InterFrame frame_again = pred_decoder.parse_frame<InterFrame>( pred_uch );
-        pred_decoder.decode_frame( frame_again );
-
-        write_frame( rewritten_frame );
-
-        continue; /* next frame */
-      }
-    }
+    /* Answer: No, not anymore! */
 
     /* Question 2: Otherwise, do we have an initial keyframe that needs to be recoded to an interframe? */
     if ( frame_index == 0 ) {
@@ -580,10 +554,6 @@ void Encoder::reencode( FrameInput & input,
       if ( pred_uch.key_frame() ) {
         KeyFrame frame = pred_decoder.parse_frame<KeyFrame>( pred_uch );
         pred_decoder.decode_frame( frame );
-
-        /* Yeay, the first first is a keyframe! Let's keep the quantizer for
-           using in the switching frame. */
-        kf_s_ac_qi = static_cast<uint8_t>( frame.header().quant_indices.y_ac_qi );
 
         /* try to steal the quantizer from the next frame
            (if it's an InterFrame) */
@@ -632,56 +602,5 @@ void Encoder::reencode( FrameInput & input,
         write_frame( update_residues( target_output, frame ) );
       }
     }
-  }
-
-  /* This is reencoding, so we always put a switching frame at the end.
-     If there is a keyframe in the current chunk, we will use the same quantizer
-     as that keyframe. Otherwise, we will use the same quantizer as the previous
-     iteration. */
-
-  if ( frame_index == pred_ivf.frame_count() - 1 ) {
-    /* There is a switching frame at the end of the pred_ivf. Let's decode that
-       first. */
-
-   RasterHandle d1 = pred_decoder.get_references().last;
-
-   UncompressedChunk pred_uch { pred_ivf.frame( frame_index ), width(), height() };
-   InterFrame F1 = pred_decoder.parse_frame<InterFrame>( pred_uch );
-   pred_decoder.decode_frame( F1 );
-
-   if ( not F1.switching_frame() ) {
-     throw runtime_error( "unexpected non-switching frame at the end of pred_ivf" );
-   }
-
-   uint8_t final_s_ac_qi = ( s_ac_qi == numeric_limits<uint8_t>::max() )
-                           ? static_cast<uint8_t>( F1.header().quant_indices.y_ac_qi )
-                           : s_ac_qi;
-
-   InterFrame switching_frame = create_switching_frame( final_s_ac_qi );
-
-   if ( refine_sw ) {
-     refine_switching_frame( switching_frame, F1, d1 );
-
-     if ( fix_prob_tables ) {
-       fix_probability_tables( switching_frame, pred_decoder.get_state().probability_tables );
-       fix_mv_probabilities( switching_frame, pred_decoder.get_state().probability_tables );
-     }
-   }
-
-   write_frame( switching_frame );
-  }
-  else if ( kf_s_ac_qi.initialized() or s_ac_qi != numeric_limits<uint8_t>::max() ) {
-    /* There is no switching frame at the end of the previous chunk,
-       but we have a value for s_ac_qi, which is taken from the last keyframe
-       in the current chunk, or is given as an input to reencode. */
-
-   uint8_t final_s_ac_qi = ( s_ac_qi == numeric_limits<uint8_t>::max() )
-                           ? kf_s_ac_qi.get()
-                           : s_ac_qi;
-
-    write_frame( create_switching_frame( final_s_ac_qi ) );
-  }
-  else {
-    throw Unsupported( "no way to figure out s_ac_qi" );
   }
 }

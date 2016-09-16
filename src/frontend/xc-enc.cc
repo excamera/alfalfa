@@ -44,11 +44,6 @@ void usage_error( const string & program_name )
        << "                                         Re-encode always adds a switching frame" << endl
        << " -p, --pred-ivf <arg>                  Prediction modes IVF" << endl
        << " -S, --pred-state <arg>                Prediction modes IVF initial state" << endl
-       << " --refine-sw                           Refine switching frame" << endl
-       << " --fix-prob-tables                     Force probability tables to converge" << endl
-       << " --s-ac-qi <arg>                       Switching frame quantizer" << endl
-       << "                                         If not provided, the quantizer from\n"
-       << "                                         the previous keyframe will be used." << endl
        << " -e, --reencode-first-frame            Re-encode the residuals for the first frame" << endl
        << "                                         If the first frame in pred ivf is,\n"
        << "                                         a keyframe, it will be always reencoded." << endl
@@ -76,12 +71,9 @@ int main( int argc, char *argv[] )
     double ssim = 0.99;
     bool two_pass = false;
     bool re_encode_only = false;
-    bool refine_sw = false;
-    bool fix_prob_tables = false;
     bool reencode_first_frame = false;
 
     uint8_t y_ac_qi = numeric_limits<uint8_t>::max();
-    uint8_t s_ac_qi = numeric_limits<uint8_t>::max(); /* get it from the kf */
 
     const option command_line_options[] = {
       { "output",               required_argument, nullptr, 'o' },
@@ -91,12 +83,9 @@ int main( int argc, char *argv[] )
       { "input-state",          required_argument, nullptr, 'I' },
       { "two-pass",             no_argument,       nullptr, '2' },
       { "y-ac-qi",              required_argument, nullptr, 'y' },
-      { "s-ac-qi",              required_argument, nullptr, 'Y' },
       { "reencode",             no_argument,       nullptr, 'r' },
       { "pred-ivf",             required_argument, nullptr, 'p' },
       { "pred-state",           required_argument, nullptr, 'S' },
-      { "refine-sw",            no_argument,       nullptr, 'R' },
-      { "fix-prob-tables",      no_argument,       nullptr, 'x' },
       { "reencode-first-frame", no_argument,       nullptr, 'e' },
       { 0, 0, 0, 0 }
     };
@@ -137,10 +126,6 @@ int main( int argc, char *argv[] )
         y_ac_qi = stoul( optarg );
         break;
 
-      case 'Y':
-        s_ac_qi = stoul( optarg );
-        break;
-
       case 'r':
         re_encode_only = true;
         break;
@@ -151,14 +136,6 @@ int main( int argc, char *argv[] )
 
       case 'S':
         pred_ivf_initial_state = optarg;
-        break;
-
-      case 'R':
-        refine_sw = true;
-        break;
-
-      case 'x':
-        fix_prob_tables = true;
         break;
 
       case 'e':
@@ -212,8 +189,8 @@ int main( int argc, char *argv[] )
                  move( output ), two_pass );
 
     if ( re_encode_only ) {
-      encoder.reencode( *input_reader, pred_file, pred_decoder, refine_sw,
-                        fix_prob_tables, reencode_first_frame, s_ac_qi );
+      encoder.reencode( *input_reader, pred_file, pred_decoder,
+                        reencode_first_frame );
     }
     else {
       Optional<RasterHandle> raster = input_reader->get_next_frame();

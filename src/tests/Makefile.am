@@ -15,14 +15,14 @@ ivfcompare_SOURCES = ivfcompare.cc
 serdes_test_SOURCES = serdes-test.cc
 
 dist_check_SCRIPTS = fetch-vectors.test fetch-encoder-vectors.test decoding.test \
-                     fetch-convergence-test.test roundtrip-verify.test \
-                     switch-test ivfcopy.test xc-enc-ssim.test convergence.test \
+                     roundtrip-verify.test \
+                     switch-test ivfcopy.test xc-enc-ssim.test \
                      serdes.test
 
-TESTS = fetch-vectors.test fetch-convergence-test.test decoding.test \
+TESTS = fetch-vectors.test decoding.test \
         encode-loopback roundtrip-verify.test \
         ivfcopy.test fetch-encoder-vectors.test xc-enc-ssim.test \
-        convergence.test serdes.test
+        serdes.test
 
 
 # some tests depend on the test vectors having been fetched
@@ -31,9 +31,7 @@ decoding.log: fetch-vectors.log
 roundtrip-verify.log: fetch-vectors.log
 ivfcopy.log: fetch-vectors.log
 xc-enc-ssim.log: fetch-encoder-vectors.log
-convergence.log: fetch-convergence-test.log
 
 clean-local:
 	-rm -rf test_vectors
 	-rm -rf encoder_test_vectors
-	-rm -rf convergence_test
