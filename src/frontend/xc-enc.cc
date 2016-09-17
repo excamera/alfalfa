@@ -232,7 +232,7 @@ int main( int argc, char *argv[] )
       Encoder encoder( EncoderStateDeserializer::build<Decoder>( input_state ),
                        move( output ), two_pass );
 
-      output.set_expected_decoder_entry_hash( encoder.export_decoder().get_hash().hash() );
+      encoder.set_expected_decoder_entry_hash( encoder.export_decoder().get_hash().hash() );
 
       encoder.reencode( original_rasters, prediction_frames, kf_q_weight );
 

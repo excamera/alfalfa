@@ -249,10 +249,15 @@ public:
                  const uint8_t y_ac_qi = std::numeric_limits<uint8_t>::max() );
 
   void reencode( const std::vector<RasterHandle> & original_rasters,
-                 const std::vector<std::pair<Optional<KeyFrame>, Optional<InterFrame>>> & prediction_frames,
+                 const std::vector<std::pair<Optional<KeyFrame>, Optional<InterFrame> > > & prediction_frames,
                  const double kf_q_weight );
 
   Decoder export_decoder() const { return { decoder_state_, references_ }; }
+
+  void set_expected_decoder_entry_hash( const uint32_t minihash )
+  {
+    ivf_writer_.set_expected_decoder_entry_hash( minihash );
+  }
 };
 
 #endif /* ENCODER_HH */
