@@ -32,6 +32,8 @@ public:
 
   size_t append_frame( const Chunk & chunk );
 
+  void set_expected_decoder_entry_hash( const uint32_t minihash ); /* ExCamera invention */
+
   uint16_t width() const { return width_; }
   uint16_t height() const { return height_; }
 };

@@ -63,6 +63,15 @@ IVFWriter::IVFWriter( FileDescriptor && fd,
   assert( fd_.size() == file_size_ );
 }
 
+void IVFWriter::set_expected_decoder_entry_hash( const uint32_t minihash ) /* ExCamera invention */
+{
+  /* map the header into memory */
+  MMap_Region header_in_mem( IVF::supported_header_len, PROT_READ | PROT_WRITE, MAP_SHARED, fd_.num() );
+  uint8_t * mutable_header_ptr = header_in_mem.addr();
+
+  memcpy_le32( mutable_header_ptr + 28, minihash ); /* ExCamera invention */
+}
+
 size_t IVFWriter::append_frame( const Chunk & chunk )
 {
   /* map the header into memory */

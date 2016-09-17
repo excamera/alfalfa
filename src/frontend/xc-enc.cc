@@ -221,6 +221,8 @@ int main( int argc, char *argv[] )
       Encoder encoder( EncoderStateDeserializer::build<Decoder>( input_state ),
                        move( output ), two_pass );
 
+      output.set_expected_decoder_entry_hash( encoder.export_decoder().get_hash().hash() );
+
       encoder.reencode( original_rasters, prediction_frames, kf_q_weight );
 
       if (output_state != "") {
@@ -235,6 +237,10 @@ int main( int argc, char *argv[] )
         ? Encoder(move(output), two_pass)
         : Encoder( EncoderStateDeserializer::build<Decoder>( input_state ),
                    move( output ), two_pass );
+
+      if ( not input_state.empty() ) {
+        output.set_expected_decoder_entry_hash( encoder.export_decoder().get_hash().hash() );
+      }
 
       Optional<RasterHandle> raster = input_reader->get_next_frame();
 
