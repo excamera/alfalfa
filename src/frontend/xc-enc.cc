@@ -198,10 +198,28 @@ int main( int argc, char *argv[] )
         }
       }
 
+      /* pre-read all the prediction frames */
+      vector< pair< Optional<KeyFrame>, Optional<InterFrame> > > prediction_frames;
+      IVF pred_ivf { pred_file };
+      for ( unsigned int i = 0; i < pred_ivf.frame_count(); i++ ) {
+        UncompressedChunk unch { pred_ivf.frame( i ), pred_ivf.width(), pred_ivf.height() };
+        BoolDecoder first_partition { unch.first_partition() };
+        if ( unch.key_frame() ) {
+          prediction_frames.emplace_back( KeyFrame( unch.show_frame(),
+                                                    pred_ivf.width(), pred_ivf.height(), first_partition ),
+                                          Optional<InterFrame>() );
+        } else {
+          prediction_frames.emplace_back( Optional<KeyFrame>(),
+                                          InterFrame( unch.show_frame(),
+                                                      pred_ivf.width(), pred_ivf.height(), first_partition,
+                                                      unch.switching_frame() ) );
+        }
+      }
+      
       Encoder encoder( EncoderStateDeserializer::build<Decoder>( input_state ),
                        move( output ), two_pass );
 
-      encoder.reencode( original_rasters, pred_file, pred_decoder, kf_q_weight );
+      encoder.reencode( original_rasters, prediction_frames, kf_q_weight );
 
       if (output_state != "") {
         EncoderStateSerializer odata = {};

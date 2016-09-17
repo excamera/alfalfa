@@ -249,7 +249,7 @@ public:
                  const uint8_t y_ac_qi = std::numeric_limits<uint8_t>::max() );
 
   void reencode( const std::vector<RasterHandle> & original_rasters,
-                 const IVF & pred_ivf, Decoder pred_decoder,
+                 const std::vector<std::pair<Optional<KeyFrame>, Optional<InterFrame>>> & prediction_frames,
                  const double kf_q_weight );
 
   Decoder export_decoder() const { return { decoder_state_, references_ }; }

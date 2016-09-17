@@ -34,7 +34,7 @@ public:
   }
 
   /* move constructor */
-  Optional( Optional<T> && other )
+  Optional( Optional<T> && other ) noexcept( std::is_nothrow_move_constructible<T>::value )
     : initialized_( other.initialized_ )
   {
     if ( initialized_ ) {

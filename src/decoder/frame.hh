@@ -91,6 +91,12 @@ class Frame
   void set_switching( bool switching_frame ) { switching_frame_ = switching_frame; }
 
   bool operator==( const Frame & other ) const;
+
+  unsigned int display_width() const { return display_width_; }
+  unsigned int display_height() const { return display_height_; }
+
+  /* allow moving */
+  Frame( Frame && other ) noexcept;
 };
 
 using KeyFrame = Frame<KeyFrameHeader, KeyFrameMacroblock>;

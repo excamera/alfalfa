@@ -283,17 +283,13 @@ InterFrame Encoder::update_residues( const VP8Raster & original_raster,
 }
 
 void Encoder::reencode( const vector<RasterHandle> & original_rasters,
-                        const IVF & pred_ivf, Decoder pred_decoder,
+                        const vector<pair<Optional<KeyFrame>, Optional<InterFrame>>> & prediction_frames,
                         const double kf_q_weight )
 {
   if ( original_rasters.empty() ) {
     throw runtime_error( "no rasters to re-encode" );
-  } else if ( original_rasters.size() != pred_ivf.frame_count() ) {
-    throw runtime_error( "pred_ivf/original_rasters mismatch" );
-  }
-
-  if ( pred_ivf.width() != width() or pred_ivf.height() != height() ) {
-    throw runtime_error( "scaling not supported" );
+  } else if ( original_rasters.size() != prediction_frames.size() ) {
+    throw runtime_error( "prediction/original_rasters mismatch" );
   }
 
   for ( unsigned int frame_index = 0;
@@ -302,76 +298,40 @@ void Encoder::reencode( const vector<RasterHandle> & original_rasters,
     cerr << "Re-encoding Frame #" << frame_index << "..." << endl;
 
     const VP8Raster & target_output = original_rasters.at( frame_index ).get();
-    UncompressedChunk pred_uch { pred_ivf.frame( frame_index ), width(), height() };
 
     if ( target_output.width() != width()
          or target_output.height() != height() ) {
       throw runtime_error( "raster size mismatch" );
     }
 
-    if ( not pred_uch.show_frame() ) {
-      throw Unsupported( "unshown frame in the prediction ivf" );
-    }
+    const auto & prediction_frame_ref = prediction_frames.at( frame_index );
 
-    /* Question 1: Do we want to turn an InterFrame into a KeyFrame? */
-    /* Answer: No, not anymore! */
+    /* Option 1: Is this an initial KeyFrame that should be re-encoded as an InterFrame? */
+    if ( (frame_index == 0) and prediction_frame_ref.first.initialized() ) {
+      QuantIndices new_quantizer = prediction_frame_ref.first.get().header().quant_indices;
 
-    /* Question 2: Otherwise, do we have an initial keyframe that needs to be recoded to an interframe? */
-    if ( frame_index == 0 ) {
-      /* always re-encode the first frame of the chunk
-         (i.e. search for the best prediction modes and
-         motion vectors) and turn it into an InterFrame */
-
-      if ( pred_uch.key_frame() ) {
-        KeyFrame frame = pred_decoder.parse_frame<KeyFrame>( pred_uch );
-        pred_decoder.decode_frame( frame );
-
-        /* try to steal the quantizer from the next frame
-           (if it's an InterFrame) */
-        QuantIndices new_quantizer = frame.header().quant_indices;
-
-        if ( frame_index + 1 < pred_ivf.frame_count() ) {
-          UncompressedChunk next_uncompressed_chunk { pred_ivf.frame( frame_index + 1 ), width(), height() };
-          if ( not next_uncompressed_chunk.key_frame() ) {
-            BoolDecoder first_partition { next_uncompressed_chunk.first_partition() };
-            InterFrame next_frame { next_uncompressed_chunk.show_frame(),
-                                    width(), height(), first_partition,
-                                    next_uncompressed_chunk.switching_frame() };
-            new_quantizer = next_frame.header().quant_indices;
-
-            new_quantizer.y_ac_qi = lrint( kf_q_weight * frame.header().quant_indices.y_ac_qi
-                                           + ( 1 - kf_q_weight ) * new_quantizer.y_ac_qi );
-          }
+      /* try to steal the quantizer from the next frame (if it's an interframe */
+      if ( frame_index + 1 < prediction_frames.size() ) {
+        const auto & next_frame_ref = prediction_frames.at( frame_index + 1 );
+        if ( next_frame_ref.second.initialized() ) {
+          /* it's an InterFrame */
+            
+          new_quantizer.y_ac_qi = lrint( kf_q_weight * prediction_frame_ref.first.get().header().quant_indices.y_ac_qi
+                                         + ( 1 - kf_q_weight ) * next_frame_ref.second.get().header().quant_indices.y_ac_qi );
         }
-
-
-        write_frame( reencode_as_interframe( target_output, frame, new_quantizer ) );
-      } else {
-        /* Question 3: Otherwise, we have an initial InterFrame that is going to stay an InterFrame,
-           but may or may not be "reencoded" (i.e., have a new search for prediction modes and
-           motion vectors). */
-
-        InterFrame frame = pred_decoder.parse_frame<InterFrame>( pred_uch );
-        pred_decoder.decode_frame( frame );
-
-        write_frame( update_residues( target_output, frame ) );
       }
+
+      write_frame( reencode_as_interframe( target_output, prediction_frame_ref.first.get(), new_quantizer ) );
+
+      continue;
+    } else if ( prediction_frame_ref.first.initialized() ) {
+      /* Option 2: Is this another KeyFrame? Then preserve it. */
+      write_frame( prediction_frame_ref.first.get() );
+    } else if ( prediction_frame_ref.second.initialized() ) {
+      /* Option 3: Is this an InterFrame? Then update residues. */
+      write_frame( update_residues( target_output, prediction_frame_ref.second.get() ) );
     } else {
-      /* Finally, we have a frame that's not a highly-intra InterFrame,
-         and not the first frame. For these, preserve KeyFrames exactly,
-         and just update the residues in an InterFrame. */
-
-      if ( pred_uch.key_frame() ) {
-        KeyFrame frame = pred_decoder.parse_frame<KeyFrame>( pred_uch );
-        pred_decoder.decode_frame( frame );
-
-        write_frame( frame );
-      } else {
-        InterFrame frame = pred_decoder.parse_frame<InterFrame>( pred_uch );
-        pred_decoder.decode_frame( frame );
-
-        write_frame( update_residues( target_output, frame ) );
-      }
+      throw runtime_error( "prediction_frames contained two undefined values" );
     }
   }
 }
