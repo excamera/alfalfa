@@ -41,7 +41,6 @@ void usage_error( const string & program_name )
        << endl
        << "Re-encode:" << endl
        << " -r, --reencode                        Re-encode." << endl
-       << "                                         Re-encode always adds a switching frame" << endl
        << " -p, --pred-ivf <arg>                  Prediction modes IVF" << endl
        << " -S, --pred-state <arg>                Prediction modes IVF initial state" << endl
        << " -w, --kf-q-weight <arg>               Keyframe quantizer weight" << endl
@@ -200,7 +199,7 @@ int main( int argc, char *argv[] )
 
       /* pre-read all the prediction frames */
       vector<pair<Optional<KeyFrame>, Optional<InterFrame> > > prediction_frames;
-      
+
       IVF pred_ivf { pred_file };
 
       if ( not pred_decoder.minihash_match( pred_ivf.expected_decoder_minihash() ) ) {
