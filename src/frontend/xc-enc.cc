@@ -44,7 +44,7 @@ void usage_error( const string & program_name )
        << "                                         Re-encode always adds a switching frame" << endl
        << " -p, --pred-ivf <arg>                  Prediction modes IVF" << endl
        << " -S, --pred-state <arg>                Prediction modes IVF initial state" << endl
-       << " -W, --kf-q-weight <arg>               Keyframe quantizer weight" << endl
+       << " -w, --kf-q-weight <arg>               Keyframe quantizer weight" << endl
        << endl;
 }
 
