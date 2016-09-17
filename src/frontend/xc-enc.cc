@@ -181,15 +181,41 @@ int main( int argc, char *argv[] )
 
     IVFWriter output { output_file, "VP80", input_reader->display_width(), input_reader->display_height(), 1, 1 };
 
-    Encoder encoder = input_state == ""
-      ? Encoder(move(output), two_pass)
-      : Encoder( EncoderStateDeserializer::build<Decoder>( input_state ),
-                 move( output ), two_pass );
-
     if ( re_encode_only ) {
-      encoder.reencode( *input_reader, pred_file, pred_decoder, kf_q_weight );
+      /* re-encoding */
+      if ( input_state.empty() ) {
+        throw runtime_error( "re-encoding without an input_state" );
+      }
+
+      /* pre-read all the original rasters */
+      vector<RasterHandle> original_rasters;
+      while ( true ) {
+        auto next_raster = input_reader->get_next_frame();
+        if ( next_raster.initialized() ) {
+          original_rasters.emplace_back( next_raster.get() );
+        } else {
+          break;
+        }
+      }
+
+      Encoder encoder( EncoderStateDeserializer::build<Decoder>( input_state ),
+                       move( output ), two_pass );
+
+      encoder.reencode( original_rasters, pred_file, pred_decoder, kf_q_weight );
+
+      if (output_state != "") {
+        EncoderStateSerializer odata = {};
+        encoder.export_decoder().serialize(odata);
+        odata.write(output_state);
+      }
     }
     else {
+      /* primary encoding */
+      Encoder encoder = input_state == ""
+        ? Encoder(move(output), two_pass)
+        : Encoder( EncoderStateDeserializer::build<Decoder>( input_state ),
+                   move( output ), two_pass );
+
       Optional<RasterHandle> raster = input_reader->get_next_frame();
 
       size_t frame_index = 0;
@@ -201,12 +227,10 @@ int main( int argc, char *argv[] )
 
         raster = input_reader->get_next_frame();
       }
-    }
 
-    if (output_state != "") {
-      EncoderStateSerializer odata = {};
-      encoder.export_decoder().serialize(odata);
-      odata.write(output_state);
+      if ( not output_state.empty() ) {
+        throw runtime_error( "unsupported: primary encode with output state" );
+      }
     }
   } catch ( const exception &  e ) {
     print_exception( argv[ 0 ], e );

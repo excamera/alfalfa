@@ -282,25 +282,32 @@ InterFrame Encoder::update_residues( const VP8Raster & original_raster,
   return frame;
 }
 
-void Encoder::reencode( FrameInput & input,
+void Encoder::reencode( const vector<RasterHandle> & original_rasters,
                         const IVF & pred_ivf, Decoder pred_decoder,
                         const double kf_q_weight )
 {
-  if ( input.display_width() != width() or input.display_height() != height()
-       or pred_ivf.width() != width() or pred_ivf.height() != height() ) {
-    throw Unsupported( "scaling not supported" );
+  if ( original_rasters.empty() ) {
+    throw runtime_error( "no rasters to re-encode" );
+  } else if ( original_rasters.size() != pred_ivf.frame_count() ) {
+    throw runtime_error( "pred_ivf/original_rasters mismatch" );
   }
 
-  size_t frame_index = 0;
-  Optional<RasterHandle> raster;
+  if ( pred_ivf.width() != width() or pred_ivf.height() != height() ) {
+    throw runtime_error( "scaling not supported" );
+  }
 
-  for ( frame_index = 0, raster = input.get_next_frame();
-        raster.initialized();
-        frame_index++, raster = input.get_next_frame() ) {
+  for ( unsigned int frame_index = 0;
+        frame_index < original_rasters.size();
+        frame_index++ ) {
     cerr << "Re-encoding Frame #" << frame_index << "..." << endl;
 
-    const VP8Raster & target_output = raster.get();
+    const VP8Raster & target_output = original_rasters.at( frame_index ).get();
     UncompressedChunk pred_uch { pred_ivf.frame( frame_index ), width(), height() };
+
+    if ( target_output.width() != width()
+         or target_output.height() != height() ) {
+      throw runtime_error( "raster size mismatch" );
+    }
 
     if ( not pred_uch.show_frame() ) {
       throw Unsupported( "unshown frame in the prediction ivf" );

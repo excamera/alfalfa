@@ -248,7 +248,7 @@ public:
                  const double minimum_ssim,
                  const uint8_t y_ac_qi = std::numeric_limits<uint8_t>::max() );
 
-  void reencode( FrameInput & input,
+  void reencode( const std::vector<RasterHandle> & original_rasters,
                  const IVF & pred_ivf, Decoder pred_decoder,
                  const double kf_q_weight );
 
