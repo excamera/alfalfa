@@ -299,8 +299,8 @@ void Encoder::reencode( const vector<RasterHandle> & original_rasters,
 
     const VP8Raster & target_output = original_rasters.at( frame_index ).get();
 
-    if ( target_output.width() != width()
-         or target_output.height() != height() ) {
+    if ( target_output.display_width() != width()
+         or target_output.display_height() != height() ) {
       throw runtime_error( "raster size mismatch" );
     }
 
@@ -315,7 +315,7 @@ void Encoder::reencode( const vector<RasterHandle> & original_rasters,
         const auto & next_frame_ref = prediction_frames.at( frame_index + 1 );
         if ( next_frame_ref.second.initialized() ) {
           /* it's an InterFrame */
-            
+
           new_quantizer.y_ac_qi = lrint( kf_q_weight * prediction_frame_ref.first.get().header().quant_indices.y_ac_qi
                                          + ( 1 - kf_q_weight ) * next_frame_ref.second.get().header().quant_indices.y_ac_qi );
         }
