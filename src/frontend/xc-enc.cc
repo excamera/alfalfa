@@ -199,23 +199,25 @@ int main( int argc, char *argv[] )
       }
 
       /* pre-read all the prediction frames */
-      vector< pair< Optional<KeyFrame>, Optional<InterFrame> > > prediction_frames;
+      vector<pair<Optional<KeyFrame>, Optional<InterFrame>>> prediction_frames;
+      
       IVF pred_ivf { pred_file };
       for ( unsigned int i = 0; i < pred_ivf.frame_count(); i++ ) {
         UncompressedChunk unch { pred_ivf.frame( i ), pred_ivf.width(), pred_ivf.height() };
-        BoolDecoder first_partition { unch.first_partition() };
+
         if ( unch.key_frame() ) {
-          prediction_frames.emplace_back( KeyFrame( unch.show_frame(),
-                                                    pred_ivf.width(), pred_ivf.height(), first_partition ),
-                                          Optional<InterFrame>() );
+          KeyFrame frame = pred_decoder.parse_frame<KeyFrame>( unch );
+          pred_decoder.decode_frame( frame );
+
+          prediction_frames.emplace_back( move( frame ), Optional<InterFrame>() );
         } else {
-          prediction_frames.emplace_back( Optional<KeyFrame>(),
-                                          InterFrame( unch.show_frame(),
-                                                      pred_ivf.width(), pred_ivf.height(), first_partition,
-                                                      unch.switching_frame() ) );
+          InterFrame frame = pred_decoder.parse_frame<InterFrame>( unch );
+          pred_decoder.decode_frame( frame );
+
+          prediction_frames.emplace_back( Optional<KeyFrame>(), move( frame ) );
         }
       }
-      
+
       Encoder encoder( EncoderStateDeserializer::build<Decoder>( input_state ),
                        move( output ), two_pass );
 
