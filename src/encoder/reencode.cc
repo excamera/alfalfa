@@ -1,6 +1,7 @@
 /* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 
 #include <limits>
+#include <cmath>
 
 #include "encoder.hh"
 #include "scorer.hh"
@@ -282,14 +283,13 @@ InterFrame Encoder::update_residues( const VP8Raster & original_raster,
 }
 
 void Encoder::reencode( FrameInput & input,
-                        const IVF & pred_ivf, Decoder pred_decoder )
+                        const IVF & pred_ivf, Decoder pred_decoder,
+                        const double kf_q_weight )
 {
   if ( input.display_width() != width() or input.display_height() != height()
        or pred_ivf.width() != width() or pred_ivf.height() != height() ) {
     throw Unsupported( "scaling not supported" );
   }
-
-  Decoder input_decoder( width(), height() );
 
   size_t frame_index = 0;
   Optional<RasterHandle> raster;
@@ -322,16 +322,21 @@ void Encoder::reencode( FrameInput & input,
         /* try to steal the quantizer from the next frame
            (if it's an InterFrame) */
         QuantIndices new_quantizer = frame.header().quant_indices;
-        // if ( frame_index + 1 < pred_ivf.frame_count() ) {
-        //   UncompressedChunk next_uncompressed_chunk { pred_ivf.frame( frame_index + 1 ), width(), height() };
-        //   if ( not next_uncompressed_chunk.key_frame() ) {
-        //     BoolDecoder first_partition { next_uncompressed_chunk.first_partition() };
-        //     InterFrame next_frame { next_uncompressed_chunk.show_frame(),
-        //                             width(), height(), first_partition,
-        //                             next_uncompressed_chunk.switching_frame() };
-        //     new_quantizer = next_frame.header().quant_indices;
-        //   }
-        // }
+
+        if ( frame_index + 1 < pred_ivf.frame_count() ) {
+          UncompressedChunk next_uncompressed_chunk { pred_ivf.frame( frame_index + 1 ), width(), height() };
+          if ( not next_uncompressed_chunk.key_frame() ) {
+            BoolDecoder first_partition { next_uncompressed_chunk.first_partition() };
+            InterFrame next_frame { next_uncompressed_chunk.show_frame(),
+                                    width(), height(), first_partition,
+                                    next_uncompressed_chunk.switching_frame() };
+            new_quantizer = next_frame.header().quant_indices;
+
+            new_quantizer.y_ac_qi = lrint( kf_q_weight * frame.header().quant_indices.y_ac_qi
+                                           + ( 1 - kf_q_weight ) * new_quantizer.y_ac_qi );
+          }
+        }
+
 
         write_frame( reencode_as_interframe( target_output, frame, new_quantizer ) );
       } else {

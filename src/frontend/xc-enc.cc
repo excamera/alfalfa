@@ -44,6 +44,7 @@ void usage_error( const string & program_name )
        << "                                         Re-encode always adds a switching frame" << endl
        << " -p, --pred-ivf <arg>                  Prediction modes IVF" << endl
        << " -S, --pred-state <arg>                Prediction modes IVF initial state" << endl
+       << " -W, --kf-q-weight <arg>               Keyframe quantizer weight" << endl
        << endl;
 }
 
@@ -68,6 +69,7 @@ int main( int argc, char *argv[] )
     double ssim = 0.99;
     bool two_pass = false;
     bool re_encode_only = false;
+    double kf_q_weight = 1.0;
 
     uint8_t y_ac_qi = numeric_limits<uint8_t>::max();
 
@@ -82,11 +84,12 @@ int main( int argc, char *argv[] )
       { "reencode",             no_argument,       nullptr, 'r' },
       { "pred-ivf",             required_argument, nullptr, 'p' },
       { "pred-state",           required_argument, nullptr, 'S' },
+      { "kf-q-weight",          required_argument, nullptr, 'w' },
       { 0, 0, 0, 0 }
     };
 
     while ( true ) {
-      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:p:S:r", command_line_options, nullptr );
+      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:p:S:rw:", command_line_options, nullptr );
 
       if ( opt == -1 ) {
         break;
@@ -131,6 +134,10 @@ int main( int argc, char *argv[] )
 
       case 'S':
         pred_ivf_initial_state = optarg;
+        break;
+
+      case 'w':
+        kf_q_weight = stod( optarg );
         break;
 
       default:
@@ -180,7 +187,7 @@ int main( int argc, char *argv[] )
                  move( output ), two_pass );
 
     if ( re_encode_only ) {
-      encoder.reencode( *input_reader, pred_file, pred_decoder );
+      encoder.reencode( *input_reader, pred_file, pred_decoder, kf_q_weight );
     }
     else {
       Optional<RasterHandle> raster = input_reader->get_next_frame();
