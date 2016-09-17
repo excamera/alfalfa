@@ -41,7 +41,7 @@ const VP8Raster & FramePlayer::example_raster( void ) const
   return decoder_.example_raster();
 }
 
-DecoderHash FramePlayer::get_decoder_hash()
+DecoderHash FramePlayer::get_decoder_hash() const
 {
   return decoder_.get_hash();
 }
@@ -95,6 +95,10 @@ FilePlayer::FilePlayer(const string &filename, IVF &&file, EncoderStateDeseriali
 
   if (file_.width() != decoder_.get_width() || file_.height() != decoder_.get_height()) {
     throw Unsupported("state vs. file dimension mismatch");
+  }
+
+  if ( not decoder_.minihash_match( file_.expected_decoder_minihash() ) ) {
+    throw Invalid( "Decoder state / IVF mismatch" );
   }
 }
 

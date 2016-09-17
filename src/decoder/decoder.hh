@@ -259,6 +259,8 @@ public:
 
   bool operator!=( const Decoder & other ) const { return not operator==( other ); }
 
+  bool minihash_match( const uint32_t minihash ) const;
+
   size_t serialize(EncoderStateSerializer &odata) const;
 
   static Decoder deserialize(EncoderStateDeserializer &idata);

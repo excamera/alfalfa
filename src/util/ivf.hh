@@ -18,6 +18,7 @@ private:
   std::string fourcc_;
   uint16_t width_, height_;
   uint32_t frame_rate_, time_scale_, frame_count_;
+  uint32_t expected_decoder_minihash_;
 
   std::vector< std::pair<uint64_t, uint32_t> > frame_index_;
 
@@ -36,7 +37,9 @@ public:
 
   Chunk frame( const uint32_t & index ) const;
 
-  size_t size() { return file_.size(); }
+  size_t size() const { return file_.size(); }
+
+  uint32_t expected_decoder_minihash() const { return expected_decoder_minihash_; }
 };
 
 #endif /* IVF_HH */

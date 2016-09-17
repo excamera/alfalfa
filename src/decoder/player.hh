@@ -31,10 +31,14 @@ public:
   uint16_t width( void ) const { return width_; }
   uint16_t height( void ) const { return height_; }
 
-  DecoderHash get_decoder_hash();
+  DecoderHash get_decoder_hash() const;
 
   bool operator==( const FramePlayer & other ) const;
   bool operator!=( const FramePlayer & other ) const;
+
+  Decoder current_decoder() const { return decoder_; }
+  References current_references() const { return decoder_.get_references(); }
+  DecoderState current_state() const { return decoder_.get_state(); }
 
   size_t serialize(EncoderStateSerializer &odata);
   static FramePlayer deserialize(EncoderStateDeserializer &idata);
@@ -57,10 +61,6 @@ public:
   unsigned int cur_frame_no() const { return frame_no_ - 1; }
 
   long unsigned int original_size() const;
-
-  Decoder current_decoder() const { return decoder_; }
-  References current_references() const { return decoder_.get_references(); }
-  DecoderState current_state() const { return decoder_.get_state(); }
 
   size_t serialize(EncoderStateSerializer &odata);
   static FilePlayer deserialize(EncoderStateDeserializer &idata, const std::string &filename);

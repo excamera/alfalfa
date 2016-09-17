@@ -486,3 +486,12 @@ bool DecoderHash::operator!=( const DecoderHash & other ) const
 {
   return not operator==( other );
 }
+
+bool Decoder::minihash_match( const uint32_t minihash ) const
+{
+  if ( minihash == 0 ) {
+    return true;
+  }
+
+  return static_cast<uint32_t>( get_hash().hash() ) == minihash;
+}

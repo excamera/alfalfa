@@ -199,9 +199,14 @@ int main( int argc, char *argv[] )
       }
 
       /* pre-read all the prediction frames */
-      vector<pair<Optional<KeyFrame>, Optional<InterFrame>>> prediction_frames;
+      vector<pair<Optional<KeyFrame>, Optional<InterFrame> > > prediction_frames;
       
       IVF pred_ivf { pred_file };
+
+      if ( not pred_decoder.minihash_match( pred_ivf.expected_decoder_minihash() ) ) {
+        throw Invalid( "Mismatch between prediction IVF and prediction_ivf_initial_state" );
+      }
+
       for ( unsigned int i = 0; i < pred_ivf.frame_count(); i++ ) {
         UncompressedChunk unch { pred_ivf.frame( i ), pred_ivf.width(), pred_ivf.height() };
 

@@ -419,6 +419,10 @@ int main( int argc, char *argv[] )
                   ? Decoder( ivf.width(), ivf.height() )
                   : EncoderStateDeserializer::build<Decoder>( input_state );
 
+  if ( not decoder.minihash_match( ivf.expected_decoder_minihash() ) ) {
+    cerr << "WARNING: Decoder state does not match IVF expected decoder state. Coefficients will be incorrect.\n";
+  }
+
   DecoderState decoder_state = decoder.get_state();
 
   for ( size_t frame_number = 0; frame_number < ivf.frame_count(); frame_number++ ) {
