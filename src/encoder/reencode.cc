@@ -322,16 +322,16 @@ void Encoder::reencode( FrameInput & input,
         /* try to steal the quantizer from the next frame
            (if it's an InterFrame) */
         QuantIndices new_quantizer = frame.header().quant_indices;
-        if ( frame_index + 1 < pred_ivf.frame_count() ) {
-          UncompressedChunk next_uncompressed_chunk { pred_ivf.frame( frame_index + 1 ), width(), height() };
-          if ( not next_uncompressed_chunk.key_frame() ) {
-            BoolDecoder first_partition { next_uncompressed_chunk.first_partition() };
-            InterFrame next_frame { next_uncompressed_chunk.show_frame(),
-                                    width(), height(), first_partition,
-                                    next_uncompressed_chunk.switching_frame() };
-            new_quantizer = next_frame.header().quant_indices;
-          }
-        }
+        // if ( frame_index + 1 < pred_ivf.frame_count() ) {
+        //   UncompressedChunk next_uncompressed_chunk { pred_ivf.frame( frame_index + 1 ), width(), height() };
+        //   if ( not next_uncompressed_chunk.key_frame() ) {
+        //     BoolDecoder first_partition { next_uncompressed_chunk.first_partition() };
+        //     InterFrame next_frame { next_uncompressed_chunk.show_frame(),
+        //                             width(), height(), first_partition,
+        //                             next_uncompressed_chunk.switching_frame() };
+        //     new_quantizer = next_frame.header().quant_indices;
+        //   }
+        // }
 
         write_frame( reencode_as_interframe( target_output, frame, new_quantizer ) );
       } else {
