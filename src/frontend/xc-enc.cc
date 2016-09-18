@@ -144,6 +144,7 @@ int main( int argc, char *argv[] )
 
       case '7':
         extra_frame_chunk = true;
+        break;
 
       default:
         throw runtime_error( "getopt_long: unexpected return value." );
