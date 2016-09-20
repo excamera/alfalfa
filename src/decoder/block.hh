@@ -17,6 +17,8 @@ class BoolEncoder;
 
 enum BlockType { Y_after_Y2 = 0, Y2, UV, Y_without_Y2 };
 
+constexpr static int16_t ZERO_REF[ 16 ] = { 0 };
+
 class DCTCoefficients
 {
 private:
@@ -198,7 +200,11 @@ public:
 
   void add_residue( VP8Raster::Block4 & raster ) const;
 
-  void calculate_has_nonzero();
+  void calculate_has_nonzero()
+  {
+    has_nonzero_ = ( memcmp( &coefficients_.at( 0 ), ZERO_REF,
+                             sizeof( ZERO_REF ) ) != 0 );
+  }
 
   void zero_out()
   {

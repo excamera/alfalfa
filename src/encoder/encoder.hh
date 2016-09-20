@@ -16,6 +16,7 @@
 #include "costs.hh"
 #include "enc_state_serializer.hh"
 #include "file_descriptor.hh"
+#include "block.hh"
 
 enum EncoderPass
 {

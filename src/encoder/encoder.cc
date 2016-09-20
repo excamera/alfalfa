@@ -584,15 +584,3 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::calculate_has_nonzero()
   mb_skip_coeff_.clear();
   mb_skip_coeff_.initialize( not has_nonzero_ );
 }
-
-template <BlockType initial_block_type, class PredictionMode>
-void Block<initial_block_type, PredictionMode>::calculate_has_nonzero( void )
-{
-  int16_t all_zero[ 16 ];
-  memset( all_zero, 0, sizeof( all_zero ) );
-  has_nonzero_ = ( memcmp( &coefficients_.at( 0 ), all_zero, sizeof( all_zero ) ) != 0 );
-}
-
-template void YBlock::calculate_has_nonzero();
-template void Y2Block::calculate_has_nonzero();
-template void UVBlock::calculate_has_nonzero();
