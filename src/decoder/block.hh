@@ -42,7 +42,7 @@ public:
   SafeArray< SafeArray< int16_t, 4 >, 4 > iwht() const;
 
   void subtract_dct( const VP8Raster::Block4 & block, const TwoDSubRange< uint8_t, 4, 4 > & prediction );
-  void wht( const SafeArray< int16_t, 16 > & input );
+  void wht( SafeArray< int16_t, 16 > & input );
 
   void set_dc_coefficient( const int16_t & val );
 

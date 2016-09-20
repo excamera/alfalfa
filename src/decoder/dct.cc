@@ -73,8 +73,14 @@ void DCTCoefficients::subtract_dct( const VP8Raster::Block4 & block,
 #endif
 }
 
-void DCTCoefficients::wht( const SafeArray< int16_t, 16 > & input )
+void DCTCoefficients::wht( SafeArray< int16_t, 16 > & input )
 {
+#if HAVE_SSE2
+
+  vp8_short_walsh4x4_sse2( &input.at( 0 ), &at( 0 ), 8 );
+
+#else
+
   size_t pitch = 8;
   int a1, b1, c1, d1;
   int a2, b2, c2, d2;
@@ -123,4 +129,6 @@ void DCTCoefficients::wht( const SafeArray< int16_t, 16 > & input )
     i_offset++;
     o_offset++;
   }
+
+#endif
 }
