@@ -588,13 +588,9 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::calculate_has_nonzero()
 template <BlockType initial_block_type, class PredictionMode>
 void Block<initial_block_type, PredictionMode>::calculate_has_nonzero( void )
 {
-  has_nonzero_ = false;
-  for ( uint8_t i = 0; i < 16; i++ ) {
-    if ( coefficients_.at( i ) ) {
-      has_nonzero_ = true;
-      return;
-    }
-  }
+  int16_t all_zero[ 16 ];
+  memset( all_zero, 0, 16 );
+  has_nonzero_ = ( memcmp( &coefficients_.at( 0 ), all_zero, 16 ) != 0 );
 }
 
 template void YBlock::calculate_has_nonzero();

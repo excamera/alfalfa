@@ -93,9 +93,7 @@ public:
 
   void zero_out()
   {
-    for ( size_t i = 0; i < 16; i++ ) {
-      at( i ) = 0;
-    }
+    memset( &at( 0 ), 0, 16 );
   }
 };
 
