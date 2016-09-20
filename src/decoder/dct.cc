@@ -14,6 +14,7 @@
 
 #include "block.hh"
 #include "safe_array.hh"
+#include "dct_sse.hh"
 
 void DCTCoefficients::subtract_dct( const VP8Raster::Block4 & block,
                                     const TwoDSubRange< uint8_t, 4, 4 > & prediction )
@@ -26,6 +27,11 @@ void DCTCoefficients::subtract_dct( const VP8Raster::Block4 & block,
     }
   }
 
+#if HAVE_SSE2
+
+  vp8_short_fdct4x4_sse2( &input.at( 0 ), &at( 0 ), 8 );
+
+#else
   size_t pitch = 8;
   int a1, b1, c1, d1;
   size_t i_offset = 0;
@@ -64,6 +70,7 @@ void DCTCoefficients::subtract_dct( const VP8Raster::Block4 & block,
     i_offset++;
     o_offset++;
   }
+#endif
 }
 
 void DCTCoefficients::wht( const SafeArray< int16_t, 16 > & input )
