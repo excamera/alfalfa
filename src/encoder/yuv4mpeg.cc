@@ -249,8 +249,8 @@ Optional<RasterHandle> YUV4MPEGReader::get_next_frame()
   MutableRasterHandle raster { header_.width, header_.height };
 
   string frame_header = fd_.getline();
-
   if ( fd_.eof() ) {
+
     return {};
   }
 
@@ -267,10 +267,9 @@ Optional<RasterHandle> YUV4MPEGReader::get_next_frame()
       throw Invalid( "partial YUV4MPEG frame" );
     }
 
-    for ( size_t i = 0; i < read_data.length(); i++ ) {
-      raster.get().Y().at( ( i + byte ) % header_.width,
-                           ( i + byte ) / header_.width ) = read_data[ i ];
-    }
+    memcpy( &raster.get().Y().storage()->at( ( byte ) % ( header_.width ),
+                                             ( byte ) / ( header_.width ) ),
+            &read_data[ 0 ], read_data.length() );
   }
 
   for ( size_t byte = 0; byte < uv_plane_length(); byte += read_data.length() ) {
@@ -280,10 +279,9 @@ Optional<RasterHandle> YUV4MPEGReader::get_next_frame()
       throw Invalid( "partial YUV4MPEG frame" );
     }
 
-    for ( size_t i = 0; i < read_data.length(); i++ ) {
-      raster.get().U().at( ( i + byte ) % ( header_.width / 2 ),
-                           ( i + byte ) / ( header_.width / 2 ) ) = read_data[ i ];
-    }
+    memcpy( &raster.get().U().storage()->at( ( byte ) % ( header_.width / 2 ),
+                                             ( byte ) / ( header_.width / 2 ) ),
+            &read_data[ 0 ], read_data.length() );
   }
 
   for ( size_t byte = 0; byte < uv_plane_length(); byte += read_data.length() ) {
@@ -293,10 +291,9 @@ Optional<RasterHandle> YUV4MPEGReader::get_next_frame()
       throw Invalid( "partial YUV4MPEG frame" );
     }
 
-    for ( size_t i = 0; i < read_data.length(); i++ ) {
-      raster.get().V().at( ( i + byte ) % ( header_.width / 2 ),
-                           ( i + byte ) / ( header_.width / 2 ) ) = read_data[ i ];
-    }
+    memcpy( &raster.get().V().storage()->at( ( byte ) % ( header_.width / 2 ),
+                                             ( byte ) / ( header_.width / 2 ) ),
+            &read_data[ 0 ], read_data.length() );
   }
 
   /* edge-extend the raster */
