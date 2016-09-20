@@ -93,7 +93,7 @@ public:
 
   void zero_out()
   {
-    memset( &at( 0 ), 0, 16 );
+    memset( &at( 0 ), 0, 16 * sizeof( int16_t ) );
   }
 };
 

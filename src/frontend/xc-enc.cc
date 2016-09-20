@@ -254,13 +254,8 @@ int main( int argc, char *argv[] )
 
       Optional<RasterHandle> raster = input_reader->get_next_frame();
 
-      size_t frame_index = 0;
-
       while ( raster.initialized() ) {
-        double result_ssim = encoder.encode( raster.get(), ssim, y_ac_qi );
-
-        cerr << "Frame #" << frame_index++ << ": ssim=" << result_ssim << endl;
-
+        encoder.encode( raster.get(), ssim, y_ac_qi );
         raster = input_reader->get_next_frame();
       }
 

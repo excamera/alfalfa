@@ -295,8 +295,6 @@ void Encoder::reencode( const vector<RasterHandle> & original_rasters,
   for ( unsigned int frame_index = 0;
         frame_index < original_rasters.size();
         frame_index++ ) {
-    cerr << "Re-encoding Frame #" << frame_index << "..." << endl;
-
     const VP8Raster & target_output = original_rasters.at( frame_index ).get();
 
     if ( target_output.display_width() != width()
