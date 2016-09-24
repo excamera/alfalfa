@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <sstream>
 #include <utility>
+#include <algorithm>
 
 using namespace std;
 
@@ -260,40 +261,34 @@ Optional<RasterHandle> YUV4MPEGReader::get_next_frame()
 
   string read_data;
 
-  for ( size_t byte = 0; byte < y_plane_length(); byte += read_data.length() ) {
-    read_data = fd_.read( y_plane_length() - byte );
+  for ( size_t byte = 0, row = 0; byte < y_plane_length(); byte += read_data.length(), row++ ) {
+    read_data = fd_.read( min( static_cast<size_t>( display_width() ), y_plane_length() - byte ) );
 
     if ( fd_.eof() ) {
       throw Invalid( "partial YUV4MPEG frame" );
     }
 
-    memcpy( &raster.get().Y().storage()->at( ( byte ) % ( header_.width ),
-                                             ( byte ) / ( header_.width ) ),
-            &read_data[ 0 ], read_data.length() );
+    memcpy( &raster.get().Y().storage()->at( 0, row ), &read_data[ 0 ], read_data.length() );
   }
 
-  for ( size_t byte = 0; byte < uv_plane_length(); byte += read_data.length() ) {
-    read_data = fd_.read( uv_plane_length() - byte );
+  for ( size_t byte = 0, row = 0; byte < uv_plane_length(); byte += read_data.length(), row++ ) {
+    read_data = fd_.read( min( static_cast<size_t>( display_width() / 2 ), uv_plane_length() - byte ) );
 
     if ( fd_.eof() ) {
       throw Invalid( "partial YUV4MPEG frame" );
     }
 
-    memcpy( &raster.get().U().storage()->at( ( byte ) % ( header_.width / 2 ),
-                                             ( byte ) / ( header_.width / 2 ) ),
-            &read_data[ 0 ], read_data.length() );
+    memcpy( &raster.get().U().storage()->at( 0, row ), &read_data[ 0 ], read_data.length() );
   }
 
-  for ( size_t byte = 0; byte < uv_plane_length(); byte += read_data.length() ) {
-    read_data = fd_.read( uv_plane_length() - byte );
+  for ( size_t byte = 0, row = 0; byte < uv_plane_length(); byte += read_data.length(), row++ ) {
+    read_data = fd_.read( min( static_cast<size_t>( display_width() / 2 ), uv_plane_length() - byte ) );
 
     if ( fd_.eof() ) {
       throw Invalid( "partial YUV4MPEG frame" );
     }
 
-    memcpy( &raster.get().V().storage()->at( ( byte ) % ( header_.width / 2 ),
-                                             ( byte ) / ( header_.width / 2 ) ),
-            &read_data[ 0 ], read_data.length() );
+    memcpy( &raster.get().V().storage()->at( 0, row ), &read_data[ 0 ], read_data.length() );
   }
 
   /* edge-extend the raster */
