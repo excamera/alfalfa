@@ -13,7 +13,6 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
     loop_filter_(),
     show_frame_(),
     experimental_(),
-    switching_frame_(),
     first_partition_( nullptr, 0 ),
     rest_( nullptr, 0 )
 {
@@ -41,7 +40,6 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
       reconstruction_filter_ = ReconstructionFilterType::Bicubic;
       loop_filter_ = LoopFilterType::NoFilter;
       experimental_ = true;
-      switching_frame_ = true;
       break;
     default:
       throw Unsupported( "VP8 version of " + to_string( version ) );

@@ -285,10 +285,7 @@ template <>
 void InterFrameMacroblock::encode_prediction_modes( BoolEncoder & encoder,
                                                     const ProbabilityTables & probability_tables ) const
 {
-  if ( switching_mb_ ) {
-    return; // no need to encode a prediction mode!
-  }
-  else if ( not inter_coded() ) {
+  if ( not inter_coded() ) {
     encode( encoder,
             Tree< mbmode, num_y_modes, y_mode_tree >( Y2_.prediction_mode() ),
             probability_tables.y_mode_probs );
@@ -798,8 +795,8 @@ vector<uint8_t> InterFrame::serialize( const ProbabilityTables & probability_tab
 
   return make_frame( false,
                      show_,
-                     switching_frame_,
-                     switching_frame_,
+                     false,
+                     false,
                      display_width_, display_height_,
                      serialize_first_partition( frame_probability_tables ),
                      serialize_tokens( frame_probability_tables ) );

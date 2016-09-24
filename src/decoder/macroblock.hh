@@ -41,8 +41,6 @@ private:
 
   bool has_nonzero_ { false };
 
-  bool switching_mb_ { false };
-
   void decode_prediction_modes( BoolDecoder & data,
                                 const ProbabilityTables & probability_tables );
 
@@ -60,8 +58,7 @@ public:
               TwoD< Y2Block > & frame_Y2,
               TwoD< YBlock > & frame_Y,
               TwoD< UVBlock > & frame_U,
-              TwoD< UVBlock > & frame_V,
-              const bool switching_mb );
+              TwoD< UVBlock > & frame_V );
 
   void update_segmentation( SegmentationMap & mutable_segmentation_map );
 

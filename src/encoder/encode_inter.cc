@@ -535,7 +535,7 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
 {
   DecoderState decoder_state_copy = decoder_state_;
 
-  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height(), true, false );
+  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height(), true );
   frame.mutable_header().quant_indices = quant_indices;
   frame.mutable_header().refresh_entropy_probs = true;
   frame.mutable_header().refresh_last = true;

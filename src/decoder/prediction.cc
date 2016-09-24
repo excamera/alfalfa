@@ -413,6 +413,10 @@ void VP8Raster::Block<size>::inter_predict( const MotionVector & mv,
   }
 }
 
+template void VP8Raster::Block<16>::inter_predict( const MotionVector & mv,
+                                                   const TwoD<uint8_t> & reference,
+                                                   TwoDSubRange<uint8_t, 16, 16> & output ) const;
+
 #ifdef HAVE_SSE2
 template <>
 void VP8Raster::Block<4>::sse_horiz_inter_predict( const uint8_t * src,

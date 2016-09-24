@@ -23,8 +23,7 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
                                                                TwoD<Y2Block> & frame_Y2,
                                                                TwoD<YBlock> & frame_Y,
                                                                TwoD<UVBlock> & frame_U,
-                                                               TwoD<UVBlock> & frame_V,
-                                                               const bool switching_mb )
+                                                               TwoD<UVBlock> & frame_V )
   : context_( c ),
     segment_id_update_( frame_header.update_segmentation.initialized() and
                         frame_header.update_segmentation.get().update_mb_segmentation_map,
@@ -36,8 +35,7 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
     Y2_( frame_Y2.at( c.column, c.row ) ),
     Y_( frame_Y, c.column * 4, c.row * 4 ),
     U_( frame_U, c.column * 2, c.row * 2 ),
-    V_( frame_V, c.column * 2, c.row * 2 ),
-    switching_mb_ ( switching_mb )
+    V_( frame_V, c.column * 2, c.row * 2 )
 {
   decode_prediction_modes( data, probability_tables );
 }
@@ -314,18 +312,7 @@ template <>
 void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
                                                     const ProbabilityTables & probability_tables )
 {
-  if ( switching_mb_ ) {
-    Y2_.set_prediction_mode( ZEROMV );
-    Y2_.set_coded( false );
-    Y2_.zero_out();
-
-    set_base_motion_vector( MotionVector() );
-    header_.is_inter_mb = true;
-    header_.set_reference( LAST_FRAME );
-
-    Y_.forall( [&] ( YBlock & block ) { block.set_Y_without_Y2(); } );
-  }
-  else if ( not inter_coded() ) {
+  if ( not inter_coded() ) {
     /* Set Y prediction mode */
     Y2_.set_prediction_mode( Tree< mbmode, num_y_modes, y_mode_tree >( data, probability_tables.y_mode_probs ) );
     Y2_.set_if_coded();
@@ -407,7 +394,7 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
     }
   }
 
-  if ( inter_coded() or switching_mb_ ) {
+  if ( inter_coded() ) {
     /* set motion vectors of Y subblocks */
     if ( Y2_.prediction_mode() != SPLITMV ) {
       Y_.forall( [&] ( YBlock & block ) { block.set_motion_vector( base_motion_vector() ); } );
@@ -527,49 +514,7 @@ void InterFrameMacroblock::reconstruct_inter( const Quantizer & quantizer,
 {
   const VP8Raster & reference = references.at( header_.reference() );
 
-  if ( switching_mb_ ) {
-    raster.Y.inter_predict( MotionVector(), reference.Y() );
-    raster.U.inter_predict( MotionVector(), reference.U() );
-    raster.V.inter_predict( MotionVector(), reference.V() );
-
-    TwoD<uint8_t> blank_block_parent { 4, 4 };
-    blank_block_parent.fill( 0 ); /* XXX do we want to do this every time? */
-    TwoDSubRange<uint8_t, 4, 4> blank_block { blank_block_parent, 0, 0 };
-    DCTCoefficients coeffs;
-
-    raster.Y_sub_forall_ij(
-      [&] ( VP8Raster::Block4 & block, unsigned int column, unsigned int row )
-      {
-        coeffs.subtract_dct( block, blank_block );
-        block.mutable_contents().fill( 0 );
-        coeffs = coeffs.quantize( quantizer.y() );
-        coeffs = coeffs + Y_.at( column, row ).coefficients();
-        coeffs.dequantize( quantizer.y() ).idct_add( block );
-      }
-    );
-
-    raster.U_sub_forall_ij(
-      [&] ( VP8Raster::Block4 & block, unsigned int column, unsigned int row )
-      {
-        coeffs.subtract_dct( block, blank_block );
-        block.mutable_contents().fill( 0 );
-        coeffs = coeffs.quantize( quantizer.uv() );
-        coeffs = coeffs + U_.at( column, row ).coefficients();
-        coeffs.dequantize( quantizer.uv() ).idct_add( block );
-      }
-    );
-
-    raster.V_sub_forall_ij(
-      [&] ( VP8Raster::Block4 & block, unsigned int column, unsigned int row )
-      {
-        coeffs.subtract_dct( block, blank_block );
-        block.mutable_contents().fill( 0 );
-        coeffs = coeffs.quantize( quantizer.uv() );
-        coeffs = coeffs + V_.at( column, row ).coefficients();
-        coeffs.dequantize( quantizer.uv() ).idct_add( block );
-      }
-    );
-  } else if ( Y2_.prediction_mode() == SPLITMV ) {
+  if ( Y2_.prediction_mode() == SPLITMV ) {
     Y_.forall_ij(
       [&] ( const YBlock & block, const unsigned int column, const unsigned int row )
       {

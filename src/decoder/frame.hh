@@ -22,8 +22,6 @@ class Frame
 {
  private:
   bool show_;
-  bool switching_frame_; /* a switching frame quantizes the prediction before
-                            adding the residue, like an H.264 SP frame */
 
   unsigned int display_width_, display_height_;
   unsigned int macroblock_width_ { VP8Raster::macroblock_dimension( display_width_ ) },
@@ -53,8 +51,7 @@ class Frame
   Frame( const bool show,
          const unsigned int width,
          const unsigned int height,
-         BoolDecoder & first_partition,
-         const bool switching_frame = false );
+         BoolDecoder & first_partition );
 
   const FrameHeaderType & header() const { return header_; }
   FrameHeaderType & mutable_header() { return header_; }
@@ -84,11 +81,7 @@ class Frame
 
   bool show_frame( void ) const { return show_; }
 
-  bool switching_frame() const { return switching_frame_; }
-
   void set_show( bool show_frame ) { show_ = show_frame; }
-  
-  void set_switching( bool switching_frame ) { switching_frame_ = switching_frame; }
 
   bool operator==( const Frame & other ) const;
 

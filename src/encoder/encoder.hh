@@ -211,8 +211,7 @@ private:
 
   template<class FrameType>
   static FrameType make_empty_frame( const uint16_t width, const uint16_t height,
-                                     const bool show_frame,
-                                     const bool switching_frame );
+                                     const bool show_frame );
 
   template<class FrameType>
   void write_frame( const FrameType & frame );

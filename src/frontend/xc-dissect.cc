@@ -208,10 +208,6 @@ void print_frame_info( const Frame<FrameHeaderType, MacroblockType> & frame, con
     cout << endl;
   }
 
-  if ( frame.switching_frame() ) {
-    cout << "(switching frame)" << endl;
-  }
-
   if ( not frame.show_frame() ) {
     cout << "(hidden frame)" << endl;
   }

@@ -8,10 +8,8 @@ template <class FrameHeaderType, class MacroblockType>
 Frame<FrameHeaderType, MacroblockType>::Frame( const bool show,
                                                const unsigned int width,
                                                const unsigned int height,
-                                               BoolDecoder & first_partition,
-                                               const bool switching_frame )
+                                               BoolDecoder & first_partition )
   : show_( show ),
-    switching_frame_( switching_frame ),
     display_width_( width ),
     display_height_( height ),
     header_( first_partition )
@@ -20,7 +18,6 @@ Frame<FrameHeaderType, MacroblockType>::Frame( const bool show,
 template <class FrameHeaderType, class MacroblockType>
 Frame<FrameHeaderType, MacroblockType>::Frame( Frame && other ) noexcept
 : show_( other.show_ ),
-  switching_frame_( other.switching_frame_ ),
   display_width_( other.display_width_ ),
   display_height_( other.display_height_ ),
   macroblock_width_( other.macroblock_width_ ),
@@ -62,7 +59,7 @@ void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers( BoolDecod
                                   rest_of_first_partition, header_,
                                   mb_segment_tree_probs,
                                   probability_tables,
-                                  Y2_, Y_, U_, V_, switching_frame_ );
+                                  Y2_, Y_, U_, V_ );
 
   /* repoint Y2 above/left pointers to skip missing subblocks */
   relink_y2_blocks();
