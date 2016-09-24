@@ -21,17 +21,21 @@ void DCTCoefficients::subtract_dct( const VP8Raster::Block4 & block,
 {
   SafeArray< int16_t, 16 > input;
 
+#if HAVE_SSE2
+
+  vpx_subtract_block_sse2( 4, 4,
+                           &input.at( 0 ), 4,
+                           &block.contents().at( 0, 0 ), block.contents().stride(),
+                           &prediction.at( 0, 0 ), prediction.stride() );
+  vp8_short_fdct4x4_sse2( &input.at( 0 ), &at( 0 ), 8 );
+
+#else
   for ( size_t column = 0; column < 4; column++ ) {
     for ( size_t row = 0; row < 4; row++ ) {
       input.at( row * 4 + column ) = block.at( column, row ) - prediction.at( column, row );
     }
   }
 
-#if HAVE_SSE2
-
-  vp8_short_fdct4x4_sse2( &input.at( 0 ), &at( 0 ), 8 );
-
-#else
   size_t pitch = 8;
   int a1, b1, c1, d1;
   size_t i_offset = 0;

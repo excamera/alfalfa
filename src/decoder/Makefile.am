@@ -17,6 +17,7 @@ libalfalfadecoder_a_SOURCES = vp8_raster.hh block.hh bool_decoder.hh decoder.cc 
 	decoder_state.hh loopfilter_sse2.asm loopfilter_block_sse2_x86_64.asm \
 	predictor_sse.hh subpixel_ssse3.asm idctllm_mmx.asm \
 	fwalsh_sse2.asm \
+	subtract_sse2.asm x86inc.asm \
 	dct_sse2.asm dct_sse.hh \
 	transform_sse.hh raster_handle.hh raster_handle.cc \
 	player.cc player.hh \
