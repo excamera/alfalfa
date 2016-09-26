@@ -8,27 +8,6 @@
 
 using namespace std;
 
-/*
- * Legend:
- *  --X(Y)-- => Normal frame with output raster X and frame name Y
- *  ==X(Y)== => Switching frame with output raster X and frame name Y
- *         O => Marks a state
- *
- * previous round (1)   -----O-----O--d1--O==D1(F1)==O
- *  current round (2)   -----O-----O--d2--O==D2(F2)==O
- *
- * The goal is to make D1 == D2. We have d1 from the previous run,
- * we have d2 from the current run and also we have the residuals from the
- * frame that is producing D1 (which we call prev_swf-- previous switching frame).
- *
- * Based on the definition of a switching frame, we can say:
- * D1 = idct(deq(q(dct(d1)) + r1))
- * D2 = idct(deq(q(dct(d2)) + r2))
- * To make D1 == D2, we must have:
- * q(dct(d1)) + r1 == q(dct(d2)) + r2
- * => r2 = q(dct(d1)) - q(dct(d2)) + r1
- */
-
 template<class FrameType>
 InterFrame Encoder::reencode_as_interframe( const VP8Raster & original_raster,
                                             const FrameType & original_frame,
