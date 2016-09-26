@@ -227,7 +227,8 @@ private:
                                      const QuantIndices & quant_indices );
 
   InterFrame update_residues( const VP8Raster & unfiltered_output,
-                              const InterFrame & original_frame );
+                              const InterFrame & original_frame,
+                              const QuantIndices & quant_indices );
 
   void update_macroblock( const VP8Raster::Macroblock & original_rmb,
                           VP8Raster::Macroblock & reconstructed_rmb,
@@ -250,7 +251,8 @@ public:
 
   void reencode( const std::vector<RasterHandle> & original_rasters,
                  const std::vector<std::pair<Optional<KeyFrame>, Optional<InterFrame> > > & prediction_frames,
-                 const double kf_q_weight );
+                 const double kf_q_weight,
+                 const bool extra_frame_chunk );
 
   Decoder export_decoder() const { return { decoder_state_, references_ }; }
 

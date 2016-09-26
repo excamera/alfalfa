@@ -205,7 +205,8 @@ void Encoder::update_macroblock( const VP8Raster::Macroblock & original_mb,
 }
 
 InterFrame Encoder::update_residues( const VP8Raster & original_raster,
-                                     const InterFrame & original_frame )
+                                     const InterFrame & original_frame,
+                                     const QuantIndices & quant_indices )
 {
   InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height(),
                                                             true );
@@ -218,7 +219,6 @@ InterFrame Encoder::update_residues( const VP8Raster & original_raster,
   if_header.loop_filter_level        = of_header.loop_filter_level;
   if_header.sharpness_level          = of_header.sharpness_level;
   if_header.mode_lf_adjustments      = of_header.mode_lf_adjustments;
-  if_header.quant_indices            = of_header.quant_indices;
   if_header.refresh_last             = of_header.refresh_last;
   if_header.refresh_golden_frame     = of_header.refresh_golden_frame;
   if_header.refresh_alternate_frame  = of_header.refresh_alternate_frame;
@@ -229,6 +229,8 @@ InterFrame Encoder::update_residues( const VP8Raster & original_raster,
   if_header.refresh_entropy_probs    = of_header.refresh_entropy_probs;
   if_header.prob_references_last     = of_header.prob_references_last;
   if_header.prob_references_golden   = of_header.prob_references_golden;
+
+  if_header.quant_indices = quant_indices;
 
   Quantizer quantizer( frame.header().quant_indices );
   MutableRasterHandle reconstructed_raster_handle { width(), height() };
@@ -263,7 +265,8 @@ InterFrame Encoder::update_residues( const VP8Raster & original_raster,
 
 void Encoder::reencode( const vector<RasterHandle> & original_rasters,
                         const vector<pair<Optional<KeyFrame>, Optional<InterFrame>>> & prediction_frames,
-                        const double kf_q_weight )
+                        const double kf_q_weight,
+                        const bool extra_frame_chunk )
 {
   if ( original_rasters.empty() ) {
     throw runtime_error( "no rasters to re-encode" );
@@ -271,7 +274,9 @@ void Encoder::reencode( const vector<RasterHandle> & original_rasters,
     throw runtime_error( "prediction/original_rasters mismatch" );
   }
 
-  for ( unsigned int frame_index = 0;
+  unsigned int start_frame_index = ( extra_frame_chunk ? 1 : 0 );
+
+  for ( unsigned int frame_index = start_frame_index;
         frame_index < original_rasters.size();
         frame_index++ ) {
     const VP8Raster & target_output = original_rasters.at( frame_index ).get();
@@ -284,7 +289,7 @@ void Encoder::reencode( const vector<RasterHandle> & original_rasters,
     const auto & prediction_frame_ref = prediction_frames.at( frame_index );
 
     /* Option 1: Is this an initial KeyFrame that should be re-encoded as an InterFrame? */
-    if ( (frame_index == 0) and prediction_frame_ref.first.initialized() ) {
+    if ( (frame_index == start_frame_index) and prediction_frame_ref.first.initialized() ) {
       QuantIndices new_quantizer = prediction_frame_ref.first.get().header().quant_indices;
 
       /* try to steal the quantizer from the next frame (if it's an interframe */
@@ -301,12 +306,29 @@ void Encoder::reencode( const vector<RasterHandle> & original_rasters,
       write_frame( reencode_as_interframe( target_output, prediction_frame_ref.first.get(), new_quantizer ) );
 
       continue;
+    } else if ( frame_index == start_frame_index and extra_frame_chunk ) {
+      /* Option 2: Is this the first interframe of an extra-frame chunk?
+         Then update the quantizer. */
+
+      if ( not prediction_frames.at( 0 ).first.initialized() ) {
+        throw runtime_error( "extra-frame chunks must start with a keyframe." );
+      }
+
+      QuantIndices new_quantizer = prediction_frame_ref.second.get().header().quant_indices;
+      new_quantizer.y_ac_qi = lrint( kf_q_weight *  prediction_frames.at( 0 ).first.get().header().quant_indices.y_ac_qi
+                                     + ( 1 - kf_q_weight ) * prediction_frame_ref.second.get().header().quant_indices.y_ac_qi );
+
+      write_frame( update_residues( target_output,
+                                    prediction_frame_ref.second.get(),
+                                    new_quantizer ) );
     } else if ( prediction_frame_ref.first.initialized() ) {
-      /* Option 2: Is this another KeyFrame? Then preserve it. */
+      /* Option 3: Is this another KeyFrame? Then preserve it. */
       write_frame( prediction_frame_ref.first.get() );
     } else if ( prediction_frame_ref.second.initialized() ) {
-      /* Option 3: Is this an InterFrame? Then update residues. */
-      write_frame( update_residues( target_output, prediction_frame_ref.second.get() ) );
+      /* Option 4: Is this an InterFrame? Then update residues. */
+      write_frame( update_residues( target_output,
+                                    prediction_frame_ref.second.get(),
+                                    prediction_frame_ref.second.get().header().quant_indices ) );
     } else {
       throw runtime_error( "prediction_frames contained two undefined values" );
     }

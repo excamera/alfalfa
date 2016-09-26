@@ -198,8 +198,6 @@ int main( int argc, char *argv[] )
       for ( size_t i = 0; ; i++ ) {
         auto next_raster = input_reader->get_next_frame();
 
-        if ( i == 0 and extra_frame_chunk ) continue;
-
         if ( next_raster.initialized() ) {
           original_rasters.emplace_back( next_raster.get() );
         } else {
@@ -223,18 +221,10 @@ int main( int argc, char *argv[] )
           KeyFrame frame = pred_decoder.parse_frame<KeyFrame>( unch );
           pred_decoder.decode_frame( frame );
 
-          if ( i == 0 and extra_frame_chunk ) {
-            continue;
-          }
-
           prediction_frames.emplace_back( move( frame ), Optional<InterFrame>() );
         } else {
           InterFrame frame = pred_decoder.parse_frame<InterFrame>( unch );
           pred_decoder.decode_frame( frame );
-
-          if ( i == 0 and extra_frame_chunk ) {
-            continue;
-          }
 
           prediction_frames.emplace_back( Optional<KeyFrame>(), move( frame ) );
         }
@@ -251,7 +241,8 @@ int main( int argc, char *argv[] )
 
       encoder.set_expected_decoder_entry_hash( encoder.export_decoder().get_hash().hash() );
 
-      encoder.reencode( original_rasters, prediction_frames, kf_q_weight );
+      encoder.reencode( original_rasters, prediction_frames, kf_q_weight,
+                        extra_frame_chunk );
 
       if (output_state != "") {
         EncoderStateSerializer odata = {};
