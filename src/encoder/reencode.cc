@@ -54,6 +54,10 @@ InterFrame Encoder::reencode_as_interframe( const VP8Raster & original_raster,
   MVComponentCounts component_counts;
   TokenBranchCounts token_branch_counts;
 
+  ProbabilityTables temp_tables = decoder_state_.probability_tables;
+  temp_tables.update( if_header );
+  costs_.fill_mv_component_costs( temp_tables.motion_vector_probs );
+
   original_raster.macroblocks_forall_ij(
     [&] ( VP8Raster::ConstMacroblock original_mb, unsigned int mb_column, unsigned int mb_row )
     {
