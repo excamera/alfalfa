@@ -466,10 +466,10 @@ size_t DecoderHash::hash( void ) const
 string DecoderHash::str( void ) const
 {
   stringstream hash_str;
-  hash_str << hex << uppercase;
+  hash_str << hex;
 
-  hash_str << state_hash_ << "_" <<
-    last_hash_ << "_" << golden_hash_ << "_" << alt_hash_;
+  hash_str << hash() << " (" << state_hash_ << "_" <<
+    last_hash_ << "_" << golden_hash_ << "_" << alt_hash_ << ")";
 
   return hash_str.str();
 }
