@@ -210,7 +210,8 @@ void Encoder::update_macroblock( const VP8Raster::Macroblock & original_mb,
 
 InterFrame Encoder::update_residues( const VP8Raster & original_raster,
                                      const InterFrame & original_frame,
-                                     const QuantIndices & quant_indices )
+                                     const QuantIndices & quant_indices,
+                                     const bool last_frame )
 {
   InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height(),
                                                             true );
@@ -223,9 +224,6 @@ InterFrame Encoder::update_residues( const VP8Raster & original_raster,
   if_header.loop_filter_level        = of_header.loop_filter_level;
   if_header.sharpness_level          = of_header.sharpness_level;
   if_header.mode_lf_adjustments      = of_header.mode_lf_adjustments;
-  if_header.refresh_last             = of_header.refresh_last;
-  if_header.refresh_golden_frame     = of_header.refresh_golden_frame;
-  if_header.refresh_alternate_frame  = of_header.refresh_alternate_frame;
   if_header.copy_buffer_to_golden    = of_header.copy_buffer_to_golden;
   if_header.copy_buffer_to_alternate = of_header.copy_buffer_to_alternate;
   if_header.sign_bias_golden         = of_header.sign_bias_golden;
@@ -233,6 +231,17 @@ InterFrame Encoder::update_residues( const VP8Raster & original_raster,
   if_header.refresh_entropy_probs    = of_header.refresh_entropy_probs;
   if_header.prob_references_last     = of_header.prob_references_last;
   if_header.prob_references_golden   = of_header.prob_references_golden;
+
+  if ( last_frame ) {
+    if_header.refresh_last             = true;
+    if_header.refresh_golden_frame     = true;
+    if_header.refresh_alternate_frame  = true;
+  }
+  else {
+    if_header.refresh_last             = of_header.refresh_last;
+    if_header.refresh_golden_frame     = of_header.refresh_golden_frame;
+    if_header.refresh_alternate_frame  = of_header.refresh_alternate_frame;
+  }
 
   if_header.quant_indices = quant_indices;
 
@@ -285,6 +294,8 @@ void Encoder::reencode( const vector<RasterHandle> & original_rasters,
         frame_index++ ) {
     const VP8Raster & target_output = original_rasters.at( frame_index ).get();
 
+    bool last_frame = ( frame_index == prediction_frames.size() - 1 );
+
     if ( target_output.display_width() != width()
          or target_output.display_height() != height() ) {
       throw runtime_error( "raster size mismatch" );
@@ -324,7 +335,7 @@ void Encoder::reencode( const vector<RasterHandle> & original_rasters,
 
       write_frame( update_residues( target_output,
                                     prediction_frame_ref.second.get(),
-                                    new_quantizer ) );
+                                    new_quantizer, last_frame ) );
     } else if ( prediction_frame_ref.first.initialized() ) {
       /* Option 3: Is this another KeyFrame? Then preserve it. */
       write_frame( prediction_frame_ref.first.get() );
@@ -332,7 +343,8 @@ void Encoder::reencode( const vector<RasterHandle> & original_rasters,
       /* Option 4: Is this an InterFrame? Then update residues. */
       write_frame( update_residues( target_output,
                                     prediction_frame_ref.second.get(),
-                                    prediction_frame_ref.second.get().header().quant_indices ) );
+                                    prediction_frame_ref.second.get().header().quant_indices,
+                                    last_frame ) );
     } else {
       throw runtime_error( "prediction_frames contained two undefined values" );
     }

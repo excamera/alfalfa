@@ -228,7 +228,8 @@ private:
 
   InterFrame update_residues( const VP8Raster & unfiltered_output,
                               const InterFrame & original_frame,
-                              const QuantIndices & quant_indices );
+                              const QuantIndices & quant_indices,
+                              const bool last_frame );
 
   void update_macroblock( const VP8Raster::Macroblock & original_rmb,
                           VP8Raster::Macroblock & reconstructed_rmb,
