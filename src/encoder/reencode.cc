@@ -224,8 +224,6 @@ InterFrame Encoder::update_residues( const VP8Raster & original_raster,
   if_header.loop_filter_level        = of_header.loop_filter_level;
   if_header.sharpness_level          = of_header.sharpness_level;
   if_header.mode_lf_adjustments      = of_header.mode_lf_adjustments;
-  if_header.copy_buffer_to_golden    = of_header.copy_buffer_to_golden;
-  if_header.copy_buffer_to_alternate = of_header.copy_buffer_to_alternate;
   if_header.sign_bias_golden         = of_header.sign_bias_golden;
   if_header.sign_bias_alternate      = of_header.sign_bias_alternate;
   if_header.refresh_entropy_probs    = of_header.refresh_entropy_probs;
@@ -236,11 +234,15 @@ InterFrame Encoder::update_residues( const VP8Raster & original_raster,
     if_header.refresh_last            = true;
     if_header.refresh_golden_frame    = true;
     if_header.refresh_alternate_frame = true;
+    if_header.copy_buffer_to_golden.clear();
+    if_header.copy_buffer_to_alternate.clear();
   }
   else {
-    if_header.refresh_last            = of_header.refresh_last;
-    if_header.refresh_golden_frame    = of_header.refresh_golden_frame;
-    if_header.refresh_alternate_frame = of_header.refresh_alternate_frame;
+    if_header.refresh_last             = of_header.refresh_last;
+    if_header.refresh_golden_frame     = of_header.refresh_golden_frame;
+    if_header.refresh_alternate_frame  = of_header.refresh_alternate_frame;
+    if_header.copy_buffer_to_golden    = of_header.copy_buffer_to_golden;
+    if_header.copy_buffer_to_alternate = of_header.copy_buffer_to_alternate;
   }
 
   if_header.quant_indices = quant_indices;
