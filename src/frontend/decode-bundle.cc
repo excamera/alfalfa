@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <sstream>
 
 #include "file_descriptor.hh"
 #include "optional.hh"
@@ -56,7 +57,10 @@ int main( int argc, char *argv[] )
       }
 
       if ( not player->current_decoder().minihash_match( ivf.expected_decoder_minihash() ) ) {
-        throw Invalid( "Decoder state / IVF mismatch" );
+        stringstream error;
+        error << hex << "Hash mismatch. Expected " << ivf.expected_decoder_minihash()
+              << " but decoder is in state " << player->current_decoder().minihash();
+        throw Invalid( error.str() );
       }
 
       /* decode file */
