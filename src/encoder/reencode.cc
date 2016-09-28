@@ -233,14 +233,14 @@ InterFrame Encoder::update_residues( const VP8Raster & original_raster,
   if_header.prob_references_golden   = of_header.prob_references_golden;
 
   if ( last_frame ) {
-    if_header.refresh_last             = true;
-    if_header.refresh_golden_frame     = true;
-    if_header.refresh_alternate_frame  = true;
+    if_header.refresh_last            = true;
+    if_header.refresh_golden_frame    = true;
+    if_header.refresh_alternate_frame = true;
   }
   else {
-    if_header.refresh_last             = of_header.refresh_last;
-    if_header.refresh_golden_frame     = of_header.refresh_golden_frame;
-    if_header.refresh_alternate_frame  = of_header.refresh_alternate_frame;
+    if_header.refresh_last            = of_header.refresh_last;
+    if_header.refresh_golden_frame    = of_header.refresh_golden_frame;
+    if_header.refresh_alternate_frame = of_header.refresh_alternate_frame;
   }
 
   if_header.quant_indices = quant_indices;
