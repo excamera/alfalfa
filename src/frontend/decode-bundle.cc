@@ -52,11 +52,11 @@ int main( int argc, char *argv[] )
           player.reset( new FramePlayer { ivf.width(), ivf.height() } );
         }
 
-        if ( not player->current_decoder().minihash_match( ivf.expected_decoder_minihash() ) ) {
-          throw Invalid( "Decoder state / IVF mismatch" );
-        }
-
         stdout.write( YUV4MPEGHeader( player->example_raster() ).to_string() );
+      }
+
+      if ( not player->current_decoder().minihash_match( ivf.expected_decoder_minihash() ) ) {
+        throw Invalid( "Decoder state / IVF mismatch" );
       }
 
       /* decode file */
