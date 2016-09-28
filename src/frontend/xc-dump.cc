@@ -81,6 +81,10 @@ int main( int argc, char *argv[] )
                     ? Decoder( ivf.width(), ivf.height() )
                     : EncoderStateDeserializer::build<Decoder>( input_state );
 
+    if ( not decoder.minihash_match( ivf.expected_decoder_minihash() ) ) {
+      throw Invalid( "Decoder state / IVF mismatch" );
+    }
+
     if ( frame_number == numeric_limits<size_t>::max() ) {
       frame_number = ivf.frame_count() - 1;
     }
