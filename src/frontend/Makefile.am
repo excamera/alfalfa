@@ -3,7 +3,8 @@ AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(NODEBUG_CXXFLAGS)
 AM_LDFLAGS = $(STATIC_BUILD_FLAG)
 
 bin_PROGRAMS = vp8decode vp8play xc-enc xc-ssim xc-dissect xc-framesize xc-dump \
-               xc-diff comp-states xc-decode-bundle xc-merge
+               xc-diff comp-states xc-decode-bundle xc-merge \
+               xc-terminate-chunk
 
 vp8decode_SOURCES = vp8decode.cc
 vp8decode_LDADD = ../encoder/libalfalfaencoder.a ../decoder/libalfalfadecoder.a ../util/libalfalfautil.a $(X264_LIBS)
@@ -37,6 +38,9 @@ xc_diff_LDADD = ../decoder/libalfalfadecoder.a ../util/libalfalfautil.a $(X264_L
 
 xc_merge_SOURCES = xc-merge.cc
 xc_merge_LDADD = ../decoder/libalfalfadecoder.a ../util/libalfalfautil.a $(X264_LIBS)
+
+xc_terminate_chunk_SOURCES = xc-terminate-chunk.cc
+xc_terminate_chunk_LDADD = ../decoder/libalfalfadecoder.a ../util/libalfalfautil.a $(X264_LIBS)
 
 comp_states_SOURCES = comp-states.cc
 comp_states_LDADD = ../decoder/libalfalfadecoder.a ../util/libalfalfautil.a $(X264_LIBS)
