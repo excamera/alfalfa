@@ -44,7 +44,7 @@ void usage_error( const string & program_name )
        << " -p, --pred-ivf <arg>                  Prediction modes IVF" << endl
        << " -S, --pred-state <arg>                Prediction modes IVF initial state" << endl
        << " -w, --kf-q-weight <arg>               Keyframe quantizer weight" << endl
-       << " -7, --extra-frame-chunk               Do the extra frame magic" << endl
+       << " -e, --extra-frame-chunk               Prediction IVF starts with an extra frame" << endl
        << endl;
 }
 
@@ -86,12 +86,12 @@ int main( int argc, char *argv[] )
       { "pred-ivf",             required_argument, nullptr, 'p' },
       { "pred-state",           required_argument, nullptr, 'S' },
       { "kf-q-weight",          required_argument, nullptr, 'w' },
-      { "extra-frame-chunk",    no_argument,       nullptr, '7' },
+      { "extra-frame-chunk",    no_argument,       nullptr, 'e' },
       { 0, 0, 0, 0 }
     };
 
     while ( true ) {
-      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:p:S:rw:7", command_line_options, nullptr );
+      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:p:S:rw:e", command_line_options, nullptr );
 
       if ( opt == -1 ) {
         break;
@@ -142,7 +142,7 @@ int main( int argc, char *argv[] )
         kf_q_weight = stod( optarg );
         break;
 
-      case '7':
+      case 'e':
         extra_frame_chunk = true;
         break;
 
