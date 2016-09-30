@@ -61,6 +61,23 @@ AC_ARG_ENABLE([all-static],
 
 AC_SUBST(STATIC_BUILD_FLAG)
 
+AC_ARG_ENABLE([vp8play],
+  [AS_HELP_STRING([--enable-vp8play], [Build vp8play (requires gl, glu, glfw3, glew)])],
+  [case "$enableval" in
+    '' | yes)
+        buildvp8=true
+        ;;
+    no)
+        buildvp8=false
+        ;;
+    *)
+        AC_MSG_ERROR([Unknown argument '$enableval' to --enable-vp8play])
+        ;;
+   esac],
+  [buildvp8=true])
+
+AM_CONDITIONAL([BUILDVP8PLAY], [test "$buildvp8" = true])
+
 # Checks for assemblers
 # TODO only check this when arch is x86
 AC_CHECK_PROGS([AS], [yasm nasm], [none])
@@ -77,12 +94,15 @@ AC_SUBST([AS])
 AC_SUBST([ASFLAGS])
 
 # Checks for libraries.
-PKG_CHECK_MODULES([GL], [gl])
-PKG_CHECK_MODULES([GLU], [glu])
 PKG_CHECK_MODULES([X264], [x264])
-PKG_CHECK_MODULES([GLFW3], [glfw3])
-PKG_CHECK_MODULES([GLEW], [glew])
 PKG_CHECK_MODULES([ZLIB], [zlib])
+
+if test "$buildvp8" = true; then
+    PKG_CHECK_MODULES([GL], [gl])
+    PKG_CHECK_MODULES([GLU], [glu])
+    PKG_CHECK_MODULES([GLFW3], [glfw3])
+    PKG_CHECK_MODULES([GLEW], [glew])
+fi
 
 # Checks for header files.
 AC_PATH_X
