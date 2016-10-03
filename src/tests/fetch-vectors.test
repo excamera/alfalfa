@@ -18,5 +18,5 @@ if ( -d $src_test_vectors ) {
 
 print STDERR "$0: fetching test vectors from GitHub";
 
-system( qq{git clone https://github.com/alfalfa/alfalfa_test_vectors $target} )
-  and die qq{Couldn't clone https://github.com/alfalfa/alfalfa_test_vectors};
+system( qq{git clone https://github.com/excamera/alfalfa_test_vectors $target} )
+  and die qq{Couldn't clone https://github.com/excamera/alfalfa_test_vectors};
