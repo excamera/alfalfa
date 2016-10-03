@@ -1,0 +1,19 @@
+#!/usr/bin/python
+
+import os
+import sys
+import subprocess as sub
+
+TEST_DIR = "playability_test/"
+TEST_INPUTS = "inputs/*.y4m"
+TEST_OUTPUTS_DIR = os.path.join(TEST_DIR, "outputs")
+
+os.environ['PATH'] = os.getcwd() + "/../frontend:" + os.environ['PATH']
+
+TEST_COMMAND = "cd {} && ./runner {}".format(TEST_DIR, TEST_INPUTS)
+
+ret_val = os.system(TEST_COMMAND)
+
+os.system("rm {}".format(os.path.join(TEST_OUTPUTS_DIR, '*')))
+
+sys.exit(ret_val)

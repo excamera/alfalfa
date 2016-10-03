@@ -17,12 +17,12 @@ serdes_test_SOURCES = serdes-test.cc
 dist_check_SCRIPTS = fetch-vectors.test fetch-encoder-vectors.test decoding.test \
                      roundtrip-verify.test \
                      switch-test ivfcopy.test xc-enc-ssim.test \
-                     serdes.test
+                     serdes.test fetch-playability-test.test playability.test
 
 TESTS = fetch-vectors.test decoding.test \
         encode-loopback roundtrip-verify.test \
         ivfcopy.test fetch-encoder-vectors.test xc-enc-ssim.test \
-        serdes.test
+        serdes.test fetch-playability-test.test playability.test
 
 
 # some tests depend on the test vectors having been fetched
@@ -31,7 +31,9 @@ decoding.log: fetch-vectors.log
 roundtrip-verify.log: fetch-vectors.log
 ivfcopy.log: fetch-vectors.log
 xc-enc-ssim.log: fetch-encoder-vectors.log
+playability.log: fetch-playability-test.log
 
 clean-local:
 	-rm -rf test_vectors
 	-rm -rf encoder_test_vectors
+	-rm -rf playability_test

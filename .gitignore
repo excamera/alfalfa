@@ -50,6 +50,7 @@ Makefile.in
 /src/tests/ivfcopy
 /src/tests/ivfcompare
 /src/tests/serdes-test
+/src/tests/playability_test/
 
 /src/tests/test_vectors/
 /src/tests/encoder_test_vectors/
