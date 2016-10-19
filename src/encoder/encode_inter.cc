@@ -157,32 +157,32 @@ MotionVector Encoder::diamond_search( const VP8Raster::Macroblock & original_mb,
 
   base_mv = Scorer::clamp( base_mv, frame_mb.context() );
 
+  constexpr array<array<int16_t, 2>, 5> check_sites = {{
+    { 0, 0 }, { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 }
+  }};
+
   while ( step_size > 1 ) {
     MBPredictionData best_pred;
     MBPredictionData pred;
 
-    for ( int x = -1; x <= 1; x++ ) {
-      for ( int y = -1; y <= 1; y++ ) {
-        if ( ( ( x & y ) == 0 ) && ( ( x | y ) != 0 ) ) continue;
+    for ( const auto & check_site : check_sites ) {
+      pred.mv = MotionVector();
+      MotionVector direction( step_size * check_site[0],
+                              step_size * check_site[1] );
 
-        pred.mv = MotionVector();
-        MotionVector direction( ( ( step_size ) * ( ( x + y ) / 2 ) ),
-                                ( ( step_size ) * ( ( x - y ) / 2 ) ) );
+      pred.mv += origin + direction;
 
-        pred.mv += origin + direction;
+      if ( out_of_bounds( pred.mv ) ) continue;
 
-        if ( out_of_bounds( pred.mv ) ) continue;
+      MotionVector this_mv( Scorer::clamp( pred.mv + base_mv, frame_mb.context() ) );
 
-        MotionVector this_mv( Scorer::clamp( pred.mv + base_mv, frame_mb.context() ) );
+      reconstructed_mb.Y.inter_predict( this_mv, reference.Y(), prediction );
+      pred.distortion = sad( original_mb.Y, prediction );
+      pred.rate = costs_.sad_motion_vector_cost( pred.mv, MotionVector(), sad_per_bit16lut[ y_ac_qi ] );
+      pred.cost = rdcost( pred.rate, pred.distortion, 1, 1 );
 
-        reconstructed_mb.Y.inter_predict( this_mv, reference.Y(), prediction );
-        pred.distortion = sad( original_mb.Y, prediction );
-        pred.rate = costs_.sad_motion_vector_cost( pred.mv, MotionVector(), sad_per_bit16lut[ y_ac_qi ] );
-        pred.cost = rdcost( pred.rate, pred.distortion, 1, 1 );
-
-        if ( pred.cost < best_pred.cost  ) {
-          best_pred = pred;
-        }
+      if ( pred.cost < best_pred.cost  ) {
+        best_pred = pred;
       }
     }
 
