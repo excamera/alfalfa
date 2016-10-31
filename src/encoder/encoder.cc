@@ -6,6 +6,7 @@
 #include <limits>
 #include <utility>
 
+#include "sad_sse.hh"
 #include "block.hh"
 #include "encoder.hh"
 #include "frame_header.hh"
@@ -18,6 +19,21 @@ using namespace std;
 #endif
 
 #ifndef HAVE_SSE2
+
+template<unsigned int size>
+uint32_t Encoder::sad( const VP8Raster::Block<size> & block,
+                       const TwoDSubRange<uint8_t, size, size> & prediction )
+{
+  uint32_t res = 0;
+
+  for ( size_t i = 0; i < size; i++ ) {
+    for ( size_t j = 0; j < size; j++ ) {
+      res += abs( block.at( i, j ) - prediction.at( i, j ) );
+    }
+  }
+
+  return res;
+}
 
 template<unsigned int size>
 uint32_t Encoder::sse( const VP8Raster::Block<size> & block,
@@ -55,6 +71,15 @@ uint32_t Encoder::variance( const VP8Raster::Block<size> & block,
 }
 
 #else // SSE2 is supported
+
+/* SAD() */
+template<>
+uint32_t Encoder::sad( const VP8Raster::Block<16> & block,
+                       const TwoDSubRange<uint8_t, 16, 16> & prediction )
+{
+  return vpx_sad16x16_sse2( &block.contents().at( 0, 0 ), block.contents().stride(),
+                            &prediction.at( 0, 0 ), prediction.stride() );
+}
 
 /* SSE() */
 template<>
@@ -233,21 +258,6 @@ int32_t Encoder::avg( const VP8Raster::Block<size> & block,
   }
 
   return res / ( size * size );
-}
-
-template<unsigned int size>
-uint32_t Encoder::sad( const VP8Raster::Block<size> & block,
-                       const TwoDSubRange<uint8_t, size, size> & prediction )
-{
-  uint32_t res = 0;
-
-  for ( size_t i = 0; i < size; i++ ) {
-    for ( size_t j = 0; j < size; j++ ) {
-      res += abs( block.at( i, j ) - prediction.at( i, j ) );
-    }
-  }
-
-  return res;
 }
 
 /*
