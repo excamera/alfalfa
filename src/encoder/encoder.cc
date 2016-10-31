@@ -14,10 +14,6 @@
 
 using namespace std;
 
-#ifdef HAVE_SSE2
-#include "variance_sse2.c"
-#endif
-
 #ifndef HAVE_SSE2
 
 template<unsigned int size>
@@ -71,6 +67,8 @@ uint32_t Encoder::variance( const VP8Raster::Block<size> & block,
 }
 
 #else // SSE2 is supported
+
+#include "variance_sse2.c"
 
 /* SAD() */
 template<>
