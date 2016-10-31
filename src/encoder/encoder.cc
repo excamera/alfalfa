@@ -11,11 +11,126 @@
 #include "frame_header.hh"
 #include "tokens.hh"
 
+using namespace std;
+
+#ifdef HAVE_SSE2
+#include "variance_sse2.c"
+#endif
+
+#ifndef HAVE_SSE2
+
+template<unsigned int size>
+uint32_t Encoder::sse( const VP8Raster::Block<size> & block,
+                       const TwoDSubRange<uint8_t, size, size> & prediction )
+{
+  uint32_t res = 0;
+
+  for ( size_t i = 0; i < size; i++ ) {
+    for ( size_t j = 0; j < size; j++ ) {
+      int16_t diff = ( block.at( i, j ) - prediction.at( i, j ) );
+      res += diff * diff;
+    }
+  }
+
+  return res;
+}
+
+template<unsigned int size>
+uint32_t Encoder::variance( const VP8Raster::Block<size> & block,
+                            const TwoDSubRange<uint8_t, size, size> & prediction )
+{
+  uint32_t res = 0;
+  int32_t sum = 0;
+
+  for ( size_t i = 0; i < size; i++ ) {
+    for ( size_t j = 0; j < size; j++ ) {
+      int16_t diff = ( block.at( i, j ) - prediction.at( i, j ) );
+
+      sum += diff;
+      res += diff * diff;
+    }
+  }
+
+  return res - ( ( int64_t)sum * sum ) / ( size * size );
+}
+
+#else // SSE2 is supported
+
+/* SSE() */
+template<>
+uint32_t Encoder::sse( const VP8Raster::Block<4> & block,
+                       const TwoDSubRange<uint8_t, 4, 4> & prediction )
+{
+  unsigned int sse;
+  vpx_variance4x4_sse2( &block.contents().at( 0, 0 ), block.contents().stride(),
+                        &prediction.at( 0, 0 ), prediction.stride(),
+                        &sse );
+
+  return sse;
+}
+
+template<>
+uint32_t Encoder::sse( const VP8Raster::Block<8> & block,
+                       const TwoDSubRange<uint8_t, 8, 8> & prediction )
+{
+  unsigned int sse;
+  vpx_variance8x8_sse2( &block.contents().at( 0, 0 ), block.contents().stride(),
+                        &prediction.at( 0, 0 ), prediction.stride(),
+                        &sse );
+
+  return sse;
+}
+
+template<>
+uint32_t Encoder::sse( const VP8Raster::Block<16> & block,
+                       const TwoDSubRange<uint8_t, 16, 16> & prediction )
+{
+  unsigned int sse;
+  vpx_variance16x16_sse2( &block.contents().at( 0, 0 ), block.contents().stride(),
+                          &prediction.at( 0, 0 ), prediction.stride(),
+                          &sse );
+
+  return sse;
+}
+
+/* VARIANCE() */
+
+template<>
+uint32_t Encoder::variance( const VP8Raster::Block<4> & block,
+                            const TwoDSubRange<uint8_t, 4, 4> & prediction )
+{
+  unsigned int sse;
+  return vpx_variance4x4_sse2( &block.contents().at( 0, 0 ), block.contents().stride(),
+                                 &prediction.at( 0, 0 ), prediction.stride(),
+                                 &sse );
+}
+
+template<>
+uint32_t Encoder::variance( const VP8Raster::Block<8> & block,
+                            const TwoDSubRange<uint8_t, 8, 8> & prediction )
+{
+  unsigned int sse;
+  return vpx_variance8x8_sse2( &block.contents().at( 0, 0 ), block.contents().stride(),
+                                 &prediction.at( 0, 0 ), prediction.stride(),
+                                 &sse );
+}
+
+template<>
+uint32_t Encoder::variance( const VP8Raster::Block<16> & block,
+                            const TwoDSubRange<uint8_t, 16, 16> & prediction )
+{
+  unsigned int sse;
+  return vpx_variance16x16_sse2( &block.contents().at( 0, 0 ), block.contents().stride(),
+                                 &prediction.at( 0, 0 ), prediction.stride(),
+                                 &sse );
+}
+
+#endif
+
 #include "encode_inter.cc"
 #include "encode_intra.cc"
 #include "reencode.cc"
 
-using namespace std;
 
 unsigned Encoder::calc_prob( unsigned false_count, unsigned total )
 {
@@ -133,41 +248,6 @@ uint32_t Encoder::sad( const VP8Raster::Block<size> & block,
   }
 
   return res;
-}
-
-template<unsigned int size>
-uint32_t Encoder::sse( const VP8Raster::Block<size> & block,
-                       const TwoDSubRange<uint8_t, size, size> & prediction )
-{
-  uint32_t res = 0;
-
-  for ( size_t i = 0; i < size; i++ ) {
-    for ( size_t j = 0; j < size; j++ ) {
-      int16_t diff = ( block.at( i, j ) - prediction.at( i, j ) );
-      res += diff * diff;
-    }
-  }
-
-  return res;
-}
-
-template<unsigned int size>
-uint32_t Encoder::variance( const VP8Raster::Block<size> & block,
-                            const TwoDSubRange<uint8_t, size, size> & prediction )
-{
-  uint32_t res = 0;
-  int32_t sum = 0;
-
-  for ( size_t i = 0; i < size; i++ ) {
-    for ( size_t j = 0; j < size; j++ ) {
-      int16_t diff = ( block.at( i, j ) - prediction.at( i, j ) );
-
-      sum += diff;
-      res += diff * diff;
-    }
-  }
-
-  return res - ( ( int64_t)sum * sum ) / ( size * size );
 }
 
 /*
