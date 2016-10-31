@@ -9,6 +9,7 @@
  */
 
 #include <emmintrin.h>  // SSE2
+#include <stdint.h>
 
 //#include "vpx_ports/mem.h"
 

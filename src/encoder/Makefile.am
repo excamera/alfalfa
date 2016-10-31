@@ -4,6 +4,7 @@ AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(NODEBUG_CXXFLAGS)
 noinst_LIBRARIES = libalfalfaencoder.a
 
 libalfalfaencoder_a_SOURCES = frame_input.hh \
+	variance_sse2.c \
 	ivf_reader.hh ivf_reader.cc \
 	yuv4mpeg.hh yuv4mpeg.cc costs.hh costs.cc \
 	bool_encoder.hh serializer.cc encode_tree.cc \
