@@ -236,7 +236,6 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                                           mv_counts_to_probs.at( counts.at( 3 ) ).at( 3 ) }};
 
   costs_.fill_mv_ref_costs( mv_ref_probs );
-  costs_.fill_mv_sad_costs();
 
   frame_mb.mutable_header().is_inter_mb = true;
   frame_mb.mutable_header().set_reference( LAST_FRAME );
@@ -556,6 +555,7 @@ pair<InterFrame, double> Encoder::encode_with_quantizer<InterFrame>( const VP8Ra
   MVComponentCounts component_counts;
 
   costs_.fill_mv_component_costs( decoder_state_.probability_tables.motion_vector_probs );
+  costs_.fill_mv_sad_costs();
 
   raster.macroblocks_forall_ij(
     [&] ( VP8Raster::ConstMacroblock original_mb, unsigned int mb_column, unsigned int mb_row )
