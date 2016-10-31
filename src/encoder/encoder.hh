@@ -63,10 +63,6 @@ private:
                           uint32_t distortion_multiplier );
 
   template<unsigned int size>
-  static int32_t avg( const VP8Raster::Block<size> & block,
-                      const TwoDSubRange<uint8_t, size, size> & prediction );
-
-  template<unsigned int size>
   static uint32_t sad( const VP8Raster::Block<size> & block,
                        const TwoDSubRange<uint8_t, size, size> & prediction );
 

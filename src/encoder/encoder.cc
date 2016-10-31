@@ -243,21 +243,6 @@ void Encoder::write_frame( const FrameType & frame )
   write_frame( frame, decoder_state_.probability_tables );
 }
 
-template<unsigned int size>
-int32_t Encoder::avg( const VP8Raster::Block<size> & block,
-                       const TwoDSubRange<uint8_t, size, size> & prediction )
-{
-  int32_t res = 0;
-
-  for ( size_t i = 0; i < size; i++ ) {
-    for ( size_t j = 0; j < size; j++ ) {
-      res += block.at( i, j ) - prediction.at( i, j );
-    }
-  }
-
-  return res / ( size * size );
-}
-
 /*
  * Based on libvpx:vp8/encoder/encodemb.c:413
  */
