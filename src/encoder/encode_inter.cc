@@ -158,7 +158,7 @@ MotionVector Encoder::diamond_search( const VP8Raster::Macroblock & original_mb,
   base_mv = Scorer::clamp( base_mv, frame_mb.context() );
 
   constexpr array<array<int16_t, 2>, 5> check_sites = {{
-    { 0, 0 }, { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 }
+    { -1, 0 }, { 0, -1 }, { 0, 0 }, { 0, 1 }, { 1, 0 }
   }};
 
   while ( step_size > 1 ) {
@@ -167,8 +167,8 @@ MotionVector Encoder::diamond_search( const VP8Raster::Macroblock & original_mb,
 
     for ( const auto & check_site : check_sites ) {
       pred.mv = MotionVector();
-      MotionVector direction( step_size * check_site[0],
-                              step_size * check_site[1] );
+      MotionVector direction( step_size * check_site[ 0 ],
+                              step_size * check_site[ 1 ] );
 
       pred.mv += origin + direction;
 
@@ -250,7 +250,7 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
 
     switch ( prediction_mode ) {
     case NEWMV:
-      for ( size_t step = 9; step > 0; step-- ) {
+      for ( int step = 9; step > 0; step-- ) {
         mv = diamond_search( original_mb, reconstructed_mb, temp_mb, frame_mb,
                              reference, best_ref, mv, ( 1 << step ), y_ac_qi );
       }
