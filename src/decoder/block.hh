@@ -41,7 +41,7 @@ public:
   }
 
   void idct_add( VP8Raster::Block4 & output ) const;
-  SafeArray< SafeArray< int16_t, 4 >, 4 > iwht() const;
+  void iwht( SafeArray<SafeArray<DCTCoefficients, 4>, 4> & output ) const;
 
   void subtract_dct( const VP8Raster::Block4 & block, const TwoDSubRange< uint8_t, 4, 4 > & prediction );
   void wht( SafeArray< int16_t, 16 > & input );

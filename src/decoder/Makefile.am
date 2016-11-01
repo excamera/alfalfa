@@ -19,7 +19,7 @@ libalfalfadecoder_a_SOURCES = vp8_raster.hh block.hh bool_decoder.hh decoder.cc 
 	fwalsh_sse2.asm \
 	subtract_sse2.asm x86inc.asm \
 	sad_sse2.asm sad_sse.hh \
-	dct_sse2.asm dct_sse.hh \
+	iwalsh_sse2.asm dct_sse2.asm dct_sse.hh \
 	transform_sse.hh raster_handle.hh raster_handle.cc \
 	player.cc player.hh \
 	probability_tables.cc \

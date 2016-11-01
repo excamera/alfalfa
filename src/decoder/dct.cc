@@ -79,7 +79,7 @@ void DCTCoefficients::subtract_dct( const VP8Raster::Block4 & block,
 
 void DCTCoefficients::wht( SafeArray< int16_t, 16 > & input )
 {
-#if HAVE_SSE2
+#ifdef HAVE_SSE2
 
   vp8_short_walsh4x4_sse2( &input.at( 0 ), &at( 0 ), 8 );
 

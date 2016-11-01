@@ -4,6 +4,7 @@
 #include "block.hh"
 #include "safe_array.hh"
 #include "transform_sse.hh"
+#include "dct_sse.hh"
 
 template <>
 void YBlock::set_dc_coefficient( const int16_t & val )
@@ -17,10 +18,15 @@ void DCTCoefficients::set_dc_coefficient( const int16_t & val )
   coefficients_.at( 0 ) = val;
 }
 
-SafeArray< SafeArray< int16_t, 4 >, 4 > DCTCoefficients::iwht() const
+void DCTCoefficients::iwht( SafeArray<SafeArray<DCTCoefficients, 4>, 4> & output ) const
 {
+#ifdef HAVE_SSE2
+
+  vp8_short_inv_walsh4x4_sse2( &at( 0 ), &output.at( 0 ).at( 0 ).at( 0 ) );
+
+#else
+
   SafeArray< int16_t, 16 > intermediate;
-  SafeArray< SafeArray< int16_t, 4 >, 4 > output;
 
   for ( size_t i = 0; i < 4; i++ ) {
     int a1 = coefficients_.at( i + 0 ) + coefficients_.at( i + 12 );
@@ -46,13 +52,13 @@ SafeArray< SafeArray< int16_t, 4 >, 4 > DCTCoefficients::iwht() const
     int c2 = a1 - b1;
     int d2 = d1 - c1;
 
-    output.at( i ).at( 0 ) = ( a2 + 3 ) >> 3;
-    output.at( i ).at( 1 ) = ( b2 + 3 ) >> 3;
-    output.at( i ).at( 2 ) = ( c2 + 3 ) >> 3;
-    output.at( i ).at( 3 ) = ( d2 + 3 ) >> 3;
+    output.at( i ).at( 0 ).at( 0 ) = ( a2 + 3 ) >> 3;
+    output.at( i ).at( 1 ).at( 0 ) = ( b2 + 3 ) >> 3;
+    output.at( i ).at( 2 ).at( 0 ) = ( c2 + 3 ) >> 3;
+    output.at( i ).at( 3 ).at( 0 ) = ( d2 + 3 ) >> 3;
   }
 
-  return output;
+#endif
 }
 
 #ifdef HAVE_SSE2

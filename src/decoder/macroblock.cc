@@ -462,13 +462,7 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::apply_walsh( const Quant
         Y_dequant_coeffs.at( row ).at( column ) = Y_.at( column, row ).dequantize( quantizer );
       }
     }
-    SafeArray< SafeArray< int16_t, 4 >, 4 > wht_coeffs = Y2_.dequantize( quantizer ).iwht();
-
-    for ( size_t i = 0; i < 4; i++ ) {
-      for ( size_t j = 0; j < 4; j++ ) {
-        Y_dequant_coeffs.at( i ).at( j ).set_dc_coefficient( wht_coeffs.at( i ).at( j ) );
-      }
-    }
+    Y2_.dequantize( quantizer ).iwht( Y_dequant_coeffs );
 
     for ( int row = 0; row < 4; row++ ) {
       for ( int column = 0; column < 4; column++ ) {
