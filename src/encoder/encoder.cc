@@ -234,6 +234,8 @@ void Encoder::write_frame( const FrameType & frame,
   RasterHandle immutable_raster( move( raster ) );
   frame.copy_to( immutable_raster, references_ );
 
+  safe_references_.update_all_refs( references_ );
+
   ivf_writer_.append_frame( frame.serialize( prob_tables ) );
 }
 

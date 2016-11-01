@@ -95,6 +95,8 @@ private:
                 MARGIN_WIDTH ); // (6)
       }
     }
+
+
   }
 
 public:
@@ -113,9 +115,9 @@ public:
   void update_ref( reference_frame reference_id, RasterHandle reference_raster )
   {
     switch ( reference_id ) {
-    case LAST_FRAME: copy_raster( reference_raster, last_Y_ );
-    case GOLDEN_FRAME: copy_raster( reference_raster, golden_Y_ );
-    case ALTREF_FRAME: copy_raster( reference_raster, alternative_Y_ );
+    case LAST_FRAME: copy_raster( reference_raster, last_Y_ ); break;
+    case GOLDEN_FRAME: copy_raster( reference_raster, golden_Y_ ); break;
+    case ALTREF_FRAME: copy_raster( reference_raster, alternative_Y_ ); break;
     default: throw LogicError();
     }
   }
@@ -125,6 +127,24 @@ public:
     update_ref( LAST_FRAME, references.last );
     update_ref( GOLDEN_FRAME, references.golden );
     update_ref( ALTREF_FRAME, references.alternative );
+  }
+
+  template<uint16_t width, uint16_t height>
+  TwoDSubRange<uint8_t, width, height> last_Y()
+  {
+    return TwoDSubRange<uint8_t, width, height>( last_Y_, MARGIN_WIDTH, MARGIN_WIDTH );
+  }
+
+  template<uint16_t width, uint16_t height>
+  TwoDSubRange<uint8_t, width, height> golden_Y()
+  {
+    return TwoDSubRange<uint8_t, width, height>( golden_Y_, MARGIN_WIDTH, MARGIN_WIDTH );
+  }
+
+  template<uint16_t width, uint16_t height>
+  TwoDSubRange<uint8_t, width, height> alternative_Y()
+  {
+    return TwoDSubRange<uint8_t, width, height>( alternative_Y_, MARGIN_WIDTH, MARGIN_WIDTH );
   }
 };
 
