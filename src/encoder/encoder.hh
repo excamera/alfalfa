@@ -24,6 +24,110 @@ enum EncoderPass
   SECOND_PASS
 };
 
+class SafeReferences
+{
+private:
+  static const size_t MARGIN_WIDTH = 128;
+
+  /* For now, we only need the Y planes to do the diamond search, so we only
+     keep them in our safe references. */
+  TwoD<uint8_t> last_Y_;
+  TwoD<uint8_t> golden_Y_;
+  TwoD<uint8_t> alternative_Y_;
+
+  /* Copies the Y plane of the given raster to the target buffer and automatically
+     does the edge extension. */
+  void copy_raster( RasterHandle source, TwoD<uint8_t> & target )
+  {
+    const TwoD<uint8_t> & original_Y = source.get().Y();
+    const uint16_t original_width = original_Y.width();
+    const uint16_t original_height = original_Y.height();
+
+    /*
+         1   |   2   |   3
+      -----------------------
+         4   |   5   |   6
+      -----------------------
+         7   |   8   |   9
+
+      The original image goes into 5.
+    */
+
+
+    for ( size_t nrow = 0; nrow < target.height(); nrow++ ) {
+      if ( nrow < MARGIN_WIDTH ) {
+        memset( &target.at( 0, nrow ),
+                original_Y.at( 0, 0 ),
+                MARGIN_WIDTH ); // (1)
+
+        memcpy( &target.at( MARGIN_WIDTH, nrow ),
+                &original_Y.at( 0, 0 ),
+                original_width ); // (2)
+
+        memset( &target.at( MARGIN_WIDTH + original_width, nrow ),
+                original_Y.at( original_width - 1, 0 ),
+                MARGIN_WIDTH ); // (3)
+      }
+      else if ( nrow > MARGIN_WIDTH + original_Y.height() ) {
+        memset( &target.at( 0, nrow ),
+                original_Y.at( 0, original_height - 1 ),
+                MARGIN_WIDTH ); // (7)
+
+        memcpy( &target.at( MARGIN_WIDTH, nrow ),
+                &original_Y.at( 0, original_height - 1 ),
+                original_width ); // (8)
+
+        memset( &target.at( MARGIN_WIDTH + original_width, nrow ),
+                original_Y.at( original_width - 1, 0 ),
+                MARGIN_WIDTH ); // (9)
+      }
+      else {
+        memset( &target.at( 0, nrow ),
+                original_Y.at( 0, nrow - MARGIN_WIDTH ),
+                MARGIN_WIDTH ); // (4)
+
+        memcpy( &target.at( MARGIN_WIDTH, nrow ),
+                &original_Y.at( 0, nrow - MARGIN_WIDTH ),
+                original_width ); // (5)
+
+        memset( &target.at( MARGIN_WIDTH + original_width, nrow ),
+                original_Y.at( original_width - 1, nrow - MARGIN_WIDTH ),
+                MARGIN_WIDTH ); // (6)
+      }
+    }
+  }
+
+public:
+  SafeReferences( const uint16_t width, const uint16_t height )
+    : last_Y_( 2 * MARGIN_WIDTH + width, 2 * MARGIN_WIDTH + height ),
+      golden_Y_( 2 * MARGIN_WIDTH + width, 2 * MARGIN_WIDTH + height ),
+      alternative_Y_( 2 * MARGIN_WIDTH + width, 2 * MARGIN_WIDTH + height )
+  {}
+
+  SafeReferences( const References & references )
+    : SafeReferences( references.last.get().width(), references.last.get().height() )
+  {
+    update_all_refs( references );
+  }
+
+  void update_ref( reference_frame reference_id, RasterHandle reference_raster )
+  {
+    switch ( reference_id ) {
+    case LAST_FRAME: copy_raster( reference_raster, last_Y_ );
+    case GOLDEN_FRAME: copy_raster( reference_raster, golden_Y_ );
+    case ALTREF_FRAME: copy_raster( reference_raster, alternative_Y_ );
+    default: throw LogicError();
+    }
+  }
+
+  void update_all_refs( const References & references )
+  {
+    update_ref( LAST_FRAME, references.last );
+    update_ref( GOLDEN_FRAME, references.golden );
+    update_ref( ALTREF_FRAME, references.alternative );
+  }
+};
+
 class Encoder
 {
 private:
@@ -47,6 +151,7 @@ private:
   MutableRasterHandle temp_raster_handle_ { width(), height() };
   DecoderState decoder_state_;
   References references_;
+  SafeReferences safe_references_;
 
   bool has_state_ { false };
 

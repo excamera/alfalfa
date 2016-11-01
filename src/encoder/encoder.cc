@@ -190,7 +190,7 @@ void VP8Raster::Block<size>::inter_predict( const MotionVector & mv,
 Encoder::Encoder( IVFWriter && output, const bool two_pass )
   : ivf_writer_( move( output ) ),
     decoder_state_( width(), height() ), references_( width(), height() ),
-    two_pass_encoder_( two_pass )
+    safe_references_( width(), height() ), two_pass_encoder_( two_pass )
 {
   costs_.fill_mode_costs();
 }
@@ -198,7 +198,7 @@ Encoder::Encoder( IVFWriter && output, const bool two_pass )
 Encoder::Encoder( const Decoder & decoder, IVFWriter && output, const bool two_pass )
   : ivf_writer_( move( output ) ),
     decoder_state_( decoder.get_state() ), references_( decoder.get_references() ),
-    two_pass_encoder_( two_pass )
+    safe_references_( references_ ), two_pass_encoder_( two_pass )
 {
   if ( decoder.get_width() != ivf_writer_.width()
        or decoder.get_height() != ivf_writer_.height() ) {
