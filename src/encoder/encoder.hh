@@ -26,84 +26,100 @@ enum EncoderPass
 
 class SafeReferences
 {
-private:
+public:
   static const size_t MARGIN_WIDTH = 128;
 
+  class SafeReference
+  {
+  private:
+    TwoD<uint8_t> safe_Y_;
+
+  public:
+    SafeReference( uint16_t width, uint16_t height )
+      : safe_Y_( width + MARGIN_WIDTH * 2, height + MARGIN_WIDTH * 2 )
+    {}
+
+    SafeReference( RasterHandle source )
+      : SafeReference( source.get().width(), source.get().height() )
+    {
+      copy_raster( source );
+    }
+
+    void copy_raster( RasterHandle source )
+    {
+      const TwoD<uint8_t> & original_Y = source.get().Y();
+      const uint16_t original_width = original_Y.width();
+      const uint16_t original_height = original_Y.height();
+
+      /*
+           1   |   2   |   3
+        -----------------------
+           4   |   5   |   6
+        -----------------------
+           7   |   8   |   9
+
+        The original image goes into 5.
+      */
+
+
+      for ( size_t nrow = 0; nrow < safe_Y_.height(); nrow++ ) {
+        if ( nrow < MARGIN_WIDTH ) {
+          memset( &safe_Y_.at( 0, nrow ),
+                  original_Y.at( 0, 0 ),
+                  MARGIN_WIDTH ); // (1)
+
+          memcpy( &safe_Y_.at( MARGIN_WIDTH, nrow ),
+                  &original_Y.at( 0, 0 ),
+                  original_width ); // (2)
+
+          memset( &safe_Y_.at( MARGIN_WIDTH + original_width, nrow ),
+                  original_Y.at( original_width - 1, 0 ),
+                  MARGIN_WIDTH ); // (3)
+        }
+        else if ( nrow > MARGIN_WIDTH + original_Y.height() ) {
+          memset( &safe_Y_.at( 0, nrow ),
+                  original_Y.at( 0, original_height - 1 ),
+                  MARGIN_WIDTH ); // (7)
+
+          memcpy( &safe_Y_.at( MARGIN_WIDTH, nrow ),
+                  &original_Y.at( 0, original_height - 1 ),
+                  original_width ); // (8)
+
+          memset( &safe_Y_.at( MARGIN_WIDTH + original_width, nrow ),
+                  original_Y.at( original_width - 1, 0 ),
+                  MARGIN_WIDTH ); // (9)
+        }
+        else {
+          memset( &safe_Y_.at( 0, nrow ),
+                  original_Y.at( 0, nrow - MARGIN_WIDTH ),
+                  MARGIN_WIDTH ); // (4)
+
+          memcpy( &safe_Y_.at( MARGIN_WIDTH, nrow ),
+                  &original_Y.at( 0, nrow - MARGIN_WIDTH ),
+                  original_width ); // (5)
+
+          memset( &safe_Y_.at( MARGIN_WIDTH + original_width, nrow ),
+                  original_Y.at( original_width - 1, nrow - MARGIN_WIDTH ),
+                  MARGIN_WIDTH ); // (6)
+        }
+      }
+
+
+    }
+  };
+
+private:
   /* For now, we only need the Y planes to do the diamond search, so we only
      keep them in our safe references. */
-  TwoD<uint8_t> last_Y_;
-  TwoD<uint8_t> golden_Y_;
-  TwoD<uint8_t> alternative_Y_;
+  SafeReference last_, golden_, alternative_;
 
   /* Copies the Y plane of the given raster to the target buffer and automatically
      does the edge extension. */
-  void copy_raster( RasterHandle source, TwoD<uint8_t> & target )
-  {
-    const TwoD<uint8_t> & original_Y = source.get().Y();
-    const uint16_t original_width = original_Y.width();
-    const uint16_t original_height = original_Y.height();
-
-    /*
-         1   |   2   |   3
-      -----------------------
-         4   |   5   |   6
-      -----------------------
-         7   |   8   |   9
-
-      The original image goes into 5.
-    */
-
-
-    for ( size_t nrow = 0; nrow < target.height(); nrow++ ) {
-      if ( nrow < MARGIN_WIDTH ) {
-        memset( &target.at( 0, nrow ),
-                original_Y.at( 0, 0 ),
-                MARGIN_WIDTH ); // (1)
-
-        memcpy( &target.at( MARGIN_WIDTH, nrow ),
-                &original_Y.at( 0, 0 ),
-                original_width ); // (2)
-
-        memset( &target.at( MARGIN_WIDTH + original_width, nrow ),
-                original_Y.at( original_width - 1, 0 ),
-                MARGIN_WIDTH ); // (3)
-      }
-      else if ( nrow > MARGIN_WIDTH + original_Y.height() ) {
-        memset( &target.at( 0, nrow ),
-                original_Y.at( 0, original_height - 1 ),
-                MARGIN_WIDTH ); // (7)
-
-        memcpy( &target.at( MARGIN_WIDTH, nrow ),
-                &original_Y.at( 0, original_height - 1 ),
-                original_width ); // (8)
-
-        memset( &target.at( MARGIN_WIDTH + original_width, nrow ),
-                original_Y.at( original_width - 1, 0 ),
-                MARGIN_WIDTH ); // (9)
-      }
-      else {
-        memset( &target.at( 0, nrow ),
-                original_Y.at( 0, nrow - MARGIN_WIDTH ),
-                MARGIN_WIDTH ); // (4)
-
-        memcpy( &target.at( MARGIN_WIDTH, nrow ),
-                &original_Y.at( 0, nrow - MARGIN_WIDTH ),
-                original_width ); // (5)
-
-        memset( &target.at( MARGIN_WIDTH + original_width, nrow ),
-                original_Y.at( original_width - 1, nrow - MARGIN_WIDTH ),
-                MARGIN_WIDTH ); // (6)
-      }
-    }
-
-
-  }
 
 public:
   SafeReferences( const uint16_t width, const uint16_t height )
-    : last_Y_( 2 * MARGIN_WIDTH + width, 2 * MARGIN_WIDTH + height ),
-      golden_Y_( 2 * MARGIN_WIDTH + width, 2 * MARGIN_WIDTH + height ),
-      alternative_Y_( 2 * MARGIN_WIDTH + width, 2 * MARGIN_WIDTH + height )
+    : last_( width, height ), golden_( width, height ),
+      alternative_( width, height )
   {}
 
   SafeReferences( const References & references )
@@ -115,9 +131,9 @@ public:
   void update_ref( reference_frame reference_id, RasterHandle reference_raster )
   {
     switch ( reference_id ) {
-    case LAST_FRAME: copy_raster( reference_raster, last_Y_ ); break;
-    case GOLDEN_FRAME: copy_raster( reference_raster, golden_Y_ ); break;
-    case ALTREF_FRAME: copy_raster( reference_raster, alternative_Y_ ); break;
+    case LAST_FRAME: last_.copy_raster( reference_raster ); break;
+    case GOLDEN_FRAME: golden_.copy_raster( reference_raster ); break;
+    case ALTREF_FRAME: alternative_.copy_raster( reference_raster ); break;
     default: throw LogicError();
     }
   }
@@ -129,22 +145,19 @@ public:
     update_ref( ALTREF_FRAME, references.alternative );
   }
 
-  template<uint16_t width, uint16_t height>
-  TwoDSubRange<uint8_t, width, height> last_Y()
-  {
-    return TwoDSubRange<uint8_t, width, height>( last_Y_, MARGIN_WIDTH, MARGIN_WIDTH );
-  }
+  // XXX remove these
+  const SafeReference & last() const { return last_; }
+  const SafeReference & golden() const { return golden_; }
+  const SafeReference & alternative() const { return alternative_; }
 
-  template<uint16_t width, uint16_t height>
-  TwoDSubRange<uint8_t, width, height> golden_Y()
+  const SafeReference & get( reference_frame reference_id ) const
   {
-    return TwoDSubRange<uint8_t, width, height>( golden_Y_, MARGIN_WIDTH, MARGIN_WIDTH );
-  }
-
-  template<uint16_t width, uint16_t height>
-  TwoDSubRange<uint8_t, width, height> alternative_Y()
-  {
-    return TwoDSubRange<uint8_t, width, height>( alternative_Y_, MARGIN_WIDTH, MARGIN_WIDTH );
+    switch ( reference_id ) {
+    case LAST_FRAME: return last_;
+    case GOLDEN_FRAME: return golden_;
+    case ALTREF_FRAME: return alternative_;
+    default: throw LogicError();
+    }
   }
 };
 
