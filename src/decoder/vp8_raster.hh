@@ -22,6 +22,8 @@ static inline uint8_t clamp255( const integer value )
   return value;
 }
 
+class SafeRaster;
+
 class VP8Raster : public BaseRaster
 {
 public:
@@ -134,6 +136,10 @@ public:
     void inter_predict( const MotionVector & mv,
                         const TwoD<uint8_t> & reference,
                         TwoD<uint8_t> & output ) const;
+
+    void inter_predict( const MotionVector & mv,
+                        const SafeRaster & reference,
+                        TwoDSubRange<uint8_t, size, size> & output ) const;
 
     void analyze_inter_predict( const MotionVector & mv, const TwoD<uint8_t> & reference );
 
@@ -312,6 +318,26 @@ public:
 
     return master_.at( bounded_column, bounded_row );
   }
+};
+
+class SafeRaster
+{
+private:
+  TwoD<uint8_t> safe_Y_;
+
+public:
+  static const size_t MARGIN_WIDTH = 128;
+
+  SafeRaster( uint16_t width, uint16_t height );
+  SafeRaster( const VP8Raster & source );
+
+  /* Copies the Y plane of the given raster to the target buffer and automatically
+     does the edge extension. */
+  void copy_raster( const VP8Raster & source );
+
+  const uint8_t & at( int row, int column ) const;
+
+  unsigned int stride() const;
 };
 
 #endif //

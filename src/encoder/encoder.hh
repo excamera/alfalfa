@@ -24,6 +24,28 @@ enum EncoderPass
   SECOND_PASS
 };
 
+class SafeReferences
+{
+private:
+  /* For now, we only need the Y planes to do the diamond search, so we only
+     keep them in our safe references. */
+  SafeRaster last_, golden_, alternative_;
+
+public:
+  SafeReferences( const uint16_t width, const uint16_t height );
+  SafeReferences( const References & references );
+
+  void update_ref( reference_frame reference_id, RasterHandle reference_raster );
+  void update_all_refs( const References & references );
+
+  // XXX remove these
+  const SafeRaster & last() const { return last_; }
+  const SafeRaster & golden() const { return golden_; }
+  const SafeRaster & alternative() const { return alternative_; }
+
+  const SafeRaster & get( reference_frame reference_id ) const;
+};
+
 class Encoder
 {
 private:

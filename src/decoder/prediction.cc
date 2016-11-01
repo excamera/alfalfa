@@ -413,6 +413,59 @@ void VP8Raster::Block<size>::inter_predict( const MotionVector & mv,
   }
 }
 
+#ifdef HAVE_SSE2
+
+template <unsigned int size>
+void VP8Raster::Block<size>::inter_predict( const MotionVector & mv,
+                                            const SafeRaster & reference,
+                                            TwoDSubRange<uint8_t, size, size> & output ) const
+{
+  const int source_column = column_ * size + ( mv.x() >> 3 );
+  const int source_row = row_ * size + ( mv.y() >> 3 );
+  
+  const unsigned int dst_stride = output.stride();
+  const unsigned int src_stride = reference.stride();
+
+  const uint8_t mx = mv.x() & 7, my = mv.y() & 7;
+
+  if ( (mx & 7) == 0 and (my & 7) == 0 ) {
+    uint8_t *dest_row_start = &output.at( 0, 0 );
+    const uint8_t *src_row_start = &reference.at( 0, 0 );
+    const uint8_t *dest_last_row_start = dest_row_start + size * dst_stride;
+    while ( dest_row_start != dest_last_row_start ) {
+      memcpy( dest_row_start, src_row_start, size );
+      dest_row_start += dst_stride;
+      src_row_start += src_stride;
+    }
+    return;
+  }
+
+  alignas(16) SafeArray< SafeArray< uint8_t, size + 8 >, size + 8 > intermediate;
+  const uint8_t *intermediate_ptr = &intermediate.at( 0 ).at( 0 );
+  const uint8_t *src_ptr = &reference.at( source_column, source_row );
+  const uint8_t *dst_ptr = &output.at( 0, 0 );
+
+  if ( mx ) {
+    if ( my ) {
+      sse_horiz_inter_predict( src_ptr - 2 * src_stride, src_stride, intermediate_ptr,
+                               size, size + 5, mx );
+      sse_vert_inter_predict( intermediate_ptr, size, dst_ptr, dst_stride,
+                              size, my );
+    }
+    else {
+      /* First pass only */
+      sse_horiz_inter_predict( src_ptr, src_stride, dst_ptr, dst_stride, size, mx );
+    }
+  }
+  else {
+    /* Second pass only */
+    sse_vert_inter_predict( src_ptr - 2 * src_stride, src_stride, dst_ptr, dst_stride,
+                            size, my );
+  }
+}
+
+#endif
+
 template void VP8Raster::Block<16>::inter_predict( const MotionVector & mv,
                                                    const TwoD<uint8_t> & reference,
                                                    TwoDSubRange<uint8_t, 16, 16> & output ) const;
