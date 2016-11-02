@@ -71,7 +71,7 @@ void SafeRaster::copy_raster( const VP8Raster & source )
   }
 }
 
-const uint8_t & SafeRaster::at( int column, int row ) const
+const uint8_t & SafeRaster::at( int  column, int row ) const
 {
   assert( (int)MARGIN_WIDTH + column >= 0 and (int)MARGIN_WIDTH + row >= 0 );
   return safe_Y_.at( (int)MARGIN_WIDTH + column, (int)MARGIN_WIDTH + row );

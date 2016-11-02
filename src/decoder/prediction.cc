@@ -413,6 +413,10 @@ void VP8Raster::Block<size>::inter_predict( const MotionVector & mv,
   }
 }
 
+template void VP8Raster::Block<16>::inter_predict( const MotionVector & mv,
+                                                   const TwoD<uint8_t> & reference,
+                                                   TwoDSubRange<uint8_t, 16, 16> & output ) const;
+
 #ifdef HAVE_SSE2
 
 template <unsigned int size>
@@ -430,7 +434,7 @@ void VP8Raster::Block<size>::inter_predict( const MotionVector & mv,
 
   if ( (mx & 7) == 0 and (my & 7) == 0 ) {
     uint8_t *dest_row_start = &output.at( 0, 0 );
-    const uint8_t *src_row_start = &reference.at( 0, 0 );
+    const uint8_t *src_row_start = &reference.at( source_column, source_row );
     const uint8_t *dest_last_row_start = dest_row_start + size * dst_stride;
     while ( dest_row_start != dest_last_row_start ) {
       memcpy( dest_row_start, src_row_start, size );
@@ -470,10 +474,6 @@ void VP8Raster::Block<16>::inter_predict( const MotionVector & mv,
                                             TwoDSubRange<uint8_t, 16, 16> & output ) const;
 
 #endif
-
-template void VP8Raster::Block<16>::inter_predict( const MotionVector & mv,
-                                                   const TwoD<uint8_t> & reference,
-                                                   TwoDSubRange<uint8_t, 16, 16> & output ) const;
 
 #ifdef HAVE_SSE2
 template <>

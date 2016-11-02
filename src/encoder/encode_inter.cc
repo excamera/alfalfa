@@ -147,7 +147,7 @@ MotionVector Encoder::diamond_search( const VP8Raster::Macroblock & original_mb,
                                       VP8Raster::Macroblock & reconstructed_mb,
                                       VP8Raster::Macroblock & temp_mb,
                                       InterFrameMacroblock & frame_mb,
-                                      const VP8Raster & reference,
+                                      const SafeRaster & reference,
                                       MotionVector base_mv,
                                       MotionVector origin,
                                       size_t step_size,
@@ -176,7 +176,7 @@ MotionVector Encoder::diamond_search( const VP8Raster::Macroblock & original_mb,
 
       MotionVector this_mv( Scorer::clamp( pred.mv + base_mv, frame_mb.context() ) );
 
-      reconstructed_mb.Y.inter_predict( this_mv, reference.Y(), prediction );
+      reconstructed_mb.Y.inter_predict( this_mv, reference, prediction );
       pred.distortion = sad( original_mb.Y, prediction );
       pred.rate = costs_.sad_motion_vector_cost( pred.mv, MotionVector(), sad_per_bit16lut[ y_ac_qi ] );
       pred.cost = rdcost( pred.rate, pred.distortion, 1, 1 );
@@ -222,6 +222,8 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
 
   MotionVector best_mv;
   const VP8Raster & reference = references_.last.get();
+  const SafeRaster & safe_reference = safe_references_.get( LAST_FRAME );
+
   const auto reference_mb = reference.macroblock( frame_mb.context().column,
                                                   frame_mb.context().row );
 
@@ -251,7 +253,7 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
     case NEWMV:
       for ( int step = 9; step > 0; step-- ) {
         MotionVector new_mv = diamond_search( original_mb, reconstructed_mb,
-                                              temp_mb, frame_mb, reference,
+                                              temp_mb, frame_mb, safe_reference,
                                               best_ref, mv, ( 1 << step ),
                                               y_ac_qi );
 
@@ -290,7 +292,7 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
       throw runtime_error( "not supported" );
     }
 
-    reference_mb.macroblock().Y.inter_predict( mv, reference.Y(), prediction );
+    reference_mb.macroblock().Y.inter_predict( mv, safe_reference, prediction );
 
     pred.distortion = variance( original_mb.Y, prediction );
     pred.rate = costs_.mbmode_costs.at( 1 ).at( prediction_mode );

@@ -101,7 +101,7 @@ private:
                                VP8Raster::Macroblock & reconstructed_mb,
                                VP8Raster::Macroblock & temp_mb,
                                InterFrameMacroblock & frame_mb,
-                               const VP8Raster & reference,
+                               const SafeRaster & reference,
                                MotionVector base_mv,
                                MotionVector origin,
                                size_t step_size,
