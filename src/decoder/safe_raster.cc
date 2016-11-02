@@ -52,7 +52,7 @@ void SafeRaster::copy_raster( const VP8Raster & source )
               original_width ); // (8)
 
       memset( &safe_Y_.at( MARGIN_WIDTH + original_width, nrow ),
-              original_Y.at( original_width - 1, 0 ),
+              original_Y.at( original_width - 1, original_height - 1 ),
               MARGIN_WIDTH ); // (9)
     }
     else {
