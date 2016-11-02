@@ -28,7 +28,6 @@ void SafeRaster::copy_raster( const VP8Raster & source )
     The original image goes into 5.
   */
 
-
   for ( size_t nrow = 0; nrow < safe_Y_.height(); nrow++ ) {
     if ( nrow < MARGIN_WIDTH ) {
       memset( &safe_Y_.at( 0, nrow ),
@@ -43,7 +42,7 @@ void SafeRaster::copy_raster( const VP8Raster & source )
               original_Y.at( original_width - 1, 0 ),
               MARGIN_WIDTH ); // (3)
     }
-    else if ( nrow > MARGIN_WIDTH + original_Y.height() ) {
+    else if ( nrow >= MARGIN_WIDTH + original_Y.height() ) {
       memset( &safe_Y_.at( 0, nrow ),
               original_Y.at( 0, original_height - 1 ),
               MARGIN_WIDTH ); // (7)
@@ -74,8 +73,8 @@ void SafeRaster::copy_raster( const VP8Raster & source )
 
 const uint8_t & SafeRaster::at( int column, int row ) const
 {
-  assert( MARGIN_WIDTH + column >= 0 and MARGIN_WIDTH + row >= 0 );
-  return safe_Y_.at( MARGIN_WIDTH + column, MARGIN_WIDTH + row );
+  assert( (int)MARGIN_WIDTH + column >= 0 and (int)MARGIN_WIDTH + row >= 0 );
+  return safe_Y_.at( (int)MARGIN_WIDTH + column, (int)MARGIN_WIDTH + row );
 }
 
 unsigned int SafeRaster::stride() const

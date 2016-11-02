@@ -422,7 +422,7 @@ void VP8Raster::Block<size>::inter_predict( const MotionVector & mv,
 {
   const int source_column = column_ * size + ( mv.x() >> 3 );
   const int source_row = row_ * size + ( mv.y() >> 3 );
-  
+
   const unsigned int dst_stride = output.stride();
   const unsigned int src_stride = reference.stride();
 
@@ -463,6 +463,11 @@ void VP8Raster::Block<size>::inter_predict( const MotionVector & mv,
                             size, my );
   }
 }
+
+template
+void VP8Raster::Block<16>::inter_predict( const MotionVector & mv,
+                                            const SafeRaster & reference,
+                                            TwoDSubRange<uint8_t, 16, 16> & output ) const;
 
 #endif
 

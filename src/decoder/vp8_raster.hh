@@ -326,7 +326,7 @@ private:
   TwoD<uint8_t> safe_Y_;
 
 public:
-  static const size_t MARGIN_WIDTH = 128;
+  static const size_t MARGIN_WIDTH = 256;
 
   SafeRaster( uint16_t width, uint16_t height );
   SafeRaster( const VP8Raster & source );
