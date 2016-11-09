@@ -143,16 +143,18 @@ void Encoder::update_decoder_state( const InterFrame & frame )
   }
 }
 
-MotionVector Encoder::diamond_search( const VP8Raster::Macroblock & original_mb,
-                                      VP8Raster::Macroblock & reconstructed_mb,
-                                      VP8Raster::Macroblock & temp_mb,
-                                      InterFrameMacroblock & frame_mb,
-                                      const SafeRaster & reference,
-                                      MotionVector base_mv,
-                                      MotionVector origin,
-                                      size_t step_size,
-                                      const size_t y_ac_qi ) const
+Encoder::MVSearchResult Encoder::diamond_search( const VP8Raster::Macroblock & original_mb,
+                                                 VP8Raster::Macroblock & reconstructed_mb,
+                                                 VP8Raster::Macroblock & temp_mb,
+                                                 InterFrameMacroblock & frame_mb,
+                                                 const SafeRaster & reference,
+                                                 MotionVector base_mv,
+                                                 MotionVector origin,
+                                                 size_t step_size,
+                                                 const size_t y_ac_qi ) const
 {
+  size_t first_step = step_size / 2;
+
   TwoDSubRange<uint8_t, 16, 16> & prediction = temp_mb.Y.mutable_contents();
 
   base_mv = Scorer::clamp( base_mv, frame_mb.context() );
@@ -186,11 +188,15 @@ MotionVector Encoder::diamond_search( const VP8Raster::Macroblock & original_mb,
       }
     }
 
+    if ( best_pred.mv == origin) {
+      first_step = step_size / 2;
+    }
+
     origin = best_pred.mv;
     step_size /= 2;
   }
 
-  return origin;
+  return { origin, first_step };
 }
 
 void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
@@ -251,17 +257,18 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
 
     switch ( prediction_mode ) {
     case NEWMV:
-      for ( int step = 9; step > 0; step-- ) {
-        MotionVector new_mv = diamond_search( original_mb, reconstructed_mb,
-                                              temp_mb, frame_mb, safe_reference,
-                                              best_ref, mv, ( 1 << step ),
-                                              y_ac_qi );
+      for ( int step = 512; step > 1; ) {
+        MVSearchResult result = diamond_search( original_mb, reconstructed_mb,
+                                                temp_mb, frame_mb, safe_reference,
+                                                best_ref, mv, step,
+                                                y_ac_qi );
 
-        if ( new_mv == mv ) {
+        if ( result.mv == mv ) {
           break; // there's no need to continue the search
         }
 
-        mv = new_mv;
+        mv = result.mv;
+        step = result.first_step;
       }
 
       mv += best_ref;

@@ -59,6 +59,12 @@ private:
     uint32_t cost       { std::numeric_limits<uint32_t>::max() };
   };
 
+  struct MVSearchResult
+  {
+    MotionVector mv;
+    size_t first_step;
+  };
+
   typedef SafeArray<SafeArray<std::pair<uint32_t, uint32_t>,
                               MV_PROB_CNT>,
                     2> MVComponentCounts;
@@ -97,15 +103,15 @@ private:
   static uint32_t variance( const VP8Raster::Block<size> & block,
                             const TwoDSubRange<uint8_t, size, size> & prediction );
 
-  MotionVector diamond_search( const VP8Raster::Macroblock & original_mb,
-                               VP8Raster::Macroblock & reconstructed_mb,
-                               VP8Raster::Macroblock & temp_mb,
-                               InterFrameMacroblock & frame_mb,
-                               const SafeRaster & reference,
-                               MotionVector base_mv,
-                               MotionVector origin,
-                               size_t step_size,
-                               const size_t y_ac_qi ) const;
+  MVSearchResult diamond_search( const VP8Raster::Macroblock & original_mb,
+                                 VP8Raster::Macroblock & reconstructed_mb,
+                                 VP8Raster::Macroblock & temp_mb,
+                                 InterFrameMacroblock & frame_mb,
+                                 const SafeRaster & reference,
+                                 MotionVector base_mv,
+                                 MotionVector origin,
+                                 size_t step_size,
+                                 const size_t y_ac_qi ) const;
 
   void luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                               VP8Raster::Macroblock & constructed_mb,
