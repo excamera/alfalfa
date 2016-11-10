@@ -556,25 +556,11 @@ void Encoder::apply_best_loopfilter_settings( const VP8Raster & original,
 }
 
 template<class FrameType>
-double Encoder::encode_raster( const VP8Raster & raster,
-                               const double minimum_ssim,
-                               const uint8_t y_ac_qi )
+FrameType Encoder::encode_with_quantizer_search( const VP8Raster & raster,
+                                                 const double minimum_ssim )
 {
   int y_ac_qi_min = 0;
   int y_ac_qi_max = 127;
-
-  if ( y_ac_qi != numeric_limits<uint8_t>::max() ) {
-    if ( y_ac_qi > 127 ) {
-      throw runtime_error( "y_ac_qi should be less than or equal to 127" );
-    }
-
-    y_ac_qi_min = y_ac_qi;
-    y_ac_qi_max = y_ac_qi;
-  }
-
-  if ( raster.display_width() != width() or raster.display_height() != height() ) {
-    throw runtime_error( "scaling is not supported." );
-  }
 
   QuantIndices quant_indices;
 
@@ -584,7 +570,7 @@ double Encoder::encode_raster( const VP8Raster & raster,
   while ( y_ac_qi_min <= y_ac_qi_max ) {
     quant_indices.y_ac_qi = ( y_ac_qi_min + y_ac_qi_max ) / 2;
 
-    pair<FrameType, double> encoded_frame = encode_with_quantizer<FrameType>( raster, quant_indices, false );
+    pair<FrameType, double> encoded_frame = encode_raster<FrameType>( raster, quant_indices, true );
 
     double current_ssim = encoded_frame.second;
 
@@ -607,26 +593,39 @@ double Encoder::encode_raster( const VP8Raster & raster,
   }
 
   quant_indices.y_ac_qi = best_y_ac_qi;
-  pair<FrameType, double> encoded_frame = encode_with_quantizer<FrameType>( raster, quant_indices, true );
-
-  write_frame( encoded_frame.first );
-
-  return encoded_frame.second;
+  return encode_raster<FrameType>( raster, quant_indices, false ).first;
 }
 
-double Encoder::encode( const VP8Raster & raster, const double minimum_ssim,
-                        const uint8_t y_ac_qi )
+void Encoder::encode_with_quantizer( const VP8Raster & raster, const uint8_t y_ac_qi )
 {
   if ( width() != raster.display_width() or height() != raster.display_height() ) {
     throw runtime_error( "scaling is not supported" );
   }
 
-  if ( not has_state_ ) { /* XXX need more sophisticated way of deciding whether a key frame is warranted */
+  QuantIndices quant_indices;
+  quant_indices.y_ac_qi = y_ac_qi;
+
+  if ( not has_state_ ) {
     has_state_ = true;
-    return encode_raster<KeyFrame>( raster, minimum_ssim, y_ac_qi );
+    write_frame( encode_raster<KeyFrame>( raster, quant_indices ).first );
   }
   else {
-    return encode_raster<InterFrame>( raster, minimum_ssim, y_ac_qi );
+    write_frame( encode_raster<InterFrame>( raster, quant_indices ).first );
+  }
+}
+
+void Encoder::encode_with_minimum_ssim( const VP8Raster & raster, const double minimum_ssim )
+{
+  if ( width() != raster.display_width() or height() != raster.display_height() ) {
+    throw runtime_error( "scaling is not supported" );
+  }
+
+  if ( not has_state_ ) {
+    has_state_ = true;
+    write_frame( encode_with_quantizer_search<KeyFrame>( raster, minimum_ssim ) );
+  }
+  else {
+    write_frame( encode_with_quantizer_search<InterFrame>( raster, minimum_ssim ) );
   }
 }
 

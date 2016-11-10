@@ -198,15 +198,6 @@ private:
                                        bmode sb_prediction_mode,
                                        const EncoderPass encoder_pass ) const;
 
-  template<class FrameType>
-  std::pair<FrameType, double> encode_with_quantizer( const VP8Raster & raster,
-                                                      const QuantIndices & quant_indices,
-                                                      const bool update_state = false );
-
-  template<class FrameType>
-  double encode_raster( const VP8Raster & raster, const double minimum_ssim,
-                        const uint8_t y_ac_qi = std::numeric_limits<uint8_t>::max() );
-
   template<class FrameSubblockType>
   void trellis_quantize( FrameSubblockType & frame_sb,
                          const Quantizer & quantizer ) const;
@@ -266,14 +257,26 @@ private:
   template<class FrameType>
   void update_decoder_state( const FrameType & frame );
 
+  template<class FrameType>
+  std::pair<FrameType, double> encode_raster( const VP8Raster & raster,
+                                              const QuantIndices & quant_indices,
+                                              const bool update_state = false,
+                                              const bool compute_ssim = false );
+
+  template<class FrameType>
+  FrameType encode_with_quantizer_search( const VP8Raster & raster,
+                                          const double minimum_ssim );
+
 public:
   Encoder( IVFWriter && output, const bool two_pass );
 
   Encoder( const Decoder & decoder, IVFWriter && output, const bool two_pass );
 
-  double encode( const VP8Raster & raster,
-                 const double minimum_ssim,
-                 const uint8_t y_ac_qi = std::numeric_limits<uint8_t>::max() );
+  void encode_with_minimum_ssim( const VP8Raster & raster,
+                                 const double minimum_ssim );
+
+  void encode_with_quantizer( const VP8Raster & raster,
+                              const uint8_t y_ac_qi );
 
   void reencode( const std::vector<RasterHandle> & original_rasters,
                  const std::vector<std::pair<Optional<KeyFrame>, Optional<InterFrame> > > & prediction_frames,

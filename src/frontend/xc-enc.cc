@@ -71,8 +71,7 @@ int main( int argc, char *argv[] )
     bool re_encode_only = false;
     double kf_q_weight = 1.0;
     bool extra_frame_chunk = false;
-
-    uint8_t y_ac_qi = numeric_limits<uint8_t>::max();
+    Optional<uint8_t> y_ac_qi;
 
     const option command_line_options[] = {
       { "output",               required_argument, nullptr, 'o' },
@@ -261,11 +260,15 @@ int main( int argc, char *argv[] )
         output.set_expected_decoder_entry_hash( encoder.export_decoder().get_hash().hash() );
       }
 
-      Optional<RasterHandle> raster = input_reader->get_next_frame();
+      for ( auto raster = input_reader->get_next_frame(); raster.initialized();
+            raster = input_reader->get_next_frame() ) {
 
-      while ( raster.initialized() ) {
-        encoder.encode( raster.get(), ssim, y_ac_qi );
-        raster = input_reader->get_next_frame();
+        if ( y_ac_qi.initialized()  ) {
+          encoder.encode_with_quantizer( raster.get(), y_ac_qi.get() );
+        }
+        else {
+          encoder.encode_with_minimum_ssim( raster.get(), ssim );
+        }
       }
 
       if ( not output_state.empty() ) {
