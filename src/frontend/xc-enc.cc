@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <chrono>
 
 #include "frame_input.hh"
 #include "ivf_reader.hh"
@@ -260,8 +261,12 @@ int main( int argc, char *argv[] )
         output.set_expected_decoder_entry_hash( encoder.export_decoder().get_hash().hash() );
       }
 
+      unsigned int frame_no = 0;
       for ( auto raster = input_reader->get_next_frame(); raster.initialized();
             raster = input_reader->get_next_frame() ) {
+
+        cerr << "Encoding frame #" << frame_no++ << "... ";
+        const auto encode_beginning = chrono::system_clock::now();
 
         if ( y_ac_qi.initialized()  ) {
           encoder.encode_with_quantizer( raster.get(), y_ac_qi.get() );
@@ -269,6 +274,10 @@ int main( int argc, char *argv[] )
         else {
           encoder.encode_with_minimum_ssim( raster.get(), ssim );
         }
+
+        const auto encode_ending = chrono::system_clock::now();
+        const int ms_elapsed = chrono::duration_cast<chrono::milliseconds>( encode_ending - encode_beginning ).count();
+        cerr << "done (" << ms_elapsed << " ms)." << endl;
       }
 
       if ( not output_state.empty() ) {
