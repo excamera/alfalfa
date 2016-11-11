@@ -176,6 +176,31 @@ void VP8Raster::Block<size>::horizontal_predict( TwoDSubRange< uint8_t, size, si
   }
 }
 
+#ifdef HAVE_SSE2
+
+template <>
+void VP8Raster::Block<16>::vertical_predict( TwoDSubRange<uint8_t, 16, 16> & output ) const
+{
+  vpx_v_predictor_16x16_sse2( &output.at( 0, 0 ), output.stride(),
+                              &( predictors().above_row.at( 0 , 0 ) ), NULL );
+}
+
+template <>
+void VP8Raster::Block<8>::vertical_predict( TwoDSubRange<uint8_t, 8, 8> & output ) const
+{
+  vpx_v_predictor_8x8_sse2( &output.at( 0, 0 ), output.stride(),
+                            &( predictors().above_row.at( 0 , 0 ) ), NULL );
+}
+
+template <>
+void VP8Raster::Block<4>::vertical_predict( TwoDSubRange<uint8_t, 4, 4> & output ) const
+{
+  vpx_v_predictor_4x4_sse2( &output.at( 0, 0 ), output.stride(),
+                            &( predictors().above_row.at( 0 , 0 ) ), NULL );
+}
+
+#else
+
 template <unsigned int size>
 void VP8Raster::Block<size>::vertical_predict( TwoDSubRange< uint8_t, size, size > & output ) const
 {
@@ -183,6 +208,8 @@ void VP8Raster::Block<size>::vertical_predict( TwoDSubRange< uint8_t, size, size
     output.column( column ).fill( predictors().above_row.at( column, 0 ) );
   }
 }
+
+#endif
 
 template <unsigned int size>
 void VP8Raster::Block<size>::dc_predict_simple( TwoDSubRange< uint8_t, size, size > & output ) const
