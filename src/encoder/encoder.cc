@@ -537,6 +537,7 @@ void Encoder::apply_best_loopfilter_settings( const VP8Raster & original,
 
     frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, temp_raster() );
 
+    /* XXX This is taking too much time and is very inefficient. */
     double ssim = temp_raster().quality( original );
 
     if ( ssim > best_ssim ) {

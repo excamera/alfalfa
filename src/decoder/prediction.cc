@@ -3,8 +3,6 @@
 #include <cmath>
 #include <algorithm>
 
-#include <emmintrin.h>
-
 #include "macroblock.hh"
 #include "vp8_raster.hh"
 
@@ -182,18 +180,6 @@ void VP8Raster::Block<size>::vertical_predict( TwoDSubRange< uint8_t, size, size
 {
   for ( unsigned int column = 0; column < size; column++ ) {
     output.column( column ).fill( predictors().above_row.at( column, 0 ) );
-  }
-}
-
-template <>
-void VP8Raster::Block<16>::vertical_predict( TwoDSubRange< uint8_t, 16, 16 > & output ) const
-{
-  const register __m128i saved_row = _mm_load_si128( reinterpret_cast<const __m128i *>( &( predictors().above_row.at( 0, 0 ) ) ) );
-
-  for ( unsigned int row = 0; row < 16; row++ ) {
-    __m128i * row_pointer = reinterpret_cast<__m128i *>( &( output.at( 0, row ) ) );
-    //    *row_pointer = saved_row;
-    _mm_store_si128( row_pointer, saved_row );
   }
 }
 
