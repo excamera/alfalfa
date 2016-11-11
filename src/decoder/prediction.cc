@@ -5,6 +5,7 @@
 
 #include "macroblock.hh"
 #include "vp8_raster.hh"
+#include "intrapred_sse.hh"
 
 using namespace std;
 
