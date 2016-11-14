@@ -141,8 +141,6 @@ public:
                         const SafeRaster & reference,
                         TwoDSubRange<uint8_t, size, size> & output ) const;
 
-    void analyze_inter_predict( const MotionVector & mv, const TwoD<uint8_t> & reference );
-
     template <class ReferenceType>
     void safe_inter_predict( const MotionVector & mv,
                              const ReferenceType & reference,
