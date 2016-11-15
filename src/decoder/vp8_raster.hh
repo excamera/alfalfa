@@ -44,10 +44,11 @@ public:
 
     struct Predictors {
     private:
-      uint8_t above_storage[ size * 4 ] __attribute__((aligned( 16 )));
+      const static size_t OFFSET = 16;
+      uint8_t above_storage[ OFFSET + size * 2 ] __attribute__((aligned( 16 )));
 
     public:
-      uint8_t * above { above_storage + size * 2 };
+      uint8_t * above { above_storage + OFFSET };
       uint8_t left[ size ] __attribute__((aligned( 16 )));
 
       uint8_t east( size_t i ) const { return ( i <= 3 ) ? left[ 3 - i ] : above[ i - 5 ]; }
