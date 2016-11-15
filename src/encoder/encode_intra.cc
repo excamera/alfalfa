@@ -64,6 +64,7 @@ Encoder::MBPredictionData Encoder::luma_mb_best_prediction_mode( const VP8Raster
   MBPredictionData best_pred;
 
   TwoDSubRange<uint8_t, 16, 16> & prediction = temp_mb.Y.mutable_contents();
+  auto predictors = reconstructed_mb.Y.predictors();
 
   /* Because of the way that reconstructed_mb is used as a buffer to store the
    * best prediction result, it is necessary to first examine the B_PRED and
@@ -104,7 +105,7 @@ Encoder::MBPredictionData Encoder::luma_mb_best_prediction_mode( const VP8Raster
                           RATE_MULTIPLIER, DISTORTION_MULTIPLIER );
     }
     else {
-      reconstructed_mb.Y.intra_predict( ( mbmode )prediction_mode, prediction );
+      reconstructed_mb.Y.intra_predict( ( mbmode )prediction_mode, predictors, prediction );
 
       /* Here we compute variance, instead of SSE, because in this case
        * the average will be taken out from Y2 block into the Y2 block. */
@@ -219,12 +220,15 @@ Encoder::MBPredictionData Encoder::chroma_mb_best_prediction_mode( const VP8Rast
   TwoDSubRange<uint8_t, 8, 8> & u_prediction = temp_mb.U.mutable_contents();
   TwoDSubRange<uint8_t, 8, 8> & v_prediction = temp_mb.V.mutable_contents();
 
+  auto u_predictors = reconstructed_mb.U.predictors();
+  auto v_predictors = reconstructed_mb.V.predictors();
+
   for ( unsigned int prediction_mode = 0; prediction_mode < num_uv_modes; prediction_mode++ ) {
     MBPredictionData pred;
     pred.prediction_mode = ( mbmode )prediction_mode;
 
-    reconstructed_mb.U.intra_predict( ( mbmode )prediction_mode, u_prediction );
-    reconstructed_mb.V.intra_predict( ( mbmode )prediction_mode, v_prediction );
+    reconstructed_mb.U.intra_predict( ( mbmode )prediction_mode, u_predictors, u_prediction );
+    reconstructed_mb.V.intra_predict( ( mbmode )prediction_mode, v_predictors, v_prediction );
 
     pred.distortion = sse( original_mb.U, u_prediction )
                     + sse( original_mb.V, v_prediction );
@@ -327,8 +331,10 @@ bmode Encoder::luma_sb_intra_predict( const VP8Raster::Block4 & original_sb,
   bmode min_prediction_mode = B_DC_PRED;
   TwoDSubRange<uint8_t, 4, 4> & prediction = temp_sb.mutable_contents();
 
+  auto predictors = reconstructed_sb.predictors();
+
   for ( unsigned int prediction_mode = 0; prediction_mode < num_intra_b_modes; prediction_mode++ ) {
-    reconstructed_sb.intra_predict( ( bmode )prediction_mode, prediction );
+    reconstructed_sb.intra_predict( ( bmode )prediction_mode, predictors, prediction );
 
     uint32_t distortion = sse( original_sb, prediction );
     uint32_t error_val = rdcost( mode_costs.at( prediction_mode ), distortion,

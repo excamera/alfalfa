@@ -169,15 +169,6 @@ QuantIndices::QuantIndices()
 {}
 
 template <unsigned int size>
-template <class PredictionMode>
-void VP8Raster::Block<size>::intra_predict( const PredictionMode mb_mode,
-                                            TwoD<uint8_t> & output ) const
-{
-  TwoDSubRange<uint8_t, size, size> subrange( output, 0, 0 );
-  intra_predict( mb_mode, subrange );
-}
-
-template <unsigned int size>
 void VP8Raster::Block<size>::inter_predict( const MotionVector & mv,
                                             const TwoD<uint8_t> & reference,
                                             TwoD<uint8_t> & output ) const

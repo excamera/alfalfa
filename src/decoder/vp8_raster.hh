@@ -35,68 +35,37 @@ public:
     typedef TwoDSubRange<uint8_t, 1, size> Column;
 
   private:
-    TwoDSubRange<uint8_t, size, size> contents_;
+    typedef TwoDSubRange<uint8_t, size, size> BlockSubRange;
+
+    BlockSubRange contents_;
+    const TwoD<uint8_t> & raster_component_;
+
     unsigned int column_, row_;
 
-    void dc_predict() { dc_predict( this->contents_ ); }
-    void dc_predict_simple() { dc_predict_simple( this->contents_ ); }
-    void vertical_predict() { vertical_predict( this->contents_ ); }
-    void horizontal_predict() { horizontal_predict( this->contents_ ); }
-    void true_motion_predict() { true_motion_predict( this->contents_ ); }
-    void vertical_smoothed_predict() { vertical_smoothed_predict( this->contents_ ); }
-    void horizontal_smoothed_predict() { horizontal_smoothed_predict( this->contents_ ); }
-    void left_down_predict() { left_down_predict( this->contents_ ); }
-    void right_down_predict() { right_down_predict( this->contents_ ); }
-    void vertical_right_predict() { vertical_right_predict( this->contents_ ); }
-    void vertical_left_predict() { vertical_left_predict( this->contents_ ); }
-    void horizontal_down_predict() { horizontal_down_predict( this->contents_ ); }
-    void horizontal_up_predict() { horizontal_up_predict( this->contents_ ); }
-
-    void dc_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
-    void dc_predict_simple( TwoDSubRange<uint8_t, size, size> & output ) const;
-    void vertical_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
-    void horizontal_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
-    void true_motion_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
-    void vertical_smoothed_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
-    void horizontal_smoothed_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
-    void left_down_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
-    void right_down_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
-    void vertical_right_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
-    void vertical_left_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
-    void horizontal_down_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
-    void horizontal_up_predict( TwoDSubRange<uint8_t, size, size> & output ) const;
-
     struct Predictors {
-      static const Row & row127( void );
-      static const Column & col129( void );
+    private:
+      uint8_t above_storage[ size * 4 ] __attribute__((aligned( 16 )));
 
-      const Row above_row;
-      const Column left_column;
-      const uint8_t & above_left;
+    public:
+      uint8_t * above { above_storage + size * 2 };
+      uint8_t left[ size ] __attribute__((aligned( 16 )));
+    };
 
-      /* non-const so macroblock can adjust the rightmost subblocks */
-      struct AboveRightBottomRowPredictor {
-        Row above_right_bottom_row;
-        const uint8_t * above_bottom_right_pixel;
-        bool use_row;
-
-        uint8_t above_right( const unsigned int column ) const;
-      } above_right_bottom_row_predictor;
-
-      uint8_t above( const int8_t column ) const;
-      uint8_t left( const int8_t row ) const;
-      uint8_t east( const int8_t num ) const;
-
-      Predictors( TwoD<uint8_t> & component,
-                  const unsigned int column,
-                  const unsigned int row );
-    } predictors_;
+    void dc_predict( const Predictors &, BlockSubRange & output ) const;
+    void dc_predict_simple( const Predictors &, BlockSubRange & output ) const;
+    void vertical_predict( const Predictors &, BlockSubRange & output ) const;
+    void horizontal_predict( const Predictors &, BlockSubRange & output ) const;
+    void true_motion_predict( const Predictors &, BlockSubRange & output ) const;
+    void vertical_smoothed_predict( const Predictors &, BlockSubRange & output ) const;
+    void horizontal_smoothed_predict( const Predictors &, BlockSubRange & output ) const;
+    void left_down_predict( const Predictors &, BlockSubRange & output ) const;
+    void right_down_predict( const Predictors &, BlockSubRange & output ) const;
+    void vertical_right_predict( const Predictors &, BlockSubRange & output ) const;
+    void vertical_left_predict( const Predictors &, BlockSubRange & output ) const;
+    void horizontal_down_predict( const Predictors &, BlockSubRange & output ) const;
+    void horizontal_up_predict( const Predictors &, BlockSubRange & output ) const;
 
   public:
-    uint8_t above( const int column ) const { return predictors_.above( column ); }
-    uint8_t left( const int column ) const { return predictors_.left( column ); }
-    uint8_t east( const int column ) const { return predictors_.east( column ); }
-
     unsigned int column() const { return column_; }
     unsigned int row() const { return row_; }
 
@@ -112,18 +81,16 @@ public:
 
     const decltype(contents_) & contents( void ) const { return contents_; }
     decltype(contents_) & mutable_contents( void ) { return contents_; }
-    const Predictors & predictors( void ) const { return predictors_; }
+
+    Predictors predictors() const;
 
     template <class PredictionMode>
-    void intra_predict( const PredictionMode mb_mode ) { intra_predict( mb_mode, this->contents_ ); }
+    void intra_predict( const PredictionMode mb_mode ) { intra_predict( mb_mode, predictors(), this->contents_ ); }
 
     template <class PredictionMode>
     void intra_predict( const PredictionMode mb_mode,
+                        const Predictors & predictors,
                         TwoDSubRange<uint8_t, size, size> & output ) const;
-
-    /* for encoder use */
-    template <class PredictionMode>
-    void intra_predict( const PredictionMode mb_mode, TwoD<uint8_t> & output ) const;
 
     void inter_predict( const MotionVector & mv,
                         const TwoD<uint8_t> & reference ) { inter_predict( mv, reference, this->contents_ ); }
@@ -161,8 +128,6 @@ public:
                                         const uint8_t * dst, const unsigned int dst_pitch,
                                         const unsigned int dst_height, const unsigned int filter_idx );
 #endif
-
-    void set_above_right_bottom_row_predictor( const typename Predictors::AboveRightBottomRowPredictor & replacement );
 
     static constexpr unsigned int dimension { size };
 
