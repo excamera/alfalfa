@@ -140,6 +140,34 @@ typename VP8Raster::Block<size>::Predictors VP8Raster::Block<size>::predictors()
   return predictors_;
 }
 
+#ifdef HAVE_SSE2
+
+template<>
+void VP8Raster::Block<4>::true_motion_predict( const Predictors & predictors,
+                                                  BlockSubRange & output ) const
+{
+  vpx_tm_predictor_4x4_sse2( &output.at( 0, 0 ), output.stride(),
+                             predictors.above, predictors.left );
+}
+
+template<>
+void VP8Raster::Block<8>::true_motion_predict( const Predictors & predictors,
+                                                  BlockSubRange & output ) const
+{
+  vpx_tm_predictor_8x8_sse2( &output.at( 0, 0 ), output.stride(),
+                             predictors.above, predictors.left );
+}
+
+template<>
+void VP8Raster::Block<16>::true_motion_predict( const Predictors & predictors,
+                                                  BlockSubRange & output ) const
+{
+  vpx_tm_predictor_16x16_sse2( &output.at( 0, 0 ), output.stride(),
+                             predictors.above, predictors.left );
+}
+
+#else
+
 template <unsigned int size>
 void VP8Raster::Block<size>::true_motion_predict( const Predictors & predictors,
                                                   BlockSubRange & output ) const
@@ -153,6 +181,8 @@ void VP8Raster::Block<size>::true_motion_predict( const Predictors & predictors,
     }
   );
 }
+
+#endif
 
 template <unsigned int size>
 void VP8Raster::Block<size>::horizontal_predict( const Predictors & predictors,
