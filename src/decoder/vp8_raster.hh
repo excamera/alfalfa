@@ -49,6 +49,8 @@ public:
     public:
       uint8_t * above { above_storage + size * 2 };
       uint8_t left[ size ] __attribute__((aligned( 16 )));
+
+      uint8_t east( size_t i ) const { return ( i <= 3 ) ? left[ 3 - i ] : above[ i - 5 ]; }
     };
 
     void dc_predict( const Predictors &, BlockSubRange & output ) const;

@@ -305,43 +305,29 @@ template <>
 void VP8Raster::Block4::right_down_predict( const Predictors & predictors,
                                             BlockSubRange & output ) const
 {
-  auto east =
-    [&]( const size_t i )
-    {
-      if ( i <= 3 ) return predictors.left[ 3 - i ];
-      return predictors.above[ i - 5 ];
-    };
-
-  output.at( 0, 3 ) =                                                             avg3( east( 0 ), east( 1 ), east( 2 ) );
-  output.at( 1, 3 ) = output.at( 0, 2 ) =                                         avg3( east( 1 ), east( 2 ), east( 3 ) );
-  output.at( 2, 3 ) = output.at( 1, 2 ) = output.at( 0, 1 ) =                     avg3( east( 2 ), east( 3 ), east( 4 ) );
-  output.at( 3, 3 ) = output.at( 2, 2 ) = output.at( 1, 1 ) = output.at( 0, 0 ) = avg3( east( 3 ), east( 4 ), east( 5 ) );
-  output.at( 3, 2 ) = output.at( 2, 1 ) = output.at( 1, 0 ) =                     avg3( east( 4 ), east( 5 ), east( 6 ) );
-  output.at( 3, 1 ) = output.at( 2, 0 ) =                                         avg3( east( 5 ), east( 6 ), east( 7 ) );
-  output.at( 3, 0 ) =                                                             avg3( east( 6 ), east( 7 ), east( 8 ) );
+  output.at( 0, 3 ) =                                                             avg3( predictors.east( 0 ), predictors.east( 1 ), predictors.east( 2 ) );
+  output.at( 1, 3 ) = output.at( 0, 2 ) =                                         avg3( predictors.east( 1 ), predictors.east( 2 ), predictors.east( 3 ) );
+  output.at( 2, 3 ) = output.at( 1, 2 ) = output.at( 0, 1 ) =                     avg3( predictors.east( 2 ), predictors.east( 3 ), predictors.east( 4 ) );
+  output.at( 3, 3 ) = output.at( 2, 2 ) = output.at( 1, 1 ) = output.at( 0, 0 ) = avg3( predictors.east( 3 ), predictors.east( 4 ), predictors.east( 5 ) );
+  output.at( 3, 2 ) = output.at( 2, 1 ) = output.at( 1, 0 ) =                     avg3( predictors.east( 4 ), predictors.east( 5 ), predictors.east( 6 ) );
+  output.at( 3, 1 ) = output.at( 2, 0 ) =                                         avg3( predictors.east( 5 ), predictors.east( 6 ), predictors.east( 7 ) );
+  output.at( 3, 0 ) =                                                             avg3( predictors.east( 6 ), predictors.east( 7 ), predictors.east( 8 ) );
 }
 
 template <>
 void VP8Raster::Block4::vertical_right_predict( const Predictors & predictors,
                                                 BlockSubRange & output ) const
 {
-  auto east =
-    [&]( const size_t i )
-    {
-      if ( i <= 3 ) return predictors.left[ 3 - i ];
-      return predictors.above[ i - 5 ];
-    };
-
-  output.at( 0, 3 ) =                     avg3( east( 1 ), east( 2 ), east( 3 ) );
-  output.at( 0, 2 ) =                     avg3( east( 2 ), east( 3 ), east( 4 ) );
-  output.at( 1, 3 ) = output.at( 0, 1 ) = avg3( east( 3 ), east( 4 ), east( 5 ) );
-  output.at( 1, 2 ) = output.at( 0, 0 ) = avg2( east( 4 ), east( 5 ) );
-  output.at( 2, 3 ) = output.at( 1, 1 ) = avg3( east( 4 ), east( 5 ), east( 6 ) );
-  output.at( 2, 2 ) = output.at( 1, 0 ) = avg2( east( 5 ), east( 6 ) );
-  output.at( 3, 3 ) = output.at( 2, 1 ) = avg3( east( 5 ), east( 6 ), east( 7 ) );
-  output.at( 3, 2 ) = output.at( 2, 0 ) = avg2( east( 6 ), east( 7 ) );
-  output.at( 3, 1 ) =                     avg3( east( 6 ), east( 7 ), east( 8 ) );
-  output.at( 3, 0 ) =                     avg2( east( 7 ), east( 8 ) );
+  output.at( 0, 3 ) =                     avg3( predictors.east( 1 ), predictors.east( 2 ), predictors.east( 3 ) );
+  output.at( 0, 2 ) =                     avg3( predictors.east( 2 ), predictors.east( 3 ), predictors.east( 4 ) );
+  output.at( 1, 3 ) = output.at( 0, 1 ) = avg3( predictors.east( 3 ), predictors.east( 4 ), predictors.east( 5 ) );
+  output.at( 1, 2 ) = output.at( 0, 0 ) = avg2( predictors.east( 4 ), predictors.east( 5 ) );
+  output.at( 2, 3 ) = output.at( 1, 1 ) = avg3( predictors.east( 4 ), predictors.east( 5 ), predictors.east( 6 ) );
+  output.at( 2, 2 ) = output.at( 1, 0 ) = avg2( predictors.east( 5 ), predictors.east( 6 ) );
+  output.at( 3, 3 ) = output.at( 2, 1 ) = avg3( predictors.east( 5 ), predictors.east( 6 ), predictors.east( 7 ) );
+  output.at( 3, 2 ) = output.at( 2, 0 ) = avg2( predictors.east( 6 ), predictors.east( 7 ) );
+  output.at( 3, 1 ) =                     avg3( predictors.east( 6 ), predictors.east( 7 ), predictors.east( 8 ) );
+  output.at( 3, 0 ) =                     avg2( predictors.east( 7 ), predictors.east( 8 ) );
 }
 
 template <>
@@ -364,23 +350,16 @@ template <>
 void VP8Raster::Block4::horizontal_down_predict( const Predictors & predictors,
                                                  BlockSubRange & output ) const
 {
-  auto east =
-    [&]( const size_t i )
-    {
-      if ( i <= 3 ) return predictors.left[ 3 - i ];
-      return predictors.above[ i - 5 ];
-    };
-
-  output.at( 0, 3 ) =                     avg2( east( 0 ), east( 1 ) );
-  output.at( 1, 3 ) =                     avg3( east( 0 ), east( 1 ), east( 2 ) );
-  output.at( 0, 2 ) = output.at( 2, 3 ) = avg2( east( 1 ), east( 2 ) );
-  output.at( 1, 2 ) = output.at( 3, 3 ) = avg3( east( 1 ), east( 2 ), east( 3 ) );
-  output.at( 2, 2 ) = output.at( 0, 1 ) = avg2( east( 2 ), east( 3 ) );
-  output.at( 3, 2 ) = output.at( 1, 1 ) = avg3( east( 2 ), east( 3 ), east( 4 ) );
-  output.at( 2, 1 ) = output.at( 0, 0 ) = avg2( east( 3 ), east( 4 ) );
-  output.at( 3, 1 ) = output.at( 1, 0 ) = avg3( east( 3 ), east( 4 ), east( 5 ) );
-  output.at( 2, 0 ) =                     avg3( east( 4 ), east( 5 ), east( 6 ) );
-  output.at( 3, 0 ) =                     avg3( east( 5 ), east( 6 ), east( 7 ) );
+  output.at( 0, 3 ) =                     avg2( predictors.east( 0 ), predictors.east( 1 ) );
+  output.at( 1, 3 ) =                     avg3( predictors.east( 0 ), predictors.east( 1 ), predictors.east( 2 ) );
+  output.at( 0, 2 ) = output.at( 2, 3 ) = avg2( predictors.east( 1 ), predictors.east( 2 ) );
+  output.at( 1, 2 ) = output.at( 3, 3 ) = avg3( predictors.east( 1 ), predictors.east( 2 ), predictors.east( 3 ) );
+  output.at( 2, 2 ) = output.at( 0, 1 ) = avg2( predictors.east( 2 ), predictors.east( 3 ) );
+  output.at( 3, 2 ) = output.at( 1, 1 ) = avg3( predictors.east( 2 ), predictors.east( 3 ), predictors.east( 4 ) );
+  output.at( 2, 1 ) = output.at( 0, 0 ) = avg2( predictors.east( 3 ), predictors.east( 4 ) );
+  output.at( 3, 1 ) = output.at( 1, 0 ) = avg3( predictors.east( 3 ), predictors.east( 4 ), predictors.east( 5 ) );
+  output.at( 2, 0 ) =                     avg3( predictors.east( 4 ), predictors.east( 5 ), predictors.east( 6 ) );
+  output.at( 3, 0 ) =                     avg3( predictors.east( 5 ), predictors.east( 6 ), predictors.east( 7 ) );
 }
 
 template <>
