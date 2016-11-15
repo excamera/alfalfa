@@ -562,6 +562,18 @@ void VP8Raster::Block4::horizontal_down_predict( const Predictors & predictors,
 
 #endif
 
+#ifdef HAVE_SSE2
+
+template <>
+void VP8Raster::Block4::horizontal_up_predict( const Predictors & predictors,
+                                               BlockSubRange & output ) const
+{
+  vpx_d207_predictor_4x4_sse2( &output.at( 0, 0 ), output.stride(),
+                               predictors.above, predictors.left );
+}
+
+#else
+
 template <>
 void VP8Raster::Block4::horizontal_up_predict( const Predictors & predictors,
                                                BlockSubRange & output ) const
@@ -578,6 +590,8 @@ void VP8Raster::Block4::horizontal_up_predict( const Predictors & predictors,
                     = output.at( 2, 3 )
                     = output.at( 3, 3 ) = predictors.left[ 3 ];
 }
+
+#endif
 
 template <>
 template <>
