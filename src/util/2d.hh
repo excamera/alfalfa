@@ -308,8 +308,9 @@ public:
 
   void copy_from( const TwoDSubRange< T, sub_width, sub_height > & other )
   {
-    forall_ij( [&] ( T & x, const unsigned int column, const unsigned int row )
-               { x = other.at( column, row ); } );
+    for ( size_t i = 0; i < sub_height; i++ ) {
+      memcpy( &at( 0, i ), &other.at( 0, i ), sub_width );
+    }
   }
 
   bool operator==( const TwoDSubRange< T, sub_width, sub_height > & other ) const
