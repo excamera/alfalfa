@@ -17,7 +17,7 @@ libalfalfadecoder_a_SOURCES = vp8_raster.hh block.hh bool_decoder.hh decoder.cc 
 	vp8_header_structures.hh vp8_prob_data.cc vp8_prob_data.hh scorer.hh \
 	decoder_state.hh loopfilter_sse2.asm loopfilter_block_sse2_x86_64.asm \
 	predictor_sse.hh subpixel_ssse3.asm idctllm_mmx.asm \
-	intrapred_sse2.asm intrapred_sse.hh \
+	intrapred_ssse3.asm intrapred_sse2.asm intrapred_sse.hh \
 	fwalsh_sse2.asm \
 	subtract_sse2.asm x86inc.asm \
 	sad_sse2.asm sad_sse.hh \
