@@ -39,6 +39,9 @@ void usage_error( const string & program_name )
        << "                                         encoder state (default: none)" << endl
        << " --two-pass                            Do the second encoding pass" << endl
        << " -y, --y-ac-qi <arg>                   Quantization index for Y" << endl
+       << " -q, --quality=(best|rt)          Quality setting" << endl
+       << "                                         best: best quality, slowest (default)"
+       << "                                         rt:   real-time"
        << endl
        << "Re-encode:" << endl
        << " -r, --reencode                        Re-encode" << endl
@@ -73,6 +76,8 @@ int main( int argc, char *argv[] )
     double kf_q_weight = 1.0;
     bool extra_frame_chunk = false;
     Optional<uint8_t> y_ac_qi;
+    EncoderQuality quality = BEST_QUALITY;
+
 
     const option command_line_options[] = {
       { "output",               required_argument, nullptr, 'o' },
@@ -87,11 +92,12 @@ int main( int argc, char *argv[] )
       { "pred-state",           required_argument, nullptr, 'S' },
       { "kf-q-weight",          required_argument, nullptr, 'w' },
       { "extra-frame-chunk",    no_argument,       nullptr, 'e' },
+      { "quality",              required_argument, nullptr, 'q' },
       { 0, 0, 0, 0 }
     };
 
     while ( true ) {
-      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:p:S:rw:e", command_line_options, nullptr );
+      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:p:S:rw:eq:", command_line_options, nullptr );
 
       if ( opt == -1 ) {
         break;
@@ -145,6 +151,11 @@ int main( int argc, char *argv[] )
       case 'e':
         extra_frame_chunk = true;
         break;
+
+      case 'q':
+        if ( strcmp( optarg, "rt" ) == 0 ) {
+          quality = REALTIME_QUALITY;
+        }
 
       default:
         throw runtime_error( "getopt_long: unexpected return value." );
@@ -237,7 +248,7 @@ int main( int argc, char *argv[] )
       }
 
       Encoder encoder( EncoderStateDeserializer::build<Decoder>( input_state ),
-                       move( output ), two_pass );
+                       move( output ), two_pass, quality );
 
       encoder.set_expected_decoder_entry_hash( encoder.export_decoder().get_hash().hash() );
 
@@ -253,9 +264,9 @@ int main( int argc, char *argv[] )
     else {
       /* primary encoding */
       Encoder encoder = input_state == ""
-        ? Encoder(move(output), two_pass)
+        ? Encoder( move( output ), two_pass, quality )
         : Encoder( EncoderStateDeserializer::build<Decoder>( input_state ),
-                   move( output ), two_pass );
+                   move( output ), two_pass, quality );
 
       if ( not input_state.empty() ) {
         output.set_expected_decoder_entry_hash( encoder.export_decoder().get_hash().hash() );

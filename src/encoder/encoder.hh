@@ -24,6 +24,12 @@ enum EncoderPass
   SECOND_PASS
 };
 
+enum EncoderQuality
+{
+  BEST_QUALITY,
+  REALTIME_QUALITY
+};
+
 class SafeReferences
 {
 private:
@@ -82,6 +88,7 @@ private:
   Costs costs_ {};
 
   bool two_pass_encoder_ { false };
+  EncoderQuality quality_{ BEST_QUALITY };
 
   // TODO: Where did these come from?
   uint32_t RATE_MULTIPLIER { 300 };
@@ -268,9 +275,11 @@ private:
                                           const double minimum_ssim );
 
 public:
-  Encoder( IVFWriter && output, const bool two_pass );
+  Encoder( IVFWriter && output, const bool two_pass,
+           const EncoderQuality quality );
 
-  Encoder( const Decoder & decoder, IVFWriter && output, const bool two_pass );
+  Encoder( const Decoder & decoder, IVFWriter && output, const bool two_pass,
+           const EncoderQuality quality );
 
   void encode_with_minimum_ssim( const VP8Raster & raster,
                                  const double minimum_ssim );
