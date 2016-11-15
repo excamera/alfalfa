@@ -144,7 +144,7 @@ typename VP8Raster::Block<size>::Predictors VP8Raster::Block<size>::predictors()
 
 template<>
 void VP8Raster::Block<4>::true_motion_predict( const Predictors & predictors,
-                                                  BlockSubRange & output ) const
+                                               BlockSubRange & output ) const
 {
   vpx_tm_predictor_4x4_sse2( &output.at( 0, 0 ), output.stride(),
                              predictors.above, predictors.left );
@@ -152,7 +152,7 @@ void VP8Raster::Block<4>::true_motion_predict( const Predictors & predictors,
 
 template<>
 void VP8Raster::Block<8>::true_motion_predict( const Predictors & predictors,
-                                                  BlockSubRange & output ) const
+                                               BlockSubRange & output ) const
 {
   vpx_tm_predictor_8x8_sse2( &output.at( 0, 0 ), output.stride(),
                              predictors.above, predictors.left );
@@ -160,7 +160,7 @@ void VP8Raster::Block<8>::true_motion_predict( const Predictors & predictors,
 
 template<>
 void VP8Raster::Block<16>::true_motion_predict( const Predictors & predictors,
-                                                  BlockSubRange & output ) const
+                                                BlockSubRange & output ) const
 {
   vpx_tm_predictor_16x16_sse2( &output.at( 0, 0 ), output.stride(),
                                predictors.above, predictors.left );
@@ -188,7 +188,7 @@ void VP8Raster::Block<size>::true_motion_predict( const Predictors & predictors,
 
 template<>
 void VP8Raster::Block<4>::horizontal_predict( const Predictors & predictors,
-                                                 BlockSubRange & output ) const
+                                              BlockSubRange & output ) const
 {
   vpx_h_predictor_4x4_sse2( &output.at( 0, 0 ), output.stride(),
                             predictors.above, predictors.left );
@@ -196,7 +196,7 @@ void VP8Raster::Block<4>::horizontal_predict( const Predictors & predictors,
 
 template<>
 void VP8Raster::Block<8>::horizontal_predict( const Predictors & predictors,
-                                                 BlockSubRange & output ) const
+                                              BlockSubRange & output ) const
 {
   vpx_h_predictor_8x8_sse2( &output.at( 0, 0 ), output.stride(),
                             predictors.above, predictors.left );
@@ -204,7 +204,7 @@ void VP8Raster::Block<8>::horizontal_predict( const Predictors & predictors,
 
 template<>
 void VP8Raster::Block<16>::horizontal_predict( const Predictors & predictors,
-                                                 BlockSubRange & output ) const
+                                               BlockSubRange & output ) const
 {
   vpx_h_predictor_16x16_sse2( &output.at( 0, 0 ), output.stride(),
                               predictors.above, predictors.left );
@@ -227,7 +227,7 @@ void VP8Raster::Block<size>::horizontal_predict( const Predictors & predictors,
 
 template<>
 void VP8Raster::Block<4>::vertical_predict( const Predictors & predictors,
-                                               BlockSubRange & output ) const
+                                            BlockSubRange & output ) const
 {
   vpx_v_predictor_4x4_sse2( &output.at( 0, 0 ), output.stride(),
                             predictors.above, predictors.left );
@@ -235,7 +235,7 @@ void VP8Raster::Block<4>::vertical_predict( const Predictors & predictors,
 
 template<>
 void VP8Raster::Block<8>::vertical_predict( const Predictors & predictors,
-                                               BlockSubRange & output ) const
+                                            BlockSubRange & output ) const
 {
   vpx_v_predictor_8x8_sse2( &output.at( 0, 0 ), output.stride(),
                             predictors.above, predictors.left );
@@ -243,7 +243,7 @@ void VP8Raster::Block<8>::vertical_predict( const Predictors & predictors,
 
 template<>
 void VP8Raster::Block<16>::vertical_predict( const Predictors & predictors,
-                                               BlockSubRange & output ) const
+                                             BlockSubRange & output ) const
 {
   vpx_v_predictor_16x16_sse2( &output.at( 0, 0 ), output.stride(),
                             predictors.above, predictors.left );
@@ -261,6 +261,100 @@ void VP8Raster::Block<size>::vertical_predict( const Predictors & predictors,
 }
 
 #endif
+
+#ifdef HAVE_SSE2
+
+template<>
+void VP8Raster::Block<4>::dc_predict_simple( const Predictors & predictors,
+                                             BlockSubRange & output ) const
+{
+  vpx_dc_predictor_4x4_sse2( &output.at( 0, 0 ), output.stride(),
+                             predictors.above, predictors.left );
+}
+
+template<>
+void VP8Raster::Block<8>::dc_predict_simple( const Predictors & predictors,
+                                             BlockSubRange & output ) const
+{
+  vpx_dc_predictor_8x8_sse2( &output.at( 0, 0 ), output.stride(),
+                             predictors.above, predictors.left );
+}
+
+template<>
+void VP8Raster::Block<16>::dc_predict_simple( const Predictors & predictors,
+                                              BlockSubRange & output ) const
+{
+  vpx_dc_predictor_16x16_sse2( &output.at( 0, 0 ), output.stride(),
+                               predictors.above, predictors.left );
+}
+
+template<>
+void VP8Raster::Block<4>::dc_predict( const Predictors & predictors,
+                                      BlockSubRange & output ) const
+{
+  if ( column_ and row_ ) {
+    return dc_predict_simple( predictors, output );
+  }
+
+  if ( row_ > 0 ) {
+    return vpx_dc_top_predictor_4x4_sse2( &output.at( 0, 0 ), output.stride(),
+                                          predictors.above, predictors.left );
+  }
+
+  if ( column_ > 0 ) {
+    return vpx_dc_left_predictor_4x4_sse2( &output.at( 0, 0 ), output.stride(),
+                                           predictors.above, predictors.left );
+  }
+
+  return vpx_dc_128_predictor_4x4_sse2( &output.at( 0, 0 ), output.stride(),
+                                        predictors.above, predictors.left );
+}
+
+template<>
+void VP8Raster::Block<8>::dc_predict( const Predictors & predictors,
+                                      BlockSubRange & output ) const
+{
+  if ( column_ and row_ ) {
+    return dc_predict_simple( predictors, output );
+  }
+
+  if ( row_ > 0 ) {
+    return vpx_dc_top_predictor_8x8_sse2( &output.at( 0, 0 ), output.stride(),
+                                          predictors.above, predictors.left );
+  }
+
+  if ( column_ > 0 ) {
+    return vpx_dc_left_predictor_8x8_sse2( &output.at( 0, 0 ), output.stride(),
+                                           predictors.above, predictors.left );
+  }
+
+  return vpx_dc_128_predictor_8x8_sse2( &output.at( 0, 0 ), output.stride(),
+                                        predictors.above, predictors.left );
+}
+
+template<>
+void VP8Raster::Block<16>::dc_predict( const Predictors & predictors,
+                                       BlockSubRange & output ) const
+{
+  if ( column_ and row_ ) {
+    return dc_predict_simple( predictors, output );
+  }
+
+  if ( row_ > 0 ) {
+    return vpx_dc_top_predictor_16x16_sse2( &output.at( 0, 0 ), output.stride(),
+                                            predictors.above, predictors.left );
+  }
+
+  if ( column_ > 0 ) {
+    return vpx_dc_left_predictor_16x16_sse2( &output.at( 0, 0 ), output.stride(),
+                                             predictors.above, predictors.left );
+  }
+
+  return vpx_dc_128_predictor_16x16_sse2( &output.at( 0, 0 ), output.stride(),
+                                          predictors.above, predictors.left );
+}
+
+#else
 
 template <unsigned int size>
 void VP8Raster::Block<size>::dc_predict_simple( const Predictors & predictors,
@@ -309,6 +403,8 @@ void VP8Raster::Block<size>::dc_predict( const Predictors & predictors,
 
   output.fill( value );
 }
+
+#endif
 
 template <>
 template <>
