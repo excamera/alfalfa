@@ -532,6 +532,18 @@ void VP8Raster::Block4::vertical_left_predict( const Predictors & predictors,
   output.at( 3, 3 ) =                     avg3( predictors.above[ 5 ], predictors.above[ 6 ], predictors.above[ 7 ] );
 }
 
+#ifdef HAVE_SSE2
+
+template <>
+void VP8Raster::Block4::horizontal_down_predict( const Predictors & predictors,
+                                                 BlockSubRange & output ) const
+{
+  vpx_d153_predictor_4x4_ssse3( &output.at( 0, 0 ), output.stride(),
+                                predictors.above, predictors.left );
+}
+
+#else
+
 template <>
 void VP8Raster::Block4::horizontal_down_predict( const Predictors & predictors,
                                                  BlockSubRange & output ) const
@@ -547,6 +559,8 @@ void VP8Raster::Block4::horizontal_down_predict( const Predictors & predictors,
   output.at( 2, 0 ) =                     avg3( predictors.east( 4 ), predictors.east( 5 ), predictors.east( 6 ) );
   output.at( 3, 0 ) =                     avg3( predictors.east( 5 ), predictors.east( 6 ), predictors.east( 7 ) );
 }
+
+#endif
 
 template <>
 void VP8Raster::Block4::horizontal_up_predict( const Predictors & predictors,
