@@ -163,7 +163,7 @@ void VP8Raster::Block<16>::true_motion_predict( const Predictors & predictors,
                                                   BlockSubRange & output ) const
 {
   vpx_tm_predictor_16x16_sse2( &output.at( 0, 0 ), output.stride(),
-                             predictors.above, predictors.left );
+                               predictors.above, predictors.left );
 }
 
 #else
@@ -207,7 +207,7 @@ void VP8Raster::Block<16>::horizontal_predict( const Predictors & predictors,
                                                  BlockSubRange & output ) const
 {
   vpx_h_predictor_16x16_sse2( &output.at( 0, 0 ), output.stride(),
-                            predictors.above, predictors.left );
+                              predictors.above, predictors.left );
 }
 
 #else
@@ -223,6 +223,34 @@ void VP8Raster::Block<size>::horizontal_predict( const Predictors & predictors,
 
 #endif
 
+#ifdef HAVE_SSE2
+
+template<>
+void VP8Raster::Block<4>::vertical_predict( const Predictors & predictors,
+                                               BlockSubRange & output ) const
+{
+  vpx_v_predictor_4x4_sse2( &output.at( 0, 0 ), output.stride(),
+                            predictors.above, predictors.left );
+}
+
+template<>
+void VP8Raster::Block<8>::vertical_predict( const Predictors & predictors,
+                                               BlockSubRange & output ) const
+{
+  vpx_v_predictor_8x8_sse2( &output.at( 0, 0 ), output.stride(),
+                            predictors.above, predictors.left );
+}
+
+template<>
+void VP8Raster::Block<16>::vertical_predict( const Predictors & predictors,
+                                               BlockSubRange & output ) const
+{
+  vpx_v_predictor_16x16_sse2( &output.at( 0, 0 ), output.stride(),
+                            predictors.above, predictors.left );
+}
+
+#else
+
 template <unsigned int size>
 void VP8Raster::Block<size>::vertical_predict( const Predictors & predictors,
                                                BlockSubRange & output ) const
@@ -231,6 +259,8 @@ void VP8Raster::Block<size>::vertical_predict( const Predictors & predictors,
     output.column( column ).fill( predictors.above[ column ] );
   }
 }
+
+#endif
 
 template <unsigned int size>
 void VP8Raster::Block<size>::dc_predict_simple( const Predictors & predictors,
