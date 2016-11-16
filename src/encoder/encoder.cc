@@ -183,7 +183,9 @@ Encoder::Encoder( IVFWriter && output, const bool two_pass,
   : ivf_writer_( move( output ) ),
     decoder_state_( width(), height() ), references_( width(), height() ),
     safe_references_( width(), height() ), two_pass_encoder_( two_pass ),
-    quality_( quality )
+    quality_( quality ),
+    key_frame_( make_empty_frame<KeyFrame>( width(), height(), true ) ),
+    inter_frame_( make_empty_frame<InterFrame>( width(), height(), true ) )
 {
   costs_.fill_mode_costs();
 }
@@ -193,7 +195,9 @@ Encoder::Encoder( const Decoder & decoder, IVFWriter && output, const bool two_p
   : ivf_writer_( move( output ) ),
     decoder_state_( decoder.get_state() ), references_( decoder.get_references() ),
     safe_references_( references_ ), two_pass_encoder_( two_pass ),
-    quality_( quality )
+    quality_( quality ),
+    key_frame_( make_empty_frame<KeyFrame>( width(), height(), true ) ),
+    inter_frame_( make_empty_frame<InterFrame>( width(), height(), true ) )
 {
   if ( decoder.get_width() != ivf_writer_.width()
        or decoder.get_height() != ivf_writer_.height() ) {
@@ -552,8 +556,8 @@ void Encoder::apply_best_loopfilter_settings( const VP8Raster & original,
 }
 
 template<class FrameType>
-FrameType Encoder::encode_with_quantizer_search( const VP8Raster & raster,
-                                                 const double minimum_ssim )
+FrameType & Encoder::encode_with_quantizer_search( const VP8Raster & raster,
+                                                   const double minimum_ssim )
 {
   int y_ac_qi_min = 0;
   int y_ac_qi_max = 127;
@@ -566,7 +570,7 @@ FrameType Encoder::encode_with_quantizer_search( const VP8Raster & raster,
   while ( y_ac_qi_min <= y_ac_qi_max ) {
     quant_indices.y_ac_qi = ( y_ac_qi_min + y_ac_qi_max ) / 2;
 
-    pair<FrameType, double> encoded_frame = encode_raster<FrameType>( raster, quant_indices, true );
+    pair<FrameType &, double> encoded_frame = encode_raster<FrameType>( raster, quant_indices, true );
 
     double current_ssim = encoded_frame.second;
 

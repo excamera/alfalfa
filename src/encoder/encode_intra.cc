@@ -351,15 +351,16 @@ bmode Encoder::luma_sb_intra_predict( const VP8Raster::Block4 & original_sb,
 }
 
 template<>
-pair<KeyFrame, double> Encoder::encode_raster<KeyFrame>( const VP8Raster & raster,
-                                                                 const QuantIndices & quant_indices,
-                                                                 const bool update_state,
-                                                                 const bool compute_ssim )
+pair<KeyFrame &, double> Encoder::encode_raster<KeyFrame>( const VP8Raster & raster,
+                                                           const QuantIndices & quant_indices,
+                                                           const bool update_state,
+                                                           const bool compute_ssim )
 {
   DecoderState decoder_state_copy = decoder_state_;
   decoder_state_ = DecoderState( width(), height() );
 
-  KeyFrame frame = Encoder::make_empty_frame<KeyFrame>( width(), height(), true );
+  KeyFrame & frame = key_frame_;
+
   frame.mutable_header().quant_indices = quant_indices;
   frame.mutable_header().refresh_entropy_probs = true;
 
@@ -427,6 +428,6 @@ pair<KeyFrame, double> Encoder::encode_raster<KeyFrame>( const VP8Raster & raste
     decoder_state_ = decoder_state_copy;
   }
 
-  return { move( frame ),
+  return { frame,
            compute_ssim ? immutable_raster.get().quality( raster ) : 0.0 };
 }

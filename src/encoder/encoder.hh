@@ -90,6 +90,9 @@ private:
   bool two_pass_encoder_ { false };
   EncoderQuality quality_{ BEST_QUALITY };
 
+  KeyFrame key_frame_;
+  InterFrame inter_frame_;
+
   // TODO: Where did these come from?
   uint32_t RATE_MULTIPLIER { 300 };
   uint32_t DISTORTION_MULTIPLIER { 1 };
@@ -245,14 +248,14 @@ private:
 
   /* Convergence-related stuff */
   template<class FrameType>
-  InterFrame reencode_as_interframe( const VP8Raster & unfiltered_output,
-                                     const FrameType & original_frame,
-                                     const QuantIndices & quant_indices );
+  InterFrame & reencode_as_interframe( const VP8Raster & unfiltered_output,
+                                       const FrameType & original_frame,
+                                       const QuantIndices & quant_indices );
 
-  InterFrame update_residues( const VP8Raster & unfiltered_output,
-                              const InterFrame & original_frame,
-                              const QuantIndices & quant_indices,
-                              const bool last_frame );
+  InterFrame & update_residues( const VP8Raster & unfiltered_output,
+                                const InterFrame & original_frame,
+                                const QuantIndices & quant_indices,
+                                const bool last_frame );
 
   void update_macroblock( const VP8Raster::Macroblock & original_rmb,
                           VP8Raster::Macroblock & reconstructed_rmb,
@@ -265,14 +268,14 @@ private:
   void update_decoder_state( const FrameType & frame );
 
   template<class FrameType>
-  std::pair<FrameType, double> encode_raster( const VP8Raster & raster,
-                                              const QuantIndices & quant_indices,
-                                              const bool update_state = false,
-                                              const bool compute_ssim = false );
+  std::pair<FrameType &, double> encode_raster( const VP8Raster & raster,
+                                                const QuantIndices & quant_indices,
+                                                const bool update_state = false,
+                                                const bool compute_ssim = false );
 
   template<class FrameType>
-  FrameType encode_with_quantizer_search( const VP8Raster & raster,
-                                          const double minimum_ssim );
+  FrameType & encode_with_quantizer_search( const VP8Raster & raster,
+                                            const double minimum_ssim );
 
 public:
   Encoder( IVFWriter && output, const bool two_pass,

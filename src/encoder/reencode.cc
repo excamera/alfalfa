@@ -9,11 +9,12 @@
 using namespace std;
 
 template<class FrameType>
-InterFrame Encoder::reencode_as_interframe( const VP8Raster & original_raster,
-                                            const FrameType & original_frame,
-                                            const QuantIndices & quant_indices )
+InterFrame & Encoder::reencode_as_interframe( const VP8Raster & original_raster,
+                                              const FrameType & original_frame,
+                                              const QuantIndices & quant_indices )
 {
-  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height(), true );
+  InterFrame & frame = inter_frame_;
+
   auto & kf_header = original_frame.header();
   auto & if_header = frame.mutable_header();
 
@@ -208,13 +209,12 @@ void Encoder::update_macroblock( const VP8Raster::Macroblock & original_mb,
   }
 }
 
-InterFrame Encoder::update_residues( const VP8Raster & original_raster,
-                                     const InterFrame & original_frame,
-                                     const QuantIndices & quant_indices,
-                                     const bool last_frame )
+InterFrame & Encoder::update_residues( const VP8Raster & original_raster,
+                                       const InterFrame & original_frame,
+                                       const QuantIndices & quant_indices,
+                                       const bool last_frame )
 {
-  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height(),
-                                                            true );
+  InterFrame & frame = inter_frame_;
 
   const InterFrameHeader & of_header = original_frame.header();
   InterFrameHeader & if_header = frame.mutable_header();

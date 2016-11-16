@@ -544,14 +544,15 @@ void Encoder::optimize_interframe_probs( InterFrame & frame )
 }
 
 template<>
-pair<InterFrame, double> Encoder::encode_raster<InterFrame>( const VP8Raster & raster,
-                                                             const QuantIndices & quant_indices,
-                                                             const bool update_state,
-                                                             const bool compute_ssim )
+pair<InterFrame &, double> Encoder::encode_raster<InterFrame>( const VP8Raster & raster,
+                                                               const QuantIndices & quant_indices,
+                                                               const bool update_state,
+                                                               const bool compute_ssim )
 {
   DecoderState decoder_state_copy = decoder_state_;
 
-  InterFrame frame = Encoder::make_empty_frame<InterFrame>( width(), height(), true );
+  InterFrame & frame = inter_frame_;
+
   frame.mutable_header().quant_indices = quant_indices;
   frame.mutable_header().refresh_entropy_probs = true;
   frame.mutable_header().refresh_last = true;
@@ -614,6 +615,6 @@ pair<InterFrame, double> Encoder::encode_raster<InterFrame>( const VP8Raster & r
     decoder_state_ = decoder_state_copy;
   }
 
-  return { move( frame ),
+  return { frame,
            compute_ssim ? immutable_raster.get().quality( raster ) : 0.0 };
 }
