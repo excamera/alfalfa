@@ -162,7 +162,7 @@ public:
   {
     assert( width_ == other.width_ );
     assert( height_ == other.height_ );
-    memcpy( &storage_[ 0 ], &other.storage_[ 0 ], sizeof(T) * storage_.size() );
+    memcpy( &storage_[ 0 ], &other.storage_[ 0 ], sizeof( T ) * storage_.size() );
   }
 
   /* forbid moving */
@@ -309,7 +309,7 @@ public:
   void copy_from( const TwoDSubRange< T, sub_width, sub_height > & other )
   {
     for ( size_t i = 0; i < sub_height; i++ ) {
-      memcpy( &at( 0, i ), &other.at( 0, i ), sub_width );
+      memcpy( &at( 0, i ), &other.at( 0, i ), sizeof( T ) * sub_width );
     }
   }
 
