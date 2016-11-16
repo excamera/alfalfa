@@ -7,6 +7,10 @@
 #include "safe_array.hh"
 #include "decoder.hh"
 
+#ifdef HAVE_SSE2
+#include <emmintrin.h>
+#endif
+
 using namespace std;
 
 static constexpr SafeArray< uint16_t, 128 > dc_qlookup =
@@ -64,11 +68,33 @@ Quantizer::Quantizer( const QuantIndices & quant_indices )
 
 DCTCoefficients DCTCoefficients::dequantize( const pair<uint16_t, uint16_t> & factors ) const
 {
-  DCTCoefficients new_coefficients;
+  alignas( 16 ) DCTCoefficients new_coefficients;
+
+#ifdef HAVE_SSE2
+
+  int16_t q0 = static_cast<int16_t>( factors.first );
+  int16_t q1 = static_cast<int16_t>( factors.second );
+
+  __m128i coeffs_0 = _mm_loadu_si128( reinterpret_cast<const __m128i *>( &coefficients_.at( 0 ) ) );
+  __m128i coeffs_1 = _mm_loadu_si128( reinterpret_cast<const __m128i *>( &coefficients_.at( 8 ) ) );
+
+   __m128i factors_0 = _mm_set_epi16( q1, q1, q1, q1, q1, q1, q1, q0 );
+  __m128i factors_1 = _mm_set1_epi16( q1 );
+
+  coeffs_0 = _mm_mullo_epi16( coeffs_0, factors_0 );
+  coeffs_1 = _mm_mullo_epi16( coeffs_1, factors_1 );
+
+  _mm_store_si128( reinterpret_cast<__m128i *>( &new_coefficients.at( 0 ) ), coeffs_0 );
+  _mm_store_si128( reinterpret_cast<__m128i *>( &new_coefficients.at( 8 ) ), coeffs_1 );
+
+#else
+
   new_coefficients.at( 0 ) = coefficients_.at( 0 ) * factors.first;
   for ( uint8_t i = 1; i < 16; i++ ) {
     new_coefficients.at( i ) = coefficients_.at( i ) * factors.second;
   }
+
+#endif
 
   return new_coefficients;
 }
