@@ -85,9 +85,9 @@ uint32_t Encoder::sse( const VP8Raster::Block<4> & block,
                        const TwoDSubRange<uint8_t, 4, 4> & prediction )
 {
   unsigned int sse;
-  vpx_variance4x4_sse2( &block.contents().at( 0, 0 ), block.contents().stride(),
-                        &prediction.at( 0, 0 ), prediction.stride(),
-                        &sse );
+  get4x4var_sse2( &block.contents().at( 0, 0 ), block.contents().stride(),
+                  &prediction.at( 0, 0 ), prediction.stride(),
+                  &sse, nullptr );
 
   return sse;
 }
@@ -97,9 +97,9 @@ uint32_t Encoder::sse( const VP8Raster::Block<8> & block,
                        const TwoDSubRange<uint8_t, 8, 8> & prediction )
 {
   unsigned int sse;
-  vpx_variance8x8_sse2( &block.contents().at( 0, 0 ), block.contents().stride(),
-                        &prediction.at( 0, 0 ), prediction.stride(),
-                        &sse );
+  vpx_get8x8var_sse2( &block.contents().at( 0, 0 ), block.contents().stride(),
+                      &prediction.at( 0, 0 ), prediction.stride(),
+                      &sse, nullptr );
 
   return sse;
 }
@@ -109,9 +109,9 @@ uint32_t Encoder::sse( const VP8Raster::Block<16> & block,
                        const TwoDSubRange<uint8_t, 16, 16> & prediction )
 {
   unsigned int sse;
-  vpx_variance16x16_sse2( &block.contents().at( 0, 0 ), block.contents().stride(),
-                          &prediction.at( 0, 0 ), prediction.stride(),
-                          &sse );
+  vpx_get16x16var_sse2( &block.contents().at( 0, 0 ), block.contents().stride(),
+                        &prediction.at( 0, 0 ), prediction.stride(),
+                        &sse, nullptr );
 
   return sse;
 }

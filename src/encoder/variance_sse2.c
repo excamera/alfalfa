@@ -48,15 +48,17 @@ static void get4x4var_sse2(const uint8_t *src, int src_stride,
   const __m128i diff0 = _mm_sub_epi16(src0, ref0);
   const __m128i diff1 = _mm_sub_epi16(src1, ref1);
 
-  // sum
-  __m128i vsum = _mm_add_epi16(diff0, diff1);
-  vsum = _mm_add_epi16(vsum, _mm_srli_si128(vsum, 8));
-  vsum = _mm_add_epi16(vsum, _mm_srli_si128(vsum, 4));
-  vsum = _mm_add_epi16(vsum, _mm_srli_si128(vsum, 2));
-  *sum = (int16_t)_mm_extract_epi16(vsum, 0);
+  if ( sum ) {
+    // sum
+    __m128i vsum = _mm_add_epi16(diff0, diff1);
+    vsum = _mm_add_epi16(vsum, _mm_srli_si128(vsum, 8));
+    vsum = _mm_add_epi16(vsum, _mm_srli_si128(vsum, 4));
+    vsum = _mm_add_epi16(vsum, _mm_srli_si128(vsum, 2));
+    *sum = (int16_t)_mm_extract_epi16(vsum, 0);
+  }
 
   // sse
-  vsum =
+  __m128i vsum =
       _mm_add_epi32(_mm_madd_epi16(diff0, diff0), _mm_madd_epi16(diff1, diff1));
   vsum = _mm_add_epi32(vsum, _mm_srli_si128(vsum, 8));
   vsum = _mm_add_epi32(vsum, _mm_srli_si128(vsum, 4));
@@ -89,11 +91,13 @@ void vpx_get8x8var_sse2(const uint8_t *src, int src_stride, const uint8_t *ref,
     vsse = _mm_add_epi32(vsse, _mm_madd_epi16(diff1, diff1));
   }
 
-  // sum
-  vsum = _mm_add_epi16(vsum, _mm_srli_si128(vsum, 8));
-  vsum = _mm_add_epi16(vsum, _mm_srli_si128(vsum, 4));
-  vsum = _mm_add_epi16(vsum, _mm_srli_si128(vsum, 2));
-  *sum = (int16_t)_mm_extract_epi16(vsum, 0);
+  if ( sum ) {
+    // sum
+    vsum = _mm_add_epi16(vsum, _mm_srli_si128(vsum, 8));
+    vsum = _mm_add_epi16(vsum, _mm_srli_si128(vsum, 4));
+    vsum = _mm_add_epi16(vsum, _mm_srli_si128(vsum, 2));
+    *sum = (int16_t)_mm_extract_epi16(vsum, 0);
+  }
 
   // sse
   vsse = _mm_add_epi32(vsse, _mm_srli_si128(vsse, 8));
@@ -130,11 +134,13 @@ void vpx_get16x16var_sse2(const uint8_t *src, int src_stride,
     ref += ref_stride;
   }
 
-  // sum
-  vsum = _mm_add_epi16(vsum, _mm_srli_si128(vsum, 8));
-  vsum = _mm_add_epi16(vsum, _mm_srli_si128(vsum, 4));
-  *sum =
-      (int16_t)_mm_extract_epi16(vsum, 0) + (int16_t)_mm_extract_epi16(vsum, 1);
+  if ( sum ) {
+    // sum
+    vsum = _mm_add_epi16(vsum, _mm_srli_si128(vsum, 8));
+    vsum = _mm_add_epi16(vsum, _mm_srli_si128(vsum, 4));
+    *sum =
+        (int16_t)_mm_extract_epi16(vsum, 0) + (int16_t)_mm_extract_epi16(vsum, 1);
+  }
 
   // sse
   vsse = _mm_add_epi32(vsse, _mm_srli_si128(vsse, 8));
