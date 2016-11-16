@@ -162,7 +162,7 @@ public:
   {
     assert( width_ == other.width_ );
     assert( height_ == other.height_ );
-    storage_ = other.storage_;
+    memcpy( &storage_[ 0 ], &other.storage_[ 0 ], sizeof(T) * storage_.size() );
   }
 
   /* forbid moving */
