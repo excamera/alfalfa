@@ -247,6 +247,15 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
 
     switch ( prediction_mode ) {
     case NEWMV:
+      /* In the case of REALTIME_QUALITY, we should limit the number of times
+       * that we search for a new motion vector.
+       */
+      if ( encode_quality_ == REALTIME_QUALITY ) {
+        if ( not ( frame_mb.context().column % 4 == 0 and frame_mb.context().row % 4 == 0 ) ) {
+          continue;
+        }
+      }
+
       for ( int step = 512; step > 1; ) {
         MVSearchResult result = diamond_search( original_mb, reconstructed_mb,
                                                 temp_mb, frame_mb, safe_reference,
