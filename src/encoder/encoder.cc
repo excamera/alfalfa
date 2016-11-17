@@ -235,6 +235,9 @@ void Encoder::write_frame( const FrameType & frame,
 
   safe_references_.update_all_refs( references_ );
 
+  loop_filter_level_.clear();
+  loop_filter_level_.initialize( frame.header().loop_filter_level );
+
   ivf_writer_.append_frame( frame.serialize( prob_tables ) );
 }
 
@@ -526,7 +529,15 @@ void Encoder::apply_best_loopfilter_settings( const VP8Raster & original,
   size_t best_lf_level = 0;
   double best_ssim = -1.0;
 
-  for ( size_t lf_level = 0; lf_level < 64; lf_level++ ) {
+  size_t min_lf_level = 0;
+  size_t max_lf_level = 63;
+
+  if ( loop_filter_level_.initialized() ) {
+    min_lf_level = max( 0u, loop_filter_level_.get() - 1u );
+    max_lf_level = min( 63u, loop_filter_level_.get() + 1u );
+  }
+
+  for ( size_t lf_level = min_lf_level; lf_level <= max_lf_level; lf_level++ ) {
     temp_raster().copy_from( reconstructed );
 
     frame.mutable_header().loop_filter_level = lf_level;

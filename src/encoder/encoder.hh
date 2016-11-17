@@ -93,6 +93,8 @@ private:
   KeyFrame key_frame_;
   InterFrame inter_frame_;
 
+  Optional<uint8_t> loop_filter_level_ { false };
+
   // TODO: Where did these come from?
   uint32_t RATE_MULTIPLIER { 300 };
   uint32_t DISTORTION_MULTIPLIER { 1 };
