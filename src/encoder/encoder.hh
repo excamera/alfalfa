@@ -88,7 +88,7 @@ private:
   Costs costs_ {};
 
   bool two_pass_encoder_ { false };
-  EncoderQuality quality_{ BEST_QUALITY };
+  EncoderQuality encode_quality_{ BEST_QUALITY };
 
   KeyFrame key_frame_;
   InterFrame inter_frame_;

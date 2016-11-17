@@ -40,8 +40,8 @@ void usage_error( const string & program_name )
        << " --two-pass                            Do the second encoding pass" << endl
        << " -y, --y-ac-qi <arg>                   Quantization index for Y" << endl
        << " -q, --quality=(best|rt)          Quality setting" << endl
-       << "                                         best: best quality, slowest (default)"
-       << "                                         rt:   real-time"
+       << "                                         best: best quality, slowest (default)" << endl
+       << "                                         rt:   real-time" << endl
        << endl
        << "Re-encode:" << endl
        << " -r, --reencode                        Re-encode" << endl
@@ -156,6 +156,8 @@ int main( int argc, char *argv[] )
         if ( strcmp( optarg, "rt" ) == 0 ) {
           quality = REALTIME_QUALITY;
         }
+
+        break;
 
       default:
         throw runtime_error( "getopt_long: unexpected return value." );

@@ -183,7 +183,7 @@ Encoder::Encoder( IVFWriter && output, const bool two_pass,
   : ivf_writer_( move( output ) ),
     decoder_state_( width(), height() ), references_( width(), height() ),
     safe_references_( width(), height() ), two_pass_encoder_( two_pass ),
-    quality_( quality ),
+    encode_quality_( quality ),
     key_frame_( make_empty_frame<KeyFrame>( width(), height(), true ) ),
     inter_frame_( make_empty_frame<InterFrame>( width(), height(), true ) )
 {
@@ -195,7 +195,7 @@ Encoder::Encoder( const Decoder & decoder, IVFWriter && output, const bool two_p
   : ivf_writer_( move( output ) ),
     decoder_state_( decoder.get_state() ), references_( decoder.get_references() ),
     safe_references_( references_ ), two_pass_encoder_( two_pass ),
-    quality_( quality ),
+    encode_quality_( quality ),
     key_frame_( make_empty_frame<KeyFrame>( width(), height(), true ) ),
     inter_frame_( make_empty_frame<InterFrame>( width(), height(), true ) )
 {

@@ -208,23 +208,13 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
                                      const size_t y_ac_qi,
                                      const EncoderPass encoder_pass )
 {
-  // let's find the best intra-prediction for this macroblock first...
-  MBPredictionData best_pred = luma_mb_best_prediction_mode( original_mb,
-                                                             reconstructed_mb,
-                                                             temp_mb,
-                                                             frame_mb,
-                                                             quantizer,
-                                                             encoder_pass,
-                                                             true );
+  MBPredictionData best_pred;
 
-  /* MBPredictionData best_uv_pred = chroma_mb_best_prediction_mode( original_mb,
-                                                                  reconstructed_mb,
-                                                                  temp_mb,
-                                                                  true );
-
-  best_pred.distortion += best_uv_pred.distortion;
-  best_pred.rate       += best_uv_pred.rate;
-  best_pred.cost       += best_uv_pred.cost; */
+  // don't search for the best intra-prediction mode when running in realtime mode
+  if ( encode_quality_ != REALTIME_QUALITY ) {
+    best_pred = luma_mb_best_prediction_mode( original_mb, reconstructed_mb, temp_mb,
+                                              frame_mb, quantizer, encoder_pass, true );
+  }
 
   MotionVector best_mv;
   const VP8Raster & reference = references_.last.get();
