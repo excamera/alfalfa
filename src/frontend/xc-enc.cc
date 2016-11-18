@@ -26,31 +26,53 @@ using namespace std;
 
 void usage_error( const string & program_name )
 {
-  cerr << "Usage: " << program_name << " [options] <input>" << endl
-       << endl
-       << "Options:" << endl
-       << " -o <arg>, --output=<arg>              Output file name (default: output.ivf)" << endl
-       << " -s <arg>, --ssim=<arg>                SSIM for the output" << endl
-       << " -i <arg>, --input-format=<arg>        Input file format" << endl
-       << "                                         ivf (default), y4m" << endl
-       << " -O <arg>, --output-state=<arg>        Output file name for final" << endl
-       << "                                         encoder state (default: none)" << endl
-       << " -I <arg>, --input-state=<arg>         Input file name for initial" << endl
-       << "                                         encoder state (default: none)" << endl
-       << " --two-pass                            Do the second encoding pass" << endl
-       << " -y, --y-ac-qi <arg>                   Quantization index for Y" << endl
-       << " -q, --quality=(best|rt)          Quality setting" << endl
-       << "                                         best: best quality, slowest (default)" << endl
-       << "                                         rt:   real-time" << endl
-       << endl
-       << "Re-encode:" << endl
-       << " -r, --reencode                        Re-encode" << endl
-       << " -p, --pred-ivf <arg>                  Prediction modes IVF" << endl
-       << " -S, --pred-state <arg>                Prediction modes IVF initial state" << endl
-       << " -w, --kf-q-weight <arg>               Keyframe quantizer weight" << endl
+  cerr << "Usage: " << program_name << " [options] <input>"                                  << endl
+                                                                                             << endl
+       << "Options:"                                                                         << endl
+       << " -o <arg>, --output=<arg>              Output file name (default: output.ivf)"    << endl
+       << " -s <arg>, --ssim=<arg>                SSIM for the output"                       << endl
+       << " -i <arg>, --input-format=<arg>        Input file format"                         << endl
+       << "                                         ivf (default), y4m"                      << endl
+       << " -O <arg>, --output-state=<arg>        Output file name for final"                << endl
+       << "                                         encoder state (default: none)"           << endl
+       << " -I <arg>, --input-state=<arg>         Input file name for initial"               << endl
+       << "                                         encoder state (default: none)"           << endl
+       << " -y, --y-ac-qi=<arg>                   Quantization index for Y"                  << endl
+       << " -q, --quality=(best|rt)               Quality setting"                           << endl
+       << "                                         best: best quality, slowest (default)"   << endl
+       << "                                         rt:   real-time"                         << endl
+       << " -F <arg>, --frame-sizes=<arg>         Target frame sizes file"                   << endl
+       << "                                         Each line specifies the target size"     << endl
+       << "                                         in bytes for the corresponding frame."   << endl
+       << " --two-pass                            Do the second encoding pass"               << endl
+                                                                                             << endl
+       << "Re-encode:"                                                                       << endl
+       << " -r, --reencode                        Re-encode"                                 << endl
+       << " -p, --pred-ivf <arg>                  Prediction modes IVF"                      << endl
+       << " -S, --pred-state <arg>                Prediction modes IVF initial state"        << endl
+       << " -w, --kf-q-weight <arg>               Keyframe quantizer weight"                 << endl
        << " -e, --extra-frame-chunk               Prediction IVF starts with an extra frame" << endl
        << endl;
 }
+
+size_t read_next_frame_size( istream & in )
+{
+  static size_t last_size = numeric_limits<size_t>::max();
+
+  if ( not in.eof() ) {
+    in >> last_size;
+  }
+
+  return last_size;
+}
+
+enum EncoderMode
+{
+  MINIMUM_SSIM,
+  CONSTANT_QUANTIZER,
+  TARGET_FRAME_SIZE,
+  REENCODE
+};
 
 int main( int argc, char *argv[] )
 {
@@ -70,6 +92,7 @@ int main( int argc, char *argv[] )
     string output_state = "";
     string pred_file = "";
     string pred_ivf_initial_state = "";
+    string frame_sizes_file = "";
     double ssim = 0.99;
     bool two_pass = false;
     bool re_encode_only = false;
@@ -77,6 +100,8 @@ int main( int argc, char *argv[] )
     bool extra_frame_chunk = false;
     Optional<uint8_t> y_ac_qi;
     EncoderQuality quality = BEST_QUALITY;
+
+    EncoderMode encoder_mode = MINIMUM_SSIM;
 
 
     const option command_line_options[] = {
@@ -93,11 +118,12 @@ int main( int argc, char *argv[] )
       { "kf-q-weight",          required_argument, nullptr, 'w' },
       { "extra-frame-chunk",    no_argument,       nullptr, 'e' },
       { "quality",              required_argument, nullptr, 'q' },
+      { "frame-sizes",          required_argument, nullptr, 'F' },
       { 0, 0, 0, 0 }
     };
 
     while ( true ) {
-      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:p:S:rw:eq:", command_line_options, nullptr );
+      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:p:S:rw:eq:F:", command_line_options, nullptr );
 
       if ( opt == -1 ) {
         break;
@@ -110,6 +136,7 @@ int main( int argc, char *argv[] )
 
       case 's':
         ssim = stod( optarg );
+        encoder_mode = MINIMUM_SSIM;
         break;
 
       case 'i':
@@ -130,10 +157,12 @@ int main( int argc, char *argv[] )
 
       case 'y':
         y_ac_qi = stoul( optarg );
+        encoder_mode = CONSTANT_QUANTIZER;
         break;
 
       case 'r':
         re_encode_only = true;
+        encoder_mode = REENCODE;
         break;
 
       case 'p':
@@ -157,6 +186,11 @@ int main( int argc, char *argv[] )
           quality = REALTIME_QUALITY;
         }
 
+        break;
+
+      case 'F':
+        frame_sizes_file = optarg;
+        encoder_mode = TARGET_FRAME_SIZE;
         break;
 
       default:
@@ -274,18 +308,44 @@ int main( int argc, char *argv[] )
         output.set_expected_decoder_entry_hash( encoder.export_decoder().get_hash().hash() );
       }
 
+      ifstream frame_sizes_if;
+
+      if ( encoder_mode == TARGET_FRAME_SIZE ) {
+        if ( frame_sizes_file != "-" ) {
+          frame_sizes_if.open( frame_sizes_file.c_str() );
+        }
+      }
+
+      istream & frame_sizes = ( encoder_mode == TARGET_FRAME_SIZE and frame_sizes_file != "-" )
+                              ? frame_sizes_if
+                              : cin;
+
       unsigned int frame_no = 0;
       for ( auto raster = input_reader->get_next_frame(); raster.initialized();
             raster = input_reader->get_next_frame() ) {
 
-        cerr << "Encoding frame #" << frame_no++ << "... ";
+        cerr << "Encoding frame #" << frame_no++ << "...";
         const auto encode_beginning = chrono::system_clock::now();
 
-        if ( y_ac_qi.initialized()  ) {
-          encoder.encode_with_quantizer( raster.get(), y_ac_qi.get() );
-        }
-        else {
+        switch ( encoder_mode ) {
+        case MINIMUM_SSIM:
           encoder.encode_with_minimum_ssim( raster.get(), ssim );
+          break;
+
+        case CONSTANT_QUANTIZER:
+          encoder.encode_with_quantizer( raster.get(), y_ac_qi.get() );
+          break;
+
+        case TARGET_FRAME_SIZE:
+        {
+          size_t target_size = read_next_frame_size( frame_sizes );
+          cerr << " [target_size=" << target_size << "] ";
+          encoder.encode_with_target_size( raster.get(), target_size );
+          break;
+        }
+
+        default:
+          throw Unsupported( "unsupported encoder mode." );
         }
 
         const auto encode_ending = chrono::system_clock::now();

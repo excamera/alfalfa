@@ -292,6 +292,11 @@ public:
   void encode_with_quantizer( const VP8Raster & raster,
                               const uint8_t y_ac_qi );
 
+  /* Tries to encode the given raster with the best possible quality, without
+   * exceeding the target size. */
+  void encode_with_target_size( const VP8Raster & raster,
+                                const size_t target_size );
+
   void reencode( const std::vector<RasterHandle> & original_rasters,
                  const std::vector<std::pair<Optional<KeyFrame>, Optional<InterFrame> > > & prediction_frames,
                  const double kf_q_weight,

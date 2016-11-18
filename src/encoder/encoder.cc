@@ -640,6 +640,21 @@ void Encoder::encode_with_minimum_ssim( const VP8Raster & raster, const double m
   }
 }
 
+void Encoder::encode_with_target_size( const VP8Raster & raster, const size_t target_size ) {
+  if ( width() != raster.display_width() or height() != raster.display_height() ) {
+    throw runtime_error( "scaling is not supported" );
+  }
+
+  if ( target_size == numeric_limits<size_t>::max() ) {
+    // encode with the best possible quantizer, there's no limit on the target size
+    return encode_with_quantizer( raster, 0 );
+  }
+  else {
+    // TODO must be implemented
+    return encode_with_quantizer( raster, 32 );
+  }
+}
+
 template <class FrameHeaderType, class MacroblockHeaderType>
 void Macroblock<FrameHeaderType, MacroblockHeaderType>::calculate_has_nonzero()
 {
