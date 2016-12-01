@@ -559,6 +559,8 @@ pair<InterFrame &, double> Encoder::encode_raster<InterFrame>( const VP8Raster &
   Quantizer quantizer( frame.header().quant_indices );
   MutableRasterHandle reconstructed_raster_handle { width(), height() };
 
+  update_rd_multipliers( quantizer );
+
   costs_.fill_token_costs( ProbabilityTables() );
 
   TokenBranchCounts token_branch_counts;

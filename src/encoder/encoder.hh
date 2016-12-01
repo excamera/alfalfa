@@ -279,6 +279,8 @@ private:
   FrameType & encode_with_quantizer_search( const VP8Raster & raster,
                                             const double minimum_ssim );
 
+  void update_rd_multipliers( const Quantizer & quantizer );
+
 public:
   Encoder( IVFWriter && output, const bool two_pass,
            const EncoderQuality quality );

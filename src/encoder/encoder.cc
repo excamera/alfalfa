@@ -247,6 +247,23 @@ void Encoder::write_frame( const FrameType & frame )
   write_frame( frame, decoder_state_.probability_tables );
 }
 
+void Encoder::update_rd_multipliers( const Quantizer & quantizer )
+{
+  /* This is how VP8 sets the coefficients for rd-cost.
+   * libvpx:vp8/encoder/rdopt.c:270
+   */
+  double q_ac = ( quantizer.y_ac < 160 ) ? quantizer.y_ac : 160.0 ;
+  RATE_MULTIPLIER = q_ac * q_ac * 2.80;
+
+  if ( RATE_MULTIPLIER > 1000 ) {
+    DISTORTION_MULTIPLIER = 1;
+    RATE_MULTIPLIER /= 100;
+  }
+  else {
+    DISTORTION_MULTIPLIER = 100;
+  }
+}
+
 /*
  * Based on libvpx:vp8/encoder/encodemb.c:413
  */

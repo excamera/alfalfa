@@ -367,19 +367,7 @@ pair<KeyFrame &, double> Encoder::encode_raster<KeyFrame>( const VP8Raster & ras
   Quantizer quantizer( frame.header().quant_indices );
   MutableRasterHandle reconstructed_raster_handle { width(), height() };
 
-  /* This is how VP8 sets the coefficients for rd-cost.
-   * libvpx:vp8/encoder/rdopt.c:270
-   */
-  double q_ac = ( quantizer.y_ac < 160 ) ? quantizer.y_ac : 160.0 ;
-  RATE_MULTIPLIER = q_ac * q_ac * 2.80;
-
-  if ( RATE_MULTIPLIER > 1000 ) {
-    DISTORTION_MULTIPLIER = 1;
-    RATE_MULTIPLIER /= 100;
-  }
-  else {
-    DISTORTION_MULTIPLIER = 100;
-  }
+  update_rd_multipliers( quantizer );
 
   TokenBranchCounts token_branch_counts;
 
