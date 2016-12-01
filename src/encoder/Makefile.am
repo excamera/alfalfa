@@ -10,4 +10,4 @@ libalfalfaencoder_a_SOURCES = frame_input.hh \
 	yuv4mpeg.hh yuv4mpeg.cc costs.hh costs.cc \
 	bool_encoder.hh serializer.cc encode_tree.cc \
 	encoder.hh encoder.cc \
-	encode_intra.cc encode_inter.cc reencode.cc
+	encode_intra.cc encode_inter.cc reencode.cc size_estimation.cc

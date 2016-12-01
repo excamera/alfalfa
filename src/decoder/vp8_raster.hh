@@ -261,6 +261,16 @@ public:
       }
     }
   }
+
+  template <class lambda>
+  void macroblocks_forall_ij( const lambda & f )
+  {
+    for ( unsigned int row = 0; row < height_ / 16; row++ ) {
+      for ( unsigned int column = 0; column < width_ / 16; column++ ) {
+        f( macroblock( column, row ), column, row );
+      }
+    }
+  }
 };
 
 class EdgeExtendedRaster

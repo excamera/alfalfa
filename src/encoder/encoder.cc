@@ -153,7 +153,7 @@ uint32_t Encoder::variance( const VP8Raster::Block<16> & block,
 #include "encode_inter.cc"
 #include "encode_intra.cc"
 #include "reencode.cc"
-
+#include "size_estimation.cc"
 
 unsigned Encoder::calc_prob( unsigned false_count, unsigned total )
 {

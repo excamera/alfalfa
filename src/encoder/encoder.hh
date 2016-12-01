@@ -248,6 +248,10 @@ private:
   template<class FrameType>
   void write_frame( const FrameType & frame, const ProbabilityTables & prob_tables );
 
+
+  /* Encoded frame size estimation */
+  size_t estimate_keyframe_size( const VP8Raster & raster, const size_t y_ac_qi );
+
   /* Convergence-related stuff */
   template<class FrameType>
   InterFrame & reencode_as_interframe( const VP8Raster & unfiltered_output,
