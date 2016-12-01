@@ -6,21 +6,20 @@
 
 using namespace std;
 
-size_t Encoder::estimate_keyframe_size( const VP8Raster & raster, const size_t y_ac_qi )
+template<>
+size_t Encoder::estimate_size<KeyFrame>( const VP8Raster & raster, const size_t y_ac_qi )
 {
-  const size_t SAMPLE_DIMENSION_FACTOR = 4;
-
   const unsigned int sample_width = raster.width() / SAMPLE_DIMENSION_FACTOR;
   const unsigned int sample_height = raster.height() / SAMPLE_DIMENSION_FACTOR;
 
+  auto macroblock_mapper =
+  [&]( const unsigned int column, const unsigned int row )
+  {
+    return make_pair( column * SAMPLE_DIMENSION_FACTOR, row * SAMPLE_DIMENSION_FACTOR );
+  };
+
   DecoderState decoder_state_copy = decoder_state_;
   decoder_state_ = DecoderState( width(), height() );
-
-  auto macroblock_mapper =
-    [&]( const unsigned int column, const unsigned int row )
-    {
-      return make_pair( column * SAMPLE_DIMENSION_FACTOR, row * SAMPLE_DIMENSION_FACTOR );
-    };
 
   KeyFrame frame = make_empty_frame<KeyFrame>( sample_width, sample_height, true );
 
@@ -31,22 +30,22 @@ size_t Encoder::estimate_keyframe_size( const VP8Raster & raster, const size_t y
   frame.mutable_header().refresh_entropy_probs = true; // XXX
 
   Quantizer quantizer( frame.header().quant_indices );
-  MutableRasterHandle reconstructed_raster_handle { sample_width, sample_height };
+  MutableRasterHandle reconstructed_raster_handle { width(), height() };
 
   VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
 
   update_rd_multipliers( quantizer );
 
-  reconstructed_raster.macroblocks_forall_ij(
-    [&] ( VP8Raster::Macroblock reconstructed_mb, unsigned int mb_column, unsigned int mb_row )
+  frame.mutable_macroblocks().forall_ij(
+    [&] ( KeyFrameMacroblock & frame_mb, unsigned int mb_column, unsigned int mb_row )
     {
       const pair<unsigned int, unsigned int> org_mb_location = macroblock_mapper( mb_column, mb_row );
       const unsigned int org_mb_column = org_mb_location.first;
       const unsigned int org_mb_row = org_mb_location.second;
 
       auto original_mb = raster.macroblock( org_mb_column, org_mb_row );
-      auto temp_mb = temp_raster().macroblock( org_mb_column, org_mb_row );
-      auto & frame_mb = frame.mutable_macroblocks().at( mb_column, mb_row );
+      auto reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
+      auto temp_mb = temp_raster().macroblock( mb_column, mb_row );
 
       luma_mb_intra_predict( original_mb.macroblock(), reconstructed_mb, temp_mb,
                              frame_mb, quantizer, FIRST_PASS );
@@ -59,8 +58,99 @@ size_t Encoder::estimate_keyframe_size( const VP8Raster & raster, const size_t y
     }
   );
 
+  frame.relink_y2_blocks();
+  optimize_prob_skip( frame );
+
   size_t size = frame.serialize( decoder_state_.probability_tables ).size();
   decoder_state_ = decoder_state_copy;
 
   return size * SAMPLE_DIMENSION_FACTOR * SAMPLE_DIMENSION_FACTOR;
+}
+
+template<>
+size_t Encoder::estimate_size<InterFrame>( const VP8Raster & raster, const size_t y_ac_qi )
+{
+  const unsigned int sample_width = raster.width() / SAMPLE_DIMENSION_FACTOR;
+  const unsigned int sample_height = raster.height() / SAMPLE_DIMENSION_FACTOR;
+
+  auto macroblock_mapper =
+  [&]( const unsigned int column, const unsigned int row )
+  {
+    return make_pair( column * SAMPLE_DIMENSION_FACTOR, row * SAMPLE_DIMENSION_FACTOR );
+  };
+
+  InterFrame frame = make_empty_frame<InterFrame>( sample_width, sample_height, true );
+
+  DecoderState decoder_state_copy = decoder_state_;
+
+  QuantIndices quant_indices;
+  quant_indices.y_ac_qi = y_ac_qi;
+
+  frame.mutable_header().quant_indices = quant_indices;
+  frame.mutable_header().refresh_entropy_probs = true;
+  frame.mutable_header().refresh_last = true;
+
+  Quantizer quantizer( frame.header().quant_indices );
+  MutableRasterHandle reconstructed_raster_handle { width(), height() };
+
+  MVComponentCounts component_counts;
+
+  VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
+
+  update_rd_multipliers( quantizer );
+
+  frame.mutable_macroblocks().forall_ij(
+  [&] ( InterFrameMacroblock & frame_mb, unsigned int mb_column, unsigned int mb_row )
+    {
+      const pair<unsigned int, unsigned int> org_mb_location = macroblock_mapper( mb_column, mb_row );
+      const unsigned int org_mb_column = org_mb_location.first;
+      const unsigned int org_mb_row = org_mb_location.second;
+
+      auto original_mb = raster.macroblock( org_mb_column, org_mb_row );
+      auto reconstructed_mb = reconstructed_raster.macroblock( mb_column, mb_row );
+      auto temp_mb = temp_raster().macroblock( mb_column, mb_row );
+
+      // Process Y and Y2
+      luma_mb_inter_predict( original_mb.macroblock(), reconstructed_mb, temp_mb, frame_mb,
+                             quantizer, component_counts,
+                             frame.header().quant_indices.y_ac_qi, FIRST_PASS );
+
+      if ( frame_mb.inter_coded() ) {
+        chroma_mb_inter_predict( original_mb.macroblock(), reconstructed_mb, temp_mb,
+                                 frame_mb, quantizer, FIRST_PASS );
+      }
+      else {
+        chroma_mb_intra_predict( original_mb.macroblock(), reconstructed_mb, temp_mb,
+                                 frame_mb, quantizer, FIRST_PASS );
+      }
+
+      frame_mb.calculate_has_nonzero();
+
+      if ( frame_mb.inter_coded() ) {
+        frame_mb.reconstruct_inter( quantizer, references_, reconstructed_mb );
+      }
+      else {
+        frame_mb.reconstruct_intra( quantizer, reconstructed_mb );
+      }
+    }
+  );
+
+  frame.relink_y2_blocks();
+  optimize_prob_skip( frame );
+  optimize_interframe_probs( frame );
+
+  size_t size = frame.serialize( decoder_state_.probability_tables ).size();
+  decoder_state_ = decoder_state_copy;
+
+  return size * SAMPLE_DIMENSION_FACTOR * SAMPLE_DIMENSION_FACTOR;
+}
+
+size_t Encoder::estimate_frame_size( const VP8Raster & raster, const size_t y_ac_qi )
+{
+  if ( not has_state_ ) {
+    return estimate_size<KeyFrame>( raster, y_ac_qi );
+  }
+  else {
+    return estimate_size<InterFrame>( raster, y_ac_qi );
+  }
 }

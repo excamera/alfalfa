@@ -333,6 +333,7 @@ int main( int argc, char *argv[] )
           break;
 
         case CONSTANT_QUANTIZER:
+          cerr << " [estimated size=" << encoder.estimate_frame_size( raster.get(), y_ac_qi.get() ) << "] ";
           encoder.encode_with_quantizer( raster.get(), y_ac_qi.get() );
           break;
 

@@ -99,6 +99,8 @@ private:
   uint32_t RATE_MULTIPLIER { 300 };
   uint32_t DISTORTION_MULTIPLIER { 1 };
 
+  const size_t SAMPLE_DIMENSION_FACTOR { 4 };
+
   static uint32_t rdcost( uint32_t rate, uint32_t distortion,
                           uint32_t rate_multiplier,
                           uint32_t distortion_multiplier );
@@ -250,7 +252,8 @@ private:
 
 
   /* Encoded frame size estimation */
-  size_t estimate_keyframe_size( const VP8Raster & raster, const size_t y_ac_qi );
+  template<class FrameType>
+  size_t estimate_size( const VP8Raster & raster, const size_t y_ac_qi );
 
   /* Convergence-related stuff */
   template<class FrameType>
@@ -307,6 +310,8 @@ public:
                  const std::vector<std::pair<Optional<KeyFrame>, Optional<InterFrame> > > & prediction_frames,
                  const double kf_q_weight,
                  const bool extra_frame_chunk );
+
+  size_t estimate_frame_size( const VP8Raster & raster, const size_t y_ac_qi );
 
   Decoder export_decoder() const { return { decoder_state_, references_ }; }
 

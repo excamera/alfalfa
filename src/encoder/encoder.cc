@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <limits>
 #include <utility>
+#include <chrono>
 
 #include "sad_sse.hh"
 #include "block.hh"
