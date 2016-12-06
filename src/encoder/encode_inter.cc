@@ -144,16 +144,19 @@ void Encoder::update_decoder_state( const InterFrame & frame )
 }
 
 Encoder::MVSearchResult Encoder::diamond_search( const VP8Raster::Macroblock & original_mb,
-                                                 VP8Raster::Macroblock & reconstructed_mb,
                                                  VP8Raster::Macroblock & temp_mb,
                                                  InterFrameMacroblock & frame_mb,
-                                                 const SafeRaster & reference,
+                                                 const VP8Raster & reference,
+                                                 const SafeRaster & safe_reference,
                                                  MotionVector base_mv,
                                                  MotionVector origin,
                                                  size_t step_size,
                                                  const size_t y_ac_qi ) const
 {
   size_t first_step = step_size / 2;
+
+  auto reference_mb = reference.macroblock( original_mb.Y.column(),
+                                            original_mb.Y.row() );
 
   TwoDSubRange<uint8_t, 16, 16> & prediction = temp_mb.Y.mutable_contents();
 
@@ -178,7 +181,7 @@ Encoder::MVSearchResult Encoder::diamond_search( const VP8Raster::Macroblock & o
 
       MotionVector this_mv( Scorer::clamp( pred.mv + base_mv, frame_mb.context() ) );
 
-      reconstructed_mb.Y.inter_predict( this_mv, reference, prediction );
+      reference_mb.Y().inter_predict( this_mv, safe_reference, prediction );
       pred.distortion = sad( original_mb.Y, prediction );
       pred.rate = costs_.sad_motion_vector_cost( pred.mv, MotionVector(), sad_per_bit16lut[ y_ac_qi ] );
       pred.cost = rdcost( pred.rate, pred.distortion, 1, 1 );
@@ -220,8 +223,8 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
   const VP8Raster & reference = references_.last.get();
   const SafeRaster & safe_reference = safe_references_.get( LAST_FRAME );
 
-  const auto reference_mb = reference.macroblock( frame_mb.context().column,
-                                                  frame_mb.context().row );
+  const auto reference_mb = reference.macroblock( original_mb.Y.column(),
+                                                  original_mb.Y.row() );
 
   TwoDSubRange<uint8_t, 16, 16> & prediction = temp_mb.Y.mutable_contents();
 
@@ -257,10 +260,9 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
       }
 
       for ( int step = 512; step > 1; ) {
-        MVSearchResult result = diamond_search( original_mb, reconstructed_mb,
-                                                temp_mb, frame_mb, safe_reference,
-                                                best_ref, mv, step,
-                                                y_ac_qi );
+        MVSearchResult result = diamond_search( original_mb, temp_mb, frame_mb,
+                                                reference, safe_reference,
+                                                best_ref, mv, step, y_ac_qi );
 
         if ( result.mv == mv ) {
           break; // there's no need to continue the search
@@ -418,6 +420,9 @@ void Encoder::chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb
 
   const VP8Raster & reference = references_.at( frame_mb.header().reference() );
 
+  auto reference_mb = reference.macroblock( original_mb.Y.column(),
+                                            original_mb.Y.row() );
+
   frame_mb.U().forall_ij(
     [&]( UVBlock & block, const unsigned int column, const unsigned int row )
     {
@@ -433,16 +438,18 @@ void Encoder::chroma_mb_inter_predict( const VP8Raster::Macroblock & original_mb
     frame_mb.U().forall_ij(
       [&] ( UVBlock & block, const unsigned int column, const unsigned int row )
       {
-        reconstructed_mb.U_sub_at( column, row ).inter_predict( block.motion_vector(), reference.U() );
-        reconstructed_mb.V_sub_at( column, row ).inter_predict( block.motion_vector(), reference.V() );
+        reference_mb.U_sub_at( column, row ).inter_predict( block.motion_vector(), reference.U(),
+                                                            reconstructed_mb.U_sub_at( column, row ).mutable_contents() );
+        reference_mb.V_sub_at( column, row ).inter_predict( block.motion_vector(), reference.V(),
+                                                            reconstructed_mb.V_sub_at( column, row ).mutable_contents() );
       }
     );
   }
   else {
-    reconstructed_mb.U.inter_predict( frame_mb.U().at( 0, 0 ).motion_vector(),
-                                      reference.U() );
-    reconstructed_mb.V.inter_predict( frame_mb.U().at( 0, 0 ).motion_vector(),
-                                      reference.V() );
+    reference_mb.U().inter_predict( frame_mb.U().at( 0, 0 ).motion_vector(),
+                                  reference.U(), reconstructed_mb.U.mutable_contents() );
+    reference_mb.V().inter_predict( frame_mb.U().at( 0, 0 ).motion_vector(),
+                                  reference.V(), reconstructed_mb.V.mutable_contents() );
   }
 
   frame_mb.U().forall_ij(

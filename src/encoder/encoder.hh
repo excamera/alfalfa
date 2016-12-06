@@ -118,10 +118,10 @@ private:
                             const TwoDSubRange<uint8_t, size, size> & prediction );
 
   MVSearchResult diamond_search( const VP8Raster::Macroblock & original_mb,
-                                 VP8Raster::Macroblock & reconstructed_mb,
                                  VP8Raster::Macroblock & temp_mb,
                                  InterFrameMacroblock & frame_mb,
-                                 const SafeRaster & reference,
+                                 const VP8Raster & reference,
+                                 const SafeRaster & safe_reference,
                                  MotionVector base_mv,
                                  MotionVector origin,
                                  size_t step_size,

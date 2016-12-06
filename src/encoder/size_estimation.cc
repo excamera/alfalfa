@@ -12,11 +12,14 @@ size_t Encoder::estimate_size<KeyFrame>( const VP8Raster & raster, const size_t 
   const unsigned int sample_width = raster.width() / SAMPLE_DIMENSION_FACTOR;
   const unsigned int sample_height = raster.height() / SAMPLE_DIMENSION_FACTOR;
 
+  // const unsigned int sample_macroblock_width = ( sample_width + 15 ) / 16;
+  // const unsigned int sample_macroblock_height = ( sample_height + 15 ) / 16;
+
   auto macroblock_mapper =
-  [&]( const unsigned int column, const unsigned int row )
-  {
-    return make_pair( column * SAMPLE_DIMENSION_FACTOR, row * SAMPLE_DIMENSION_FACTOR );
-  };
+    [&]( const unsigned int column, const unsigned int row ) -> pair<unsigned int, unsigned int>
+    {
+      return { column * SAMPLE_DIMENSION_FACTOR, row * SAMPLE_DIMENSION_FACTOR };
+    };
 
   DecoderState decoder_state_copy = decoder_state_;
   decoder_state_ = DecoderState( width(), height() );
@@ -35,6 +38,8 @@ size_t Encoder::estimate_size<KeyFrame>( const VP8Raster & raster, const size_t 
   VP8Raster & reconstructed_raster = reconstructed_raster_handle.get();
 
   update_rd_multipliers( quantizer );
+
+  // TokenBranchCounts token_branch_counts;
 
   frame.mutable_macroblocks().forall_ij(
     [&] ( KeyFrameMacroblock & frame_mb, unsigned int mb_column, unsigned int mb_row )
@@ -55,11 +60,14 @@ size_t Encoder::estimate_size<KeyFrame>( const VP8Raster & raster, const size_t 
 
       frame_mb.calculate_has_nonzero();
       frame_mb.reconstruct_intra( quantizer, reconstructed_mb );
+
+      //frame_mb.accumulate_token_branches( token_branch_counts );
     }
   );
 
   frame.relink_y2_blocks();
   optimize_prob_skip( frame );
+  // optimize_probability_tables( frame, token_branch_counts );
 
   size_t size = frame.serialize( decoder_state_.probability_tables ).size();
   decoder_state_ = decoder_state_copy;
@@ -74,10 +82,10 @@ size_t Encoder::estimate_size<InterFrame>( const VP8Raster & raster, const size_
   const unsigned int sample_height = raster.height() / SAMPLE_DIMENSION_FACTOR;
 
   auto macroblock_mapper =
-  [&]( const unsigned int column, const unsigned int row )
-  {
-    return make_pair( column * SAMPLE_DIMENSION_FACTOR, row * SAMPLE_DIMENSION_FACTOR );
-  };
+    [&]( const unsigned int column, const unsigned int row )
+    {
+      return make_pair( column * SAMPLE_DIMENSION_FACTOR, row * SAMPLE_DIMENSION_FACTOR );
+    };
 
   InterFrame frame = make_empty_frame<InterFrame>( sample_width, sample_height, true );
 

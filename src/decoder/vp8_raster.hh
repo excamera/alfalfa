@@ -235,6 +235,22 @@ public:
     {}
 
     const Macroblock & macroblock() const { return macroblock_; }
+
+    const Block16 & Y() const { return macroblock_.Y; }
+    const Block8 & U() const { return macroblock_.U; }
+    const Block8 & V() const { return macroblock_.V; }
+
+    const Block4 & Y_sub_at( const unsigned int column, const unsigned int row ) const {
+      return macroblock_.Y_sub_at( column, row );
+    }
+
+    const Block4 & U_sub_at( const unsigned int column, const unsigned int row ) const {
+      return macroblock_.U_sub_at( column, row );
+    }
+
+    const Block4 & V_sub_at( const unsigned int column, const unsigned int row ) const {
+      return macroblock_.V_sub_at( column, row );
+    }
   };
 
 public:
