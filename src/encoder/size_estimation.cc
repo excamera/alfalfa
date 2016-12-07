@@ -9,8 +9,8 @@ using namespace std;
 template<>
 size_t Encoder::estimate_size<KeyFrame>( const VP8Raster & raster, const size_t y_ac_qi )
 {
-  const unsigned int sample_width = raster.width() / SAMPLE_DIMENSION_FACTOR;
-  const unsigned int sample_height = raster.height() / SAMPLE_DIMENSION_FACTOR;
+  const unsigned int sample_width = raster.width() / WIDTH_SAMPLE_DIMENSION_FACTOR;
+  const unsigned int sample_height = raster.height() / HEIGHT_SAMPLE_DIMENSION_FACTOR;
 
   // const unsigned int sample_macroblock_width = ( sample_width + 15 ) / 16;
   // const unsigned int sample_macroblock_height = ( sample_height + 15 ) / 16;
@@ -18,7 +18,7 @@ size_t Encoder::estimate_size<KeyFrame>( const VP8Raster & raster, const size_t 
   auto macroblock_mapper =
     [&]( const unsigned int column, const unsigned int row ) -> pair<unsigned int, unsigned int>
     {
-      return { column * SAMPLE_DIMENSION_FACTOR, row * SAMPLE_DIMENSION_FACTOR };
+      return { column * WIDTH_SAMPLE_DIMENSION_FACTOR, row * HEIGHT_SAMPLE_DIMENSION_FACTOR };
     };
 
   DecoderState decoder_state_copy = decoder_state_;
@@ -72,19 +72,19 @@ size_t Encoder::estimate_size<KeyFrame>( const VP8Raster & raster, const size_t 
   size_t size = frame.serialize( decoder_state_.probability_tables ).size();
   decoder_state_ = decoder_state_copy;
 
-  return size * SAMPLE_DIMENSION_FACTOR * SAMPLE_DIMENSION_FACTOR;
+  return size * WIDTH_SAMPLE_DIMENSION_FACTOR * HEIGHT_SAMPLE_DIMENSION_FACTOR;
 }
 
 template<>
 size_t Encoder::estimate_size<InterFrame>( const VP8Raster & raster, const size_t y_ac_qi )
 {
-  const unsigned int sample_width = raster.width() / SAMPLE_DIMENSION_FACTOR;
-  const unsigned int sample_height = raster.height() / SAMPLE_DIMENSION_FACTOR;
+  const unsigned int sample_width = raster.width() / WIDTH_SAMPLE_DIMENSION_FACTOR;
+  const unsigned int sample_height = raster.height() / HEIGHT_SAMPLE_DIMENSION_FACTOR;
 
   auto macroblock_mapper =
     [&]( const unsigned int column, const unsigned int row )
     {
-      return make_pair( column * SAMPLE_DIMENSION_FACTOR, row * SAMPLE_DIMENSION_FACTOR );
+      return make_pair( column * WIDTH_SAMPLE_DIMENSION_FACTOR, row * HEIGHT_SAMPLE_DIMENSION_FACTOR );
     };
 
   InterFrame frame = make_empty_frame<InterFrame>( sample_width, sample_height, true );
@@ -150,7 +150,7 @@ size_t Encoder::estimate_size<InterFrame>( const VP8Raster & raster, const size_
   size_t size = frame.serialize( decoder_state_.probability_tables ).size();
   decoder_state_ = decoder_state_copy;
 
-  return size * SAMPLE_DIMENSION_FACTOR * SAMPLE_DIMENSION_FACTOR;
+  return size * WIDTH_SAMPLE_DIMENSION_FACTOR * HEIGHT_SAMPLE_DIMENSION_FACTOR;
 }
 
 size_t Encoder::estimate_frame_size( const VP8Raster & raster, const size_t y_ac_qi )

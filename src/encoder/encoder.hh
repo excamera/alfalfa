@@ -99,7 +99,8 @@ private:
   uint32_t RATE_MULTIPLIER { 300 };
   uint32_t DISTORTION_MULTIPLIER { 1 };
 
-  const size_t SAMPLE_DIMENSION_FACTOR { 4 };
+  const size_t WIDTH_SAMPLE_DIMENSION_FACTOR { 4 };
+  const size_t HEIGHT_SAMPLE_DIMENSION_FACTOR { 4 };
 
   static uint32_t rdcost( uint32_t rate, uint32_t distortion,
                           uint32_t rate_multiplier,
