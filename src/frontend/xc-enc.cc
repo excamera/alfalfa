@@ -340,8 +340,8 @@ int main( int argc, char *argv[] )
         case TARGET_FRAME_SIZE:
         {
           size_t target_size = read_next_frame_size( frame_sizes );
-          cerr << " [target_size=" << target_size << "] ";
-          encoder.encode_with_target_size( raster.get(), target_size );
+          size_t estimated_size = encoder.encode_with_target_size( raster.get(), target_size );
+          cerr << " [target_size=" << target_size << ", estimated size=" << estimated_size << "] ";
           break;
         }
 

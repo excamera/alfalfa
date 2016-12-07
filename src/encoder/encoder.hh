@@ -302,9 +302,9 @@ public:
                               const uint8_t y_ac_qi );
 
   /* Tries to encode the given raster with the best possible quality, without
-   * exceeding the target size. */
-  void encode_with_target_size( const VP8Raster & raster,
-                                const size_t target_size );
+   * exceeding the target size. This function returns the estimated size. */
+  size_t encode_with_target_size( const VP8Raster & raster,
+                                  const size_t target_size );
 
   void reencode( const std::vector<RasterHandle> & original_rasters,
                  const std::vector<std::pair<Optional<KeyFrame>, Optional<InterFrame> > > & prediction_frames,
