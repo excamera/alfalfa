@@ -1,6 +1,7 @@
 /* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 
 #include <limits>
+#include <typeinfo>
 
 #include "encoder.hh"
 
@@ -66,10 +67,18 @@ Encoder::MBPredictionData Encoder::luma_mb_best_prediction_mode( const VP8Raster
   TwoDSubRange<uint8_t, 16, 16> & prediction = temp_mb.Y.mutable_contents();
   auto predictors = reconstructed_mb.Y.predictors();
 
+  unsigned int total_modes = B_PRED;
+
+  if ( encode_quality_ == REALTIME_QUALITY and typeid( frame_mb ) == typeid( InterFrameMacroblock ) ) {
+    // When running the real time mode, we don't consider B_PRED for inter-frames
+    // macroblocks.
+    total_modes = B_PRED - 1;
+  }
+
   /* Because of the way that reconstructed_mb is used as a buffer to store the
    * best prediction result, it is necessary to first examine the B_PRED and
    * then the other prediction modes. */
-  for ( unsigned int prediction_mode = B_PRED; prediction_mode < num_y_modes; prediction_mode-- ) {
+  for ( unsigned int prediction_mode = total_modes; prediction_mode < num_y_modes; prediction_mode-- ) {
     MBPredictionData pred;
     pred.prediction_mode = ( mbmode )prediction_mode;
 

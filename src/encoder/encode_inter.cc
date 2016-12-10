@@ -213,11 +213,8 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
 {
   MBPredictionData best_pred;
 
-  // don't search for the best intra-prediction mode when running in realtime mode
-  if ( encode_quality_ != REALTIME_QUALITY ) {
-    best_pred = luma_mb_best_prediction_mode( original_mb, reconstructed_mb, temp_mb,
-                                              frame_mb, quantizer, encoder_pass, true );
-  }
+  best_pred = luma_mb_best_prediction_mode( original_mb, reconstructed_mb, temp_mb,
+                                            frame_mb, quantizer, encoder_pass, true );
 
   frame_mb.mutable_header().is_inter_mb = true;
   frame_mb.mutable_header().set_reference( LAST_FRAME );
