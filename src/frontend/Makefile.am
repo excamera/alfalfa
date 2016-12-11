@@ -9,7 +9,8 @@ VP8PLAY_BUILD += vp8play
 endif
 bin_PROGRAMS = vp8decode xc-enc xc-ssim xc-dissect xc-framesize xc-dump \
                xc-diff comp-states xc-decode-bundle xc-merge \
-               xc-terminate-chunk $(VP8PLAY_BUILD)
+               xc-terminate-chunk $(VP8PLAY_BUILD) \
+               salsify-sender
 
 vp8decode_SOURCES = vp8decode.cc
 vp8decode_LDADD = ../encoder/libalfalfaencoder.a $(BASE_LDADD)
@@ -50,3 +51,6 @@ xc_terminate_chunk_LDADD = $(BASE_LDADD)
 
 comp_states_SOURCES = comp-states.cc
 comp_states_LDADD = $(BASE_LDADD)
+
+salsify_sender_SOURCES = salsify-sender.cc
+salsify_sender_LDADD = ../encoder/libalfalfaencoder.a $(BASE_LDADD)

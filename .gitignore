@@ -42,6 +42,7 @@ Makefile.in
 /src/frontend/xc-merge
 /src/frontend/xc-decode-bundle
 /src/frontend/xc-terminate-chunk
+/src/frontend/salsify-sender
 
 /src/tests/decode-to-stdout
 /src/tests/encode-loopback
