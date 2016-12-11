@@ -121,8 +121,7 @@ pair< size_t, size_t > YUV4MPEGReader::parse_fraction( const string & fraction_s
 YUV4MPEGReader::YUV4MPEGReader( const string & filename )
   : YUV4MPEGReader( SystemCall( filename,
                     open( filename.c_str(),
-                    O_RDWR | O_CREAT,
-                    S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH ) ) )
+                          O_RDONLY, 0 ) ) )
 {}
 
 YUV4MPEGReader::YUV4MPEGReader( FileDescriptor && fd )
