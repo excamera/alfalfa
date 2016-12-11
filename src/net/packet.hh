@@ -209,6 +209,14 @@ public:
   uint16_t connection_id() const { return connection_id_; }
   uint32_t frame_no() const { return frame_no_; }
   uint16_t fragments_in_this_frame() const { return fragments_in_this_frame_; }
+  std::string frame() const
+  {
+    std::string ret;
+    for ( const auto & fragment : fragments_ ) {
+      ret.append( fragment.payload() );
+    }
+    return ret;
+  }
 };
 
 #endif /* PACKET_HH */

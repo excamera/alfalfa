@@ -6,6 +6,8 @@
 #include "socket.hh"
 #include "packet.hh"
 #include "optional.hh"
+#include "player.hh"
+#include "display.hh"
 
 using namespace std;
 
@@ -52,6 +54,12 @@ int main( int argc, char *argv[] )
   UDPSocket socket;
   socket.bind( Address( "0", argv[ 1 ] ) );
 
+  /* construct FramePlayer */
+  FramePlayer player( paranoid_atoi( argv[ 2 ] ), paranoid_atoi( argv[ 3 ] ) );
+
+  /* construct VideoDisplay */
+  VideoDisplay display { player.example_raster() };
+
   Optional<FragmentedFrame> current_frame;
   while ( true ) {
     /* wait for next UDP datagram */
@@ -70,6 +78,12 @@ int main( int argc, char *argv[] )
     /* is the frame ready to be decoded? */
     if ( current_frame.get().complete() ) {
       cerr << "decoding frame " << current_frame.get().frame_no() << endl;
+
+      const Optional<RasterHandle> raster = player.decode( current_frame.get().frame() );
+      if ( raster.initialized() ) {
+        display.draw( raster.get() );
+      }
+
       current_frame.clear();
     }
   }
