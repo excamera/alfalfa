@@ -175,18 +175,6 @@ void UDPSocket::send( const string & payload )
   }
 }
 
-/* mark the socket as listening for incoming connections */
-void TCPSocket::listen( const int backlog )
-{
-  SystemCall( "listen", ::listen( fd_num(), backlog ) );
-}
-
-/* accept a new incoming connection */
-TCPSocket TCPSocket::accept( void )
-{
-  return TCPSocket( FileDescriptor( SystemCall( "accept", ::accept( fd_num(), nullptr, nullptr ) ) ) );
-}
-
 /* set socket option */
 template <typename option_type>
 void Socket::setsockopt( const int level, const int option, const option_type & option_value )

@@ -65,21 +65,4 @@ public:
   void set_timestamps( void );
 };
 
-/* TCP socket */
-class TCPSocket : public Socket
-{
-private:
-  /* private constructor used by accept() */
-  TCPSocket( FileDescriptor && fd ) : Socket( std::move( fd ), AF_INET6, SOCK_STREAM ) {}
-
-public:
-  TCPSocket() : Socket( AF_INET6, SOCK_STREAM ) {}
-
-  /* mark the socket as listening for incoming connections */
-  void listen( const int backlog = 16 );
-
-  /* accept a new incoming connection */
-  TCPSocket accept( void );
-};
-
 #endif /* SOCKET_HH */
