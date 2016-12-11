@@ -281,7 +281,8 @@ InterFrame & Encoder::update_residues( const VP8Raster & original_raster,
 void Encoder::reencode( const vector<RasterHandle> & original_rasters,
                         const vector<pair<Optional<KeyFrame>, Optional<InterFrame>>> & prediction_frames,
                         const double kf_q_weight,
-                        const bool extra_frame_chunk )
+                        const bool extra_frame_chunk,
+                        IVFWriter & ivf_writer )
 {
   if ( original_rasters.empty() ) {
     throw runtime_error( "no rasters to re-encode" );
@@ -299,7 +300,9 @@ void Encoder::reencode( const vector<RasterHandle> & original_rasters,
     bool last_frame = ( frame_index == prediction_frames.size() - 1 );
 
     if ( target_output.display_width() != width()
-         or target_output.display_height() != height() ) {
+         or target_output.display_height() != height()
+         or width() != ivf_writer.width()
+         or height() != ivf_writer.height() ) {
       throw runtime_error( "raster size mismatch" );
     }
 
@@ -320,7 +323,7 @@ void Encoder::reencode( const vector<RasterHandle> & original_rasters,
         }
       }
 
-      write_frame( reencode_as_interframe( target_output, prediction_frame_ref.first.get(), new_quantizer ) );
+      ivf_writer.append_frame( write_frame( reencode_as_interframe( target_output, prediction_frame_ref.first.get(), new_quantizer ) ) );
 
       continue;
     } else if ( frame_index == start_frame_index and extra_frame_chunk ) {
@@ -335,18 +338,18 @@ void Encoder::reencode( const vector<RasterHandle> & original_rasters,
       new_quantizer.y_ac_qi = lrint( kf_q_weight *  prediction_frames.at( 0 ).first.get().header().quant_indices.y_ac_qi
                                      + ( 1 - kf_q_weight ) * prediction_frame_ref.second.get().header().quant_indices.y_ac_qi );
 
-      write_frame( update_residues( target_output,
-                                    prediction_frame_ref.second.get(),
-                                    new_quantizer, last_frame ) );
+      ivf_writer.append_frame( write_frame( update_residues( target_output,
+                                                             prediction_frame_ref.second.get(),
+                                                             new_quantizer, last_frame ) ) );
     } else if ( prediction_frame_ref.first.initialized() ) {
       /* Option 3: Is this another KeyFrame? Then preserve it. */
-      write_frame( prediction_frame_ref.first.get() );
+      ivf_writer.append_frame( write_frame( prediction_frame_ref.first.get() ) );
     } else if ( prediction_frame_ref.second.initialized() ) {
       /* Option 4: Is this an InterFrame? Then update residues. */
-      write_frame( update_residues( target_output,
-                                    prediction_frame_ref.second.get(),
-                                    prediction_frame_ref.second.get().header().quant_indices,
-                                    last_frame ) );
+      ivf_writer.append_frame( write_frame( update_residues( target_output,
+                                                             prediction_frame_ref.second.get(),
+                                                             prediction_frame_ref.second.get().header().quant_indices,
+                                                             last_frame ) ) );
     } else {
       throw runtime_error( "prediction_frames contained two undefined values" );
     }

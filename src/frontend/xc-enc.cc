@@ -284,12 +284,12 @@ int main( int argc, char *argv[] )
       }
 
       Encoder encoder( EncoderStateDeserializer::build<Decoder>( input_state ),
-                       move( output ), two_pass, quality );
+                       two_pass, quality );
 
-      encoder.set_expected_decoder_entry_hash( encoder.export_decoder().get_hash().hash() );
+      output.set_expected_decoder_entry_hash( encoder.export_decoder().get_hash().hash() );
 
       encoder.reencode( original_rasters, prediction_frames, kf_q_weight,
-                        extra_frame_chunk );
+                        extra_frame_chunk, output );
 
       if (output_state != "") {
         EncoderStateSerializer odata = {};
@@ -300,9 +300,10 @@ int main( int argc, char *argv[] )
     else {
       /* primary encoding */
       Encoder encoder = input_state == ""
-        ? Encoder( move( output ), two_pass, quality )
+        ? Encoder( input_reader->display_width(), input_reader->display_height(),
+                   two_pass, quality )
         : Encoder( EncoderStateDeserializer::build<Decoder>( input_state ),
-                   move( output ), two_pass, quality );
+                   two_pass, quality );
 
       if ( not input_state.empty() ) {
         output.set_expected_decoder_entry_hash( encoder.export_decoder().get_hash().hash() );
@@ -329,19 +330,19 @@ int main( int argc, char *argv[] )
 
         switch ( encoder_mode ) {
         case MINIMUM_SSIM:
-          encoder.encode_with_minimum_ssim( raster.get(), ssim );
+          output.append_frame( encoder.encode_with_minimum_ssim( raster.get(), ssim ) );
           break;
 
         case CONSTANT_QUANTIZER:
           cerr << " [estimated size=" << encoder.estimate_frame_size( raster.get(), y_ac_qi.get() ) << "] ";
-          encoder.encode_with_quantizer( raster.get(), y_ac_qi.get() );
+          output.append_frame( encoder.encode_with_quantizer( raster.get(), y_ac_qi.get() ) );
           break;
 
         case TARGET_FRAME_SIZE:
         {
           size_t target_size = read_next_frame_size( frame_sizes );
-          size_t estimated_size = encoder.encode_with_target_size( raster.get(), target_size );
-          cerr << " [target_size=" << target_size << ", estimated size=" << estimated_size << "] ";
+          output.append_frame( encoder.encode_with_target_size( raster.get(), target_size ) );
+          cerr << " [target_size=" << target_size << "] ";
           break;
         }
 

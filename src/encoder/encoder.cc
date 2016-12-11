@@ -42,10 +42,12 @@ void VP8Raster::Block<size>::inter_predict( const MotionVector & mv,
 }
 
 /* Encoder */
-Encoder::Encoder( IVFWriter && output, const bool two_pass,
+Encoder::Encoder( const uint16_t s_width,
+                  const uint16_t s_height,
+                  const bool two_pass,
                   const EncoderQuality quality )
-  : ivf_writer_( move( output ) ),
-    decoder_state_( width(), height() ), references_( width(), height() ),
+  : decoder_state_( s_width, s_height ),
+    references_( width(), height() ),
     safe_references_( width(), height() ), two_pass_encoder_( two_pass ),
     encode_quality_( quality ),
     key_frame_( make_empty_frame<KeyFrame>( width(), height(), true ) ),
@@ -54,20 +56,14 @@ Encoder::Encoder( IVFWriter && output, const bool two_pass,
   costs_.fill_mode_costs();
 }
 
-Encoder::Encoder( const Decoder & decoder, IVFWriter && output, const bool two_pass,
+Encoder::Encoder( const Decoder & decoder, const bool two_pass,
                   const EncoderQuality quality )
-  : ivf_writer_( move( output ) ),
-    decoder_state_( decoder.get_state() ), references_( decoder.get_references() ),
+  : decoder_state_( decoder.get_state() ), references_( decoder.get_references() ),
     safe_references_( references_ ), two_pass_encoder_( two_pass ),
     encode_quality_( quality ),
     key_frame_( make_empty_frame<KeyFrame>( width(), height(), true ) ),
     inter_frame_( make_empty_frame<InterFrame>( width(), height(), true ) )
 {
-  if ( decoder.get_width() != ivf_writer_.width()
-       or decoder.get_height() != ivf_writer_.height() ) {
-    throw runtime_error( "height/width mismatch" );
-  }
-
   has_state_ = true;
 
   costs_.fill_mode_costs();
@@ -84,8 +80,8 @@ FrameType Encoder::make_empty_frame( const uint16_t width, const uint16_t height
 }
 
 template<class FrameType>
-void Encoder::write_frame( const FrameType & frame,
-                           const ProbabilityTables & prob_tables )
+vector<uint8_t> Encoder::write_frame( const FrameType & frame,
+                                      const ProbabilityTables & prob_tables )
 {
   // update the state
   update_decoder_state( frame );
@@ -102,13 +98,13 @@ void Encoder::write_frame( const FrameType & frame,
   loop_filter_level_.clear();
   loop_filter_level_.initialize( frame.header().loop_filter_level );
 
-  ivf_writer_.append_frame( frame.serialize( prob_tables ) );
+  return frame.serialize( prob_tables );
 }
 
 template<class FrameType>
-void Encoder::write_frame( const FrameType & frame )
+vector<uint8_t> Encoder::write_frame( const FrameType & frame )
 {
-  write_frame( frame, decoder_state_.probability_tables );
+  return write_frame( frame, decoder_state_.probability_tables );
 }
 
 void Encoder::update_rd_multipliers( const Quantizer & quantizer )
@@ -488,7 +484,7 @@ FrameType & Encoder::encode_with_quantizer_search( const VP8Raster & raster,
   return encode_raster<FrameType>( raster, quant_indices, false ).first;
 }
 
-void Encoder::encode_with_quantizer( const VP8Raster & raster, const uint8_t y_ac_qi )
+vector<uint8_t> Encoder::encode_with_quantizer( const VP8Raster & raster, const uint8_t y_ac_qi )
 {
   if ( width() != raster.display_width() or height() != raster.display_height() ) {
     throw runtime_error( "scaling is not supported" );
@@ -499,14 +495,14 @@ void Encoder::encode_with_quantizer( const VP8Raster & raster, const uint8_t y_a
 
   if ( not has_state_ ) {
     has_state_ = true;
-    write_frame( encode_raster<KeyFrame>( raster, quant_indices ).first );
+    return write_frame( encode_raster<KeyFrame>( raster, quant_indices ).first );
   }
   else {
-    write_frame( encode_raster<InterFrame>( raster, quant_indices ).first );
+    return write_frame( encode_raster<InterFrame>( raster, quant_indices ).first );
   }
 }
 
-void Encoder::encode_with_minimum_ssim( const VP8Raster & raster, const double minimum_ssim )
+vector<uint8_t> Encoder::encode_with_minimum_ssim( const VP8Raster & raster, const double minimum_ssim )
 {
   if ( width() != raster.display_width() or height() != raster.display_height() ) {
     throw runtime_error( "scaling is not supported" );
@@ -514,50 +510,40 @@ void Encoder::encode_with_minimum_ssim( const VP8Raster & raster, const double m
 
   if ( not has_state_ ) {
     has_state_ = true;
-    write_frame( encode_with_quantizer_search<KeyFrame>( raster, minimum_ssim ) );
+    return write_frame( encode_with_quantizer_search<KeyFrame>( raster, minimum_ssim ) );
   }
   else {
-    write_frame( encode_with_quantizer_search<InterFrame>( raster, minimum_ssim ) );
+    return write_frame( encode_with_quantizer_search<InterFrame>( raster, minimum_ssim ) );
   }
 }
 
-size_t Encoder::encode_with_target_size( const VP8Raster & raster, const size_t target_size ) {
+vector<uint8_t> Encoder::encode_with_target_size( const VP8Raster & raster, const size_t target_size ) {
   if ( width() != raster.display_width() or height() != raster.display_height() ) {
     throw runtime_error( "scaling is not supported" );
   }
 
-  if ( target_size == numeric_limits<size_t>::max() ) {
-    // encode with the best possible quantizer, there's no limit on the target size
-    encode_with_quantizer( raster, 0 );
-    return target_size;
-  }
-  else {
-    uint8_t y_qi_min = 0;
-    uint8_t y_qi_max = 127;
+  uint8_t y_qi_min = 0;
+  uint8_t y_qi_max = 127;
 
-    uint8_t best_y_qi = numeric_limits<uint8_t>::max();
+  uint8_t best_y_qi = numeric_limits<uint8_t>::max();
 
-    size_t estimated_size = target_size;
-    size_t best_estimated_size = numeric_limits<size_t>::max();
+  size_t estimated_size = target_size;
+  
+  while ( y_qi_min <= y_qi_max ) {
+    size_t y_qi = ( y_qi_min + y_qi_max ) / 2;
+    estimated_size = estimate_frame_size( raster, y_qi );
 
-    while ( y_qi_min <= y_qi_max ) {
-      size_t y_qi = ( y_qi_min + y_qi_max ) / 2;
-      estimated_size = estimate_frame_size( raster, y_qi );
+    if ( estimated_size <= target_size or ( y_qi_min == y_qi_max and best_y_qi == numeric_limits<uint8_t>::max() ) ) {
+      best_y_qi = y_qi;
 
-      if ( estimated_size <= target_size or ( y_qi_min == y_qi_max and best_y_qi == numeric_limits<uint8_t>::max() ) ) {
-        best_y_qi = y_qi;
-        best_estimated_size = estimated_size;
-
-        y_qi_max = y_qi - 1;
-      }
-      else if ( estimated_size > target_size ) {
-        y_qi_min = y_qi + 1;
-      }
+      y_qi_max = y_qi - 1;
     }
-
-    encode_with_quantizer( raster, best_y_qi );
-    return best_estimated_size;
+    else if ( estimated_size > target_size ) {
+      y_qi_min = y_qi + 1;
+    }
   }
+
+  return encode_with_quantizer( raster, best_y_qi );
 }
 
 template <class FrameHeaderType, class MacroblockHeaderType>

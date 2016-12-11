@@ -75,11 +75,10 @@ private:
                               MV_PROB_CNT>,
                     2> MVComponentCounts;
 
-  IVFWriter ivf_writer_;
-  uint16_t width() const { return ivf_writer_.width(); }
-  uint16_t height() const { return ivf_writer_.height(); }
-  MutableRasterHandle temp_raster_handle_ { width(), height() };
   DecoderState decoder_state_;
+  uint16_t width() const { return decoder_state_.width; }
+  uint16_t height() const { return decoder_state_.height; }
+  MutableRasterHandle temp_raster_handle_ { width(), height() };
   References references_;
   SafeReferences safe_references_;
 
@@ -246,10 +245,10 @@ private:
                                      const bool show_frame );
 
   template<class FrameType>
-  void write_frame( const FrameType & frame );
+  std::vector<uint8_t> write_frame( const FrameType & frame );
 
   template<class FrameType>
-  void write_frame( const FrameType & frame, const ProbabilityTables & prob_tables );
+  std::vector<uint8_t> write_frame( const FrameType & frame, const ProbabilityTables & prob_tables );
 
 
   /* Encoded frame size estimation */
@@ -290,36 +289,33 @@ private:
   void update_rd_multipliers( const Quantizer & quantizer );
 
 public:
-  Encoder( IVFWriter && output, const bool two_pass,
+  Encoder( const uint16_t s_width, const uint16_t s_height,
+           const bool two_pass,
            const EncoderQuality quality );
 
-  Encoder( const Decoder & decoder, IVFWriter && output, const bool two_pass,
+  Encoder( const Decoder & decoder, const bool two_pass,
            const EncoderQuality quality );
 
-  void encode_with_minimum_ssim( const VP8Raster & raster,
-                                 const double minimum_ssim );
+  std::vector<uint8_t> encode_with_minimum_ssim( const VP8Raster & raster,
+                                                 const double minimum_ssim );
 
-  void encode_with_quantizer( const VP8Raster & raster,
-                              const uint8_t y_ac_qi );
+  std::vector<uint8_t> encode_with_quantizer( const VP8Raster & raster,
+                                              const uint8_t y_ac_qi );
 
   /* Tries to encode the given raster with the best possible quality, without
-   * exceeding the target size. This function returns the estimated size. */
-  size_t encode_with_target_size( const VP8Raster & raster,
-                                  const size_t target_size );
+   * exceeding the target size. */
+  std::vector<uint8_t> encode_with_target_size( const VP8Raster & raster,
+                                                const size_t target_size );
 
   void reencode( const std::vector<RasterHandle> & original_rasters,
                  const std::vector<std::pair<Optional<KeyFrame>, Optional<InterFrame> > > & prediction_frames,
                  const double kf_q_weight,
-                 const bool extra_frame_chunk );
+                 const bool extra_frame_chunk,
+                 IVFWriter & ivf_writer );
 
   size_t estimate_frame_size( const VP8Raster & raster, const size_t y_ac_qi );
 
   Decoder export_decoder() const { return { decoder_state_, references_ }; }
-
-  void set_expected_decoder_entry_hash( const uint32_t minihash )
-  {
-    ivf_writer_.set_expected_decoder_entry_hash( minihash );
-  }
 };
 
 #endif /* ENCODER_HH */
