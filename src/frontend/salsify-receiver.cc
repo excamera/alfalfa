@@ -5,6 +5,7 @@
 
 #include "socket.hh"
 #include "packet.hh"
+#include "optional.hh"
 
 using namespace std;
 
@@ -51,9 +52,26 @@ int main( int argc, char *argv[] )
   UDPSocket socket;
   socket.bind( Address( "0", argv[ 1 ] ) );
 
+  Optional<FragmentedFrame> current_frame;
   while ( true ) {
-    socket.recv();
-    cerr << ".";
+    /* wait for next UDP datagram */
+    const auto new_fragment = socket.recv();
+
+    /* parse into Packet */
+    const Packet packet { new_fragment.payload };
+
+    /* add to current frame */
+    if ( current_frame.initialized() ) {
+      current_frame.get().add_packet( packet );
+    } else {
+      current_frame.initialize( connection_id, packet );
+    }
+
+    /* is the frame ready to be decoded? */
+    if ( current_frame.get().complete() ) {
+      cerr << "decoding frame " << current_frame.get().frame_no() << endl;
+      current_frame.clear();
+    }
   }
 
   return EXIT_SUCCESS;

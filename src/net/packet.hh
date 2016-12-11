@@ -22,14 +22,14 @@ private:
 
   static std::string put_header_field( const uint16_t n )
   {
-    const uint16_t network_order = htobe16( n );
+    const uint16_t network_order = htole16( n );
     return std::string( reinterpret_cast<const char *>( &network_order ),
                         sizeof( network_order ) );
   }
 
   static std::string put_header_field( const uint32_t n )
   {
-    const uint32_t network_order = htobe32( n );
+    const uint32_t network_order = htole32( n );
     return std::string( reinterpret_cast<const char *>( &network_order ),
                         sizeof( network_order ) );
   }
@@ -141,8 +141,9 @@ public:
   }
 
   /* construct incoming FragmentedFrame from a Packet */
-  FragmentedFrame( const Packet & packet )
-    : connection_id_( packet.connection_id() ),
+  FragmentedFrame( const uint16_t connection_id,
+                   const Packet & packet )
+    : connection_id_( connection_id ),
       frame_no_( packet.frame_no() ),
       fragments_in_this_frame_( packet.fragments_in_this_frame() ),
       fragments_()
@@ -158,6 +159,7 @@ public:
 
   void sanity_check( const Packet & packet ) const {
     if ( packet.connection_id() != connection_id_ ) {
+      std::cerr << packet.connection_id() << " vs. " << connection_id_ << "\n";
       throw std::runtime_error( "invalid packet, connection_id mismatch" );
     }
 
@@ -197,6 +199,16 @@ public:
       socket.send( packet.to_string() );
     }
   }
+
+  bool complete() const
+  {
+    return fragments_.size() == fragments_in_this_frame_;
+  }
+
+  /* getters */
+  uint16_t connection_id() const { return connection_id_; }
+  uint32_t frame_no() const { return frame_no_; }
+  uint16_t fragments_in_this_frame() const { return fragments_in_this_frame_; }
 };
 
 #endif /* PACKET_HH */
