@@ -57,7 +57,7 @@ int main( int argc, char *argv[] )
       RasterHandle raster = player.advance();
 
       if (y4m_fd.initialized()) {
-        if (lseek(y4m_fd.get().num(), 0, SEEK_CUR) == 0) {
+        if (lseek(y4m_fd.get().fd_num(), 0, SEEK_CUR) == 0) {
           // position 0: we haven't written a header yet
           y4m_fd.get().write(YUV4MPEGHeader(raster).to_string());
         }

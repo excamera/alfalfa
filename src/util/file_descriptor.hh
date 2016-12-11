@@ -37,7 +37,7 @@ public:
     return file_info.st_size;
   }
 
-  const int & num( void ) const { return fd_; }
+  const int & fd_num( void ) const { return fd_; }
 
   bool eof() { return eof_; }
 

@@ -3,6 +3,7 @@
 
 #include <string>
 #include <utility>
+#include <cstring>
 
 #include <netinet/in.h>
 #include <netdb.h>
@@ -48,5 +49,7 @@ public:
   /* equality */
   bool operator==( const Address & other ) const;
 };
+
+template <typename T> void zero( T & x ) { memset( &x, 0, sizeof( x ) ); }
 
 #endif /* ADDRESS_HH */

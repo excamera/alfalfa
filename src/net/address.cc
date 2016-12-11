@@ -1,11 +1,10 @@
 #include <string>
-#include <cstring>
 #include <memory>
 
 #include <netdb.h>
 
 #include "address.hh"
-#include "util.hh"
+#include "exception.hh"
 
 using namespace std;
 

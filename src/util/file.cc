@@ -15,7 +15,7 @@ File::File( const string & filename )
 File::File( FileDescriptor && fd )
   : fd_( move( fd ) ),
     size_( fd_.size() ),
-    mmap_region_( MMap_Region( size_, PROT_READ, MAP_SHARED, fd_.num() ) ),
+    mmap_region_( MMap_Region( size_, PROT_READ, MAP_SHARED, fd_.fd_num() ) ),
     chunk_( mmap_region_.addr(), size_ )
 { }
 

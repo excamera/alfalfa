@@ -1,8 +1,7 @@
 #include <sys/socket.h>
 
 #include "socket.hh"
-#include "util.hh"
-#include "timestamp.hh"
+#include "exception.hh"
 
 using namespace std;
 
@@ -75,6 +74,18 @@ void Socket::connect( const Address & address )
 				    address.size() ) );
 }
 
+/* nanoseconds per millisecond */
+static const uint64_t MILLION = 1000000;
+
+/* nanoseconds per second */
+static const uint64_t BILLION = 1000 * MILLION;
+
+static uint64_t timestamp_ms_raw( const timespec & ts )
+{
+  const uint64_t nanos = ts.tv_sec * BILLION + ts.tv_nsec;
+  return nanos / MILLION;
+}
+
 /* receive datagram and where it came from */
 UDPSocket::received_datagram UDPSocket::recv( void )
 {
@@ -106,8 +117,6 @@ UDPSocket::received_datagram UDPSocket::recv( void )
   ssize_t recv_len = SystemCall( "recvmsg",
 				 recvmsg( fd_num(), &header, 0 ) );
 
-  register_read();
-
   /* make sure we got the whole datagram */
   if ( header.msg_flags & MSG_TRUNC ) {
     throw runtime_error( "recvfrom (oversized datagram)" );
@@ -123,7 +132,7 @@ UDPSocket::received_datagram UDPSocket::recv( void )
     if ( ts_hdr->cmsg_level == SOL_SOCKET
 	 and ts_hdr->cmsg_type == SO_TIMESTAMPNS ) {
       const timespec * const kernel_time = reinterpret_cast<timespec *>( CMSG_DATA( ts_hdr ) );
-      timestamp = timestamp_ms( *kernel_time );
+      timestamp = timestamp_ms_raw( *kernel_time );
     }
     ts_hdr = CMSG_NXTHDR( &header, ts_hdr );
   }
@@ -147,8 +156,6 @@ void UDPSocket::sendto( const Address & destination, const string & payload )
 				    &destination.to_sockaddr(),
 				    destination.size() ) );
 
-  register_write();
-
   if ( size_t( bytes_sent ) != payload.size() ) {
     throw runtime_error( "datagram payload too big for sendto()" );
   }
@@ -162,8 +169,6 @@ void UDPSocket::send( const string & payload )
 				payload.data(),
 				payload.size(),
 				0 ) );
-
-  register_write();
 
   if ( size_t( bytes_sent ) != payload.size() ) {
     throw runtime_error( "datagram payload too big for send()" );
@@ -179,7 +184,6 @@ void TCPSocket::listen( const int backlog )
 /* accept a new incoming connection */
 TCPSocket TCPSocket::accept( void )
 {
-  register_read();
   return TCPSocket( FileDescriptor( SystemCall( "accept", ::accept( fd_num(), nullptr, nullptr ) ) ) );
 }
 
