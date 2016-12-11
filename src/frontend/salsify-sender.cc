@@ -15,7 +15,7 @@ using namespace std;
 
 void usage( const char *argv0 )
 {
-  cerr << "Usage: " << argv0 << " INPUT QUANTIZER HOST PORT" << endl;
+  cerr << "Usage: " << argv0 << " INPUT QUANTIZER HOST PORT CONNECTION_ID" << endl;
 }
 
 unsigned int paranoid_atoi( const string & in )
@@ -28,14 +28,6 @@ unsigned int paranoid_atoi( const string & in )
   return ret;
 }
 
-uint16_t ezrand()
-{
-  random_device rd;
-  uniform_int_distribution<uint16_t> ud;
-
-  return ud( rd );
-}
-
 int main( int argc, char *argv[] )
 {
   /* check the command-line arguments */
@@ -43,14 +35,10 @@ int main( int argc, char *argv[] )
     abort();
   }
 
-  if ( argc != 5 ) {
+  if ( argc != 6 ) {
     usage( argv[ 0 ] );
     return EXIT_FAILURE;
   }
-
-  /* choose a random connection_id */
-  const uint16_t connection_id = ezrand();
-  cerr << "Connection ID: " << connection_id << endl;
 
   /* open the YUV4MPEG input */
   YUV4MPEGReader input { argv[ 1 ] };
@@ -58,6 +46,9 @@ int main( int argc, char *argv[] )
   /* get quantizer argument */
   const unsigned int y_ac_qi = paranoid_atoi( argv[ 2 ] );
 
+  /* get connection_id */
+  const uint16_t connection_id = paranoid_atoi( argv[ 5 ] );
+  
   /* construct Socket for outgoing datagrams */
   UDPSocket socket;
   socket.connect( Address( argv[ 3 ], argv[ 4 ] ) );

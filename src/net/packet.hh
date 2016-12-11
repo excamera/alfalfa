@@ -4,6 +4,7 @@
 #define PACKET_HH
 
 #include <vector>
+#include <cassert>
 
 #include "chunk.hh"
 #include "socket.hh"

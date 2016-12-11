@@ -43,6 +43,7 @@ Makefile.in
 /src/frontend/xc-decode-bundle
 /src/frontend/xc-terminate-chunk
 /src/frontend/salsify-sender
+/src/frontend/salsify-receiver
 
 /src/tests/decode-to-stdout
 /src/tests/encode-loopback
