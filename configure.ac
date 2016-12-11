@@ -134,6 +134,7 @@ AC_CONFIG_FILES([Makefile
                  src/decoder/Makefile
                  src/display/Makefile
                  src/encoder/Makefile
+                 src/net/Makefile
                  src/frontend/Makefile
                  src/tests/Makefile
                  man/Makefile])

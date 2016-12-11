@@ -53,4 +53,4 @@ comp_states_SOURCES = comp-states.cc
 comp_states_LDADD = $(BASE_LDADD)
 
 salsify_sender_SOURCES = salsify-sender.cc
-salsify_sender_LDADD = ../encoder/libalfalfaencoder.a $(BASE_LDADD)
+salsify_sender_LDADD = ../net/libnet.a ../encoder/libalfalfaencoder.a $(BASE_LDADD)
