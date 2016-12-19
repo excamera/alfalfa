@@ -115,6 +115,9 @@ private:
 
   std::vector<Packet> fragments_;
 
+  std::vector<bool> fragments_availability_;
+  uint32_t remaining_fragments_;
+
 public:
   /* construct outgoing FragmentedFrame */
   FragmentedFrame( const uint16_t connection_id,
@@ -123,7 +126,9 @@ public:
     : connection_id_( connection_id ),
       frame_no_( frame_no ),
       fragments_in_this_frame_(),
-      fragments_()
+      fragments_(),
+      fragments_availability_(),
+      remaining_fragments_( 0 )
   {
     size_t next_fragment_start = 0;
     for ( uint16_t fragment_no = 0;
@@ -134,6 +139,8 @@ public:
     }
 
     fragments_in_this_frame_ = fragments_.size();
+    fragments_availability_.resize( fragments_in_this_frame_, true );
+    remaining_fragments_ = 0;
 
     for ( Packet & packet : fragments_ ) {
       packet.set_fragments_in_this_frame( fragments_in_this_frame_ );
@@ -146,7 +153,9 @@ public:
     : connection_id_( connection_id ),
       frame_no_( packet.frame_no() ),
       fragments_in_this_frame_( packet.fragments_in_this_frame() ),
-      fragments_()
+      fragments_(),
+      fragments_availability_( packet.fragments_in_this_frame(), false ),
+      remaining_fragments_( packet.fragments_in_this_frame() )
   {
     if ( packet.fragment_no() != 0 ) {
       throw std::runtime_error( "XXX unimplemented: starting a FragmentedFrame with Packet != #0" );
@@ -154,7 +163,7 @@ public:
 
     sanity_check( packet );
 
-    fragments_.push_back( packet );
+    add_packet( packet );
   }
 
   void sanity_check( const Packet & packet ) const {
@@ -186,12 +195,13 @@ public:
     }
 
     fragments_.push_back( packet );
+    remaining_fragments_--;
   }
 
   /* send */
   void send( UDPSocket & socket )
   {
-    if ( fragments_.size() != fragments_in_this_frame_ ) {
+    if ( not complete() ) {
       throw std::runtime_error( "attempt to send unfinished FragmentedFrame" );
     }
 
@@ -202,7 +212,7 @@ public:
 
   bool complete() const
   {
-    return fragments_.size() == fragments_in_this_frame_;
+    return remaining_fragments_ == 0;
   }
 
   /* getters */

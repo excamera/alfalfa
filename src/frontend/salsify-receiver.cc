@@ -45,7 +45,7 @@ int main( int argc, char *argv[] )
     usage( argv[ 0 ] );
     return EXIT_FAILURE;
   }
-  
+
   /* choose a random connection_id */
   const uint16_t connection_id = ezrand();
   cerr << "Connection ID: " << connection_id << endl;
