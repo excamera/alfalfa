@@ -60,6 +60,8 @@ int main( int argc, char *argv[] )
   /* construct VideoDisplay */
   VideoDisplay display { player.example_raster() };
 
+  size_t next_frame_no = 0;
+
   Optional<FragmentedFrame> current_frame;
   while ( true ) {
     /* wait for next UDP datagram */
@@ -67,6 +69,23 @@ int main( int argc, char *argv[] )
 
     /* parse into Packet */
     const Packet packet { new_fragment.payload };
+
+    if ( packet.frame_no() < next_frame_no ) {
+      /* we're not interested in this packet anymore */
+      continue;
+    }
+    else if ( packet.frame_no() > next_frame_no ) {
+      /* current frame is not finished yet, but we just received a packet
+         for the next frame, so here we just forget about the current frame
+         and get ready for the next one */
+      cerr << "got a packet for frame #" << packet.frame_no()
+           << ", skipping previous frame(s)." << endl;
+
+      next_frame_no = packet.frame_no();
+      current_frame.clear();
+      current_frame.initialize( connection_id, packet );
+      continue;
+    }
 
     /* add to current frame */
     if ( current_frame.initialized() ) {
@@ -84,6 +103,7 @@ int main( int argc, char *argv[] )
         display.draw( raster.get() );
       }
 
+      next_frame_no++;
       current_frame.clear();
     }
   }
