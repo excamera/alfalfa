@@ -101,7 +101,6 @@ FragmentedFrame::FragmentedFrame( const uint16_t connection_id,
     frame_no_( frame_no ),
     fragments_in_this_frame_(),
     fragments_(),
-    fragments_availability_(),
     remaining_fragments_( 0 )
 {
   size_t next_fragment_start = 0;
@@ -113,7 +112,6 @@ FragmentedFrame::FragmentedFrame( const uint16_t connection_id,
   }
 
   fragments_in_this_frame_ = fragments_.size();
-  fragments_availability_.resize( fragments_in_this_frame_, true );
   remaining_fragments_ = 0;
 
   for ( Packet & packet : fragments_ ) {
@@ -128,7 +126,6 @@ FragmentedFrame::FragmentedFrame( const uint16_t connection_id,
     frame_no_( packet.frame_no() ),
     fragments_in_this_frame_( packet.fragments_in_this_frame() ),
     fragments_(),
-    fragments_availability_( packet.fragments_in_this_frame() ),
     remaining_fragments_( packet.fragments_in_this_frame() )
 {
   if ( packet.fragment_no() != 0 ) {
@@ -136,9 +133,6 @@ FragmentedFrame::FragmentedFrame( const uint16_t connection_id,
   }
 
   sanity_check( packet );
-
-  fragments_availability_.resize( fragments_in_this_frame_, false );
-  remaining_fragments_ = fragments_in_this_frame_;
 
   add_packet( packet );
 }

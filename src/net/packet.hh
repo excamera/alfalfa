@@ -64,7 +64,6 @@ private:
 
   std::vector<Packet> fragments_;
 
-  std::vector<bool> fragments_availability_;
   uint32_t remaining_fragments_;
 
 public:
