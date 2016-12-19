@@ -125,13 +125,9 @@ FragmentedFrame::FragmentedFrame( const uint16_t connection_id,
   : connection_id_( connection_id ),
     frame_no_( packet.frame_no() ),
     fragments_in_this_frame_( packet.fragments_in_this_frame() ),
-    fragments_(),
+    fragments_( packet.fragments_in_this_frame() ),
     remaining_fragments_( packet.fragments_in_this_frame() )
 {
-  if ( packet.fragment_no() != 0 ) {
-    throw runtime_error( "XXX unimplemented: starting a FragmentedFrame with Packet != #0" );
-  }
-
   sanity_check( packet );
 
   add_packet( packet );
@@ -161,12 +157,10 @@ void FragmentedFrame::add_packet( const Packet & packet )
 {
   sanity_check( packet );
 
-  if ( packet.fragment_no() != fragments_.size() ) {
-    throw runtime_error( "XXX unimplemented: out-of-order packets" );
+  if ( not fragments_[ packet.fragment_no() ].valid() ) {
+    remaining_fragments_--;
+    fragments_[ packet.fragment_no() ] = packet;
   }
-
-  remaining_fragments_--;
-  fragments_.push_back( packet );
 }
 
 /* send */
