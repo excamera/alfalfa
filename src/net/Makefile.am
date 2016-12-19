@@ -5,4 +5,4 @@ noinst_LIBRARIES = libnet.a
 
 libnet_a_SOURCES = address.hh address.cc \
 	socket.hh socket.cc \
-	packet.hh
+	packet.hh packet.cc
