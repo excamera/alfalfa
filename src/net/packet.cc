@@ -27,7 +27,8 @@ Packet::Packet( const vector<uint8_t> & whole_frame,
                 const uint32_t frame_no,
                 const uint16_t fragment_no,
                 size_t & next_fragment_start )
-  : connection_id_( connection_id ),
+  : valid_( true ),
+    connection_id_( connection_id ),
     frame_no_( frame_no ),
     fragment_no_( fragment_no ),
     fragments_in_this_frame_( 0 ), /* temp value */
@@ -48,7 +49,8 @@ Packet::Packet( const vector<uint8_t> & whole_frame,
 
 /* construct incoming Packet */
 Packet::Packet( const Chunk & str )
-  : connection_id_( str( 0, 2 ).le16() ),
+  : valid_( true ),
+    connection_id_( str( 0, 2 ).le16() ),
     frame_no_( str( 2, 4 ).le32() ),
     fragment_no_( str( 6, 2 ).le16() ),
     fragments_in_this_frame_( str( 8, 2 ).le16() ),
@@ -62,6 +64,16 @@ Packet::Packet( const Chunk & str )
     throw runtime_error( "invalid packet: empty payload" );
   }
 }
+
+/* construct an empty, invalid packet */
+Packet::Packet()
+  : valid_( false ),
+    connection_id_(),
+    frame_no_(),
+    fragment_no_(),
+    fragments_in_this_frame_(),
+    payload_()
+{}
 
 /* serialize a Packet */
 string Packet::to_string() const

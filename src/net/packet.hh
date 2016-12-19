@@ -13,6 +13,8 @@
 class Packet
 {
 private:
+  bool valid_;
+
   uint16_t connection_id_;
   uint32_t frame_no_;
   uint16_t fragment_no_;
@@ -27,6 +29,7 @@ public:
   static constexpr size_t MAXIMUM_PAYLOAD = 1400;
 
   /* getters */
+  bool valid() const { return valid_; }
   uint16_t connection_id() const { return connection_id_; }
   uint32_t frame_no() const { return frame_no_; }
   uint16_t fragment_no() const { return fragment_no_; }
@@ -42,6 +45,9 @@ public:
 
   /* construct incoming Packet */
   Packet( const Chunk & str );
+
+  /* construct an empty, invalid packet */
+  Packet();
 
   /* serialize a Packet */
   std::string to_string() const;
