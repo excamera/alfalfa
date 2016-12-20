@@ -216,12 +216,14 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
   best_pred = luma_mb_best_prediction_mode( original_mb, reconstructed_mb, temp_mb,
                                             frame_mb, quantizer, encoder_pass, true );
 
+  reference_frame frame_ref = LAST_FRAME;
+
   frame_mb.mutable_header().is_inter_mb = true;
-  frame_mb.mutable_header().set_reference( LAST_FRAME );
+  frame_mb.mutable_header().set_reference( frame_ref );
 
   MotionVector best_mv;
-  const VP8Raster & reference = references_.last.get();
-  const SafeRaster & safe_reference = safe_references_.get( frame_mb.header().reference() );
+  const VP8Raster & reference = references_.at( frame_ref );
+  const SafeRaster & safe_reference = safe_references_.get( frame_ref );
 
   const auto reference_mb = reference.macroblock( original_mb.Y.column(),
                                                   original_mb.Y.row() );
@@ -332,7 +334,7 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
   }
   else {
     frame_mb.mutable_header().is_inter_mb = true;
-    frame_mb.mutable_header().set_reference( LAST_FRAME );
+    frame_mb.mutable_header().set_reference( frame_ref );
 
     luma_mb_apply_inter_prediction( original_mb, reconstructed_mb, frame_mb,
                                     quantizer, best_pred.prediction_mode,
