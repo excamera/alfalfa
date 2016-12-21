@@ -183,8 +183,29 @@ bool FragmentedFrame::complete() const
 string FragmentedFrame::frame() const
 {
   string ret;
+
+  if ( not complete() ) {
+    throw runtime_error( "attempt to build frame from unfinished FragmentedFrame" );
+  }
+
   for ( const auto & fragment : fragments_ ) {
     ret.append( fragment.payload() );
   }
+
+  return ret;
+}
+
+string FragmentedFrame::partial_frame() const
+{
+  string ret;
+
+  for ( const auto & fragment : fragments_ ) {
+    if ( not fragment.valid() ) {
+      break;
+    }
+
+    ret.append( fragment.payload() );
+  }
+
   return ret;
 }

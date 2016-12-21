@@ -91,6 +91,7 @@ public:
   uint32_t frame_no() const { return frame_no_; }
   uint16_t fragments_in_this_frame() const { return fragments_in_this_frame_; }
   std::string frame() const;
+  std::string partial_frame() const;
 };
 
 #endif /* PACKET_HH */
