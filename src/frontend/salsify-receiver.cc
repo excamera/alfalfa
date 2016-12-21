@@ -34,6 +34,15 @@ uint16_t ezrand()
   return ud( rd );
 }
 
+void display_frame( FramePlayer & player, VideoDisplay & display, const Chunk & frame )
+{
+  const Optional<RasterHandle> raster = player.decode( frame );
+
+  if ( raster.initialized() ) {
+    display.draw( raster.get() );
+  }
+}
+
 int main( int argc, char *argv[] )
 {
   /* check the command-line arguments */
@@ -76,10 +85,12 @@ int main( int argc, char *argv[] )
     }
     else if ( packet.frame_no() > next_frame_no ) {
       /* current frame is not finished yet, but we just received a packet
-         for the next frame, so here we just forget about the current frame
-         and get ready for the next one */
+         for the next frame, so here we just encode the partial frame and
+         display it and move on to the next frame */
       cerr << "got a packet for frame #" << packet.frame_no()
-           << ", skipping previous frame(s)." << endl;
+           << ", display previous frame(s)." << endl;
+
+      display_frame( player, display, current_frame.get().partial_frame() );
 
       next_frame_no = packet.frame_no();
       current_frame.clear();
@@ -98,10 +109,7 @@ int main( int argc, char *argv[] )
     if ( current_frame.get().complete() ) {
       cerr << "decoding frame " << current_frame.get().frame_no() << endl;
 
-      const Optional<RasterHandle> raster = player.decode( current_frame.get().frame() );
-      if ( raster.initialized() ) {
-        display.draw( raster.get() );
-      }
+      display_frame( player, display, current_frame.get().frame() );
 
       next_frame_no++;
       current_frame.clear();
