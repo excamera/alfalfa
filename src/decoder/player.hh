@@ -42,6 +42,8 @@ public:
 
   size_t serialize(EncoderStateSerializer &odata);
   static FramePlayer deserialize(EncoderStateDeserializer &idata);
+
+  void set_error_concealment( const bool value ) { decoder_.set_error_concealment( value ); }
 };
 
 class FilePlayer : public FramePlayer

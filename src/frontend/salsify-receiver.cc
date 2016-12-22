@@ -36,6 +36,10 @@ uint16_t ezrand()
 
 void display_frame( FramePlayer & player, VideoDisplay & display, const Chunk & frame )
 {
+  if ( frame.size() == 0 ) {
+    return;
+  }
+
   const Optional<RasterHandle> raster = player.decode( frame );
 
   if ( raster.initialized() ) {
@@ -65,6 +69,7 @@ int main( int argc, char *argv[] )
 
   /* construct FramePlayer */
   FramePlayer player( paranoid_atoi( argv[ 2 ] ), paranoid_atoi( argv[ 3 ] ) );
+  player.set_error_concealment( true );
 
   /* construct VideoDisplay */
   VideoDisplay display { player.example_raster() };
