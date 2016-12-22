@@ -90,7 +90,7 @@ int main( int argc, char *argv[] )
     }
 
     for ( size_t i = 0; i < ivf.frame_count(); i++ ) {
-      UncompressedChunk uch { ivf.frame( i ), ivf.width(), ivf.height() };
+      UncompressedChunk uch { ivf.frame( i ), ivf.width(), ivf.height(), false };
 
       if ( uch.key_frame() ) {
         KeyFrame frame = decoder.parse_frame<KeyFrame>( uch );

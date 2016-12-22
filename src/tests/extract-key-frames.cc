@@ -27,7 +27,7 @@ int main( int argc, char *argv[] )
     /* count key frames */
     unsigned int num_key_frames = 0;
     for ( uint32_t i = 0; i < file.frame_count(); i++ ) {
-      UncompressedChunk chunk( file.frame( i ), file.width(), file.height() );
+      UncompressedChunk chunk( file.frame( i ), file.width(), file.height(), false );
       if ( chunk.key_frame() ) {
         num_key_frames++;
         key_frames.emplace_back( i );

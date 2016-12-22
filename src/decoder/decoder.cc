@@ -57,7 +57,7 @@ Decoder Decoder::deserialize(EncoderStateDeserializer &idata) {
 UncompressedChunk Decoder::decompress_frame( const Chunk & compressed_frame ) const
 {
   /* parse uncompressed data chunk */
-  return UncompressedChunk( compressed_frame, state_.width, state_.height );
+  return UncompressedChunk( compressed_frame, state_.width, state_.height, error_concealment_ );
 }
 
 template<class FrameType>

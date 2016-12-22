@@ -64,7 +64,7 @@ int main( int argc, char *argv[] )
     for ( uint32_t i = frame_no; i < file.frame_count(); i++ ) {
       vector< uint8_t > serialized_frame;
 
-      UncompressedChunk whole_frame( file.frame( i ), file.width(), file.height() );
+      UncompressedChunk whole_frame( file.frame( i ), file.width(), file.height(), false );
 
       if ( whole_frame.key_frame() ) {
         const KeyFrame parsed_frame = decoder_state.parse_and_apply<KeyFrame>( whole_frame );

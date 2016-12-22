@@ -7,14 +7,17 @@ using namespace std;
 
 UncompressedChunk::UncompressedChunk( const Chunk & frame,
                                       const uint16_t expected_width,
-                                      const uint16_t expected_height )
+                                      const uint16_t expected_height,
+                                      const bool accept_partial )
   : key_frame_(),
     reconstruction_filter_(),
     loop_filter_(),
     show_frame_(),
     experimental_(),
     first_partition_( nullptr, 0 ),
-    rest_( nullptr, 0 )
+    rest_( nullptr, 0 ),
+    partial_first_partition_( false ),
+    partial_rest_( false )
 {
   try {
     /* flags */
@@ -53,10 +56,21 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
     uint32_t first_partition_byte_offset = key_frame_ ? 10 : 3;
 
     if ( frame.size() <= first_partition_byte_offset + first_partition_length ) {
-      throw Invalid( "invalid VP8 first partition length" );
+      if ( accept_partial ) {
+        partial_first_partition_ = true;
+      }
+      else {
+        throw Invalid( "invalid VP8 first partition length" );
+      }
     }
 
-    first_partition_ = frame( first_partition_byte_offset, first_partition_length );
+    if ( partial_first_partition_ ) {
+      first_partition_ = frame( first_partition_byte_offset, frame.size() - first_partition_byte_offset );
+    }
+    else {
+      first_partition_ = frame( first_partition_byte_offset, first_partition_length );
+    }
+
     rest_ = frame( first_partition_byte_offset + first_partition_length,
                    frame.size() - first_partition_byte_offset - first_partition_length );
 

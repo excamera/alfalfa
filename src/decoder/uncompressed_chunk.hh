@@ -25,8 +25,12 @@ private:
   Chunk first_partition_;
   Chunk rest_;
 
+  bool partial_first_partition_;
+  bool partial_rest_;
+
 public:
-  UncompressedChunk( const Chunk & frame, const uint16_t expected_width, const uint16_t expected_height );
+  UncompressedChunk( const Chunk & frame, const uint16_t expected_width,
+                     const uint16_t expected_height, const bool accept_partial );
   bool key_frame( void ) const { return key_frame_; }
 
   const Chunk & first_partition( void ) const { return first_partition_; }

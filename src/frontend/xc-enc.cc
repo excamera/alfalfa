@@ -262,7 +262,7 @@ int main( int argc, char *argv[] )
       }
 
       for ( unsigned int i = 0; i < pred_ivf.frame_count(); i++ ) {
-        UncompressedChunk unch { pred_ivf.frame( i ), pred_ivf.width(), pred_ivf.height() };
+        UncompressedChunk unch { pred_ivf.frame( i ), pred_ivf.width(), pred_ivf.height(), false };
 
         if ( unch.key_frame() ) {
           KeyFrame frame = pred_decoder.parse_frame<KeyFrame>( unch );

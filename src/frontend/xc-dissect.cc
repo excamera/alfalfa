@@ -422,7 +422,7 @@ int main( int argc, char *argv[] )
   DecoderState decoder_state = decoder.get_state();
 
   for ( size_t frame_number = 0; frame_number < ivf.frame_count(); frame_number++ ) {
-    UncompressedChunk uncompressed_chunk { ivf.frame( frame_number ), width, height };
+    UncompressedChunk uncompressed_chunk { ivf.frame( frame_number ), width, height, false };
 
     if( target_frame_number == SIZE_MAX or frame_number == target_frame_number ) {
       cout << ">> Frame #" << frame_number << " "
