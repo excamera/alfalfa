@@ -221,6 +221,8 @@ private:
   DecoderState state_;
   References references_;
 
+  bool error_concealment_ { false };
+
 public:
   Decoder( const uint16_t width, const uint16_t height );
   Decoder( DecoderState state, References references );
@@ -266,6 +268,9 @@ public:
   size_t serialize(EncoderStateSerializer &odata) const;
 
   static Decoder deserialize(EncoderStateDeserializer &idata);
+
+  void set_error_concealment( const bool val ) { error_concealment_ = val; }
+  bool error_concealment() const { return error_concealment_; }
 };
 
 
