@@ -8,6 +8,14 @@
 
 #include <vector>
 
+enum CorruptionLevel
+{
+  NO_CORRUPTION,
+  CORRUPTED_RESIDUES,
+  CORRUPTED_FIRST_PARTITION,
+  CORRUPTED_FRAME
+};
+
 class UncompressedChunk
 {
 private:
@@ -25,8 +33,7 @@ private:
   Chunk first_partition_;
   Chunk rest_;
 
-  bool partial_first_partition_;
-  bool partial_rest_;
+  CorruptionLevel corruption_level_;
 
 public:
   UncompressedChunk( const Chunk & frame, const uint16_t expected_width,

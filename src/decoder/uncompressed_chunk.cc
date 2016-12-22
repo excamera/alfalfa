@@ -16,8 +16,7 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
     experimental_(),
     first_partition_( nullptr, 0 ),
     rest_( nullptr, 0 ),
-    partial_first_partition_( false ),
-    partial_rest_( false )
+    corruption_level_( NO_CORRUPTION )
 {
   try {
     /* flags */
@@ -57,14 +56,14 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
 
     if ( frame.size() <= first_partition_byte_offset + first_partition_length ) {
       if ( accept_partial ) {
-        partial_first_partition_ = true;
+        corruption_level_ = CORRUPTED_FIRST_PARTITION;
       }
       else {
         throw Invalid( "invalid VP8 first partition length" );
       }
     }
 
-    if ( partial_first_partition_ ) {
+    if ( corruption_level_ == CORRUPTED_FIRST_PARTITION ) {
       first_partition_ = frame( first_partition_byte_offset, frame.size() - first_partition_byte_offset );
     }
     else {
@@ -90,7 +89,12 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
       }
     }
   } catch ( const out_of_range & e ) {
-    throw Invalid( "VP8 frame truncated" );
+    if ( accept_partial ) {
+      corruption_level_ = CORRUPTED_FRAME;
+    }
+    else {
+      throw Invalid( "VP8 frame truncated" );
+    }
   }
 }
 
