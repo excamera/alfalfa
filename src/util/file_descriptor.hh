@@ -18,10 +18,17 @@ private:
   int fd_;
   bool eof_ { false };
 
+  unsigned int read_count_, write_count_;
+
+protected:
+  void register_read( void ) { read_count_++; }
+  void register_write( void ) { write_count_++; }
+
 public:
   // NOTE that the below constructor first seeks file to 0.
-  FileDescriptor( FILE *file ) : fd_( (fseek(file, 0, SEEK_SET), fileno(file)) ) {}
-  FileDescriptor( const int s_fd ) : fd_( s_fd ) {}
+  FileDescriptor( FILE *file ) : fd_( (fseek(file, 0, SEEK_SET), fileno(file)) ),
+                                 read_count_( 0 ), write_count_( 0 ) {}
+  FileDescriptor( const int s_fd ) : fd_( s_fd ), read_count_( 0 ), write_count_( 0 ) {}
 
   ~FileDescriptor()
   {
@@ -41,13 +48,17 @@ public:
 
   bool eof() { return eof_; }
 
+  unsigned int read_count( void ) const { return read_count_; }
+  unsigned int write_count( void ) const { return write_count_; }
+
   /* disallow copying or assigning */
   FileDescriptor( const FileDescriptor & other ) = delete;
   const FileDescriptor & operator=( const FileDescriptor & other ) = delete;
 
   /* allow moves */
   FileDescriptor( FileDescriptor && other )
-    : fd_( other.fd_ ), eof_( other.eof_ )
+    : fd_( other.fd_ ), eof_( other.eof_ ), read_count_( other.read_count_ ),
+      write_count_( other.write_count_ )
   {
     // Need to make sure the old file descriptor doesn't try to
     // close fd_ when it is destructed
@@ -66,6 +77,8 @@ public:
     if ( bytes_written == 0 ) {
       throw std::runtime_error( "write returned 0" );
     }
+
+    register_write();
 
     return begin + bytes_written;
   }
@@ -92,6 +105,8 @@ public:
       }
       amount_left_to_write = amount_left_to_write( bytes_written );
     }
+
+    register_write();
   }
 
   std::string pread( const off_t offset, const size_t length )
@@ -114,6 +129,8 @@ public:
       ret.append( buffer, bytes_read_now );
     }
 
+    register_read();
+
     return ret;
   }
 
@@ -130,6 +147,8 @@ public:
 
       ret.append( char_read );
     }
+
+    register_read();
 
     return ret;
   }
@@ -149,6 +168,8 @@ public:
     if ( bytes_read == 0 ) {
       eof_ = true;
     }
+
+    register_read();
 
     return std::string( buffer, bytes_read );
   }
