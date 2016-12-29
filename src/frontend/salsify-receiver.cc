@@ -2,6 +2,9 @@
 
 #include <cstdlib>
 #include <random>
+#include <map>
+#include <utility>
+#include <tuple>
 
 #include "socket.hh"
 #include "packet.hh"
@@ -76,7 +79,9 @@ int main( int argc, char *argv[] )
 
   size_t next_frame_no = 0;
 
-  Optional<FragmentedFrame> current_frame;
+  /* frame no => FragmentedFrame; used when receiving packets out of order */
+  map<size_t, FragmentedFrame> fragmented_frames;
+
   while ( true ) {
     /* wait for next UDP datagram */
     const auto new_fragment = socket.recv();
@@ -85,39 +90,28 @@ int main( int argc, char *argv[] )
     const Packet packet { new_fragment.payload };
 
     if ( packet.frame_no() < next_frame_no ) {
-      /* we're not interested in this packet anymore */
-      continue;
-    }
-    else if ( packet.frame_no() > next_frame_no ) {
-      /* current frame is not finished yet, but we just received a packet
-         for the next frame, so here we just encode the partial frame and
-         display it and move on to the next frame */
-      cerr << "got a packet for frame #" << packet.frame_no()
-           << ", display previous frame(s)." << endl;
-
-      display_frame( player, display, current_frame.get().partial_frame() );
-
-      next_frame_no = packet.frame_no();
-      current_frame.clear();
-      current_frame.initialize( connection_id, packet );
+      /* we're not interested in this anymore */
       continue;
     }
 
     /* add to current frame */
-    if ( current_frame.initialized() ) {
-      current_frame.get().add_packet( packet );
+    if ( fragmented_frames.count( packet.frame_no() ) ) {
+      fragmented_frames.at( packet.frame_no() ).add_packet( packet );
     } else {
-      current_frame.initialize( connection_id, packet );
+      fragmented_frames.emplace( std::piecewise_construct,
+                                 forward_as_tuple( packet.frame_no() ),
+                                 forward_as_tuple( connection_id, packet ) );
     }
 
-    /* is the frame ready to be decoded? */
-    if ( current_frame.get().complete() ) {
-      cerr << "decoding frame " << current_frame.get().frame_no() << endl;
+    /* is the next frame ready to be decoded? */
+    if ( fragmented_frames.count( next_frame_no ) > 0 and fragmented_frames.at( next_frame_no ).complete() ) {
+      cerr << "decoding frame " << next_frame_no << endl;
 
-      display_frame( player, display, current_frame.get().frame() );
+      display_frame( player, display, fragmented_frames.at( next_frame_no ).frame() );
+      AckPacket( connection_id, next_frame_no ).sendto( socket, new_fragment.source_address );
 
+      fragmented_frames.erase( next_frame_no );
       next_frame_no++;
-      current_frame.clear();
     }
   }
 

@@ -5,6 +5,7 @@
 #include <chrono>
 #include <vector>
 #include <random>
+#include <thread>
 
 #include "yuv4mpeg.hh"
 #include "encoder.hh"
@@ -12,6 +13,13 @@
 #include "packet.hh"
 
 using namespace std;
+
+struct StateInfo
+{
+  uint16_t connection_id;
+  uint32_t last_acked_frame;
+  uint64_t last_ack_timestamp;
+} state_info;
 
 void usage( const char *argv0 )
 {
@@ -26,6 +34,21 @@ unsigned int paranoid_atoi( const string & in )
     throw runtime_error( "invalid unsigned integer: " + in );
   }
   return ret;
+}
+
+void recv_ack_packet( UDPSocket & socket )
+{
+  while ( true ) {
+    auto packet = socket.recv();
+    AckPacket ack( packet.payload );
+
+    if ( ack.connection_id() != state_info.connection_id ) continue;
+
+    state_info.last_acked_frame = ack.frame_no();
+    state_info.last_ack_timestamp = packet.timestamp;
+
+    cerr << "ACK(frame_no: " << ack.frame_no() << ")" << endl;
+  }
 }
 
 int main( int argc, char *argv[] )
@@ -48,10 +71,15 @@ int main( int argc, char *argv[] )
 
   /* get connection_id */
   const uint16_t connection_id = paranoid_atoi( argv[ 5 ] );
-  
+  state_info.connection_id = connection_id;
+
   /* construct Socket for outgoing datagrams */
   UDPSocket socket;
   socket.connect( Address( argv[ 3 ], argv[ 4 ] ) );
+
+  /* create a thread to receive ack packets */
+  thread recv_thread( recv_ack_packet, ref( socket ) );
+  recv_thread.detach();
 
   /* construct the encoder */
   Encoder encoder { input.display_width(), input.display_height(), false /* two-pass */, REALTIME_QUALITY };
