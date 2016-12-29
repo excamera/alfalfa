@@ -98,9 +98,16 @@ int main( int argc, char *argv[] )
     if ( fragmented_frames.count( packet.frame_no() ) ) {
       fragmented_frames.at( packet.frame_no() ).add_packet( packet );
     } else {
-      fragmented_frames.emplace( std::piecewise_construct,
-                                 forward_as_tuple( packet.frame_no() ),
-                                 forward_as_tuple( connection_id, packet ) );
+      /*
+        This was judged "too fancy" by the Code Review Board of Dec. 29, 2016.
+
+        fragmented_frames.emplace( std::piecewise_construct,
+                                   forward_as_tuple( packet.frame_no() ),
+                                   forward_as_tuple( connection_id, packet ) );
+      */
+
+      fragmented_frames.insert( make_pair( packet.frame_no(),
+                                           FragmentedFrame( connection_id, packet ) ) );
     }
 
     /* is the next frame ready to be decoded? */

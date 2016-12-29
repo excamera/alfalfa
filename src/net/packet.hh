@@ -92,6 +92,19 @@ public:
   uint16_t fragments_in_this_frame() const { return fragments_in_this_frame_; }
   std::string frame() const;
   std::string partial_frame() const;
+
+  /* delete copy-constructor and copy-assign operator */
+  FragmentedFrame( const FragmentedFrame & other ) = delete;
+  FragmentedFrame & operator=( const FragmentedFrame & other ) = delete;
+
+  /* allow moving */
+  FragmentedFrame( FragmentedFrame && other ) noexcept
+    : connection_id_( other.connection_id_ ),
+      frame_no_( other.frame_no_ ),
+      fragments_in_this_frame_( other.fragments_in_this_frame_ ),
+      fragments_( move( other.fragments_ ) ),
+      remaining_fragments_( other.remaining_fragments_ )
+  {}
 };
 
 class AckPacket
