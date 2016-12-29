@@ -5,6 +5,7 @@
 #include <chrono>
 #include <vector>
 #include <random>
+#include <limits>
 
 #include "yuv4mpeg.hh"
 #include "encoder.hh"
@@ -13,20 +14,43 @@
 #include "poller.hh"
 
 using namespace std;
+using namespace std::chrono;
 using namespace PollerShortNames;
+
+static uint64_t now_ms()
+{
+  return duration_cast<milliseconds>( system_clock::now().time_since_epoch() ).count();
+}
+
+class AverageRate
+{
+private:
+  uint64_t rate_; // bytes per second
+  uint64_t accumulated_bytes_;
+  uint64_t last_update_; // in milliseconds since epoch
+
+public:
+  AverageRate()
+    : rate_( 0 ), accumulated_bytes_( 0 ), last_update_( now_ms() )
+  {}
+
+  uint64_t rate() { return rate_; }
+
+  void add( const uint64_t, const uint64_t = now_ms() ) {}
+};
 
 struct StateInfo
 {
   uint16_t connection_id;
   uint32_t last_acked_frame;
-  uint64_t last_ack_timestamp;
   vector<uint64_t> accumulative_frame_sizes;
 
-  StateInfo()
-    : connection_id( -1 ), last_acked_frame( -1 ), last_ack_timestamp( -1 ),
+  StateInfo( uint16_t connection_id )
+    : connection_id( connection_id ),
+      last_acked_frame( numeric_limits<uint32_t>::max() ),
       accumulative_frame_sizes()
   {}
-} state_info;
+};
 
 void usage( const char *argv0 )
 {
@@ -63,11 +87,15 @@ int main( int argc, char *argv[] )
 
   /* get connection_id */
   const uint16_t connection_id = paranoid_atoi( argv[ 5 ] );
-  state_info.connection_id = connection_id;
 
   /* construct Socket for outgoing datagrams */
   UDPSocket socket;
   socket.connect( Address( argv[ 3 ], argv[ 4 ] ) );
+  socket.set_timestamps();
+
+  /* keep some information about the current play state and average throughput */
+  StateInfo state_info( connection_id );
+  AverageRate average_rate;
 
   /* used to read ack packets */
   Poller poller;
@@ -82,8 +110,15 @@ int main( int argc, char *argv[] )
         return ResultType::Continue;
       }
 
+      uint64_t acked_size = state_info.accumulative_frame_sizes[ ack.frame_no() ];
+
+      if ( state_info.last_acked_frame != numeric_limits<uint32_t>::max() ) {
+        acked_size -= state_info.accumulative_frame_sizes[ state_info.last_acked_frame ];
+      }
+
+      average_rate.add( acked_size, packet.timestamp );
+
       state_info.last_acked_frame = ack.frame_no();
-      state_info.last_ack_timestamp = packet.timestamp;
 
       cerr << "ACK(frame_no: " << ack.frame_no() << ")" << endl;
 
