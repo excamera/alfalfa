@@ -5,20 +5,27 @@
 #include <chrono>
 #include <vector>
 #include <random>
-#include <thread>
 
 #include "yuv4mpeg.hh"
 #include "encoder.hh"
 #include "socket.hh"
 #include "packet.hh"
+#include "poller.hh"
 
 using namespace std;
+using namespace PollerShortNames;
 
 struct StateInfo
 {
   uint16_t connection_id;
   uint32_t last_acked_frame;
   uint64_t last_ack_timestamp;
+  vector<uint64_t> accumulative_frame_sizes;
+
+  StateInfo()
+    : connection_id( -1 ), last_acked_frame( -1 ), last_ack_timestamp( -1 ),
+      accumulative_frame_sizes()
+  {}
 } state_info;
 
 void usage( const char *argv0 )
@@ -34,21 +41,6 @@ unsigned int paranoid_atoi( const string & in )
     throw runtime_error( "invalid unsigned integer: " + in );
   }
   return ret;
-}
-
-void recv_ack_packet( UDPSocket & socket )
-{
-  while ( true ) {
-    auto packet = socket.recv();
-    AckPacket ack( packet.payload );
-
-    if ( ack.connection_id() != state_info.connection_id ) continue;
-
-    state_info.last_acked_frame = ack.frame_no();
-    state_info.last_ack_timestamp = packet.timestamp;
-
-    cerr << "ACK(frame_no: " << ack.frame_no() << ")" << endl;
-  }
 }
 
 int main( int argc, char *argv[] )
@@ -77,9 +69,28 @@ int main( int argc, char *argv[] )
   UDPSocket socket;
   socket.connect( Address( argv[ 3 ], argv[ 4 ] ) );
 
-  /* create a thread to receive ack packets */
-  thread recv_thread( recv_ack_packet, ref( socket ) );
-  recv_thread.detach();
+  /* used to read ack packets */
+  Poller poller;
+  poller.add_action( Poller::Action( socket, Direction::In,
+    [&]()
+    {
+      auto packet = socket.recv();
+      AckPacket ack( packet.payload );
+
+      if ( ack.connection_id() != state_info.connection_id ) {
+        /* this is not an ack for this session! */
+        return ResultType::Continue;
+      }
+
+      state_info.last_acked_frame = ack.frame_no();
+      state_info.last_ack_timestamp = packet.timestamp;
+
+      cerr << "ACK(frame_no: " << ack.frame_no() << ")" << endl;
+
+      return ResultType::Continue;
+    },
+    [&]() { return not socket.eof(); }
+  ) );
 
   /* construct the encoder */
   Encoder encoder { input.display_width(), input.display_height(), false /* two-pass */, REALTIME_QUALITY };
@@ -97,10 +108,17 @@ int main( int argc, char *argv[] )
     const int ms_elapsed = chrono::duration_cast<chrono::milliseconds>( encode_ending - encode_beginning ).count();
     cerr << "done (" << ms_elapsed << " ms, size=" << frame.size() << ")." << endl;
 
+    state_info.accumulative_frame_sizes.push_back(
+      ( frame_no ) ? state_info.accumulative_frame_sizes[ frame_no - 1 ] + frame.size()
+                   : frame.size() );
+
     cerr << "Sending frame #" << frame_no << "...";
     FragmentedFrame ff { connection_id, frame_no, frame };
     ff.send( socket );
     cerr << "done." << endl;
+
+    /* let's see if we have received any acks, but we don't wait for it. */
+    poller.poll( 0 );
   }
 
   return EXIT_SUCCESS;

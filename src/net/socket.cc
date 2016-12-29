@@ -138,9 +138,11 @@ UDPSocket::received_datagram UDPSocket::recv( void )
   }
 
   received_datagram ret = { Address( datagram_source_address,
-				     header.msg_namelen ),
-			    timestamp,
-			    string( msg_payload, recv_len ) };
+                                     header.msg_namelen ),
+                            timestamp,
+                            string( msg_payload, recv_len ) };
+
+  register_read();
 
   return ret;
 }
@@ -159,6 +161,8 @@ void UDPSocket::sendto( const Address & destination, const string & payload )
   if ( size_t( bytes_sent ) != payload.size() ) {
     throw runtime_error( "datagram payload too big for sendto()" );
   }
+
+  register_write();
 }
 
 /* send datagram to connected address */
@@ -173,6 +177,8 @@ void UDPSocket::send( const string & payload )
   if ( size_t( bytes_sent ) != payload.size() ) {
     throw runtime_error( "datagram payload too big for send()" );
   }
+
+  register_write();
 }
 
 /* set socket option */

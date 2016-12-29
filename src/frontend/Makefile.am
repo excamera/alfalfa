@@ -54,7 +54,6 @@ comp_states_LDADD = $(BASE_LDADD)
 
 salsify_sender_SOURCES = salsify-sender.cc
 salsify_sender_LDADD = ../net/libnet.a ../encoder/libalfalfaencoder.a $(BASE_LDADD)
-salsify_sender_LDFLAGS = -pthread
 
 salsify_receiver_SOURCES = salsify-receiver.cc
 salsify_receiver_CPPFLAGS = $(AM_CPPFLAGS) $(GLU_CFLAGS) $(GLEW_CFLAGS) $(GLFW3_CFLAGS)
