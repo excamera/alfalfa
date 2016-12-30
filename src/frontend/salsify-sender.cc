@@ -88,7 +88,9 @@ int main( int argc, char *argv[] )
       }
 
       cerr << "ACK(frame: " << ack.frame_no()
-           << ", fragment:" << ack.fragment_no() << ")" << endl;
+           << ", fragment: " << ack.fragment_no()
+           << ", avg delay: " << ack.avg_delay()
+           << ")" << endl;
 
       return ResultType::Continue;
     },

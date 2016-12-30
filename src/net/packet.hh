@@ -19,7 +19,7 @@ private:
   uint32_t frame_no_;
   uint16_t fragment_no_;
   uint16_t fragments_in_this_frame_;
-  uint32_t time_to_next_;
+  uint32_t time_to_next_; /* microseconds */
 
   std::string payload_;
 
@@ -118,10 +118,11 @@ private:
   uint16_t connection_id_;
   uint32_t frame_no_;
   uint16_t fragment_no_;
+  uint32_t avg_delay_;
 
 public:
   AckPacket( const uint16_t connection_id, const uint32_t frame_no,
-             const uint16_t fragment_no );
+             const uint16_t fragment_no, const uint32_t avg_delay );
 
   AckPacket( const Chunk & str );
 
@@ -133,6 +134,7 @@ public:
   uint16_t connection_id() const { return connection_id_; }
   uint32_t frame_no() const { return frame_no_; }
   uint16_t fragment_no() const { return fragment_no_; }
+  uint32_t avg_delay() const { return avg_delay_; }
 };
 
 #endif /* PACKET_HH */

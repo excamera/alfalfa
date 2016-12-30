@@ -14,6 +14,33 @@
 
 using namespace std;
 
+class AverageInterPacketDelay
+{
+private:
+  static constexpr double ALPHA = 0.1;
+
+  double value_ { -1.0 };
+  uint64_t last_update_{ 0 };
+
+public:
+  void add( const uint64_t timestamp, const int32_t grace )
+  {
+    assert( timestamp >= last_update_ );
+
+    if ( value_ < 0 ) {
+      value_ = 0;
+    }
+    else {
+      double new_value = max( 0l, static_cast<int64_t>( timestamp - last_update_ - grace ) );
+      value_ = ALPHA * new_value + ( 1 - ALPHA ) * value_;
+    }
+
+    last_update_ = timestamp;
+  }
+
+  uint32_t int_value() const { return static_cast<uint32_t>( value_ ); }
+};
+
 void usage( const char *argv0 )
 {
   cerr << "Usage: " << argv0 << " PORT WIDTH HEIGHT" << endl;
@@ -69,6 +96,7 @@ int main( int argc, char *argv[] )
   /* construct Socket for incoming  datagrams */
   UDPSocket socket;
   socket.bind( Address( "0", argv[ 1 ] ) );
+  socket.set_timestamps();
 
   /* construct FramePlayer */
   FramePlayer player( paranoid_atoi( argv[ 2 ] ), paranoid_atoi( argv[ 3 ] ) );
@@ -77,10 +105,12 @@ int main( int argc, char *argv[] )
   /* construct VideoDisplay */
   VideoDisplay display { player.example_raster() };
 
-  size_t next_frame_no = 0;
-
   /* frame no => FragmentedFrame; used when receiving packets out of order */
   map<size_t, FragmentedFrame> fragmented_frames;
+  size_t next_frame_no = 0;
+
+  /* EWMA */
+  AverageInterPacketDelay avg_delay;
 
   while ( true ) {
     /* wait for next UDP datagram */
@@ -93,6 +123,11 @@ int main( int argc, char *argv[] )
       /* we're not interested in this anymore */
       continue;
     }
+
+    avg_delay.add( new_fragment.timestamp, packet.time_to_next() );
+
+    AckPacket( connection_id, packet.frame_no(), packet.fragment_no(),
+               avg_delay.int_value() ).sendto( socket, new_fragment.source_address );
 
     /* add to current frame */
     if ( fragmented_frames.count( packet.frame_no() ) ) {
