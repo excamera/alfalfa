@@ -112,31 +112,22 @@ class AckPacket
 private:
   uint16_t connection_id_;
   uint32_t frame_no_;
+  uint16_t fragment_no_;
 
 public:
-  AckPacket( const uint16_t connection_id, const uint32_t frame_no )
-    : connection_id_( connection_id ), frame_no_( frame_no )
-  {}
+  AckPacket( const uint16_t connection_id, const uint32_t frame_no,
+             const uint16_t fragment_no );
 
-  AckPacket( const Chunk & str )
-    : connection_id_( str( 0, 2 ).le16() ),
-      frame_no_( str( 2, 4 ).le32() )
-  {}
+  AckPacket( const Chunk & str );
 
-  std::string to_string()
-  {
-    return Packet::put_header_field( connection_id_ )
-         + Packet::put_header_field( frame_no_);
-  }
+  std::string to_string();
 
-  void sendto( UDPSocket & socket, const Address & addr )
-  {
-    socket.sendto( addr, to_string() );
-  }
+  void sendto( UDPSocket & socket, const Address & addr );
 
   /* getters */
   uint16_t connection_id() const { return connection_id_; }
   uint32_t frame_no() const { return frame_no_; }
+  uint16_t fragment_no() const { return fragment_no_; }
 };
 
 #endif /* PACKET_HH */

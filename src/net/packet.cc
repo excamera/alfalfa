@@ -209,3 +209,29 @@ string FragmentedFrame::partial_frame() const
 
   return ret;
 }
+
+/* AckPacket */
+
+AckPacket::AckPacket( const uint16_t connection_id, const uint32_t frame_no,
+                      const uint16_t fragment_no )
+  : connection_id_( connection_id ), frame_no_( frame_no ),
+    fragment_no_( fragment_no )
+{}
+
+AckPacket::AckPacket( const Chunk & str )
+  : connection_id_( str( 0, 2 ).le16() ),
+    frame_no_( str( 2, 4 ).le32() ),
+    fragment_no_( str( 6, 2 ).le16() )
+{}
+
+std::string AckPacket::to_string()
+{
+  return Packet::put_header_field( connection_id_ )
+       + Packet::put_header_field( frame_no_ )
+       + Packet::put_header_field( fragment_no_ );
+}
+
+void AckPacket::sendto( UDPSocket & socket, const Address & addr )
+{
+  socket.sendto( addr, to_string() );
+}

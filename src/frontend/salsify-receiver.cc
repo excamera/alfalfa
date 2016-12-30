@@ -115,7 +115,6 @@ int main( int argc, char *argv[] )
       cerr << "decoding frame " << next_frame_no << endl;
 
       display_frame( player, display, fragmented_frames.at( next_frame_no ).frame() );
-      AckPacket( connection_id, next_frame_no ).sendto( socket, new_fragment.source_address );
 
       fragmented_frames.erase( next_frame_no );
       next_frame_no++;

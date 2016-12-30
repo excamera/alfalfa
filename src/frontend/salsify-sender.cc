@@ -17,38 +17,16 @@ using namespace std;
 using namespace std::chrono;
 using namespace PollerShortNames;
 
-static uint64_t now_ms()
-{
-  return duration_cast<milliseconds>( system_clock::now().time_since_epoch() ).count();
-}
-
-class AverageRate
-{
-private:
-  uint64_t rate_; // bytes per second
-  uint64_t accumulated_bytes_;
-  uint64_t last_update_; // in milliseconds since epoch
-
-public:
-  AverageRate()
-    : rate_( 0 ), accumulated_bytes_( 0 ), last_update_( now_ms() )
-  {}
-
-  uint64_t rate() { return rate_; }
-
-  void add( const uint64_t, const uint64_t = now_ms() ) {}
-};
-
 struct StateInfo
 {
   uint16_t connection_id;
   uint32_t last_acked_frame;
-  vector<uint64_t> accumulative_frame_sizes;
+  vector<uint64_t> cumulative_frame_sizes;
 
   StateInfo( uint16_t connection_id )
     : connection_id( connection_id ),
       last_acked_frame( numeric_limits<uint32_t>::max() ),
-      accumulative_frame_sizes()
+      cumulative_frame_sizes()
   {}
 };
 
@@ -95,7 +73,6 @@ int main( int argc, char *argv[] )
 
   /* keep some information about the current play state and average throughput */
   StateInfo state_info( connection_id );
-  AverageRate average_rate;
 
   /* used to read ack packets */
   Poller poller;
@@ -110,17 +87,8 @@ int main( int argc, char *argv[] )
         return ResultType::Continue;
       }
 
-      uint64_t acked_size = state_info.accumulative_frame_sizes[ ack.frame_no() ];
-
-      if ( state_info.last_acked_frame != numeric_limits<uint32_t>::max() ) {
-        acked_size -= state_info.accumulative_frame_sizes[ state_info.last_acked_frame ];
-      }
-
-      average_rate.add( acked_size, packet.timestamp );
-
-      state_info.last_acked_frame = ack.frame_no();
-
-      cerr << "ACK(frame_no: " << ack.frame_no() << ")" << endl;
+      cerr << "ACK(frame: " << ack.frame_no()
+           << ", fragment:" << ack.fragment_no() << ")" << endl;
 
       return ResultType::Continue;
     },
@@ -143,8 +111,8 @@ int main( int argc, char *argv[] )
     const int ms_elapsed = chrono::duration_cast<chrono::milliseconds>( encode_ending - encode_beginning ).count();
     cerr << "done (" << ms_elapsed << " ms, size=" << frame.size() << ")." << endl;
 
-    state_info.accumulative_frame_sizes.push_back(
-      ( frame_no ) ? state_info.accumulative_frame_sizes[ frame_no - 1 ] + frame.size()
+    state_info.cumulative_frame_sizes.push_back(
+      ( frame_no ) ? state_info.cumulative_frame_sizes[ frame_no - 1 ] + frame.size()
                    : frame.size() );
 
     cerr << "Sending frame #" << frame_no << "...";
