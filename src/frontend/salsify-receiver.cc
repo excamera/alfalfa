@@ -111,6 +111,7 @@ int main( int argc, char *argv[] )
 
   /* EWMA */
   AverageInterPacketDelay avg_delay;
+  size_t next_packet_grace = 0;
 
   while ( true ) {
     /* wait for next UDP datagram */
@@ -124,7 +125,8 @@ int main( int argc, char *argv[] )
       continue;
     }
 
-    avg_delay.add( new_fragment.timestamp_us, packet.time_to_next() );
+    avg_delay.add( new_fragment.timestamp_us, next_packet_grace );
+    next_packet_grace = packet.time_to_next();
 
     AckPacket( connection_id, packet.frame_no(), packet.fragment_no(),
                avg_delay.int_value() ).sendto( socket, new_fragment.source_address );

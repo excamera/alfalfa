@@ -17,6 +17,27 @@ using namespace std;
 using namespace std::chrono;
 using namespace PollerShortNames;
 
+class EncodeTimeEWMA
+{
+private:
+  static constexpr double ALPHA = 0.25;
+
+  double value_ { -1 };
+
+public:
+  void add( const uint64_t new_value )
+  {
+    if ( value_ < 0 ) {
+      value_ = new_value;
+    }
+    else {
+      value_ = ALPHA * new_value + ( 1 - ALPHA ) * value_;
+    }
+  }
+
+  uint32_t int_value() { return static_cast<uint32_t>( value_ ); }
+};
+
 struct StateInfo
 {
   uint16_t connection_id;
@@ -71,8 +92,10 @@ int main( int argc, char *argv[] )
   socket.connect( Address( argv[ 3 ], argv[ 4 ] ) );
   socket.set_timestamps();
 
-  /* keep some information about the current play state and average throughput */
+  /* keep some information about the current play state and average encode time */
   StateInfo state_info( connection_id );
+  EncodeTimeEWMA avg_encode_time;
+
 
   /* used to read ack packets */
   Poller poller;
@@ -110,15 +133,19 @@ int main( int argc, char *argv[] )
     const auto encode_beginning = chrono::system_clock::now();
     vector<uint8_t> frame = encoder.encode_with_quantizer( raster.get(), y_ac_qi );
     const auto encode_ending = chrono::system_clock::now();
-    const int ms_elapsed = chrono::duration_cast<chrono::milliseconds>( encode_ending - encode_beginning ).count();
-    cerr << "done (" << ms_elapsed << " ms, size=" << frame.size() << ")." << endl;
+    const int us_elapsed = chrono::duration_cast<chrono::microseconds>( encode_ending - encode_beginning ).count();
+
+
+    avg_encode_time.add( us_elapsed );
+    cerr << "done (" << us_elapsed << " us, "
+         << "avg=" << avg_encode_time.int_value()<< " us, size=" << frame.size() << " bytes)." << endl;
 
     state_info.cumulative_frame_sizes.push_back(
       ( frame_no ) ? state_info.cumulative_frame_sizes[ frame_no - 1 ] + frame.size()
                    : frame.size() );
 
     cerr << "Sending frame #" << frame_no << "...";
-    FragmentedFrame ff { connection_id, frame_no, 0 /* time to next frame */, frame };
+    FragmentedFrame ff { connection_id, frame_no, avg_encode_time.int_value() /* time to next frame */, frame };
     ff.send( socket );
     cerr << "done." << endl;
 
