@@ -77,13 +77,16 @@ void Socket::connect( const Address & address )
 /* nanoseconds per millisecond */
 static const uint64_t MILLION = 1000000;
 
+/* nanoseconds per microsecond */
+static const uint64_t THOUSAND = 1000;
+
 /* nanoseconds per second */
 static const uint64_t BILLION = 1000 * MILLION;
 
-static uint64_t timestamp_ms_raw( const timespec & ts )
+static uint64_t timestamp_microsecs_raw( const timespec & ts )
 {
   const uint64_t nanos = ts.tv_sec * BILLION + ts.tv_nsec;
-  return nanos / MILLION;
+  return nanos / THOUSAND;
 }
 
 /* receive datagram and where it came from */
@@ -132,7 +135,7 @@ UDPSocket::received_datagram UDPSocket::recv( void )
     if ( ts_hdr->cmsg_level == SOL_SOCKET
 	 and ts_hdr->cmsg_type == SO_TIMESTAMPNS ) {
       const timespec * const kernel_time = reinterpret_cast<timespec *>( CMSG_DATA( ts_hdr ) );
-      timestamp = timestamp_ms_raw( *kernel_time );
+      timestamp = timestamp_microsecs_raw( *kernel_time );
     }
     ts_hdr = CMSG_NXTHDR( &header, ts_hdr );
   }
