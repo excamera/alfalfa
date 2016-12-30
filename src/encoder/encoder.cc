@@ -522,13 +522,13 @@ vector<uint8_t> Encoder::encode_with_target_size( const VP8Raster & raster, cons
     throw runtime_error( "scaling is not supported" );
   }
 
-  uint8_t y_qi_min = 0;
-  uint8_t y_qi_max = 127;
+  int y_qi_min = 0;
+  int y_qi_max = 127;
 
   uint8_t best_y_qi = numeric_limits<uint8_t>::max();
 
   size_t estimated_size = target_size;
-  
+
   while ( y_qi_min <= y_qi_max ) {
     size_t y_qi = ( y_qi_min + y_qi_max ) / 2;
     estimated_size = estimate_frame_size( raster, y_qi );

@@ -38,6 +38,11 @@ public:
   uint32_t int_value() { return static_cast<uint32_t>( value_ ); }
 };
 
+size_t target_size( uint32_t avg_delay )
+{
+  return static_cast<size_t>( ( 1e6 * 1400.0 / avg_delay ) / 24 /* fps */ );
+}
+
 void usage( const char *argv0 )
 {
   cerr << "Usage: " << argv0 << " INPUT QUANTIZER HOST PORT CONNECTION_ID" << endl;
@@ -82,6 +87,9 @@ int main( int argc, char *argv[] )
   /* keep the average encode time */
   EncodeTimeEWMA avg_encode_time;
 
+  /* average inter-packet delay, reported by receiver */
+  uint32_t avg_delay = numeric_limits<uint32_t>::max();
+
   /* used to read ack packets */
   Poller poller;
   poller.add_action( Poller::Action( socket, Direction::In,
@@ -94,6 +102,8 @@ int main( int argc, char *argv[] )
         /* this is not an ack for this session! */
         return ResultType::Continue;
       }
+
+      avg_delay = ack.avg_delay();
 
       cerr << "ACK(frame: " << ack.frame_no() << ", "
            << "fragment: " << ack.fragment_no() << ", "
@@ -116,7 +126,15 @@ int main( int argc, char *argv[] )
     cerr << "Encoding frame #" << frame_no << "...";
 
     const auto encode_beginning = chrono::system_clock::now();
-    vector<uint8_t> frame = encoder.encode_with_quantizer( raster.get(), y_ac_qi );
+    vector<uint8_t> frame;
+
+    if ( avg_delay == numeric_limits<uint32_t>::max() ) {
+      frame = encoder.encode_with_quantizer( raster.get(), y_ac_qi );
+    }
+    else {
+      frame = encoder.encode_with_target_size( raster.get(), target_size( avg_delay ) );
+    }
+
     const auto encode_ending = chrono::system_clock::now();
     const int us_elapsed = chrono::duration_cast<chrono::microseconds>( encode_ending - encode_beginning ).count();
 
@@ -132,7 +150,11 @@ int main( int argc, char *argv[] )
     cerr << "done." << endl;
 
     /* let's see if we have received any acks, but we don't wait for it. */
-    poller.poll( 0 );
+    while ( true ) {
+      if ( poller.poll( 0 ).result != Poller::Result::Type::Success ) {
+        break;
+      }
+    }
   }
 
   return EXIT_SUCCESS;
