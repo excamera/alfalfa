@@ -38,19 +38,6 @@ public:
   uint32_t int_value() { return static_cast<uint32_t>( value_ ); }
 };
 
-struct StateInfo
-{
-  uint16_t connection_id;
-  uint32_t last_acked_frame;
-  vector<uint64_t> cumulative_frame_sizes;
-
-  StateInfo( uint16_t connection_id )
-    : connection_id( connection_id ),
-      last_acked_frame( numeric_limits<uint32_t>::max() ),
-      cumulative_frame_sizes()
-  {}
-};
-
 void usage( const char *argv0 )
 {
   cerr << "Usage: " << argv0 << " INPUT QUANTIZER HOST PORT CONNECTION_ID" << endl;
@@ -92,10 +79,8 @@ int main( int argc, char *argv[] )
   socket.connect( Address( argv[ 3 ], argv[ 4 ] ) );
   socket.set_timestamps();
 
-  /* keep some information about the current play state and average encode time */
-  StateInfo state_info( connection_id );
+  /* keep the average encode time */
   EncodeTimeEWMA avg_encode_time;
-
 
   /* used to read ack packets */
   Poller poller;
@@ -105,7 +90,7 @@ int main( int argc, char *argv[] )
       auto packet = socket.recv();
       AckPacket ack( packet.payload );
 
-      if ( ack.connection_id() != state_info.connection_id ) {
+      if ( ack.connection_id() != connection_id ) {
         /* this is not an ack for this session! */
         return ResultType::Continue;
       }
@@ -135,14 +120,11 @@ int main( int argc, char *argv[] )
     const auto encode_ending = chrono::system_clock::now();
     const int us_elapsed = chrono::duration_cast<chrono::microseconds>( encode_ending - encode_beginning ).count();
 
-
     avg_encode_time.add( us_elapsed );
-    cerr << "done (" << us_elapsed << " us, "
-         << "avg=" << avg_encode_time.int_value()<< " us, size=" << frame.size() << " bytes)." << endl;
 
-    state_info.cumulative_frame_sizes.push_back(
-      ( frame_no ) ? state_info.cumulative_frame_sizes[ frame_no - 1 ] + frame.size()
-                   : frame.size() );
+    cerr << "done (" << us_elapsed << " us, "
+         << "avg=" << avg_encode_time.int_value()<< " us, "
+         << "size=" << frame.size() << " bytes)." << endl;
 
     cerr << "Sending frame #" << frame_no << "...";
     FragmentedFrame ff { connection_id, frame_no, avg_encode_time.int_value() /* time to next frame */, frame };
