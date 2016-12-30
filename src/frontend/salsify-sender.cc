@@ -116,7 +116,7 @@ int main( int argc, char *argv[] )
                    : frame.size() );
 
     cerr << "Sending frame #" << frame_no << "...";
-    FragmentedFrame ff { connection_id, frame_no, frame };
+    FragmentedFrame ff { connection_id, frame_no, 0 /* time to next frame */, frame };
     ff.send( socket );
     cerr << "done." << endl;
 

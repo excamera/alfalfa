@@ -19,6 +19,7 @@ private:
   uint32_t frame_no_;
   uint16_t fragment_no_;
   uint16_t fragments_in_this_frame_;
+  uint32_t time_to_next_;
 
   std::string payload_;
 
@@ -34,6 +35,7 @@ public:
   uint32_t frame_no() const { return frame_no_; }
   uint16_t fragment_no() const { return fragment_no_; }
   uint16_t fragments_in_this_frame() const { return fragments_in_this_frame_; }
+  uint32_t time_to_next() const { return time_to_next_; }
   const std::string & payload() const { return payload_; }
 
   /* construct outgoing Packet */
@@ -41,6 +43,7 @@ public:
           const uint16_t connection_id,
           const uint32_t frame_no,
           const uint16_t fragment_no,
+          const uint16_t time_to_next,
           size_t & next_fragment_start );
 
   /* construct incoming Packet */
@@ -53,6 +56,7 @@ public:
   std::string to_string() const;
 
   void set_fragments_in_this_frame( const uint16_t x );
+  void set_time_to_next( const uint32_t val ) { time_to_next_ = val; }
 };
 
 class FragmentedFrame
@@ -70,6 +74,7 @@ public:
   /* construct outgoing FragmentedFrame */
   FragmentedFrame( const uint16_t connection_id,
                    const uint32_t frame_no,
+                   const uint32_t time_to_next_frame,
                    const std::vector<uint8_t> & whole_frame );
 
   /* construct incoming FragmentedFrame from a Packet */
