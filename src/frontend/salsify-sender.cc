@@ -38,9 +38,10 @@ public:
   uint32_t int_value() { return static_cast<uint32_t>( value_ ); }
 };
 
-size_t target_size( uint32_t avg_delay )
+size_t target_size( uint32_t avg_delay, uint64_t last_acked, uint64_t last_sent )
 {
-  return static_cast<size_t>( ( 1e6 * 1400.0 / avg_delay ) / 24 /* fps */ );
+  uint32_t max_delay = 100 * 1000; // 100 ms = 100,000 us
+  return 1400 * max( 0l, static_cast<int64_t>( max_delay / avg_delay - ( last_sent - last_acked ) ) );
 }
 
 void usage( const char *argv0 )
@@ -84,11 +85,12 @@ int main( int argc, char *argv[] )
   socket.connect( Address( argv[ 3 ], argv[ 4 ] ) );
   socket.set_timestamps();
 
-  /* keep the average encode time */
-  EncodeTimeEWMA avg_encode_time;
-
   /* average inter-packet delay, reported by receiver */
   uint32_t avg_delay = numeric_limits<uint32_t>::max();
+
+  /* keep the number of fragments per frame */
+  vector<uint64_t> cumulative_fpf;
+  uint64_t last_acked = numeric_limits<uint64_t>::max();
 
   /* used to read ack packets */
   Poller poller;
@@ -105,10 +107,15 @@ int main( int argc, char *argv[] )
 
       avg_delay = ack.avg_delay();
 
+      /*
       cerr << "ACK(frame: " << ack.frame_no() << ", "
            << "fragment: " << ack.fragment_no() << ", "
            << "avg delay: " << ack.avg_delay()
            << ")" << endl;
+      */
+
+      last_acked = ( ack.frame_no() > 0 ) ? ( cumulative_fpf[ ack.frame_no() - 1 ] + ack.fragment_no() )
+                                          : ack.fragment_no();
 
       return ResultType::Continue;
     },
@@ -117,6 +124,9 @@ int main( int argc, char *argv[] )
 
   /* construct the encoder */
   Encoder encoder { input.display_width(), input.display_height(), false /* two-pass */, REALTIME_QUALITY };
+
+  /* keep the average encode time */
+  EncodeTimeEWMA avg_encode_time;
 
   /* encode frames to stdout */
   unsigned int frame_no = 0;
@@ -132,7 +142,15 @@ int main( int argc, char *argv[] )
       frame = encoder.encode_with_quantizer( raster.get(), y_ac_qi );
     }
     else {
-      frame = encoder.encode_with_target_size( raster.get(), target_size( avg_delay ) );
+      size_t frame_size = target_size( avg_delay, last_acked, cumulative_fpf.back() );
+
+      if ( frame_size <= 0 ) {
+        cerr << "skipping frame." << endl;
+        continue;
+      }
+
+      cerr << "encoding with target size=" << frame_size << endl;
+      frame = encoder.encode_with_target_size( raster.get(), frame_size );
     }
 
     const auto encode_ending = chrono::system_clock::now();
@@ -148,6 +166,9 @@ int main( int argc, char *argv[] )
     FragmentedFrame ff { connection_id, frame_no, avg_encode_time.int_value() /* time to next frame */, frame };
     ff.send( socket );
     cerr << "done." << endl;
+
+    cumulative_fpf.push_back( ( frame_no > 0 ) ? ( cumulative_fpf[ frame_no - 1 ] + ff.fragments_in_this_frame() )
+                                               : ff.fragments_in_this_frame() );
 
     /* let's see if we have received any acks, but we don't wait for it. */
     while ( true ) {
