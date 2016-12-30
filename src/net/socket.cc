@@ -83,7 +83,7 @@ static const uint64_t THOUSAND = 1000;
 /* nanoseconds per second */
 static const uint64_t BILLION = 1000 * MILLION;
 
-static uint64_t timestamp_microsecs_raw( const timespec & ts )
+static uint64_t timestamp_us_raw( const timespec & ts )
 {
   const uint64_t nanos = ts.tv_sec * BILLION + ts.tv_nsec;
   return nanos / THOUSAND;
@@ -127,7 +127,7 @@ UDPSocket::received_datagram UDPSocket::recv( void )
     throw runtime_error( "recvfrom (unhandled flag)" );
   }
 
-  uint64_t timestamp = -1;
+  uint64_t timestamp_us = -1;
 
   /* find the timestamp header (if there is one) */
   cmsghdr *ts_hdr = CMSG_FIRSTHDR( &header );
@@ -135,14 +135,14 @@ UDPSocket::received_datagram UDPSocket::recv( void )
     if ( ts_hdr->cmsg_level == SOL_SOCKET
 	 and ts_hdr->cmsg_type == SO_TIMESTAMPNS ) {
       const timespec * const kernel_time = reinterpret_cast<timespec *>( CMSG_DATA( ts_hdr ) );
-      timestamp = timestamp_microsecs_raw( *kernel_time );
+      timestamp_us = timestamp_us_raw( *kernel_time );
     }
     ts_hdr = CMSG_NXTHDR( &header, ts_hdr );
   }
 
   received_datagram ret = { Address( datagram_source_address,
                                      header.msg_namelen ),
-                            timestamp,
+                            timestamp_us,
                             string( msg_payload, recv_len ) };
 
   register_read();

@@ -23,19 +23,19 @@ private:
   uint64_t last_update_{ 0 };
 
 public:
-  void add( const uint64_t timestamp, const int32_t grace )
+  void add( const uint64_t timestamp_us, const int32_t grace )
   {
-    assert( timestamp >= last_update_ );
+    assert( timestamp_us >= last_update_ );
 
     if ( value_ < 0 ) {
       value_ = 0;
     }
     else {
-      double new_value = max( 0l, static_cast<int64_t>( timestamp - last_update_ - grace ) );
+      double new_value = max( 0l, static_cast<int64_t>( timestamp_us - last_update_ - grace ) );
       value_ = ALPHA * new_value + ( 1 - ALPHA ) * value_;
     }
 
-    last_update_ = timestamp;
+    last_update_ = timestamp_us;
   }
 
   uint32_t int_value() const { return static_cast<uint32_t>( value_ ); }
@@ -124,7 +124,7 @@ int main( int argc, char *argv[] )
       continue;
     }
 
-    avg_delay.add( new_fragment.timestamp, packet.time_to_next() );
+    avg_delay.add( new_fragment.timestamp_us, packet.time_to_next() );
 
     AckPacket( connection_id, packet.frame_no(), packet.fragment_no(),
                avg_delay.int_value() ).sendto( socket, new_fragment.source_address );

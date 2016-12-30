@@ -48,7 +48,7 @@ public:
 
   struct received_datagram {
     Address source_address;
-    uint64_t timestamp;
+    uint64_t timestamp_us;
     std::string payload;
   };
 
