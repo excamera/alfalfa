@@ -72,7 +72,7 @@ int main( int argc, char *argv[] )
 
   /* construct FramePlayer */
   FramePlayer player( paranoid_atoi( argv[ 2 ] ), paranoid_atoi( argv[ 3 ] ) );
-  player.set_error_concealment( true );
+  // player.set_error_concealment( true );
 
   /* construct VideoDisplay */
   VideoDisplay display { player.example_raster() };
