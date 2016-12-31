@@ -57,6 +57,8 @@ public:
   size_t frame_length() { return header_.frame_length(); }
   size_t y_plane_length() { return header_.y_plane_length(); }
   size_t uv_plane_length() { return header_.uv_plane_length(); }
+
+  FileDescriptor & fd() { return fd_; }
 };
 
 class YUV4MPEGFrameWriter

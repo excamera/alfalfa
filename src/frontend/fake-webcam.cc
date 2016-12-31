@@ -66,6 +66,7 @@ int main( int argc, char *argv[] )
       file_header.fps_numerator = frames_per_second;
       file_header.fps_denominator = 1;
       stdout.write( file_header.to_string() );
+      initialized = true;
     }
 
     /* send the frame */
