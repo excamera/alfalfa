@@ -78,6 +78,10 @@ int main( int argc, char *argv[] )
   vector<uint64_t> cumulative_fpf;
   uint64_t last_acked = numeric_limits<uint64_t>::max();
 
+  /* maximum number of frames to be skipped in a row */
+  const size_t MAX_SKIPPED = 4;
+  size_t skipped_count = 0;
+
   Poller poller;
   poller.add_action( Poller::Action( socket, Direction::In,
     [&]()
@@ -132,13 +136,21 @@ int main( int argc, char *argv[] )
       else {
         size_t frame_size = target_size( avg_delay, last_acked, cumulative_fpf.back() );
 
-        if ( frame_size <= 0 ) {
+        if ( frame_size <= 0 and skipped_count < MAX_SKIPPED ) {
+          skipped_count++;
           cerr << "skipping frame." << endl;
           return ResultType::Continue;
         }
-
-        cerr << "encoding with target size=" << frame_size << endl;
-        frame = encoder.encode_with_target_size( raster.get(), frame_size );
+        else if ( frame_size == 0 ) {
+          skipped_count = 0;
+          cerr << "too many skipped frames, let's send one with a low quality." << endl;
+          frame = encoder.encode_with_quantizer( raster.get(), 96 );
+        }
+        else {
+          skipped_count = 0;
+          cerr << "encoding with target size=" << frame_size << endl;
+          frame = encoder.encode_with_target_size( raster.get(), frame_size );
+        }
       }
 
       const auto encode_ending = chrono::system_clock::now();
