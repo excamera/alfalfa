@@ -116,12 +116,14 @@ int main( int argc, char *argv[] )
            << ")" << endl;
       */
 
-      last_acked = ( ack.frame_no() > 0 ) ? ( cumulative_fpf[ ack.frame_no() - 1 ] + ack.fragment_no() )
-                                          : ack.fragment_no();
+      last_acked = ( ack.frame_no() > 0 )
+                   ? ( cumulative_fpf[ ack.frame_no() - 1 ] + ack.fragment_no() )
+                   : ack.fragment_no();
 
       return ResultType::Continue;
     },
-                                     [&]() { return not input.fd().eof(); } ) );
+    [&]() { return not input.fd().eof(); } )
+  );
 
   /* construct the encoder */
   Encoder encoder { input.display_width(), input.display_height(), false /* two-pass */, REALTIME_QUALITY };
@@ -131,54 +133,56 @@ int main( int argc, char *argv[] )
 
   /* fetch frames from webcam */
   unsigned int frame_no = 0;
-  poller.add_action( Poller::Action( input.fd(), Direction::In, [&]() -> Result {
-        Optional<RasterHandle> raster = input.get_next_frame();
+  poller.add_action( Poller::Action( input.fd(), Direction::In,
+    [&]() -> Result {
+      Optional<RasterHandle> raster = input.get_next_frame();
 
-        if ( not raster.initialized() ) {
-          return Result( ResultType::Exit, EXIT_FAILURE );
+      if ( not raster.initialized() ) {
+        return Result( ResultType::Exit, EXIT_FAILURE );
+      }
+
+      cerr << "Encoding frame #" << frame_no << "...";
+
+      const auto encode_beginning = chrono::system_clock::now();
+      vector<uint8_t> frame;
+
+      if ( avg_delay == numeric_limits<uint32_t>::max() ) {
+        frame = encoder.encode_with_quantizer( raster.get(), y_ac_qi );
+      }
+      else {
+        size_t frame_size = target_size( avg_delay, last_acked, cumulative_fpf.back() );
+
+        if ( frame_size <= 0 ) {
+          cerr << "skipping frame." << endl;
+          return ResultType::Continue;
         }
 
-        cerr << "Encoding frame #" << frame_no << "...";
+        cerr << "encoding with target size=" << frame_size << endl;
+        frame = encoder.encode_with_target_size( raster.get(), frame_size );
+      }
 
-        const auto encode_beginning = chrono::system_clock::now();
-        vector<uint8_t> frame;
+      const auto encode_ending = chrono::system_clock::now();
+      const int us_elapsed = chrono::duration_cast<chrono::microseconds>( encode_ending - encode_beginning ).count();
+      avg_encode_time.add( us_elapsed );
 
-        if ( avg_delay == numeric_limits<uint32_t>::max() ) {
-          frame = encoder.encode_with_quantizer( raster.get(), y_ac_qi );
-        }
-        else {
-          size_t frame_size = target_size( avg_delay, last_acked, cumulative_fpf.back() );
+      cerr << "done (" << us_elapsed << " us, "
+           << "avg=" << avg_encode_time.int_value()<< " us, "
+           << "size=" << frame.size() << " bytes)." << endl;
 
-          if ( frame_size <= 0 ) {
-            cerr << "skipping frame." << endl;
-            return ResultType::Continue;
-          }
+      cerr << "Sending frame #" << frame_no << "...";
+      FragmentedFrame ff { connection_id, frame_no, avg_encode_time.int_value() /* time to next frame */, frame };
+      ff.send( socket );
+      cerr << "done." << endl;
 
-          cerr << "encoding with target size=" << frame_size << endl;
-          frame = encoder.encode_with_target_size( raster.get(), frame_size );
-        }
+      cumulative_fpf.push_back( ( frame_no > 0 ) ? ( cumulative_fpf[ frame_no - 1 ] + ff.fragments_in_this_frame() )
+                                : ff.fragments_in_this_frame() );
+      frame_no++;
 
-        const auto encode_ending = chrono::system_clock::now();
-        const int us_elapsed = chrono::duration_cast<chrono::microseconds>( encode_ending - encode_beginning ).count();
-        avg_encode_time.add( us_elapsed );
+      return ResultType::Continue;
+    },
+    [&]() { return not input.fd().eof(); } )
+  );
 
-        cerr << "done (" << us_elapsed << " us, "
-             << "avg=" << avg_encode_time.int_value()<< " us, "
-             << "size=" << frame.size() << " bytes)." << endl;
-
-        cerr << "Sending frame #" << frame_no << "...";
-        FragmentedFrame ff { connection_id, frame_no, avg_encode_time.int_value() /* time to next frame */, frame };
-        ff.send( socket );
-        cerr << "done." << endl;
-
-        cumulative_fpf.push_back( ( frame_no > 0 ) ? ( cumulative_fpf[ frame_no - 1 ] + ff.fragments_in_this_frame() )
-                                  : ff.fragments_in_this_frame() );
-        frame_no++;
-
-        return ResultType::Continue;
-      },
-      [&]() { return not input.fd().eof(); } ) );
-        
   /* handle events */
   while ( true ) {
     const auto poll_result = poller.poll( -1 );
