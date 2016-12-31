@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <algorithm>
 #include <cstdio>
+#include <cassert>
 
 #include "exception.hh"
 #include "chunk.hh"
@@ -109,31 +110,6 @@ public:
     register_write();
   }
 
-  std::string pread( const off_t offset, const size_t length )
-  {
-    static const size_t BUFFER_SIZE = 1048576;
-    char buffer[ BUFFER_SIZE ];
-
-    std::string ret;
-
-    while ( ret.length() < length ) {
-      const size_t count = std::min( BUFFER_SIZE, length - ret.length() );
-      ssize_t bytes_read_now = ::pread( fd_, buffer, count, offset + ret.length() );
-      if ( bytes_read_now == 0 ) {
-        // throw std::runtime_error( "pread: unexpected EOF" );
-        eof_ = true;
-      } else if ( bytes_read_now < 0 ) {
-        throw unix_error( "pread" );
-      }
-
-      ret.append( buffer, bytes_read_now );
-    }
-
-    register_read();
-
-    return ret;
-  }
-
   std::string getline()
   {
     std::string ret;
@@ -147,8 +123,6 @@ public:
 
       ret.append( char_read );
     }
-
-    register_read();
 
     return ret;
   }
@@ -172,6 +146,20 @@ public:
     register_read();
 
     return std::string( buffer, bytes_read );
+  }
+
+  std::string read_exactly( const size_t length )
+  {
+    std::string ret;
+    while ( ret.size() < length ) {
+      ret.append( read( length - ret.size() ) );
+      if ( eof() ) {
+        throw std::runtime_error( "read_exactly: FileDescriptor reached EOF before reaching target" );
+      }
+    }
+
+    assert( ret.size() == length );
+    return ret;
   }
 };
 

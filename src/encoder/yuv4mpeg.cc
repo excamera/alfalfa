@@ -250,7 +250,6 @@ Optional<RasterHandle> YUV4MPEGReader::get_next_frame()
 
   string frame_header = fd_.getline();
   if ( fd_.eof() ) {
-
     return {};
   }
 
@@ -260,33 +259,18 @@ Optional<RasterHandle> YUV4MPEGReader::get_next_frame()
 
   string read_data;
 
-  for ( size_t byte = 0, row = 0; byte < y_plane_length(); byte += read_data.length(), row++ ) {
-    read_data = fd_.read( min( static_cast<size_t>( display_width() ), y_plane_length() - byte ) );
-
-    if ( fd_.eof() ) {
-      throw Invalid( "partial YUV4MPEG frame" );
-    }
-
+  for ( size_t row = 0; row < display_height(); row++ ) {
+    read_data = fd_.read_exactly( display_width() );
     memcpy( &raster.get().Y().storage()->at( 0, row ), &read_data[ 0 ], read_data.length() );
   }
 
-  for ( size_t byte = 0, row = 0; byte < uv_plane_length(); byte += read_data.length(), row++ ) {
-    read_data = fd_.read( min( static_cast<size_t>( display_width() / 2 ), uv_plane_length() - byte ) );
-
-    if ( fd_.eof() ) {
-      throw Invalid( "partial YUV4MPEG frame" );
-    }
-
+  for ( size_t row = 0; row < display_height() / 2; row++ ) {
+    read_data = fd_.read_exactly( display_width() / 2 );
     memcpy( &raster.get().U().storage()->at( 0, row ), &read_data[ 0 ], read_data.length() );
   }
 
-  for ( size_t byte = 0, row = 0; byte < uv_plane_length(); byte += read_data.length(), row++ ) {
-    read_data = fd_.read( min( static_cast<size_t>( display_width() / 2 ), uv_plane_length() - byte ) );
-
-    if ( fd_.eof() ) {
-      throw Invalid( "partial YUV4MPEG frame" );
-    }
-
+  for ( size_t row = 0; row < display_height() / 2; row++ ) {
+    read_data = fd_.read_exactly( display_width() / 2 );
     memcpy( &raster.get().V().storage()->at( 0, row ), &read_data[ 0 ], read_data.length() );
   }
 
