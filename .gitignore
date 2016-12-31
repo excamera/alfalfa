@@ -44,6 +44,7 @@ Makefile.in
 /src/frontend/xc-terminate-chunk
 /src/frontend/salsify-sender
 /src/frontend/salsify-receiver
+/src/frontend/fake-webcam
 
 /src/tests/decode-to-stdout
 /src/tests/encode-loopback

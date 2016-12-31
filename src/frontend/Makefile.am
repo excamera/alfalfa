@@ -10,7 +10,7 @@ endif
 bin_PROGRAMS = vp8decode xc-enc xc-ssim xc-dissect xc-framesize xc-dump \
                xc-diff comp-states xc-decode-bundle xc-merge \
                xc-terminate-chunk $(VP8PLAY_BUILD) \
-               salsify-sender
+               salsify-sender fake-webcam
 
 vp8decode_SOURCES = vp8decode.cc
 vp8decode_LDADD = ../encoder/libalfalfaencoder.a $(BASE_LDADD)
@@ -58,3 +58,6 @@ salsify_sender_LDADD = ../net/libnet.a ../encoder/libalfalfaencoder.a $(BASE_LDA
 salsify_receiver_SOURCES = salsify-receiver.cc
 salsify_receiver_CPPFLAGS = $(AM_CPPFLAGS) $(GLU_CFLAGS) $(GLEW_CFLAGS) $(GLFW3_CFLAGS)
 salsify_receiver_LDADD = ../display/libalfalfadisplay.a ../net/libnet.a $(BASE_LDADD) $(GLU_LIBS) $(GLEW_LIBS) $(GLFW3_LIBS)
+
+fake_webcam_SOURCES = fake-webcam.cc
+fake_webcam_LDADD = ../encoder/libalfalfaencoder.a $(BASE_LDADD)
