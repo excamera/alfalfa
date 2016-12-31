@@ -62,7 +62,10 @@ int main( int argc, char *argv[] )
 
     /* send the file header if we haven't already */
     if ( not initialized ) {
-      stdout.write( YUV4MPEGHeader( raster.get() ).to_string() );
+      auto file_header = YUV4MPEGHeader( raster.get() );
+      file_header.fps_numerator = frames_per_second;
+      file_header.fps_denominator = 1;
+      stdout.write( file_header.to_string() );
     }
 
     /* send the frame */
