@@ -17,33 +17,16 @@ using namespace std;
 using namespace std::chrono;
 using namespace PollerShortNames;
 
-class EncodeTimeEWMA
-{
-private:
-  static constexpr double ALPHA = 0.25;
-
-  double value_ { -1 };
-
-public:
-  void add( const uint64_t new_value )
-  {
-    if ( value_ < 0 ) {
-      value_ = new_value;
-    }
-    else {
-      value_ = ALPHA * new_value + ( 1 - ALPHA ) * value_;
-    }
-  }
-
-  uint32_t int_value() { return static_cast<uint32_t>( value_ ); }
-};
-
-size_t target_size( uint32_t avg_delay, uint64_t last_acked, uint64_t last_sent )
+size_t target_size( uint32_t avg_delay, const uint64_t last_acked, const uint64_t last_sent )
 {
   uint32_t max_delay = 100 * 1000; // 100 ms = 100,000 us
+
+  if ( avg_delay == 0 ) { avg_delay = 1; }
+
   cerr << "Packets in flight: " << last_sent - last_acked << "\n";
   cerr << "Avg inter-packet-arrival interval: " << avg_delay << "\n";
   cerr << "Imputed delay: " << avg_delay * (last_sent - last_acked) << " us\n";
+
   return 1400 * max( 0l, static_cast<int64_t>( max_delay / avg_delay - ( last_sent - last_acked ) ) );
 }
 
@@ -128,9 +111,6 @@ int main( int argc, char *argv[] )
   /* construct the encoder */
   Encoder encoder { input.display_width(), input.display_height(), false /* two-pass */, REALTIME_QUALITY };
 
-  /* keep the average encode time */
-  EncodeTimeEWMA avg_encode_time;
-
   /* fetch frames from webcam */
   unsigned int frame_no = 0;
   poller.add_action( Poller::Action( input.fd(), Direction::In,
@@ -163,14 +143,13 @@ int main( int argc, char *argv[] )
 
       const auto encode_ending = chrono::system_clock::now();
       const int us_elapsed = chrono::duration_cast<chrono::microseconds>( encode_ending - encode_beginning ).count();
-      avg_encode_time.add( us_elapsed );
-
-      cerr << "done (" << us_elapsed << " us, "
-           << "avg=" << avg_encode_time.int_value()<< " us, "
-           << "size=" << frame.size() << " bytes)." << endl;
+      cerr << "done (" << us_elapsed << " us, size=" << frame.size() << " bytes)." << endl;
 
       cerr << "Sending frame #" << frame_no << "...";
-      FragmentedFrame ff { connection_id, frame_no, avg_encode_time.int_value() /* time to next frame */, frame };
+      FragmentedFrame ff { connection_id,
+                           frame_no,
+                           static_cast<uint32_t>( 1e6 * input.header().fps_denominator / input.header().fps_numerator ),
+                           frame };
       ff.send( socket );
       cerr << "done." << endl;
 

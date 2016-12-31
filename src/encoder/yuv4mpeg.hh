@@ -58,6 +58,8 @@ public:
   size_t y_plane_length() { return header_.y_plane_length(); }
   size_t uv_plane_length() { return header_.uv_plane_length(); }
 
+  YUV4MPEGHeader header() const { return header_; }
+
   FileDescriptor & fd() { return fd_; }
 };
 
