@@ -30,6 +30,9 @@ public:
     if ( value_ < 0 ) {
       value_ = 0;
     }
+    else if ( timestamp_us - last_update_ > 0.2 * 1000 * 1000 /* 1 seconds */ ) {
+      value_ = 0;
+    }
     else {
       double new_value = max( 0l, static_cast<int64_t>( timestamp_us - last_update_ - grace ) );
       value_ = ALPHA * new_value + ( 1 - ALPHA ) * value_;

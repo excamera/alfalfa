@@ -79,7 +79,7 @@ int main( int argc, char *argv[] )
   uint64_t last_acked = numeric_limits<uint64_t>::max();
 
   /* maximum number of frames to be skipped in a row */
-  const size_t MAX_SKIPPED = 4;
+  const size_t MAX_SKIPPED = 5;
   size_t skipped_count = 0;
 
   Poller poller;
@@ -142,12 +142,10 @@ int main( int argc, char *argv[] )
           return ResultType::Continue;
         }
         else if ( frame_size == 0 ) {
-          skipped_count = 0;
           cerr << "too many skipped frames, let's send one with a low quality." << endl;
           frame = encoder.encode_with_quantizer( raster.get(), 96 );
         }
         else {
-          skipped_count = 0;
           cerr << "encoding with target size=" << frame_size << endl;
           frame = encoder.encode_with_target_size( raster.get(), frame_size );
         }
@@ -164,6 +162,8 @@ int main( int argc, char *argv[] )
                            frame };
       ff.send( socket );
       cerr << "done." << endl;
+
+      skipped_count = 0;
 
       cumulative_fpf.push_back( ( frame_no > 0 ) ? ( cumulative_fpf[ frame_no - 1 ] + ff.fragments_in_this_frame() )
                                 : ff.fragments_in_this_frame() );
