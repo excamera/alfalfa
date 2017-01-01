@@ -8,11 +8,13 @@
 
 #include "socket.hh"
 #include "packet.hh"
+#include "poller.hh"
 #include "optional.hh"
 #include "player.hh"
 #include "display.hh"
 
 using namespace std;
+using namespace PollerShortNames;
 
 class AverageInterPacketDelay
 {
@@ -116,48 +118,63 @@ int main( int argc, char *argv[] )
   AverageInterPacketDelay avg_delay;
   size_t next_packet_grace = 0;
 
+  Poller poller;
+  poller.add_action( Poller::Action( socket, Direction::In,
+    [&]()
+    {
+      /* wait for next UDP datagram */
+      const auto new_fragment = socket.recv();
+
+      /* parse into Packet */
+      const Packet packet { new_fragment.payload };
+
+      if ( packet.frame_no() < next_frame_no ) {
+        /* we're not interested in this anymore */
+        return ResultType::Continue;
+      }
+
+      avg_delay.add( new_fragment.timestamp_us, next_packet_grace );
+      next_packet_grace = packet.time_to_next();
+
+      AckPacket( connection_id, packet.frame_no(), packet.fragment_no(),
+                 avg_delay.int_value() ).sendto( socket, new_fragment.source_address );
+
+      /* add to current frame */
+      if ( fragmented_frames.count( packet.frame_no() ) ) {
+        fragmented_frames.at( packet.frame_no() ).add_packet( packet );
+      } else {
+        /*
+          This was judged "too fancy" by the Code Review Board of Dec. 29, 2016.
+
+          fragmented_frames.emplace( std::piecewise_construct,
+                                     forward_as_tuple( packet.frame_no() ),
+                                     forward_as_tuple( connection_id, packet ) );
+        */
+
+        fragmented_frames.insert( make_pair( packet.frame_no(),
+                                             FragmentedFrame( connection_id, packet ) ) );
+      }
+
+      /* is the next frame ready to be decoded? */
+      if ( fragmented_frames.count( next_frame_no ) > 0 and fragmented_frames.at( next_frame_no ).complete() ) {
+        cerr << "decoding frame " << next_frame_no << endl;
+
+        display_frame( player, display, fragmented_frames.at( next_frame_no ).frame() );
+
+        fragmented_frames.erase( next_frame_no );
+        next_frame_no++;
+      }
+
+      return ResultType::Continue;
+    },
+    [&]() { return not socket.eof(); } )
+  );
+
+  /* handle events */
   while ( true ) {
-    /* wait for next UDP datagram */
-    const auto new_fragment = socket.recv();
-
-    /* parse into Packet */
-    const Packet packet { new_fragment.payload };
-
-    if ( packet.frame_no() < next_frame_no ) {
-      /* we're not interested in this anymore */
-      continue;
-    }
-
-    avg_delay.add( new_fragment.timestamp_us, next_packet_grace );
-    next_packet_grace = packet.time_to_next();
-
-    AckPacket( connection_id, packet.frame_no(), packet.fragment_no(),
-               avg_delay.int_value() ).sendto( socket, new_fragment.source_address );
-
-    /* add to current frame */
-    if ( fragmented_frames.count( packet.frame_no() ) ) {
-      fragmented_frames.at( packet.frame_no() ).add_packet( packet );
-    } else {
-      /*
-        This was judged "too fancy" by the Code Review Board of Dec. 29, 2016.
-
-        fragmented_frames.emplace( std::piecewise_construct,
-                                   forward_as_tuple( packet.frame_no() ),
-                                   forward_as_tuple( connection_id, packet ) );
-      */
-
-      fragmented_frames.insert( make_pair( packet.frame_no(),
-                                           FragmentedFrame( connection_id, packet ) ) );
-    }
-
-    /* is the next frame ready to be decoded? */
-    if ( fragmented_frames.count( next_frame_no ) > 0 and fragmented_frames.at( next_frame_no ).complete() ) {
-      cerr << "decoding frame " << next_frame_no << endl;
-
-      display_frame( player, display, fragmented_frames.at( next_frame_no ).frame() );
-
-      fragmented_frames.erase( next_frame_no );
-      next_frame_no++;
+    const auto poll_result = poller.poll( -1 );
+    if ( poll_result.result == Poller::Result::Type::Exit ) {
+      return poll_result.exit_status;
     }
   }
 
