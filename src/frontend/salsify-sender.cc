@@ -152,8 +152,8 @@ int main( int argc, char *argv[] )
       }
 
       const auto encode_ending = chrono::system_clock::now();
-      const int us_elapsed = chrono::duration_cast<chrono::microseconds>( encode_ending - encode_beginning ).count();
-      cerr << "done (" << us_elapsed << " us, size=" << frame.size() << " bytes)." << endl;
+      const int ms_elapsed = chrono::duration_cast<chrono::milliseconds>( encode_ending - encode_beginning ).count();
+      cerr << "done (" << ms_elapsed << " ms, size=" << frame.size() << " bytes)." << endl;
 
       cerr << "Sending frame #" << frame_no << "...";
       FragmentedFrame ff { connection_id,
