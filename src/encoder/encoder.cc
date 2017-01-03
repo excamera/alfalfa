@@ -95,8 +95,10 @@ vector<uint8_t> Encoder::write_frame( const FrameType & frame,
 
   safe_references_.update_all_refs( references_ );
 
-  loop_filter_level_.clear();
-  loop_filter_level_.initialize( frame.header().loop_filter_level );
+  if ( encode_quality_ == REALTIME_QUALITY ) {
+    loop_filter_level_.clear();
+    loop_filter_level_.initialize( frame.header().loop_filter_level );
+  }
 
   return frame.serialize( prob_tables );
 }
@@ -403,18 +405,24 @@ void Encoder::apply_best_loopfilter_settings( const VP8Raster & original,
     frame.mutable_header().mode_lf_adjustments.get().get().mode_update.at( i ).initialize( 0 );
   }
 
-  size_t best_lf_level = 0;
+  uint8_t best_lf_level = 0;
   double best_ssim = -1.0;
 
-  size_t min_lf_level = 0;
-  size_t max_lf_level = 63;
+  uint8_t min_lf_level = 0;
+  uint8_t max_lf_level = 63;
 
   if ( loop_filter_level_.initialized() ) {
-    min_lf_level = max( 0u, loop_filter_level_.get() - 1u );
+    if ( loop_filter_level_.get() > 0 ) {
+      min_lf_level = loop_filter_level_.get() - 1;
+    }
+    else {
+      min_lf_level = 0;
+    }
+
     max_lf_level = min( 63u, loop_filter_level_.get() + 1u );
   }
 
-  for ( size_t lf_level = min_lf_level; lf_level <= max_lf_level; lf_level++ ) {
+  for ( uint8_t lf_level = min_lf_level; lf_level <= max_lf_level; lf_level++ ) {
     temp_raster().copy_from( reconstructed );
 
     frame.mutable_header().loop_filter_level = lf_level;
