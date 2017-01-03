@@ -71,6 +71,9 @@ private:
     size_t first_step;
   };
 
+  static const size_t WIDTH_SAMPLE_DIMENSION_FACTOR { 4 };
+  static const size_t HEIGHT_SAMPLE_DIMENSION_FACTOR { 4 };
+
   typedef SafeArray<SafeArray<std::pair<uint32_t, uint32_t>,
                               MV_PROB_CNT>,
                     2> MVComponentCounts;
@@ -89,17 +92,14 @@ private:
   bool two_pass_encoder_ { false };
   EncoderQuality encode_quality_{ BEST_QUALITY };
 
-  KeyFrame key_frame_;
-  InterFrame inter_frame_;
+  KeyFrame key_frame_, subsampled_key_frame_;
+  InterFrame inter_frame_, subsampled_inter_frame_;
 
   Optional<uint8_t> loop_filter_level_ { false };
 
   // TODO: Where did these come from?
   uint32_t RATE_MULTIPLIER { 300 };
   uint32_t DISTORTION_MULTIPLIER { 1 };
-
-  const size_t WIDTH_SAMPLE_DIMENSION_FACTOR { 4 };
-  const size_t HEIGHT_SAMPLE_DIMENSION_FACTOR { 4 };
 
   static uint32_t rdcost( uint32_t rate, uint32_t distortion,
                           uint32_t rate_multiplier,

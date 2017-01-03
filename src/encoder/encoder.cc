@@ -51,7 +51,13 @@ Encoder::Encoder( const uint16_t s_width,
     safe_references_( width(), height() ), two_pass_encoder_( two_pass ),
     encode_quality_( quality ),
     key_frame_( make_empty_frame<KeyFrame>( width(), height(), true ) ),
-    inter_frame_( make_empty_frame<InterFrame>( width(), height(), true ) )
+    subsampled_key_frame_( make_empty_frame<KeyFrame>( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
+                                                       height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
+                                                       true ) ),
+    inter_frame_( make_empty_frame<InterFrame>( width(), height(), true ) ),
+    subsampled_inter_frame_( make_empty_frame<InterFrame>( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
+                                                           height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
+                                                           true ) )
 {
   costs_.fill_mode_costs();
 }
@@ -62,7 +68,13 @@ Encoder::Encoder( const Decoder & decoder, const bool two_pass,
     safe_references_( references_ ), two_pass_encoder_( two_pass ),
     encode_quality_( quality ),
     key_frame_( make_empty_frame<KeyFrame>( width(), height(), true ) ),
-    inter_frame_( make_empty_frame<InterFrame>( width(), height(), true ) )
+    subsampled_key_frame_( make_empty_frame<KeyFrame>( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
+                                                       height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
+                                                       true ) ),
+    inter_frame_( make_empty_frame<InterFrame>( width(), height(), true ) ),
+    subsampled_inter_frame_( make_empty_frame<InterFrame>( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
+                                                           height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
+                                                           true ) )
 {
   has_state_ = true;
 
