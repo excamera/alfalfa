@@ -97,6 +97,11 @@ private:
 
   Optional<uint8_t> loop_filter_level_ { false };
 
+  /* if set, while encoding with max target size, the search scope for the
+     proper quantizer will be:
+     last_y_ac_qi_ - a <= y_ac_qi <= last_y_ac_qi_ + a */
+  Optional<uint8_t> last_y_ac_qi_ { false };
+
   // TODO: Where did these come from?
   uint32_t RATE_MULTIPLIER { 300 };
   uint32_t DISTORTION_MULTIPLIER { 1 };

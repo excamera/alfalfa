@@ -110,6 +110,9 @@ vector<uint8_t> Encoder::write_frame( const FrameType & frame,
   if ( encode_quality_ == REALTIME_QUALITY ) {
     loop_filter_level_.clear();
     loop_filter_level_.initialize( frame.header().loop_filter_level );
+
+    last_y_ac_qi_.clear();
+    last_y_ac_qi_.initialize( frame.header().quant_indices.y_ac_qi );
   }
 
   return frame.serialize( prob_tables );
@@ -544,6 +547,19 @@ vector<uint8_t> Encoder::encode_with_target_size( const VP8Raster & raster, cons
 
   int y_qi_min = 0;
   int y_qi_max = 127;
+
+  if ( last_y_ac_qi_.initialized() ) {
+    const int radius = 10;
+
+    if ( last_y_ac_qi_.get() >= radius ) {
+      y_qi_min = last_y_ac_qi_.get() - radius;
+    }
+    else {
+      y_qi_min = 0;
+    }
+
+    y_qi_max = min( 127, last_y_ac_qi_.get() + radius );
+  }
 
   uint8_t best_y_qi = numeric_limits<uint8_t>::max();
 
