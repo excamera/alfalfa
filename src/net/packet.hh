@@ -9,6 +9,7 @@
 #include "chunk.hh"
 #include "socket.hh"
 #include "exception.hh"
+#include "optional.hh"
 
 class PacketUtils
 {
@@ -17,6 +18,20 @@ public:
 
   static std::string put_header_field( const uint16_t n );
   static std::string put_header_field( const uint32_t n );
+};
+
+class StateUpdateHeader
+{
+private:
+  Optional<uint32_t> last_ref_;
+  Optional<uint32_t> golden_ref_;
+  Optional<uint32_t> alt_ref_;
+
+public:
+  StateUpdateHeader( /* ??? */ );
+  StateUpdateHeader( const Chunk & str );
+
+  std::string to_string() const;
 };
 
 class Packet
