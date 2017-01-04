@@ -8,6 +8,12 @@
 
 using namespace std;
 
+string PacketUtils::put_header_field( const bool n )
+{
+  return string( reinterpret_cast<const char *>( &n ),
+                 sizeof( n ) );
+}
+
 string PacketUtils::put_header_field( const uint16_t n )
 {
   const uint16_t network_order = htole16( n );
@@ -20,6 +26,41 @@ string PacketUtils::put_header_field( const uint32_t n )
   const uint32_t network_order = htole32( n );
   return string( reinterpret_cast<const char *>( &network_order ),
                  sizeof( network_order ) );
+}
+
+StateUpdateHeader::StateUpdateHeader()
+  : last_ref_(), golden_ref_(), alt_ref_()
+{}
+
+StateUpdateHeader::StateUpdateHeader( const Chunk & str )
+  : last_ref_(), golden_ref_(), alt_ref_()
+{
+  size_t next_byte = 0;
+
+  if ( str( next_byte++, 1 ).octet() ) {
+    last_ref_.initialize( str( next_byte, 4 ).le32() );
+    next_byte += 4;
+  }
+
+  if ( str( next_byte++, 1 ).octet() ) {
+    golden_ref_.initialize( str( next_byte, 4 ).le32() );
+    next_byte += 4;
+  }
+
+  if ( str( next_byte++, 1 ).octet() ) {
+    alt_ref_.initialize( str( next_byte, 4 ).le32() );
+    next_byte +=4;
+  }
+}
+
+std::string StateUpdateHeader::to_string() const
+{
+  return PacketUtils::put_header_field( last_ref_.initialized() )
+       + ( last_ref_.initialized() ? PacketUtils::put_header_field( last_ref_.get() ) : "" )
+       + PacketUtils::put_header_field( golden_ref_.initialized() )
+       + ( golden_ref_.initialized() ? PacketUtils::put_header_field( golden_ref_.get() ) : "" )
+       + PacketUtils::put_header_field( alt_ref_.initialized() )
+       + ( alt_ref_.initialized() ? PacketUtils::put_header_field( alt_ref_.get() ) : "" );
 }
 
 Packet::Packet( const vector<uint8_t> & whole_frame,

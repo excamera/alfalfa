@@ -16,6 +16,7 @@ class PacketUtils
 public:
   static constexpr size_t MAXIMUM_PAYLOAD = 1400;
 
+  static std::string put_header_field( const bool n );
   static std::string put_header_field( const uint16_t n );
   static std::string put_header_field( const uint32_t n );
 };
@@ -28,7 +29,7 @@ private:
   Optional<uint32_t> alt_ref_;
 
 public:
-  StateUpdateHeader( /* ??? */ );
+  StateUpdateHeader();
   StateUpdateHeader( const Chunk & str );
 
   std::string to_string() const;
