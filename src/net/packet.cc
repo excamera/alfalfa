@@ -8,14 +8,14 @@
 
 using namespace std;
 
-string Packet::put_header_field( const uint16_t n )
+string PacketUtils::put_header_field( const uint16_t n )
 {
   const uint16_t network_order = htole16( n );
   return string( reinterpret_cast<const char *>( &network_order ),
                  sizeof( network_order ) );
 }
 
-string Packet::put_header_field( const uint32_t n )
+string PacketUtils::put_header_field( const uint32_t n )
 {
   const uint32_t network_order = htole32( n );
   return string( reinterpret_cast<const char *>( &network_order ),
@@ -38,10 +38,10 @@ Packet::Packet( const vector<uint8_t> & whole_frame,
 {
   assert( not whole_frame.empty() );
 
-  size_t first_byte = MAXIMUM_PAYLOAD * fragment_no;
+  size_t first_byte = PacketUtils::MAXIMUM_PAYLOAD * fragment_no;
   assert( first_byte < whole_frame.size() );
 
-  size_t length = min( whole_frame.size() - first_byte, MAXIMUM_PAYLOAD );
+  size_t length = min( whole_frame.size() - first_byte, PacketUtils::MAXIMUM_PAYLOAD );
   assert( first_byte + length <= whole_frame.size() );
 
   payload_ = string( reinterpret_cast<const char*>( &whole_frame.at( first_byte ) ), length );
@@ -84,11 +84,11 @@ string Packet::to_string() const
 {
   assert( fragments_in_this_frame_ > 0 );
 
-  return put_header_field( connection_id_ )
-       + put_header_field( frame_no_ )
-       + put_header_field( fragment_no_ )
-       + put_header_field( fragments_in_this_frame_ )
-       + put_header_field( time_to_next_ )
+  return PacketUtils::put_header_field( connection_id_ )
+       + PacketUtils::put_header_field( frame_no_ )
+       + PacketUtils::put_header_field( fragment_no_ )
+       + PacketUtils::put_header_field( fragments_in_this_frame_ )
+       + PacketUtils::put_header_field( time_to_next_ )
        + payload_;
 }
 
@@ -235,10 +235,10 @@ AckPacket::AckPacket( const Chunk & str )
 
 std::string AckPacket::to_string()
 {
-  return Packet::put_header_field( connection_id_ )
-       + Packet::put_header_field( frame_no_ )
-       + Packet::put_header_field( fragment_no_ )
-       + Packet::put_header_field( avg_delay_ );
+  return PacketUtils::put_header_field( connection_id_ )
+       + PacketUtils::put_header_field( frame_no_ )
+       + PacketUtils::put_header_field( fragment_no_ )
+       + PacketUtils::put_header_field( avg_delay_ );
 }
 
 void AckPacket::sendto( UDPSocket & socket, const Address & addr )

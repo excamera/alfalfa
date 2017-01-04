@@ -10,6 +10,15 @@
 #include "socket.hh"
 #include "exception.hh"
 
+class PacketUtils
+{
+public:
+  static constexpr size_t MAXIMUM_PAYLOAD = 1400;
+
+  static std::string put_header_field( const uint16_t n );
+  static std::string put_header_field( const uint32_t n );
+};
+
 class Packet
 {
 private:
@@ -24,11 +33,6 @@ private:
   std::string payload_;
 
 public:
-  static constexpr size_t MAXIMUM_PAYLOAD = 1400;
-
-  static std::string put_header_field( const uint16_t n );
-  static std::string put_header_field( const uint32_t n );
-
   /* getters */
   bool valid() const { return valid_; }
   uint16_t connection_id() const { return connection_id_; }
