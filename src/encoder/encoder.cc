@@ -81,6 +81,20 @@ Encoder::Encoder( const Decoder & decoder, const bool two_pass,
   costs_.fill_mode_costs();
 }
 
+Encoder::Encoder( const Encoder & encoder )
+  : decoder_state_( encoder.decoder_state_ ), references_( move( encoder.references_.deep_copy() ) ),
+    safe_references_( references_ ), two_pass_encoder_( encoder.two_pass_encoder_ ),
+    encode_quality_( encoder.encode_quality_ ),
+    key_frame_( make_empty_frame<KeyFrame>( width(), height(), true ) ),
+    subsampled_key_frame_( make_empty_frame<KeyFrame>( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
+                                                       height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
+                                                       true ) ),
+    inter_frame_( make_empty_frame<InterFrame>( width(), height(), true ) ),
+    subsampled_inter_frame_( make_empty_frame<InterFrame>( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
+                                                           height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
+                                                           true ) )
+{}
+
 template<class FrameType>
 FrameType Encoder::make_empty_frame( const uint16_t width, const uint16_t height,
                                      const bool show_frame )

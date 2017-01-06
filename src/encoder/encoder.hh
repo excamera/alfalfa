@@ -45,6 +45,7 @@ public:
   void update_all_refs( const References & references );
 
   // XXX remove these
+  // XXX two months later: ...but why?
   const SafeRaster & last() const { return last_; }
   const SafeRaster & golden() const { return golden_; }
   const SafeRaster & alternative() const { return alternative_; }
@@ -300,6 +301,9 @@ public:
 
   Encoder( const Decoder & decoder, const bool two_pass,
            const EncoderQuality quality );
+
+  /* deep copy of the encoder object */
+  Encoder( const Encoder & encoder );
 
   std::vector<uint8_t> encode_with_minimum_ssim( const VP8Raster & raster,
                                                  const double minimum_ssim );
