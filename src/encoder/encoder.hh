@@ -305,6 +305,8 @@ public:
   /* deep copy of the encoder object */
   Encoder( const Encoder & encoder );
 
+  Encoder( Encoder && encoder );
+
   std::vector<uint8_t> encode_with_minimum_ssim( const VP8Raster & raster,
                                                  const double minimum_ssim );
 

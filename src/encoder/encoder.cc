@@ -82,8 +82,10 @@ Encoder::Encoder( const Decoder & decoder, const bool two_pass,
 }
 
 Encoder::Encoder( const Encoder & encoder )
-  : decoder_state_( encoder.decoder_state_ ), references_( move( encoder.references_.deep_copy() ) ),
-    safe_references_( references_ ), two_pass_encoder_( encoder.two_pass_encoder_ ),
+  : decoder_state_( encoder.decoder_state_ ),
+    references_( move( encoder.references_.deep_copy() ) ),
+    safe_references_( references_ ),
+    two_pass_encoder_( encoder.two_pass_encoder_ ),
     encode_quality_( encoder.encode_quality_ ),
     key_frame_( make_empty_frame<KeyFrame>( width(), height(), true ) ),
     subsampled_key_frame_( make_empty_frame<KeyFrame>( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
@@ -93,6 +95,18 @@ Encoder::Encoder( const Encoder & encoder )
     subsampled_inter_frame_( make_empty_frame<InterFrame>( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
                                                            height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
                                                            true ) )
+{}
+
+Encoder::Encoder( Encoder && encoder )
+  : decoder_state_( move( encoder.decoder_state_ ) ),
+    references_( move( encoder.references_ ) ),
+    safe_references_( move( encoder.safe_references_ ) ),
+    two_pass_encoder_( encoder.two_pass_encoder_ ),
+    encode_quality_( encoder.encode_quality_ ),
+    key_frame_( move( encoder.key_frame_ ) ),
+    subsampled_key_frame_( move( encoder.subsampled_key_frame_ ) ),
+    inter_frame_( move( encoder.inter_frame_ ) ),
+    subsampled_inter_frame_( move( encoder.subsampled_inter_frame_ ) )
 {}
 
 template<class FrameType>
