@@ -9,8 +9,8 @@
 
 using namespace std;
 
-BaseRaster::BaseRaster( const unsigned int display_width, const unsigned int display_height,
-  const unsigned int width, const unsigned int height)
+BaseRaster::BaseRaster( const uint16_t display_width, const uint16_t display_height,
+  const uint16_t width, const uint16_t height)
   : display_width_( display_width ), display_height_( display_height ),
     width_( width ), height_( height )
 {
@@ -61,17 +61,17 @@ vector<Chunk> BaseRaster::display_rectangle_as_planar() const
   vector<Chunk> ret;
 
   /* write Y */
-  for ( unsigned int row = 0; row < display_height(); row++ ) {
+  for ( uint16_t row = 0; row < display_height(); row++ ) {
     ret.emplace_back( &Y().at( 0, row ), display_width() );
   }
 
   /* write U */
-  for ( unsigned int row = 0; row < chroma_display_height(); row++ ) {
+  for ( uint16_t row = 0; row < chroma_display_height(); row++ ) {
     ret.emplace_back( &U().at( 0, row ), chroma_display_width() );
   }
 
   /* write V */
-  for ( unsigned int row = 0; row < chroma_display_height(); row++ ) {
+  for ( uint16_t row = 0; row < chroma_display_height(); row++ ) {
     ret.emplace_back( &V().at( 0, row ), chroma_display_width() );
   }
 
