@@ -6,6 +6,7 @@
 #include <vector>
 #include <random>
 #include <limits>
+#include <thread>
 
 #include "yuv4mpeg.hh"
 #include "encoder.hh"
