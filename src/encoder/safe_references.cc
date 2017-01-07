@@ -2,9 +2,12 @@
 #include "decoder.hh"
 #include "encoder.hh"
 
+using namespace std;
+
 SafeReferences::SafeReferences( const uint16_t width, const uint16_t height )
-  : last_( width, height ), golden_( width, height ),
-    alternative_( width, height )
+  : last_( move ( MutableSafeRasterHandle( width, height ) ) ),
+    golden_( move ( MutableSafeRasterHandle( width, height ) ) ),
+    alternative_( move ( MutableSafeRasterHandle( width, height ) ) )
 {}
 
 SafeReferences::SafeReferences( const References & references )
@@ -16,9 +19,9 @@ SafeReferences::SafeReferences( const References & references )
 void SafeReferences::update_ref( reference_frame reference_id, RasterHandle reference_raster )
 {
   switch ( reference_id ) {
-  case LAST_FRAME: last_.copy_raster( reference_raster.get() ); break;
-  case GOLDEN_FRAME: golden_.copy_raster( reference_raster.get() ); break;
-  case ALTREF_FRAME: alternative_.copy_raster( reference_raster.get() ); break;
+  case LAST_FRAME: last_.get().copy_raster( reference_raster.get() ); break;
+  case GOLDEN_FRAME: golden_.get().copy_raster( reference_raster.get() ); break;
+  case ALTREF_FRAME: alternative_.get().copy_raster( reference_raster.get() ); break;
   default: throw LogicError();
   }
 }

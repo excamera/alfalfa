@@ -48,7 +48,7 @@ Encoder::Encoder( const uint16_t s_width,
                   const EncoderQuality quality )
   : decoder_state_( s_width, s_height ),
     references_( width(), height() ),
-    safe_references_( width(), height() ), two_pass_encoder_( two_pass ),
+    safe_references_( references_ ), two_pass_encoder_( two_pass ),
     encode_quality_( quality ),
     key_frame_( make_empty_frame<KeyFrame>( width(), height(), true ) ),
     subsampled_key_frame_( make_empty_frame<KeyFrame>( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
