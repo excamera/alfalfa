@@ -5,8 +5,8 @@
 
 #include "vp8_raster.hh"
 
-class RasterPool;
-class RasterHandle;
+template<class RasterType> class RasterPool;
+template<class RasterType> class VP8RasterHandle;
 
 class RasterPoolDebug {
   public:
@@ -31,55 +31,65 @@ public:
   bool has_cache() const;
 };
 
+template<class RasterType>
 class RasterDeleter
 {
 private:
-  RasterPool * raster_pool_ = nullptr;
+  RasterPool<RasterType> * raster_pool_ = nullptr;
 
 public:
-  void operator()( HashCachedRaster * raster ) const;
+  void operator()( RasterType * raster ) const;
 
-  RasterPool * get_raster_pool( void ) const;
-  void set_raster_pool( RasterPool * pool );
+  RasterPool<RasterType> * get_raster_pool( void ) const;
+  void set_raster_pool( RasterPool<RasterType> * pool );
 };
 
-typedef std::unique_ptr<HashCachedRaster, RasterDeleter> RasterHolder;
-
-class MutableRasterHandle
+template<class RasterType>
+class VP8MutableRasterHandle
 {
-friend class RasterHandle;
+friend class VP8RasterHandle<RasterType>;
 
 private:
-  RasterHolder raster_;
+  std::unique_ptr<RasterType, RasterDeleter<RasterType>> raster_;
 
 public:
-  MutableRasterHandle( const unsigned int display_width, const unsigned int display_height );
+  VP8MutableRasterHandle( const unsigned int display_width,
+                          const unsigned int display_height );
 
-  MutableRasterHandle( const unsigned int display_width, const unsigned int display_height, RasterPool & raster_pool );
+  VP8MutableRasterHandle( const unsigned int display_width,
+                          const unsigned int display_height,
+                          RasterPool<RasterType> & raster_pool );
 
-  operator const VP8Raster & () const { return *raster_; }
-  operator VP8Raster & () { return *raster_; }
+  operator const RasterType & () const { return *raster_; }
+  operator RasterType & () { return *raster_; }
 
-  const VP8Raster & get( void ) const { return *raster_; }
-  VP8Raster & get( void ) { return *raster_; }
+  const RasterType & get( void ) const { return *raster_; }
+  RasterType & get( void ) { return *raster_; }
 };
 
-class RasterHandle
+template<class RasterType>
+class VP8RasterHandle
 {
 private:
-  std::shared_ptr<const HashCachedRaster> raster_;
+  std::shared_ptr<const RasterType> raster_;
 
 public:
-  RasterHandle( MutableRasterHandle && mutable_raster );
+  VP8RasterHandle( VP8MutableRasterHandle<RasterType> && mutable_raster );
 
-  operator const VP8Raster & () const { return *raster_; }
+  operator const RasterType & () const { return *raster_; }
 
-  const VP8Raster & get( void ) const { return *raster_; }
+  const RasterType & get( void ) const { return *raster_; }
 
   size_t hash( void ) const;
 
-  bool operator==( const RasterHandle & other ) const;
-  bool operator!=( const RasterHandle & other ) const;
+  bool operator==( const VP8RasterHandle<RasterType> & other ) const;
+  bool operator!=( const VP8RasterHandle<RasterType> & other ) const;
 };
+
+using MutableRasterHandle = VP8MutableRasterHandle<HashCachedRaster>;
+using RasterHandle = VP8RasterHandle<HashCachedRaster>;
+
+using MutableSafeRasterHandle = VP8MutableRasterHandle<SafeRaster>;
+using SafeRasterHandle = VP8RasterHandle<SafeRaster>;
 
 #endif /* RASTER_POOL_HH */

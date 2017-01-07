@@ -21,27 +21,32 @@ static T dequeue( queue<T> & q )
 }
 
 bool RasterPoolDebug::allow_resize = false;
+
+template<class RasterType>
 class RasterPool
 {
+public:
+  typedef std::unique_ptr<RasterType, RasterDeleter<RasterType>> VP8RasterHolder;
+
 private:
-  queue<RasterHolder> unused_rasters_ {};
+  queue<VP8RasterHolder> unused_rasters_ {};
 
 public:
-  RasterHolder make_raster( const unsigned int display_width,
-                            const unsigned int display_height )
+  VP8RasterHolder make_raster( const unsigned int display_width,
+                               const unsigned int display_height )
   {
-    RasterHolder ret;
+    VP8RasterHolder ret;
 
     if ( unused_rasters_.empty() ) {
-      ret.reset( new HashCachedRaster( display_width, display_height ) );
+      ret.reset( new RasterType( display_width, display_height ) );
     } else {
-      if ( (unused_rasters_.front()->display_width() != display_width)
-           or (unused_rasters_.front()->display_height() != display_height) ) {
+      if ( (unused_rasters_.front()->display_width() != display_width )
+           or (unused_rasters_.front()->display_height() != display_height ) ) {
         if (RasterPoolDebug::allow_resize) {
           while (! unused_rasters_.empty()) {
             dequeue(unused_rasters_);
           }
-          ret.reset(new HashCachedRaster(display_width, display_height));
+          ret.reset(new RasterType(display_width, display_height));
         } else {
           throw Unsupported( "raster size has changed" );
         }
@@ -51,19 +56,29 @@ public:
     }
 
     ret.get_deleter().set_raster_pool( this );
-    assert( not ret->has_cache() );
+
     return ret;
   }
 
-  void free_raster( HashCachedRaster * raster )
+  void free_raster( RasterType * raster )
   {
     assert( raster );
-    assert( not raster->has_cache() );
     unused_rasters_.emplace( raster );
   }
 };
 
-void RasterDeleter::operator()( HashCachedRaster * raster ) const
+template<class RasterType>
+void RasterDeleter<RasterType>::operator()( RasterType * raster ) const
+{
+  if ( raster_pool_ ) {
+    raster_pool_->free_raster( raster );
+  } else {
+    delete raster;
+  }
+}
+
+template<>
+void RasterDeleter<HashCachedRaster>::operator()( HashCachedRaster * raster ) const
 {
   if ( raster_pool_ ) {
     raster->reset_cache();
@@ -73,50 +88,74 @@ void RasterDeleter::operator()( HashCachedRaster * raster ) const
   }
 }
 
-RasterPool * RasterDeleter::get_raster_pool( void ) const
+template<class RasterType>
+RasterPool<RasterType> * RasterDeleter<RasterType>::get_raster_pool( void ) const
 {
   return raster_pool_;
 }
 
-void RasterDeleter::set_raster_pool( RasterPool * pool )
+template<class RasterType>
+void RasterDeleter<RasterType>::set_raster_pool( RasterPool<RasterType> * pool )
 {
   assert( not raster_pool_ );
   raster_pool_ = pool;
 }
 
-static RasterPool & global_raster_pool( void )
+template<class RasterType>
+static RasterPool<RasterType> & global_raster_pool( void )
 {
-  static RasterPool pool;
+  static RasterPool<RasterType> pool;
   return pool;
 }
 
-MutableRasterHandle::MutableRasterHandle( const unsigned int display_width, const unsigned int display_height )
-  : MutableRasterHandle( display_width, display_height, global_raster_pool() )
+template<class RasterType>
+VP8MutableRasterHandle<RasterType>::VP8MutableRasterHandle( const unsigned int display_width,
+                                                            const unsigned int display_height )
+  : VP8MutableRasterHandle( display_width, display_height, global_raster_pool<RasterType>() )
 {}
 
-MutableRasterHandle::MutableRasterHandle( const unsigned int display_width, const unsigned int display_height, RasterPool & raster_pool )
+template<class RasterType>
+VP8MutableRasterHandle<RasterType>::VP8MutableRasterHandle( const unsigned int display_width,
+                                                            const unsigned int display_height,
+                                                            RasterPool<RasterType> & raster_pool )
+  : raster_( raster_pool.make_raster( display_width, display_height ) )
+{}
+
+template<>
+VP8MutableRasterHandle<HashCachedRaster>::VP8MutableRasterHandle( const unsigned int display_width,
+                                                                  const unsigned int display_height,
+                                                                  RasterPool<HashCachedRaster> & raster_pool )
   : raster_( raster_pool.make_raster( display_width, display_height ) )
 {
   assert( not raster_->has_cache() );
 }
 
-RasterHandle::RasterHandle( MutableRasterHandle && mutable_raster )
+template<class RasterType>
+VP8RasterHandle<RasterType>::VP8RasterHandle( VP8MutableRasterHandle<RasterType> && mutable_raster )
+  : raster_( move( mutable_raster.raster_ ) )
+{}
+
+template<>
+VP8RasterHandle<HashCachedRaster>::VP8RasterHandle( VP8MutableRasterHandle<HashCachedRaster> && mutable_raster )
   : raster_( move( mutable_raster.raster_ ) )
 {
   assert( not raster_->has_cache() );
 }
 
-size_t RasterHandle::hash( void ) const
+template<>
+size_t VP8RasterHandle<HashCachedRaster>::hash( void ) const
 {
   return raster_->hash();
 }
 
-bool RasterHandle::operator==( const RasterHandle & other ) const
+template<>
+bool VP8RasterHandle<HashCachedRaster>::operator==( const VP8RasterHandle<HashCachedRaster> & other ) const
 {
   return hash() == other.hash();
 }
 
-bool RasterHandle::operator!=( const RasterHandle & other ) const
+template<>
+bool VP8RasterHandle<HashCachedRaster>::operator!=( const VP8RasterHandle<HashCachedRaster> & other ) const
 {
   return not operator==( other );
 }
@@ -140,3 +179,8 @@ bool HashCachedRaster::has_cache() const
 {
   return frozen_hash_.initialized();
 }
+
+template class VP8MutableRasterHandle<HashCachedRaster>;
+template class VP8RasterHandle<HashCachedRaster>;
+template class VP8MutableRasterHandle<SafeRaster>;
+template class VP8RasterHandle<SafeRaster>;

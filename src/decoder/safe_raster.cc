@@ -3,7 +3,8 @@
 #include "decoder.hh"
 
 SafeRaster::SafeRaster( uint16_t width, uint16_t height )
-  : safe_Y_( width + MARGIN_WIDTH * 2, height + MARGIN_WIDTH * 2 )
+  : safe_Y_( width + MARGIN_WIDTH * 2, height + MARGIN_WIDTH * 2 ),
+    display_width_( width ), display_height_( height )
 {}
 
 SafeRaster::SafeRaster( const VP8Raster & source )

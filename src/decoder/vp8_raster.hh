@@ -316,12 +316,18 @@ class SafeRaster
 {
 private:
   TwoD<uint8_t> safe_Y_;
+  
+  uint16_t display_width_;
+  uint16_t display_height_;
 
 public:
   static const size_t MARGIN_WIDTH = 256;
 
   SafeRaster( uint16_t width, uint16_t height );
   SafeRaster( const VP8Raster & source );
+
+  uint16_t display_width() const { return display_width_; }
+  uint16_t display_height() const { return display_height_; }
 
   /* Copies the Y plane of the given raster to the target buffer and automatically
      does the edge extension. */
