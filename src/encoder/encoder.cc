@@ -83,7 +83,7 @@ Encoder::Encoder( const Decoder & decoder, const bool two_pass,
 
 Encoder::Encoder( const Encoder & encoder )
   : decoder_state_( encoder.decoder_state_ ),
-    references_( move( encoder.references_.deep_copy() ) ),
+    references_( encoder.references_ ),
     safe_references_( references_ ),
     two_pass_encoder_( encoder.two_pass_encoder_ ),
     encode_quality_( encoder.encode_quality_ ),

@@ -118,8 +118,6 @@ struct References
 
   bool operator!=( const References & other ) const { return not operator==( other ); }
 
-  References deep_copy() const;
-
   size_t serialize(EncoderStateSerializer &odata) const;
   static References deserialize(EncoderStateDeserializer &idata);
 };

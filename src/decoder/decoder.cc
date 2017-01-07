@@ -148,25 +148,6 @@ References::References(EncoderStateDeserializer &idata, const uint16_t width, co
   , alternative( last )
 {}
 
-References References::deep_copy() const
-{
-  References copy { last.get().display_width(), last.get().display_height() };
-
-  MutableRasterHandle last_copy { last.get().display_width(), last.get().display_height() };
-  MutableRasterHandle golden_copy { last.get().display_width(), last.get().display_height() };;
-  MutableRasterHandle alt_copy { last.get().display_width(), last.get().display_height() };;
-
-  last_copy.get().copy_from( last.get() );
-  golden_copy.get().copy_from( golden.get() );
-  alt_copy.get().copy_from( alternative.get() );
-
-  copy.last = move( last_copy );
-  copy.golden = move( golden_copy );
-  copy.alternative = move( alt_copy );
-
-  return copy;
-}
-
 size_t References::serialize(EncoderStateSerializer &odata) const {
   odata.reserve(9);
   odata.put(EncoderSerDesTag::REFERENCES);
