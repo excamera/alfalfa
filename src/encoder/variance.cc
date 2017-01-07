@@ -55,7 +55,7 @@ uint32_t Encoder::variance( const VP8Raster::Block<size> & block,
 
 #else // SSE2 is supported
 
-#include "variance_sse2.c"
+#include "variance_sse2.cc"
 
 /* SAD() */
 template<>
