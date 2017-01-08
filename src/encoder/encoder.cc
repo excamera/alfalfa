@@ -133,7 +133,9 @@ vector<uint8_t> Encoder::write_frame( const FrameType & frame,
   RasterHandle immutable_raster( move( raster ) );
   frame.copy_to( immutable_raster, references_ );
 
-  safe_references_.update_all_refs( references_ );
+  safe_references_.last = move( SafeReferences::load( references_.last ) );
+  safe_references_.golden = move( SafeReferences::load( references_.golden ) );
+  safe_references_.alternative = move( SafeReferences::load( references_.alternative ) );
 
   if ( encode_quality_ == REALTIME_QUALITY ) {
     loop_filter_level_.clear();

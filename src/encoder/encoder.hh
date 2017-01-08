@@ -32,20 +32,20 @@ enum EncoderQuality
 
 class SafeReferences
 {
-private:
+public:
   /* For now, we only need the Y planes to do the diamond search, so we only
      keep them in our safe references. */
-  MutableSafeRasterHandle last_, golden_, alternative_;
+  SafeRasterHandle last, golden, alternative;
 
+private:
   SafeReferences( const uint16_t width, const uint16_t height );
 
 public:
   SafeReferences( const References & references );
 
-  void update_ref( reference_frame reference_id, RasterHandle reference_raster );
-  void update_all_refs( const References & references );
-
   const SafeRaster & get( reference_frame reference_id ) const;
+
+  static MutableSafeRasterHandle load( const VP8Raster & source );
 };
 
 class Encoder

@@ -5,40 +5,30 @@
 using namespace std;
 
 SafeReferences::SafeReferences( const uint16_t width, const uint16_t height )
-  : last_( move ( MutableSafeRasterHandle( width, height ) ) ),
-    golden_( move ( MutableSafeRasterHandle( width, height ) ) ),
-    alternative_( move ( MutableSafeRasterHandle( width, height ) ) )
+  : last( move ( MutableSafeRasterHandle( width, height ) ) ),
+    golden( move ( MutableSafeRasterHandle( width, height ) ) ),
+    alternative( move ( MutableSafeRasterHandle( width, height ) ) )
 {}
 
 SafeReferences::SafeReferences( const References & references )
-  : SafeReferences( references.last.get().width(), references.last.get().height() )
-{
-  update_all_refs( references );
-}
-
-void SafeReferences::update_ref( reference_frame reference_id, RasterHandle reference_raster )
-{
-  switch ( reference_id ) {
-  case LAST_FRAME: last_.get().copy_raster( reference_raster.get() ); break;
-  case GOLDEN_FRAME: golden_.get().copy_raster( reference_raster.get() ); break;
-  case ALTREF_FRAME: alternative_.get().copy_raster( reference_raster.get() ); break;
-  default: throw LogicError();
-  }
-}
-
-void SafeReferences::update_all_refs( const References & references )
-{
-  update_ref( LAST_FRAME, references.last );
-  update_ref( GOLDEN_FRAME, references.golden );
-  update_ref( ALTREF_FRAME, references.alternative );
-}
+  : last( move ( load( references.last ) ) ),
+    golden( move ( load( references.golden ) ) ),
+    alternative( move ( load( references.alternative ) ) )
+{}
 
 const SafeRaster & SafeReferences::get( reference_frame reference_id ) const
 {
   switch ( reference_id ) {
-  case LAST_FRAME: return last_;
-  case GOLDEN_FRAME: return golden_;
-  case ALTREF_FRAME: return alternative_;
+  case LAST_FRAME: return last.get();
+  case GOLDEN_FRAME: return golden.get();
+  case ALTREF_FRAME: return alternative.get();
   default: throw LogicError();
   }
+}
+
+MutableSafeRasterHandle SafeReferences::load( const VP8Raster & source )
+{
+  MutableSafeRasterHandle target( source.display_width(), source.display_height() );
+  target.get().copy_raster( source );
+  return target;
 }
