@@ -34,7 +34,7 @@ struct EncodeJob
 
   pair<UnixDomainSocket, UnixDomainSocket> pipe;
 
-  EncodeJob( uint32_t frame_no, RasterHandle raster, const Encoder & encoder )
+  EncodeJob( const uint32_t frame_no, RasterHandle raster, const Encoder & encoder )
     : frame_no( frame_no ), raster( raster ), encoder( encoder ),
       mode( CONSTANT_QUANTIZER ), y_ac_qi(), target_size(),
       pipe( move( UnixDomainSocket::make_pair() ) )
@@ -45,12 +45,40 @@ struct EncodeOutput
 {
   Encoder encoder;
   vector<uint8_t> frame;
-  size_t encode_time;
+  int encode_time;
 
-  EncodeOutput( Encoder && encoder, vector<uint8_t> frame, size_t encode_time )
-    : encoder( move( encoder ) ), frame( frame ), encode_time( encode_time )
+  EncodeOutput( Encoder && encoder, vector<uint8_t> && frame, const int encode_time )
+    : encoder( move( encoder ) ), frame( move( frame ) ),
+      encode_time( encode_time )
   {}
 };
+
+EncodeOutput do_encode_job( EncodeJob encode_job )
+{
+  vector<uint8_t> output;
+
+  const auto encode_beginning = chrono::system_clock::now();
+
+  switch ( encode_job.mode ) {
+  case CONSTANT_QUANTIZER:
+    output = encode_job.encoder.encode_with_quantizer( encode_job.raster.get(),
+                                                       encode_job.y_ac_qi );
+    break;
+
+  case TARGET_FRAME_SIZE:
+    output = encode_job.encoder.encode_with_target_size( encode_job.raster.get(),
+                                                         encode_job.target_size );
+    break;
+
+  default:
+    throw runtime_error( "unsupported encoding mode." );
+  }
+
+  const auto encode_ending = chrono::system_clock::now();
+  const int ms_elapsed = chrono::duration_cast<chrono::milliseconds>( encode_ending - encode_beginning ).count();
+
+  return { move( encode_job.encoder ), move( output ), ms_elapsed };
+}
 
 size_t target_size( uint32_t avg_delay, const uint64_t last_acked, const uint64_t last_sent )
 {
