@@ -53,7 +53,7 @@ struct EncodeOutput
   {}
 };
 
-EncodeOutput do_encode_job( EncodeJob encode_job )
+EncodeOutput do_encode_job( EncodeJob && encode_job )
 {
   vector<uint8_t> output;
 
@@ -181,13 +181,13 @@ int main( int argc, char *argv[] )
         return Result( ResultType::Exit, EXIT_FAILURE );
       }
 
+      EncodeJob encode_job { frame_no, raster.get(), encoder };
+
       cerr << "Encoding frame #" << frame_no << "...";
 
-      const auto encode_beginning = chrono::system_clock::now();
-      vector<uint8_t> frame;
-
       if ( avg_delay == numeric_limits<uint32_t>::max() ) {
-        frame = encoder.encode_with_quantizer( raster.get(), y_ac_qi );
+        encode_job.mode = CONSTANT_QUANTIZER;
+        encode_job.y_ac_qi = y_ac_qi;
       }
       else {
         size_t frame_size = target_size( avg_delay, last_acked, cumulative_fpf.back() );
@@ -199,30 +199,32 @@ int main( int argc, char *argv[] )
         }
         else if ( frame_size == 0 ) {
           cerr << "too many skipped frames, let's send one with a low quality." << endl;
-          frame = encoder.encode_with_quantizer( raster.get(), 96 );
+          encode_job.mode = CONSTANT_QUANTIZER;
+          encode_job.y_ac_qi = 96;
         }
         else {
           cerr << "encoding with target size=" << frame_size << endl;
-          frame = encoder.encode_with_target_size( raster.get(), frame_size );
+          encode_job.mode = TARGET_FRAME_SIZE;
+          encode_job.target_size = frame_size;
         }
       }
 
-      const auto encode_ending = chrono::system_clock::now();
-      const int ms_elapsed = chrono::duration_cast<chrono::milliseconds>( encode_ending - encode_beginning ).count();
-      cerr << "done (encode_time=" << ms_elapsed << " ms, size=" << frame.size() << " bytes)." << endl;
+      EncodeOutput output = do_encode_job( move( encode_job ) );
+
+      cerr << "done (encode_time=" << output.encode_time << " ms, size=" << output.frame.size() << " bytes)." << endl;
 
       cerr << "Sending frame #" << frame_no << "...";
       FragmentedFrame ff { connection_id,
                            frame_no,
                            static_cast<uint32_t>( 1e6 * input.header().fps_denominator / input.header().fps_numerator ),
-                           frame };
+                           output.frame };
       ff.send( socket );
       cerr << "done." << endl;
 
-      skipped_count = 0;
-
       cumulative_fpf.push_back( ( frame_no > 0 ) ? ( cumulative_fpf[ frame_no - 1 ] + ff.fragments_in_this_frame() )
                                 : ff.fragments_in_this_frame() );
+
+      skipped_count = 0;
       frame_no++;
 
       return ResultType::Continue;
