@@ -7,16 +7,50 @@
 #include <random>
 #include <limits>
 #include <thread>
+#include <future>
 
 #include "yuv4mpeg.hh"
 #include "encoder.hh"
 #include "socket.hh"
 #include "packet.hh"
 #include "poller.hh"
+#include "socketpair.hh"
 
 using namespace std;
 using namespace std::chrono;
 using namespace PollerShortNames;
+
+struct EncodeJob
+{
+  uint32_t frame_no;
+
+  RasterHandle raster;
+
+  Encoder encoder;
+  EncoderMode mode;
+
+  uint8_t y_ac_qi;
+  size_t target_size;
+
+  pair<UnixDomainSocket, UnixDomainSocket> pipe;
+
+  EncodeJob( uint32_t frame_no, RasterHandle raster, const Encoder & encoder )
+    : frame_no( frame_no ), raster( raster ), encoder( encoder ),
+      mode( CONSTANT_QUANTIZER ), y_ac_qi(), target_size(),
+      pipe( move( UnixDomainSocket::make_pair() ) )
+  {}
+};
+
+struct EncodeOutput
+{
+  Encoder encoder;
+  vector<uint8_t> frame;
+  size_t encode_time;
+
+  EncodeOutput( Encoder && encoder, vector<uint8_t> frame, size_t encode_time )
+    : encoder( move( encoder ) ), frame( frame ), encode_time( encode_time )
+  {}
+};
 
 size_t target_size( uint32_t avg_delay, const uint64_t last_acked, const uint64_t last_sent )
 {
@@ -96,13 +130,6 @@ int main( int argc, char *argv[] )
       }
 
       avg_delay = ack.avg_delay();
-
-      /*
-      cerr << "ACK(frame: " << ack.frame_no() << ", "
-           << "fragment: " << ack.fragment_no() << ", "
-           << "avg delay: " << ack.avg_delay()
-           << ")" << endl;
-      */
 
       last_acked = ( ack.frame_no() > 0 )
                    ? ( cumulative_fpf[ ack.frame_no() - 1 ] + ack.fragment_no() )

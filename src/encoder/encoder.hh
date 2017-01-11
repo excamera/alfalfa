@@ -30,6 +30,14 @@ enum EncoderQuality
   REALTIME_QUALITY
 };
 
+enum EncoderMode
+{
+  MINIMUM_SSIM,
+  CONSTANT_QUANTIZER,
+  TARGET_FRAME_SIZE,
+  REENCODE
+};
+
 class SafeReferences
 {
 public:

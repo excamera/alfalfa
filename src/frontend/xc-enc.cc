@@ -66,14 +66,6 @@ size_t read_next_frame_size( istream & in )
   return last_size;
 }
 
-enum EncoderMode
-{
-  MINIMUM_SSIM,
-  CONSTANT_QUANTIZER,
-  TARGET_FRAME_SIZE,
-  REENCODE
-};
-
 int main( int argc, char *argv[] )
 {
   try {
