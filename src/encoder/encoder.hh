@@ -305,7 +305,6 @@ public:
   Encoder( const Decoder & decoder, const bool two_pass,
            const EncoderQuality quality );
 
-  /* deep copy of the encoder object */
   Encoder( const Encoder & encoder );
 
   Encoder( Encoder && encoder );
