@@ -53,7 +53,7 @@ struct EncodeOutput
   {}
 };
 
-EncodeOutput do_encode_job( EncodeJob && encode_job )
+EncodeOutput do_encode_job( EncodeJob & encode_job )
 {
   vector<uint8_t> output;
 
@@ -209,7 +209,7 @@ int main( int argc, char *argv[] )
         }
       }
 
-      EncodeOutput output = do_encode_job( move( encode_job ) );
+      EncodeOutput output { move( do_encode_job( encode_job ) ) };
 
       cerr << "done (encode_time=" << output.encode_time << " ms, size=" << output.frame.size() << " bytes)." << endl;
 
@@ -224,6 +224,7 @@ int main( int argc, char *argv[] )
       cumulative_fpf.push_back( ( frame_no > 0 ) ? ( cumulative_fpf[ frame_no - 1 ] + ff.fragments_in_this_frame() )
                                 : ff.fragments_in_this_frame() );
 
+      encoder = move( output.encoder );
       skipped_count = 0;
       frame_no++;
 

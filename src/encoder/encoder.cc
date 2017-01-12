@@ -84,7 +84,7 @@ Encoder::Encoder( const Decoder & decoder, const bool two_pass,
 Encoder::Encoder( const Encoder & encoder )
   : decoder_state_( encoder.decoder_state_ ),
     references_( encoder.references_ ),
-    safe_references_( references_ ),
+    safe_references_( encoder.safe_references_ ),
     two_pass_encoder_( encoder.two_pass_encoder_ ),
     encode_quality_( encoder.encode_quality_ ),
     key_frame_( make_empty_frame<KeyFrame>( width(), height(), true ) ),
@@ -108,6 +108,21 @@ Encoder::Encoder( Encoder && encoder )
     inter_frame_( move( encoder.inter_frame_ ) ),
     subsampled_inter_frame_( move( encoder.subsampled_inter_frame_ ) )
 {}
+
+Encoder & Encoder::operator=( Encoder && encoder )
+{
+  decoder_state_ = move( encoder.decoder_state_ );
+  references_ = move( encoder.references_ );
+  safe_references_ = move( encoder.safe_references_ );
+  two_pass_encoder_ = encoder.two_pass_encoder_;
+  encode_quality_ = encoder.encode_quality_;
+  key_frame_ = move( encoder.key_frame_ );
+  subsampled_key_frame_ = move( encoder.subsampled_key_frame_ );
+  inter_frame_ = move( encoder.inter_frame_ );
+  subsampled_inter_frame_ = move( encoder.subsampled_inter_frame_ );
+
+  return *this;
+}
 
 template<class FrameType>
 FrameType Encoder::make_empty_frame( const uint16_t width, const uint16_t height,

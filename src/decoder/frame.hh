@@ -90,6 +90,7 @@ class Frame
 
   /* allow moving */
   Frame( Frame && other ) noexcept;
+  Frame & operator=( Frame && other );
 };
 
 using KeyFrame = Frame<KeyFrameHeader, KeyFrameMacroblock>;

@@ -31,6 +31,25 @@ Frame<FrameHeaderType, MacroblockType>::Frame( Frame && other ) noexcept
 {}
 
 template <class FrameHeaderType, class MacroblockType>
+Frame<FrameHeaderType, MacroblockType> &
+Frame<FrameHeaderType, MacroblockType>::operator=( Frame && other )
+{
+  show_ = other.show_;
+  display_width_ = other.display_width_;
+  display_height_ = other.display_height_;
+  macroblock_width_ = other.macroblock_width_;
+  macroblock_height_ = other.macroblock_height_;
+  Y2_ = move( other.Y2_ );
+  Y_ = move( other.Y_ );
+  U_ = move( other.U_ );
+  V_ = move( other.V_ );
+  header_ = move( other.header_ );
+  macroblock_headers_ = move( other.macroblock_headers_ );
+
+  return *this;
+}
+
+template <class FrameHeaderType, class MacroblockType>
 ProbabilityArray< num_segments > Frame<FrameHeaderType, MacroblockType>::calculate_mb_segment_tree_probs( void ) const
 {
   /* calculate segment tree probabilities if map is updated by this frame */
