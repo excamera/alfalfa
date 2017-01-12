@@ -48,8 +48,8 @@ Encoder::Encoder( const uint16_t s_width,
                   const EncoderQuality quality )
   : decoder_state_( s_width, s_height ),
     references_( width(), height() ),
-    safe_references_( references_ ), two_pass_encoder_( two_pass ),
-    encode_quality_( quality ),
+    safe_references_( references_ ), has_state_( false ), costs_(),
+    two_pass_encoder_( two_pass ), encode_quality_( quality ),
     key_frame_( make_empty_frame<KeyFrame>( width(), height(), true ) ),
     subsampled_key_frame_( make_empty_frame<KeyFrame>( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
                                                        height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
@@ -57,7 +57,8 @@ Encoder::Encoder( const uint16_t s_width,
     inter_frame_( make_empty_frame<InterFrame>( width(), height(), true ) ),
     subsampled_inter_frame_( make_empty_frame<InterFrame>( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
                                                            height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
-                                                           true ) )
+                                                           true ) ),
+    loop_filter_level_(), last_y_ac_qi_()
 {
   costs_.fill_mode_costs();
 }
@@ -65,7 +66,8 @@ Encoder::Encoder( const uint16_t s_width,
 Encoder::Encoder( const Decoder & decoder, const bool two_pass,
                   const EncoderQuality quality )
   : decoder_state_( decoder.get_state() ), references_( decoder.get_references() ),
-    safe_references_( references_ ), two_pass_encoder_( two_pass ),
+    safe_references_( references_ ), has_state_( true ), costs_(),
+    two_pass_encoder_( two_pass ),
     encode_quality_( quality ),
     key_frame_( make_empty_frame<KeyFrame>( width(), height(), true ) ),
     subsampled_key_frame_( make_empty_frame<KeyFrame>( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
@@ -74,10 +76,9 @@ Encoder::Encoder( const Decoder & decoder, const bool two_pass,
     inter_frame_( make_empty_frame<InterFrame>( width(), height(), true ) ),
     subsampled_inter_frame_( make_empty_frame<InterFrame>( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
                                                            height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
-                                                           true ) )
+                                                           true ) ),
+    loop_filter_level_(), last_y_ac_qi_()
 {
-  has_state_ = true;
-
   costs_.fill_mode_costs();
 }
 
@@ -85,6 +86,7 @@ Encoder::Encoder( const Encoder & encoder )
   : decoder_state_( encoder.decoder_state_ ),
     references_( encoder.references_ ),
     safe_references_( encoder.safe_references_ ),
+    has_state_( encoder.has_state_ ), costs_( encoder.costs_ ),
     two_pass_encoder_( encoder.two_pass_encoder_ ),
     encode_quality_( encoder.encode_quality_ ),
     key_frame_( make_empty_frame<KeyFrame>( width(), height(), true ) ),
@@ -94,19 +96,23 @@ Encoder::Encoder( const Encoder & encoder )
     inter_frame_( make_empty_frame<InterFrame>( width(), height(), true ) ),
     subsampled_inter_frame_( make_empty_frame<InterFrame>( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
                                                            height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
-                                                           true ) )
+                                                           true ) ),
+    loop_filter_level_(), last_y_ac_qi_()
 {}
 
 Encoder::Encoder( Encoder && encoder )
   : decoder_state_( move( encoder.decoder_state_ ) ),
     references_( move( encoder.references_ ) ),
     safe_references_( move( encoder.safe_references_ ) ),
+    has_state_( encoder.has_state_ ), costs_( move( encoder.costs_ ) ),
     two_pass_encoder_( encoder.two_pass_encoder_ ),
     encode_quality_( encoder.encode_quality_ ),
     key_frame_( move( encoder.key_frame_ ) ),
     subsampled_key_frame_( move( encoder.subsampled_key_frame_ ) ),
     inter_frame_( move( encoder.inter_frame_ ) ),
-    subsampled_inter_frame_( move( encoder.subsampled_inter_frame_ ) )
+    subsampled_inter_frame_( move( encoder.subsampled_inter_frame_ ) ),
+    loop_filter_level_( move( encoder.loop_filter_level_ ) ),
+    last_y_ac_qi_( move( encoder.last_y_ac_qi_ ) )
 {}
 
 Encoder & Encoder::operator=( Encoder && encoder )
@@ -114,12 +120,16 @@ Encoder & Encoder::operator=( Encoder && encoder )
   decoder_state_ = move( encoder.decoder_state_ );
   references_ = move( encoder.references_ );
   safe_references_ = move( encoder.safe_references_ );
+  has_state_ = encoder.has_state_;
+  costs_ = move( encoder.costs_ );
   two_pass_encoder_ = encoder.two_pass_encoder_;
   encode_quality_ = encoder.encode_quality_;
   key_frame_ = move( encoder.key_frame_ );
   subsampled_key_frame_ = move( encoder.subsampled_key_frame_ );
   inter_frame_ = move( encoder.inter_frame_ );
   subsampled_inter_frame_ = move( encoder.subsampled_inter_frame_ );
+  loop_filter_level_ = move( encoder.loop_filter_level_ );
+  last_y_ac_qi_ = move( encoder.last_y_ac_qi_ );
 
   return *this;
 }

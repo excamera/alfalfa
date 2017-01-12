@@ -89,22 +89,22 @@ private:
   References references_;
   SafeReferences safe_references_;
 
-  bool has_state_ { false };
+  bool has_state_;
 
-  Costs costs_ {};
+  Costs costs_;
 
-  bool two_pass_encoder_ { false };
-  EncoderQuality encode_quality_{ BEST_QUALITY };
+  bool two_pass_encoder_;
+  EncoderQuality encode_quality_;
 
   KeyFrame key_frame_, subsampled_key_frame_;
   InterFrame inter_frame_, subsampled_inter_frame_;
 
-  Optional<uint8_t> loop_filter_level_ { false };
+  Optional<uint8_t> loop_filter_level_;
 
   /* if set, while encoding with max target size, the search scope for the
      proper quantizer will be:
      last_y_ac_qi_ - a <= y_ac_qi <= last_y_ac_qi_ + a */
-  Optional<uint8_t> last_y_ac_qi_ { false };
+  Optional<uint8_t> last_y_ac_qi_;
 
   // TODO: Where did these come from?
   uint32_t RATE_MULTIPLIER { 300 };
