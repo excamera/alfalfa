@@ -45,9 +45,9 @@ struct EncodeOutput
 {
   Encoder encoder;
   vector<uint8_t> frame;
-  chrono::milliseconds encode_time;
+  milliseconds encode_time;
 
-  EncodeOutput( Encoder && encoder, vector<uint8_t> && frame, const chrono::milliseconds encode_time )
+  EncodeOutput( Encoder && encoder, vector<uint8_t> && frame, const milliseconds encode_time )
     : encoder( move( encoder ) ), frame( move( frame ) ),
       encode_time( encode_time )
   {}
@@ -57,7 +57,7 @@ EncodeOutput do_encode_job( EncodeJob && encode_job )
 {
   vector<uint8_t> output;
 
-  const auto encode_beginning = chrono::system_clock::now();
+  const auto encode_beginning = system_clock::now();
 
   switch ( encode_job.mode ) {
   case CONSTANT_QUANTIZER:
@@ -74,8 +74,8 @@ EncodeOutput do_encode_job( EncodeJob && encode_job )
     throw runtime_error( "unsupported encoding mode." );
   }
 
-  const auto encode_ending = chrono::system_clock::now();
-  const auto ms_elapsed = chrono::duration_cast<chrono::milliseconds>( encode_ending - encode_beginning );
+  const auto encode_ending = system_clock::now();
+  const auto ms_elapsed = duration_cast<milliseconds>( encode_ending - encode_beginning );
 
   return { move( encode_job.encoder ), move( output ), ms_elapsed };
 }
@@ -148,7 +148,7 @@ int main( int argc, char *argv[] )
   /* frame rate */
   static const int MS_PER_SECOND = 1000;
   uint8_t fps = 12;
-  chrono::milliseconds time_per_frame { MS_PER_SECOND / fps };
+  milliseconds time_per_frame { MS_PER_SECOND / fps };
 
   /* construct the encoder */
   Encoder encoder { input.display_width(), input.display_height(),
@@ -212,7 +212,7 @@ int main( int argc, char *argv[] )
 
       RasterHandle raster = last_raster.get();
 
-      const auto encode_deadline = chrono::system_clock::now() + time_per_frame;
+      const auto encode_deadline = system_clock::now() + time_per_frame;
 
       cerr << "Preparing encoding jobs for frame #" << frame_no << "." << endl;
 
@@ -243,7 +243,7 @@ int main( int argc, char *argv[] )
       thread(
         [&encode_jobs, &encode_outputs, &encode_end_pipe, encode_deadline]()
         {
-          const auto encode_beginning = chrono::system_clock::now();
+          const auto encode_beginning = system_clock::now();
 
           encode_outputs.clear();
           encode_outputs.reserve( encode_jobs.size() );
@@ -256,8 +256,8 @@ int main( int argc, char *argv[] )
             future_res.wait_until( encode_deadline );
           }
 
-          const auto encode_ending = chrono::system_clock::now();
-          const auto ms_elapsed = chrono::duration_cast<chrono::milliseconds>( encode_ending - encode_beginning );
+          const auto encode_ending = system_clock::now();
+          const auto ms_elapsed = duration_cast<milliseconds>( encode_ending - encode_beginning );
 
           cerr << "Encoding done (time=" << ms_elapsed.count() << " ms)." << endl;
 
