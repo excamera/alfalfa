@@ -17,10 +17,41 @@
 #include "poller.hh"
 #include "socketpair.hh"
 #include "exception.hh"
+#include "finally.hh"
 
 using namespace std;
 using namespace std::chrono;
 using namespace PollerShortNames;
+
+class AverageEncodingTime
+{
+private:
+  static constexpr double ALPHA = 0.1;
+
+  double value_ { -1.0 };
+  microseconds last_update_{ 0 };
+
+public:
+  void add( const microseconds timestamp_us )
+  {
+    assert( timestamp_us >= last_update_ );
+
+    if ( value_ < 0 ) {
+      value_ = 0;
+    }
+    else if ( timestamp_us - last_update_ > 1s /* 1 seconds */ ) {
+      value_ = 0;
+    }
+    else {
+      double new_value = max( 0l, duration_cast<microseconds>( timestamp_us - last_update_ ).count() );
+      value_ = ALPHA * new_value + ( 1 - ALPHA ) * value_;
+    }
+
+    last_update_ = timestamp_us;
+  }
+
+  uint32_t int_value() const { return static_cast<uint32_t>( value_ ); }
+};
 
 struct EncodeJob
 {
@@ -147,8 +178,8 @@ int main( int argc, char *argv[] )
 
   /* frame rate */
   static const int MS_PER_SECOND = 1000;
-  uint8_t fps = 12;
-  milliseconds time_per_frame { MS_PER_SECOND / fps };
+  uint8_t min_fps = 6;
+  milliseconds max_time_per_frame { MS_PER_SECOND / min_fps };
 
   /* construct the encoder */
   Encoder encoder { input.display_width(), input.display_height(),
@@ -157,6 +188,9 @@ int main( int argc, char *argv[] )
   /* encoded frame index */
   unsigned int frame_no = 0;
 
+  /* last raster recieved on the input */
+  unsigned int input_raster_count = 0;
+
   /* latest raster that is received from the input */
   Optional<RasterHandle> last_raster;
 
@@ -164,18 +198,10 @@ int main( int argc, char *argv[] )
   vector<EncodeJob> encode_jobs;
   vector<future<EncodeOutput>> encode_outputs;
 
-  auto encode_start_pipe = UnixDomainSocket::make_pair();
-  auto encode_end_pipe = UnixDomainSocket::make_pair();
+  /* keep the moving average of encoding times */
+  AverageEncodingTime avg_encoding_time;
 
-  thread(
-    [&]()
-    {
-      while ( true ) {
-        encode_start_pipe.first.write( "1" );
-        this_thread::sleep_for( time_per_frame );
-      }
-    }
-  ).detach();
+  auto encode_end_pipe = UnixDomainSocket::make_pair();
 
   Poller poller;
 
@@ -183,36 +209,20 @@ int main( int argc, char *argv[] )
   poller.add_action( Poller::Action( input.fd(), Direction::In,
     [&]() -> Result {
       last_raster = input.get_next_frame();
+      input_raster_count++;
 
       if ( not last_raster.initialized() ) {
         return { ResultType::Exit, EXIT_FAILURE };
       }
-
-      return ResultType::Continue;
-    },
-    [&]() { return not input.fd().eof(); } )
-  );
-
-  /* start the encoding jobs for the next frame.
-     this action is signaled by a thread every ( 1 / fps ) seconds. */
-  poller.add_action( Poller::Action( encode_start_pipe.second, Direction::In,
-    [&]()
-    {
-      encode_start_pipe.second.read();
 
       if ( encode_jobs.size() > 0 ) {
         /* a frame is being encoded now */
         return ResultType::Continue;
       }
 
-      if ( not last_raster.initialized() ) {
-        /* there is no raster, it's only yourself. */
-        return ResultType::Continue;
-      }
-
       RasterHandle raster = last_raster.get();
 
-      const auto encode_deadline = system_clock::now() + time_per_frame;
+      const auto encode_deadline = system_clock::now() + max_time_per_frame;
 
       cerr << "Preparing encoding jobs for frame #" << frame_no << "." << endl;
 
@@ -234,8 +244,6 @@ int main( int argc, char *argv[] )
         else {
           cerr << "encoding with target size=" << frame_size << endl;
           encode_jobs.emplace_back( frame_no, raster, encoder, TARGET_FRAME_SIZE, 0, frame_size );
-          encode_jobs.emplace_back( frame_no, raster, encoder, TARGET_FRAME_SIZE, 0, frame_size / 2 );
-          encode_jobs.emplace_back( frame_no, raster, encoder, TARGET_FRAME_SIZE, 0, frame_size / 4 );
         }
       }
 
@@ -275,13 +283,14 @@ int main( int argc, char *argv[] )
   poller.add_action( Poller::Action( encode_end_pipe.second, Direction::In,
     [&]()
     {
+      /* whatever happens, encode_jobs will be empty after this block is done. */
+      auto __remove_jobs = finally( [&]() { encode_jobs.clear(); } );
+
       encode_end_pipe.second.read();
 
-      auto validity_predicate = [&]( const future<EncodeOutput> & o ) { return o.valid(); };
-
-      if ( not any_of( encode_outputs.cbegin(), encode_outputs.cend(), validity_predicate ) ) {
+      if ( not any_of( encode_outputs.cbegin(), encode_outputs.cend(),
+                       [&]( const future<EncodeOutput> & o ) { return o.valid(); } ) ) {
         // no encoding job has ended in time
-        encode_jobs.clear();
         return ResultType::Continue;
       }
 
@@ -315,9 +324,7 @@ int main( int argc, char *argv[] )
       }
 
       if ( best_output_index == numeric_limits<size_t>::max() ) {
-        /* all frames are just so big... */
-        encode_jobs.clear();
-        return ResultType::Continue;
+        best_output_index = good_outputs.size() - 1;
       }
 
       auto output = move( good_outputs[ best_output_index ] );
@@ -325,7 +332,7 @@ int main( int argc, char *argv[] )
       cerr << "Sending frame #" << frame_no << "...";
       FragmentedFrame ff { connection_id,
                            frame_no,
-                           static_cast<uint32_t>( duration_cast<microseconds>( time_per_frame ).count() ),
+                           avg_encoding_time.int_value(),
                            output.frame };
       ff.send( socket );
       cerr << "done." << endl;
@@ -337,7 +344,7 @@ int main( int argc, char *argv[] )
       skipped_count = 0;
       frame_no++;
 
-      encode_jobs.clear();
+      avg_encoding_time.add( duration_cast<microseconds>( system_clock::now().time_since_epoch() ) );
 
       return ResultType::Continue;
     },
