@@ -284,7 +284,7 @@ int main( int argc, char *argv[] )
     [&]()
     {
       /* whatever happens, encode_jobs will be empty after this block is done. */
-      auto __remove_jobs = finally( [&]() { encode_jobs.clear(); } );
+      auto _ = finally( [&]() { encode_jobs.clear(); } );
 
       encode_end_pipe.second.read();
 
