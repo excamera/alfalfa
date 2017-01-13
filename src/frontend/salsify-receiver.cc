@@ -12,6 +12,7 @@
 #include "optional.hh"
 #include "player.hh"
 #include "display.hh"
+#include "paranoid.hh"
 
 using namespace std;
 using namespace PollerShortNames;
@@ -49,16 +50,6 @@ public:
 void usage( const char *argv0 )
 {
   cerr << "Usage: " << argv0 << " PORT WIDTH HEIGHT" << endl;
-}
-
-unsigned int paranoid_atoi( const string & in )
-{
-  const unsigned int ret = stoul( in );
-  const string roundtrip = to_string( ret );
-  if ( roundtrip != in ) {
-    throw runtime_error( "invalid unsigned integer: " + in );
-  }
-  return ret;
 }
 
 uint16_t ezrand()
@@ -104,7 +95,7 @@ int main( int argc, char *argv[] )
   socket.set_timestamps();
 
   /* construct FramePlayer */
-  FramePlayer player( paranoid_atoi( argv[ 2 ] ), paranoid_atoi( argv[ 3 ] ) );
+  FramePlayer player( paranoid::stoul( argv[ 2 ] ), paranoid::stoul( argv[ 3 ] ) );
   // player.set_error_concealment( true );
 
   /* construct VideoDisplay */

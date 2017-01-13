@@ -18,6 +18,7 @@
 #include "socketpair.hh"
 #include "exception.hh"
 #include "finally.hh"
+#include "paranoid.hh"
 
 using namespace std;
 using namespace std::chrono;
@@ -129,16 +130,6 @@ void usage( const char *argv0 )
   cerr << "Usage: " << argv0 << " QUANTIZER HOST PORT CONNECTION_ID" << endl;
 }
 
-unsigned int paranoid_atoi( const string & in )
-{
-  const unsigned int ret = stoul( in );
-  const string roundtrip = to_string( ret );
-  if ( roundtrip != in ) {
-    throw runtime_error( "invalid unsigned integer: " + in );
-  }
-  return ret;
-}
-
 int main( int argc, char *argv[] )
 {
   /* check the command-line arguments */
@@ -155,10 +146,10 @@ int main( int argc, char *argv[] )
   YUV4MPEGReader input { FileDescriptor( STDIN_FILENO ) };
 
   /* get quantizer argument */
-  const unsigned int y_ac_qi = paranoid_atoi( argv[ 1 ] );
+  const unsigned int y_ac_qi = paranoid::stoul( argv[ 1 ] );
 
   /* get connection_id */
-  const uint16_t connection_id = paranoid_atoi( argv[ 4 ] );
+  const uint16_t connection_id = paranoid::stoul( argv[ 4 ] );
 
   /* construct Socket for outgoing datagrams */
   UDPSocket socket;

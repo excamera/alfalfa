@@ -5,22 +5,13 @@
 #include <thread>
 
 #include "yuv4mpeg.hh"
+#include "paranoid.hh"
 
 using namespace std;
 
 void usage( const char *argv0 )
 {
   cerr << "Usage: " << argv0 << " INPUT FPS" << endl;
-}
-
-unsigned int paranoid_atoi( const string & in )
-{
-  const unsigned int ret = stoul( in );
-  const string roundtrip = to_string( ret );
-  if ( roundtrip != in ) {
-    throw runtime_error( "invalid unsigned integer: " + in );
-  }
-  return ret;
 }
 
 int main( int argc, char *argv[] )
@@ -39,13 +30,13 @@ int main( int argc, char *argv[] )
   YUV4MPEGReader input { argv[ 1 ] };
 
   /* parse the # of frames per second of playback */
-  unsigned int frames_per_second = paranoid_atoi( argv[ 2 ] );
+  unsigned int frames_per_second = paranoid::stoul( argv[ 2 ] );
 
   /* open the output */
   FileDescriptor stdout { STDOUT_FILENO };
 
   const auto interval_between_frames = chrono::microseconds( int( 1.0e6 / frames_per_second ) );
-  
+
   auto next_frame_is_due = chrono::system_clock::now();
 
   bool initialized = false;
