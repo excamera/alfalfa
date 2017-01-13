@@ -164,14 +164,14 @@ int main( int argc, char *argv[] )
   vector<EncodeJob> encode_jobs;
   vector<future<EncodeOutput>> encode_outputs;
 
-  auto encode_started_pipe = UnixDomainSocket::make_pair();
-  auto encode_ended_pipe = UnixDomainSocket::make_pair();
+  auto encode_start_pipe = UnixDomainSocket::make_pair();
+  auto encode_end_pipe = UnixDomainSocket::make_pair();
 
   thread(
     [&]()
     {
       while ( true ) {
-        encode_started_pipe.first.write( "1" );
+        encode_start_pipe.first.write( "1" );
         this_thread::sleep_for( time_per_frame );
       }
     }
@@ -195,10 +195,10 @@ int main( int argc, char *argv[] )
 
   /* start the encoding jobs for the next frame.
      this action is signaled by a thread every ( 1 / fps ) seconds. */
-  poller.add_action( Poller::Action( encode_started_pipe.second, Direction::In,
+  poller.add_action( Poller::Action( encode_start_pipe.second, Direction::In,
     [&]()
     {
-      encode_started_pipe.second.read();
+      encode_start_pipe.second.read();
 
       if ( encode_jobs.size() > 0 ) {
         /* a frame is being encoded now */
@@ -241,8 +241,10 @@ int main( int argc, char *argv[] )
 
       // this thread will spawn all the encoding jobs and will wait on the results
       thread(
-        [&encode_jobs, &encode_outputs, &encode_ended_pipe, encode_deadline]()
+        [&encode_jobs, &encode_outputs, &encode_end_pipe, encode_deadline]()
         {
+          const auto encode_beginning = chrono::system_clock::now();
+
           encode_outputs.clear();
           encode_outputs.reserve( encode_jobs.size() );
 
@@ -254,7 +256,12 @@ int main( int argc, char *argv[] )
             future_res.wait_until( encode_deadline );
           }
 
-          encode_ended_pipe.first.write( "1" );
+          const auto encode_ending = chrono::system_clock::now();
+          const auto ms_elapsed = chrono::duration_cast<chrono::milliseconds>( encode_ending - encode_beginning );
+
+          cerr << "Encoding done (time=" << ms_elapsed.count() << " ms)." << endl;
+
+          encode_end_pipe.first.write( "1" );
         }
       ).detach();
 
@@ -265,10 +272,10 @@ int main( int argc, char *argv[] )
     [&]() { return not input.fd().eof(); } )
   );
 
-  poller.add_action( Poller::Action( encode_ended_pipe.second, Direction::In,
+  poller.add_action( Poller::Action( encode_end_pipe.second, Direction::In,
     [&]()
     {
-      encode_ended_pipe.second.read();
+      encode_end_pipe.second.read();
 
       auto validity_predicate = [&]( const future<EncodeOutput> & o ) { return o.valid(); };
 
@@ -314,8 +321,6 @@ int main( int argc, char *argv[] )
       }
 
       auto output = move( good_outputs[ best_output_index ] );
-
-      cerr << "Encoding time: " << output.encode_time.count() << " ms" << endl;
 
       cerr << "Sending frame #" << frame_no << "...";
       FragmentedFrame ff { connection_id,
