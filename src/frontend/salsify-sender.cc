@@ -34,12 +34,9 @@ struct EncodeJob
   uint8_t y_ac_qi;
   size_t target_size;
 
-  pair<UnixDomainSocket, UnixDomainSocket> pipe;
-
   EncodeJob( const uint32_t frame_no, RasterHandle raster, const Encoder & encoder )
     : frame_no( frame_no ), raster( raster ), encoder( encoder ),
-      mode( CONSTANT_QUANTIZER ), y_ac_qi(), target_size(),
-      pipe( move( UnixDomainSocket::make_pair() ) )
+      mode( CONSTANT_QUANTIZER ), y_ac_qi(), target_size()
   {}
 };
 
