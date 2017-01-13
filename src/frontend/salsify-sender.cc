@@ -149,7 +149,7 @@ int main( int argc, char *argv[] )
 
   /* frame rate */
   static const int MS_PER_SECOND = 1000;
-  uint8_t fps = 10;
+  uint8_t fps = 12;
   chrono::milliseconds time_per_frame { MS_PER_SECOND / fps };
 
   /* construct the encoder */

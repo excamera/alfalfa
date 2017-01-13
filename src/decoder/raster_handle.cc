@@ -5,6 +5,7 @@
 #include <functional>
 #include <unordered_map>
 #include <cassert>
+#include <mutex>
 
 #include "exception.hh"
 #include "raster_handle.hh"
@@ -31,10 +32,14 @@ public:
 private:
   queue<VP8RasterHolder> unused_rasters_ {};
 
+  mutex mutex_ {};
+
 public:
   VP8RasterHolder make_raster( const unsigned int display_width,
                                const unsigned int display_height )
   {
+    unique_lock<mutex> lock( mutex_ );
+
     VP8RasterHolder ret;
 
     if ( unused_rasters_.empty() ) {
@@ -62,6 +67,8 @@ public:
 
   void free_raster( RasterType * raster )
   {
+    unique_lock<mutex> lock( mutex_ );
+
     assert( raster );
     unused_rasters_.emplace( raster );
   }
