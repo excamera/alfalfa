@@ -34,9 +34,10 @@ struct EncodeJob
   uint8_t y_ac_qi;
   size_t target_size;
 
-  EncodeJob( const uint32_t frame_no, RasterHandle raster, const Encoder & encoder )
+  EncodeJob( const uint32_t frame_no, RasterHandle raster, const Encoder & encoder,
+             const EncoderMode mode, const uint8_t y_ac_qi, const size_t target_size )
     : frame_no( frame_no ), raster( raster ), encoder( encoder ),
-      mode( CONSTANT_QUANTIZER ), y_ac_qi(), target_size()
+      mode( mode ), y_ac_qi( y_ac_qi ), target_size( target_size )
   {}
 };
 
@@ -214,11 +215,9 @@ int main( int argc, char *argv[] )
       const auto encode_deadline = chrono::system_clock::now() + time_per_frame;
 
       cerr << "Preparing encoding jobs for frame #" << frame_no << "." << endl;
-      EncodeJob encode_job { frame_no, raster, encoder };
 
-      if ( true or avg_delay == numeric_limits<uint32_t>::max() ) {
-        encode_job.mode = CONSTANT_QUANTIZER;
-        encode_job.y_ac_qi = y_ac_qi;
+      if ( avg_delay == numeric_limits<uint32_t>::max() ) {
+        encode_jobs.emplace_back( frame_no, raster, encoder, CONSTANT_QUANTIZER, y_ac_qi, 0 );
       }
       else {
         size_t frame_size = target_size( avg_delay, last_acked, cumulative_fpf.back() );
@@ -230,21 +229,19 @@ int main( int argc, char *argv[] )
         }
         else if ( frame_size == 0 ) {
           cerr << "too many skipped frames, let's send one with a low quality." << endl;
-          encode_job.mode = TARGET_FRAME_SIZE;
-          encode_job.target_size = 1400; // One MTU
+          encode_jobs.emplace_back( frame_no, raster, encoder, TARGET_FRAME_SIZE, 0, 1400 );
         }
         else {
           cerr << "encoding with target size=" << frame_size << endl;
-          encode_job.mode = TARGET_FRAME_SIZE;
-          encode_job.target_size = frame_size;
+          encode_jobs.emplace_back( frame_no, raster, encoder, TARGET_FRAME_SIZE, 0, frame_size );
+          encode_jobs.emplace_back( frame_no, raster, encoder, TARGET_FRAME_SIZE, 0, frame_size / 2 );
+          encode_jobs.emplace_back( frame_no, raster, encoder, TARGET_FRAME_SIZE, 0, frame_size / 4 );
         }
       }
 
-      encode_jobs.push_back( move( encode_job ) );
-
       // this thread will spawn all the encoding jobs and will wait on the results
       thread(
-        [&]()
+        [&encode_jobs, &encode_outputs, &encode_ended_pipe, encode_deadline]()
         {
           encode_outputs.clear();
           encode_outputs.reserve( encode_jobs.size() );
@@ -281,8 +278,42 @@ int main( int argc, char *argv[] )
         return ResultType::Continue;
       }
 
-      auto out_future = find_if( encode_outputs.begin(), encode_outputs.end(), validity_predicate );
-      auto output = move( ( *out_future ).get() );
+      /* what is the current capacity of the network,
+         now that the encoding is done? */
+      size_t frame_size = numeric_limits<size_t>::max();
+
+      if ( avg_delay != numeric_limits<uint32_t>::max() ) {
+        frame_size = target_size( avg_delay, last_acked, cumulative_fpf.back() );
+      }
+
+      size_t best_output_index = numeric_limits<size_t>::max();
+      size_t best_size_diff = numeric_limits<size_t>::max();
+
+      vector<EncodeOutput> good_outputs;
+
+      for ( auto & out_future : encode_outputs ) {
+        if ( out_future.valid() ) {
+          good_outputs.push_back( move( out_future.get() ) );
+        }
+      }
+
+      /* choose the best based on the current capacity */
+      for ( size_t i = 0; i < good_outputs.size(); i++ ) {
+        if ( good_outputs[ i ].frame.size() <= frame_size ) {
+          if ( frame_size - good_outputs[ i ].frame.size() < best_size_diff ) {
+            best_size_diff = frame_size - good_outputs[ i ].frame.size();
+            best_output_index = i;
+          }
+        }
+      }
+
+      if ( best_output_index == numeric_limits<size_t>::max() ) {
+        /* all frames are just so big... */
+        encode_jobs.clear();
+        return ResultType::Continue;
+      }
+
+      auto output = move( good_outputs[ best_output_index ] );
 
       cerr << "Encoding time: " << output.encode_time.count() << " ms" << endl;
 
