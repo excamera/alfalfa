@@ -13,6 +13,8 @@
 #include "exception.hh"
 #include "chunk.hh"
 
+static constexpr size_t BUFFER_SIZE = 1048576;
+
 class FileDescriptor
 {
 private:
@@ -127,9 +129,8 @@ public:
     return ret;
   }
 
-  std::string read( const size_t limit )
+  std::string read( const size_t limit = BUFFER_SIZE )
   {
-    static const size_t BUFFER_SIZE = 1048576;
     char buffer[ BUFFER_SIZE ];
 
     if ( eof() ) {
