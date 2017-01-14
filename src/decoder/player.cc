@@ -41,11 +41,6 @@ const VP8Raster & FramePlayer::example_raster( void ) const
   return decoder_.example_raster();
 }
 
-DecoderHash FramePlayer::get_decoder_hash() const
-{
-  return decoder_.get_hash();
-}
-
 bool FramePlayer::operator==( const FramePlayer & other ) const
 {
   return decoder_ == other.decoder_;
