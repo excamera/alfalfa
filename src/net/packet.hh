@@ -121,13 +121,13 @@ private:
   uint16_t fragment_no_;
   uint32_t avg_delay_;
 
-  uint64_t current_state_;
-  std::vector<uint64_t> complete_states_;
+  uint32_t current_state_;
+  std::vector<uint32_t> complete_states_;
 
 public:
   AckPacket( const uint16_t connection_id, const uint32_t frame_no,
              const uint16_t fragment_no, const uint32_t avg_delay,
-             const uint64_t current_state, std::vector<uint64_t> complete_states );
+             const uint32_t current_state, std::vector<uint32_t> complete_states );
 
   AckPacket( const Chunk & str );
 
@@ -141,8 +141,8 @@ public:
   uint16_t fragment_no() const { return fragment_no_; }
   uint32_t avg_delay() const { return avg_delay_; }
 
-  uint64_t current_state() const { return current_state_; }
-  std::vector<uint64_t> complete_states() const { return complete_states_; }
+  uint32_t current_state() const { return current_state_; }
+  std::vector<uint32_t> complete_states() const { return complete_states_; }
 };
 
 #endif /* PACKET_HH */

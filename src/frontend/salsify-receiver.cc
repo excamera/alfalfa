@@ -110,9 +110,9 @@ int main( int argc, char *argv[] )
   size_t next_packet_grace = 0;
 
   /* decoder states */
-  vector<uint64_t> complete_states;
-  map<uint64_t, Decoder> decoders;
-  uint64_t current_state = player.current_decoder().get_hash().hash();
+  vector<uint32_t> complete_states;
+  map<uint32_t, Decoder> decoders;
+  uint32_t current_state = player.current_decoder().get_hash().hash();
 
   bool corrupted_state = false;
 
@@ -173,7 +173,7 @@ int main( int argc, char *argv[] )
 
         display_frame( player, display, fragmented_frames.at( next_frame_no ).frame() );
 
-        current_state = player.current_decoder().get_hash().hash();
+        current_state = player.current_decoder().minihash();
 
         fragmented_frames.erase( next_frame_no );
         next_frame_no++;

@@ -229,7 +229,7 @@ string FragmentedFrame::partial_frame() const
 
 AckPacket::AckPacket( const uint16_t connection_id, const uint32_t frame_no,
                       const uint16_t fragment_no, const uint32_t avg_delay,
-                      const uint64_t current_state, vector<uint64_t> complete_states )
+                      const uint32_t current_state, vector<uint32_t> complete_states )
   : connection_id_( connection_id ), frame_no_( frame_no ),
     fragment_no_( fragment_no ), avg_delay_( avg_delay ),
     current_state_( current_state ), complete_states_( complete_states )
@@ -240,11 +240,11 @@ AckPacket::AckPacket( const Chunk & str )
     frame_no_( str( 2, 4 ).le32() ),
     fragment_no_( str( 6, 2 ).le16() ),
     avg_delay_( str( 8, 4 ).le32() ),
-    current_state_( str( 12, 8 ).le64() ),
-    complete_states_( str( 20, 4 ).le32() )
+    current_state_( str( 12, 4 ).le32() ),
+    complete_states_( str( 16, 4 ).le32() )
 {
   for ( size_t i = 0; i < complete_states_.size(); i++ ) {
-    complete_states_[ i ] = str( 24 + i * 4, 4 ).le64();
+    complete_states_[ i ] = str( 20 + i * 4, 4 ).le32();
   }
 }
 
