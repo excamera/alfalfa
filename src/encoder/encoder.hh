@@ -331,6 +331,8 @@ public:
   size_t estimate_frame_size( const VP8Raster & raster, const size_t y_ac_qi );
 
   Decoder export_decoder() const { return { decoder_state_, references_ }; }
+
+  uint32_t minihash() const;
 };
 
 #endif /* ENCODER_HH */

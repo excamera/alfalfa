@@ -321,11 +321,8 @@ int main( int argc, char *argv[] )
       auto output = move( good_outputs[ best_output_index ] );
 
       cerr << "Sending frame #" << frame_no << "...";
-      FragmentedFrame ff { connection_id,
-                           encoder.export_decoder().minihash(),
-                           frame_no,
-                           avg_encoding_time.int_value(),
-                           output.frame };
+      FragmentedFrame ff { connection_id, encoder.minihash(), frame_no,
+                           avg_encoding_time.int_value(), output.frame };
       ff.send( socket );
       cerr << "done." << endl;
 

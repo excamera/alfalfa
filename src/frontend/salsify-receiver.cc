@@ -169,15 +169,28 @@ int main( int argc, char *argv[] )
       if ( fragmented_frames.count( next_frame_no ) > 0 and fragmented_frames.at( next_frame_no ).complete() ) {
         cerr << "decoding frame " << next_frame_no << endl;
 
-        if ( current_state != fragmented_frames.at( next_frame_no ).source_state() ) {
-          cerr << "the decoder is in an unexpected state: "
-               << current_state << " vs. expected="
-               << fragmented_frames.at( next_frame_no ).source_state() << endl;
+        uint32_t expected_source_state = fragmented_frames.at( next_frame_no ).source_state();
+
+        if ( current_state != expected_source_state ) {
+          if ( decoders.count( expected_source_state ) ) {
+            /* we have this state! let's load it */
+            player.set_decoder( decoders.at( expected_source_state ) );
+          }
+          else {
+            cerr << "the decoder is in an unexpected state: "
+                 << current_state << " vs. expected="
+                 << fragmented_frames.at( next_frame_no ).source_state() << endl;
+          }
         }
 
         display_frame( player, display, fragmented_frames.at( next_frame_no ).frame() );
 
         current_state = player.current_decoder().minihash();
+
+        if ( not corrupted_state ) {
+          /* this is a full state. let's save it */
+          decoders.insert( make_pair( current_state, player.current_decoder() ) );
+        }
 
         fragmented_frames.erase( next_frame_no );
         next_frame_no++;

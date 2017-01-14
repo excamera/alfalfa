@@ -134,6 +134,12 @@ Encoder & Encoder::operator=( Encoder && encoder )
   return *this;
 }
 
+uint32_t Encoder::minihash() const
+{
+  return static_cast<uint32_t>( DecoderHash( decoder_state_.hash(), references_.last.hash(),
+                                references_.golden.hash(), references_.alternative.hash() ).hash() );
+}
+
 template<class FrameType>
 FrameType Encoder::make_empty_frame( const uint16_t width, const uint16_t height,
                                      const bool show_frame )
