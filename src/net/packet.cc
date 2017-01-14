@@ -22,6 +22,13 @@ string Packet::put_header_field( const uint32_t n )
                  sizeof( network_order ) );
 }
 
+string Packet::put_header_field( const uint64_t n )
+{
+  const uint32_t network_order = htole64( n );
+  return string( reinterpret_cast<const char *>( &network_order ),
+                 sizeof( network_order ) );
+}
+
 Packet::Packet( const vector<uint8_t> & whole_frame,
                 const uint16_t connection_id,
                 const uint32_t frame_no,
@@ -221,24 +228,31 @@ string FragmentedFrame::partial_frame() const
 /* AckPacket */
 
 AckPacket::AckPacket( const uint16_t connection_id, const uint32_t frame_no,
-                      const uint16_t fragment_no, const uint32_t avg_delay )
+                      const uint16_t fragment_no, const uint32_t avg_delay,
+                      const uint64_t current_state, vector<uint64_t> complete_states )
   : connection_id_( connection_id ), frame_no_( frame_no ),
-    fragment_no_( fragment_no ), avg_delay_( avg_delay )
+    fragment_no_( fragment_no ), avg_delay_( avg_delay ),
+    current_state_( current_state ), complete_states_( complete_states )
 {}
 
 AckPacket::AckPacket( const Chunk & str )
   : connection_id_( str( 0, 2 ).le16() ),
     frame_no_( str( 2, 4 ).le32() ),
     fragment_no_( str( 6, 2 ).le16() ),
-    avg_delay_( str( 8, 4 ).le32() )
+    avg_delay_( str( 8, 4 ).le32() ),
+    current_state_( str( 12, 8 ).le64() ),
+    complete_states_()
 {}
 
 std::string AckPacket::to_string()
 {
-  return Packet::put_header_field( connection_id_ )
-       + Packet::put_header_field( frame_no_ )
-       + Packet::put_header_field( fragment_no_ )
-       + Packet::put_header_field( avg_delay_ );
+  string packet = Packet::put_header_field( connection_id_ )
+                + Packet::put_header_field( frame_no_ )
+                + Packet::put_header_field( fragment_no_ )
+                + Packet::put_header_field( avg_delay_ )
+                + Packet::put_header_field( current_state_ );
+
+  return packet;
 }
 
 void AckPacket::sendto( UDPSocket & socket, const Address & addr )

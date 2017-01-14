@@ -144,7 +144,7 @@ int main( int argc, char *argv[] )
       next_packet_grace = packet.time_to_next();
 
       AckPacket( connection_id, packet.frame_no(), packet.fragment_no(),
-                 avg_delay.int_value() ).sendto( socket, new_fragment.source_address );
+                 avg_delay.int_value(), 0, {} ).sendto( socket, new_fragment.source_address );
 
       /* add to current frame */
       if ( fragmented_frames.count( packet.frame_no() ) ) {

@@ -28,6 +28,7 @@ public:
 
   static std::string put_header_field( const uint16_t n );
   static std::string put_header_field( const uint32_t n );
+  static std::string put_header_field( const uint64_t n );
 
   /* getters */
   bool valid() const { return valid_; }
@@ -120,9 +121,13 @@ private:
   uint16_t fragment_no_;
   uint32_t avg_delay_;
 
+  uint64_t current_state_;
+  std::vector<uint64_t> complete_states_;
+
 public:
   AckPacket( const uint16_t connection_id, const uint32_t frame_no,
-             const uint16_t fragment_no, const uint32_t avg_delay );
+             const uint16_t fragment_no, const uint32_t avg_delay,
+             const uint64_t current_state, std::vector<uint64_t> complete_states );
 
   AckPacket( const Chunk & str );
 
@@ -135,6 +140,9 @@ public:
   uint32_t frame_no() const { return frame_no_; }
   uint16_t fragment_no() const { return fragment_no_; }
   uint32_t avg_delay() const { return avg_delay_; }
+
+  uint64_t current_state() const { return current_state_; }
+  std::vector<uint64_t> complete_states() const { return complete_states_; }
 };
 
 #endif /* PACKET_HH */
