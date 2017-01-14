@@ -38,7 +38,7 @@ public:
   VP8RasterHolder make_raster( const unsigned int display_width,
                                const unsigned int display_height )
   {
-    unique_lock<mutex> lock( mutex_ );
+    unique_lock<mutex> lock { mutex_ };
 
     VP8RasterHolder ret;
 
@@ -67,7 +67,7 @@ public:
 
   void free_raster( RasterType * raster )
   {
-    unique_lock<mutex> lock( mutex_ );
+    unique_lock<mutex> lock { mutex_ };
 
     assert( raster );
     unused_rasters_.emplace( raster );
@@ -169,7 +169,9 @@ bool VP8RasterHandle<HashCachedRaster>::operator!=( const VP8RasterHandle<HashCa
 
 size_t HashCachedRaster::hash() const
 {
-  /* XXX need thread safety here in the future */
+  /* XXX the future had arrived */
+  unique_lock<mutex> lock { mutex_ };
+
   if ( not frozen_hash_.initialized() ) {
     frozen_hash_.initialize( VP8Raster::raw_hash() );
   }

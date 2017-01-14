@@ -3,6 +3,8 @@
 #ifndef RASTER_POOL_HH
 #define RASTER_POOL_HH
 
+#include <mutex>
+
 #include "vp8_raster.hh"
 
 template<class RasterType> class RasterPool;
@@ -21,6 +23,8 @@ class HashCachedRaster : public VP8Raster
 {
 private:
   mutable Optional<size_t> frozen_hash_ {};
+
+  mutable std::mutex mutex_ {};
 
 public:
   using VP8Raster::VP8Raster;
