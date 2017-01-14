@@ -2,7 +2,7 @@
 
 #include <cstdlib>
 #include <random>
-#include <map>
+#include <unordered_map>
 #include <utility>
 #include <tuple>
 
@@ -102,7 +102,7 @@ int main( int argc, char *argv[] )
   VideoDisplay display { player.example_raster() };
 
   /* frame no => FragmentedFrame; used when receiving packets out of order */
-  map<size_t, FragmentedFrame> fragmented_frames;
+  unordered_map<size_t, FragmentedFrame> fragmented_frames;
   size_t next_frame_no = 0;
 
   /* EWMA */
@@ -111,7 +111,7 @@ int main( int argc, char *argv[] )
 
   /* decoder states */
   vector<uint32_t> complete_states;
-  map<uint32_t, Decoder> decoders;
+  unordered_map<uint32_t, Decoder> decoders;
   uint32_t current_state = player.current_decoder().get_hash().hash();
 
   bool corrupted_state = false;
