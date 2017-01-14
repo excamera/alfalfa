@@ -109,6 +109,13 @@ int main( int argc, char *argv[] )
   AverageInterPacketDelay avg_delay;
   size_t next_packet_grace = 0;
 
+  /* decoder states */
+  vector<uint64_t> complete_states;
+  map<uint64_t, Decoder> decoders;
+  uint64_t current_state = player.current_decoder().get_hash().hash();
+
+  bool corrupted_state = false;
+
   Poller poller;
   poller.add_action( Poller::Action( socket, Direction::In,
     [&]()
@@ -130,6 +137,8 @@ int main( int argc, char *argv[] )
         cerr << "got a packet for frame #" << packet.frame_no()
              << ", display previous frame(s)." << endl;
 
+        corrupted_state = true;
+
         for ( size_t i = next_frame_no; i < packet.frame_no(); i++ ) {
           if ( fragmented_frames.count( i ) == 0 ) continue;
 
@@ -139,12 +148,6 @@ int main( int argc, char *argv[] )
 
         next_frame_no = packet.frame_no();;
       }
-
-      avg_delay.add( new_fragment.timestamp_us, next_packet_grace );
-      next_packet_grace = packet.time_to_next();
-
-      AckPacket( connection_id, packet.frame_no(), packet.fragment_no(),
-                 avg_delay.int_value(), 0, {} ).sendto( socket, new_fragment.source_address );
 
       /* add to current frame */
       if ( fragmented_frames.count( packet.frame_no() ) ) {
@@ -162,15 +165,26 @@ int main( int argc, char *argv[] )
                                              FragmentedFrame( connection_id, packet ) ) );
       }
 
+
+
       /* is the next frame ready to be decoded? */
       if ( fragmented_frames.count( next_frame_no ) > 0 and fragmented_frames.at( next_frame_no ).complete() ) {
         cerr << "decoding frame " << next_frame_no << endl;
 
         display_frame( player, display, fragmented_frames.at( next_frame_no ).frame() );
 
+        current_state = player.current_decoder().get_hash().hash();
+
         fragmented_frames.erase( next_frame_no );
         next_frame_no++;
       }
+
+      avg_delay.add( new_fragment.timestamp_us, next_packet_grace );
+      next_packet_grace = packet.time_to_next();
+
+      AckPacket( connection_id, packet.frame_no(), packet.fragment_no(),
+                 avg_delay.int_value(), current_state,
+                 complete_states ).sendto( socket, new_fragment.source_address );
 
       return ResultType::Continue;
     },
