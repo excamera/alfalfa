@@ -268,10 +268,10 @@ std::string AckPacket::to_string()
                 + Packet::put_header_field( avg_delay_ )
                 + Packet::put_header_field( current_state_ );
 
-  Packet::put_header_field( static_cast<uint32_t>( complete_states_.size() ) );
+  packet += Packet::put_header_field( static_cast<uint32_t>( complete_states_.size() ) );
 
   for ( const auto state : complete_states_ ) {
-    Packet::put_header_field( state );
+    packet += Packet::put_header_field( state );
   }
 
   return packet;

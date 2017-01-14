@@ -165,11 +165,15 @@ int main( int argc, char *argv[] )
                                              FragmentedFrame( connection_id, packet ) ) );
       }
 
-
-
       /* is the next frame ready to be decoded? */
       if ( fragmented_frames.count( next_frame_no ) > 0 and fragmented_frames.at( next_frame_no ).complete() ) {
         cerr << "decoding frame " << next_frame_no << endl;
+
+        if ( current_state != fragmented_frames.at( next_frame_no ).source_state() ) {
+          cerr << "the decoder is in an unexpected state: "
+               << current_state << " vs. expected="
+               << fragmented_frames.at( next_frame_no ).source_state() << endl;
+        }
 
         display_frame( player, display, fragmented_frames.at( next_frame_no ).frame() );
 

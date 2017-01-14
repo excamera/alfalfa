@@ -322,7 +322,7 @@ int main( int argc, char *argv[] )
 
       cerr << "Sending frame #" << frame_no << "...";
       FragmentedFrame ff { connection_id,
-                           output.encoder.export_decoder().minihash(),
+                           encoder.export_decoder().minihash(),
                            frame_no,
                            avg_encoding_time.int_value(),
                            output.frame };
