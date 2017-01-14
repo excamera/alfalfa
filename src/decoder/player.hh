@@ -34,9 +34,11 @@ public:
   bool operator==( const FramePlayer & other ) const;
   bool operator!=( const FramePlayer & other ) const;
 
-  Decoder current_decoder() const { return decoder_; }
+  const Decoder & current_decoder() const { return decoder_; }
   References current_references() const { return decoder_.get_references(); }
   DecoderState current_state() const { return decoder_.get_state(); }
+
+  void set_decoder( Decoder & decoder ) { decoder_ = decoder; }
 
   size_t serialize(EncoderStateSerializer &odata);
   static FramePlayer deserialize(EncoderStateDeserializer &idata);
