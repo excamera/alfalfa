@@ -96,7 +96,7 @@ int main( int argc, char *argv[] )
 
   /* construct FramePlayer */
   FramePlayer player( paranoid::stoul( argv[ 2 ] ), paranoid::stoul( argv[ 3 ] ) );
-  // player.set_error_concealment( true );
+  player.set_error_concealment( true );
 
   /* construct VideoDisplay */
   VideoDisplay display { player.example_raster() };
@@ -122,6 +122,22 @@ int main( int argc, char *argv[] )
       if ( packet.frame_no() < next_frame_no ) {
         /* we're not interested in this anymore */
         return ResultType::Continue;
+      }
+      else if ( packet.frame_no() > next_frame_no ) {
+        /* current frame is not finished yet, but we just received a packet
+           for the next frame, so here we just encode the partial frame and
+           display it and move on to the next frame */
+        cerr << "got a packet for frame #" << packet.frame_no()
+             << ", display previous frame(s)." << endl;
+
+        for ( size_t i = next_frame_no; i < packet.frame_no(); i++ ) {
+          if ( fragmented_frames.count( i ) == 0 ) continue;
+
+          display_frame( player, display, fragmented_frames.at( i ).partial_frame() );
+          fragmented_frames.erase( i );
+        }
+
+        next_frame_no = packet.frame_no();;
       }
 
       avg_delay.add( new_fragment.timestamp_us, next_packet_grace );
