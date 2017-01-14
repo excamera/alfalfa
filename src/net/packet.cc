@@ -241,8 +241,12 @@ AckPacket::AckPacket( const Chunk & str )
     fragment_no_( str( 6, 2 ).le16() ),
     avg_delay_( str( 8, 4 ).le32() ),
     current_state_( str( 12, 8 ).le64() ),
-    complete_states_()
-{}
+    complete_states_( str( 20, 4 ).le32() )
+{
+  for ( size_t i = 0; i < complete_states_.size(); i++ ) {
+    complete_states_[ i ] = str( 24 + i * 4, 4 ).le64();
+  }
+}
 
 std::string AckPacket::to_string()
 {
@@ -251,6 +255,12 @@ std::string AckPacket::to_string()
                 + Packet::put_header_field( fragment_no_ )
                 + Packet::put_header_field( avg_delay_ )
                 + Packet::put_header_field( current_state_ );
+
+  Packet::put_header_field( static_cast<uint32_t>( complete_states_.size() ) );
+
+  for ( const auto state : complete_states_ ) {
+    Packet::put_header_field( state );
+  }
 
   return packet;
 }
