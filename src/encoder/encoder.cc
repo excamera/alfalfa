@@ -599,20 +599,17 @@ vector<uint8_t> Encoder::encode_with_target_size( const VP8Raster & raster, cons
     throw runtime_error( "scaling is not supported" );
   }
 
-  int y_qi_min = 0;
+  int y_qi_min = 4;
   int y_qi_max = 127;
 
   if ( last_y_ac_qi_.initialized() ) {
-    const int radius = 10;
+    const int radius = 5;
 
-    if ( last_y_ac_qi_.get() >= radius ) {
+    if ( last_y_ac_qi_.get() - radius >= y_qi_min ) {
       y_qi_min = last_y_ac_qi_.get() - radius;
     }
-    else {
-      y_qi_min = 0;
-    }
 
-    y_qi_max = min( 127, last_y_ac_qi_.get() + radius );
+    y_qi_max = min( y_qi_max, last_y_ac_qi_.get() + radius );
   }
 
   uint8_t best_y_qi = numeric_limits<uint8_t>::max();
