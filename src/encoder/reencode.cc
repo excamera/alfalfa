@@ -35,10 +35,8 @@ InterFrame & Encoder::reencode_as_interframe( const VP8Raster & original_raster,
   if_header.copy_buffer_to_golden.clear();
   if_header.copy_buffer_to_alternate.clear();
 
-  if_header.intra_16x16_prob.clear();
-  if_header.intra_16x16_prob.initialize();
-  if_header.intra_chroma_prob.clear();
-  if_header.intra_chroma_prob.initialize();
+  if_header.intra_16x16_prob.reset();
+  if_header.intra_chroma_prob.reset();
 
   for ( size_t i = 0; i < k_default_y_mode_probs.size(); i++ ) {
     if_header.intra_16x16_prob.get().at( i ) = k_default_y_mode_probs.at( i );

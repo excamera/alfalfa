@@ -169,11 +169,8 @@ vector<uint8_t> Encoder::write_frame( const FrameType & frame,
   safe_references_.alternative = move( SafeReferences::load( references_.alternative ) );
 
   if ( encode_quality_ == REALTIME_QUALITY ) {
-    loop_filter_level_.clear();
-    loop_filter_level_.initialize( frame.header().loop_filter_level );
-
-    last_y_ac_qi_.clear();
-    last_y_ac_qi_.initialize( frame.header().quant_indices.y_ac_qi );
+    loop_filter_level_.reset( frame.header().loop_filter_level );
+    last_y_ac_qi_.reset( frame.header().quant_indices.y_ac_qi );
   }
 
   return frame.serialize( prob_tables );
@@ -463,8 +460,7 @@ void Encoder::optimize_prob_skip( Frame<FrameHeaderType, MacroblockType> & frame
     }
   );
 
-  frame.mutable_header().prob_skip_false.clear();
-  frame.mutable_header().prob_skip_false.initialize( Encoder::calc_prob( no_skip_count, total_count ) );
+  frame.mutable_header().prob_skip_false.reset( Encoder::calc_prob( no_skip_count, total_count ) );
 }
 
 template<class FrameType>
@@ -472,8 +468,7 @@ void Encoder::apply_best_loopfilter_settings( const VP8Raster & original,
                                               VP8Raster & reconstructed,
                                               FrameType & frame )
 {
-  frame.mutable_header().mode_lf_adjustments.clear();
-  frame.mutable_header().mode_lf_adjustments.initialize();
+  frame.mutable_header().mode_lf_adjustments.reset();
   frame.mutable_header().mode_lf_adjustments.get().initialize();
 
   for ( size_t i = 0; i < 4; i++ ) {
@@ -503,8 +498,7 @@ void Encoder::apply_best_loopfilter_settings( const VP8Raster & original,
 
     frame.mutable_header().loop_filter_level = lf_level;
 
-    decoder_state_.filter_adjustments.clear();
-    decoder_state_.filter_adjustments.initialize( frame.header() );
+    decoder_state_.filter_adjustments.reset( frame.header() );
 
     frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, temp_raster() );
 
@@ -521,8 +515,7 @@ void Encoder::apply_best_loopfilter_settings( const VP8Raster & original,
   }
 
   frame.mutable_header().loop_filter_level = best_lf_level;
-  decoder_state_.filter_adjustments.clear();
-  decoder_state_.filter_adjustments.initialize( frame.header() );
+  decoder_state_.filter_adjustments.reset( frame.header() );
 
   frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed );
 }
@@ -669,6 +662,5 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::calculate_has_nonzero()
       has_nonzero_ |= block.has_nonzero();
     } );
 
-  mb_skip_coeff_.clear();
-  mb_skip_coeff_.initialize( not has_nonzero_ );
+  mb_skip_coeff_.reset( not has_nonzero_ );
 }
