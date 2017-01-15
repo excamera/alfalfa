@@ -241,7 +241,7 @@ string FragmentedFrame::partial_frame() const
 
 AckPacket::AckPacket( const uint16_t connection_id, const uint32_t frame_no,
                       const uint16_t fragment_no, const uint32_t avg_delay,
-                      const uint32_t current_state, vector<uint32_t> complete_states )
+                      const uint32_t current_state, deque<uint32_t> complete_states )
   : connection_id_( connection_id ), frame_no_( frame_no ),
     fragment_no_( fragment_no ), avg_delay_( avg_delay ),
     current_state_( current_state ), complete_states_( complete_states )

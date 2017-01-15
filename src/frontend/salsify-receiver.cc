@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <utility>
 #include <tuple>
+#include <deque>
 
 #include "socket.hh"
 #include "packet.hh"
@@ -110,7 +111,7 @@ int main( int argc, char *argv[] )
   size_t next_packet_grace = 0;
 
   /* decoder states */
-  vector<uint32_t> complete_states;
+  deque<uint32_t> complete_states;
   unordered_map<uint32_t, Decoder> decoders;
   uint32_t current_state = player.current_decoder().get_hash().hash();
 
@@ -146,7 +147,8 @@ int main( int argc, char *argv[] )
           fragmented_frames.erase( i );
         }
 
-        next_frame_no = packet.frame_no();;
+        next_frame_no = packet.frame_no();
+        current_state = player.current_decoder().minihash();
       }
 
       /* add to current frame */
@@ -175,21 +177,40 @@ int main( int argc, char *argv[] )
           if ( decoders.count( expected_source_state ) ) {
             /* we have this state! let's load it */
             player.set_decoder( decoders.at( expected_source_state ) );
-          }
-          else {
-            cerr << "the decoder is in an unexpected state: "
-                 << current_state << " vs. expected="
-                 << fragmented_frames.at( next_frame_no ).source_state() << endl;
+            corrupted_state = false;
+
+            /* sender won't refer to any decoder older than this, so let's get
+               rid of them */
+            auto it = complete_states.begin();
+
+            while ( it != complete_states.end() ) {
+              if ( *it != expected_source_state ) {
+                decoders.erase( *it );
+                it++;
+              }
+              else {
+                break;
+              }
+            }
+
+            assert( it != complete_states.end() );
+            complete_states.erase( complete_states.begin(), it );
           }
         }
+        else {
+          corrupted_state = true;
+        }
 
+        // here we apply the frame
         display_frame( player, display, fragmented_frames.at( next_frame_no ).frame() );
 
+        // state "after" applying the frame
         current_state = player.current_decoder().minihash();
 
         if ( not corrupted_state ) {
           /* this is a full state. let's save it */
           decoders.insert( make_pair( current_state, player.current_decoder() ) );
+          complete_states.push_back( current_state );
         }
 
         fragmented_frames.erase( next_frame_no );
