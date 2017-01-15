@@ -91,6 +91,11 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
   } catch ( const out_of_range & e ) {
     if ( accept_partial ) {
       corruption_level_ = CORRUPTED_FRAME;
+
+      key_frame_ = false;
+      reconstruction_filter_ = ReconstructionFilterType::Bicubic;
+      loop_filter_ = LoopFilterType::Normal;
+      experimental_ = false;
     }
     else {
       throw Invalid( "VP8 frame truncated" );
