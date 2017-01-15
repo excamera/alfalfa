@@ -116,6 +116,9 @@ public:
   ~Optional() { if ( initialized() ) { object_.~T(); } }
 
   void clear( void ) { if ( initialized() ) { object_.~T(); } initialized_ = false; }
+
+  template <typename... Targs>
+  void reset( Targs&&... Fargs ) { clear(); initialize( Fargs... ); }
 };
 
 template <class T>
