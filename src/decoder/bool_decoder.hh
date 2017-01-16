@@ -24,11 +24,17 @@ private:
   uint32_t range_, value_;
   char bit_count_;
 
+  bool valid_;
+
   void load_octet( void )
   {
     if ( chunk_.size() ) {
       value_ |= chunk_.octet();
       chunk_ = chunk_( 1 );
+    }
+    else {
+      /* trying to read past the end of the chunk */
+      valid_ = false;
     }
   }
 
@@ -37,7 +43,8 @@ public:
     : chunk_( s_chunk ),
       range_( 255 ),
       value_( 0 ),
-      bit_count_( 0 )
+      bit_count_( 0 ),
+      valid_( true )
   {
     load_octet();
     value_ <<= 8;
@@ -72,6 +79,7 @@ public:
     return ret;
   }
 
+  bool valid() const { return valid_; }   
   template < uint8_t alphabet_size, class T >
   T tree( const TreeArray< alphabet_size > & nodes,
           const ProbabilityArray< alphabet_size > & probabilities );
