@@ -41,7 +41,7 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
     U_( frame_U, c.column * 2, c.row * 2 ),
     V_( frame_V, c.column * 2, c.row * 2 )
 {
-  decode_prediction_modes( data, probability_tables );
+  decode_prediction_modes( data, probability_tables, error_concealment );
 }
 
 template <class FrameHeaderType, class MacroblockHeaderType>
@@ -57,7 +57,8 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::update_segmentation( Seg
 
 template <>
 void KeyFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
-                                                  const ProbabilityTables & )
+                                                  const ProbabilityTables &,
+                                                  const bool )
 {
   /* Set Y prediction mode */
   Y2_.set_prediction_mode( Tree< mbmode, num_y_modes, kf_y_mode_tree >( data, kf_y_mode_probs ) );
@@ -314,8 +315,16 @@ void InterFrameMacroblockHeader::set_reference( const reference_frame ref )
 
 template <>
 void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
-                                                    const ProbabilityTables & probability_tables )
+                                                    const ProbabilityTables & probability_tables,
+                                                    const bool error_concealment )
 {
+  if ( error_concealment and not data.valid() ) {
+    /* We don't have enough prediction data for this macroblock */
+    header_.is_inter_mb = true;
+    Y2_.set_prediction_mode( ZEROMV );
+    Y2_.set_if_coded();
+  }
+
   if ( not inter_coded() ) {
     /* Set Y prediction mode */
     Y2_.set_prediction_mode( Tree< mbmode, num_y_modes, y_mode_tree >( data, probability_tables.y_mode_probs ) );
@@ -348,8 +357,10 @@ void InterFrameMacroblock::decode_prediction_modes( BoolDecoder & data,
                                                             mv_counts_to_probs.at( counts.at( 2 ) ).at( 2 ),
                                                             mv_counts_to_probs.at( counts.at( 3 ) ).at( 3 ) }};
 
-    Y2_.set_prediction_mode( Tree< mbmode, num_mv_refs, mv_ref_tree >( data, mv_ref_probs ) );
-    Y2_.set_if_coded();
+    if ( not ( error_concealment and not data.valid() ) ) {
+      Y2_.set_prediction_mode( Tree< mbmode, num_mv_refs, mv_ref_tree >( data, mv_ref_probs ) );
+      Y2_.set_if_coded();
+    }
 
     switch ( Y2_.prediction_mode() ) {
     case NEARESTMV:

@@ -42,7 +42,8 @@ private:
   bool has_nonzero_ { false };
 
   void decode_prediction_modes( BoolDecoder & data,
-                                const ProbabilityTables & probability_tables );
+                                const ProbabilityTables & probability_tables,
+                                const bool error_concealment );
 
   void encode_prediction_modes( BoolEncoder & encoder,
                                 const ProbabilityTables & probability_tables ) const;
