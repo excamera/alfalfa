@@ -111,9 +111,10 @@ int main( int argc, char *argv[] )
   size_t next_packet_grace = 0;
 
   /* decoder states */
-  deque<uint32_t> complete_states;
-  unordered_map<uint32_t, Decoder> decoders;
   uint32_t current_state = player.current_decoder().get_hash().hash();
+  deque<uint32_t> complete_states;
+  unordered_map<uint32_t, Decoder> decoders { { current_state, player.current_decoder() } };
+
 
   bool corrupted_state = false;
 

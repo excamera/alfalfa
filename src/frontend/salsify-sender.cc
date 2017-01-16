@@ -235,6 +235,25 @@ int main( int argc, char *argv[] )
         return ResultType::Continue;
       }
 
+      /* let's cleanup the stored encoders based on the lastest ack */
+      if ( receiver_last_acked_state.initialized() and
+           encoders.count( receiver_last_acked_state.get() ) ) {
+        // cleaning up
+        auto it = encoder_states.begin();
+
+        while ( it != encoder_states.end() ) {
+          if ( *it != receiver_last_acked_state.get() ) {
+            encoders.erase( *it );
+            it++;
+          }
+          else {
+            break;
+          }
+        }
+
+        encoder_states.erase( encoder_states.begin(), it );
+      }
+
       RasterHandle raster = last_raster.get();
       const auto encode_deadline = system_clock::now() + max_time_per_frame;
 
