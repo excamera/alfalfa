@@ -32,7 +32,7 @@ private:
   bool experimental_;
   Chunk first_partition_;
   Chunk rest_;
-
+  uint32_t first_partition_expected_length_;
   CorruptionLevel corruption_level_;
 
 public:
@@ -47,6 +47,7 @@ public:
   bool show_frame( void ) const { return show_frame_; }
   bool experimental( void ) const { return experimental_; }
 
+  uint32_t first_partition_expected_length() const { return first_partition_expected_length_; }
   CorruptionLevel corruption_level() const { return corruption_level_; }
 };
 

@@ -16,6 +16,7 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
     experimental_(),
     first_partition_( nullptr, 0 ),
     rest_( nullptr, 0 ),
+    first_partition_expected_length_(),
     corruption_level_( NO_CORRUPTION )
 {
   try {
@@ -53,6 +54,8 @@ UncompressedChunk::UncompressedChunk( const Chunk & frame,
     /* first partition */
     uint32_t first_partition_length = frame.bits( 5, 19 );
     uint32_t first_partition_byte_offset = key_frame_ ? 10 : 3;
+
+    first_partition_expected_length_ = first_partition_length;
 
     if ( frame.size() <= first_partition_byte_offset + first_partition_length ) {
       if ( accept_partial ) {

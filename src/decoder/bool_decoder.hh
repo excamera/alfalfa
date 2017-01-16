@@ -24,7 +24,8 @@ private:
   uint32_t range_, value_;
   char bit_count_;
 
-  bool valid_;
+  size_t missing_length_;
+  size_t full_length_;
 
   void load_octet( void )
   {
@@ -32,19 +33,20 @@ private:
       value_ |= chunk_.octet();
       chunk_ = chunk_( 1 );
     }
-    else {
-      /* trying to read past the end of the chunk */
-      valid_ = false;
+
+    if ( full_length_ > 0 ) {
+      full_length_--;
     }
   }
 
 public:
-  BoolDecoder( const Chunk & s_chunk )
+  BoolDecoder( const Chunk & s_chunk, const size_t missing_length = 0 )
     : chunk_( s_chunk ),
       range_( 255 ),
       value_( 0 ),
       bit_count_( 0 ),
-      valid_( true )
+      missing_length_( missing_length ),
+      full_length_( missing_length_ + s_chunk.size() )
   {
     load_octet();
     value_ <<= 8;
@@ -79,7 +81,7 @@ public:
     return ret;
   }
 
-  bool valid() const { return valid_; }
+  bool valid() const { return full_length_ < missing_length_; }
 
   static BoolDecoder & zero_decoder()
   {
