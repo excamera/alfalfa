@@ -237,6 +237,7 @@ int main( int argc, char *argv[] )
 
       /* let's cleanup the stored encoders based on the lastest ack */
       if ( receiver_last_acked_state.initialized() and
+           receiver_last_acked_state.get() != initial_state and
            encoders.count( receiver_last_acked_state.get() ) ) {
         // cleaning up
         auto it = encoder_states.begin();

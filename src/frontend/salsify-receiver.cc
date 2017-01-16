@@ -112,9 +112,9 @@ int main( int argc, char *argv[] )
 
   /* decoder states */
   uint32_t current_state = player.current_decoder().get_hash().hash();
+  const uint32_t initial_state = current_state;
   deque<uint32_t> complete_states;
   unordered_map<uint32_t, Decoder> decoders { { current_state, player.current_decoder() } };
-
 
   bool corrupted_state = false;
 
@@ -184,7 +184,8 @@ int main( int argc, char *argv[] )
           }
         }
 
-        if ( current_state == expected_source_state ) {
+        if ( current_state == expected_source_state and
+             expected_source_state != initial_state ) {
           /* sender won't refer to any decoder older than this, so let's get
              rid of them */
           auto it = complete_states.begin();
