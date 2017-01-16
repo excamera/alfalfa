@@ -602,7 +602,7 @@ vector<uint8_t> Encoder::encode_with_target_size( const VP8Raster & raster, cons
   int y_qi_max = 127;
 
   if ( last_y_ac_qi_.initialized() ) {
-    const int radius = 5;
+    const int radius = 16;
 
     if ( last_y_ac_qi_.get() - radius >= y_qi_min ) {
       y_qi_min = last_y_ac_qi_.get() - radius;

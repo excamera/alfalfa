@@ -295,14 +295,17 @@ int main( int argc, char *argv[] )
       }
       /* end of encoder selection logic */
 
-      Encoder & encoder = encoders.at( selected_source_hash );
+      const Encoder & encoder = encoders.at( selected_source_hash );
 
       if ( avg_delay < numeric_limits<uint32_t>::max() ) {
         size_t frame_size = target_size( avg_delay, last_acked, cumulative_fpf.back() );
 
         if ( frame_size > 0 ) {
           /* encode the intended frame size */
-          encode_jobs.emplace_back( "intended", raster, encoder, TARGET_FRAME_SIZE, 0, frame_size );
+          encode_jobs.emplace_back( "100%", raster, encoder, TARGET_FRAME_SIZE, 0, frame_size );
+
+          /* try some other options */
+          encode_jobs.emplace_back( "50%", raster, encoder, TARGET_FRAME_SIZE, 0, frame_size * .5 );
         }
       }
 
