@@ -79,7 +79,14 @@ public:
     return ret;
   }
 
-  bool valid() const { return valid_; }   
+  bool valid() const { return valid_; }
+
+  static BoolDecoder & zero_decoder()
+  {
+    static BoolDecoder zd { { nullptr, 0 } };
+    return zd;
+  }
+
   template < uint8_t alphabet_size, class T >
   T tree( const TreeArray< alphabet_size > & nodes,
           const ProbabilityArray< alphabet_size > & probabilities );
