@@ -92,6 +92,9 @@ class Frame
   /* allow moving */
   Frame( Frame && other ) noexcept;
   Frame & operator=( Frame && other );
+
+  /* empty frame */
+  Frame( const uint16_t width, const uint16_t height, const bool show_frame );
 };
 
 using KeyFrame = Frame<KeyFrameHeader, KeyFrameMacroblock>;

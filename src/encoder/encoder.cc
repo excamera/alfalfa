@@ -50,14 +50,14 @@ Encoder::Encoder( const uint16_t s_width,
     references_( width(), height() ),
     safe_references_( references_ ), has_state_( false ), costs_(),
     two_pass_encoder_( two_pass ), encode_quality_( quality ),
-    key_frame_( make_empty_frame<KeyFrame>( width(), height(), true ) ),
-    subsampled_key_frame_( make_empty_frame<KeyFrame>( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
-                                                       height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
-                                                       true ) ),
-    inter_frame_( make_empty_frame<InterFrame>( width(), height(), true ) ),
-    subsampled_inter_frame_( make_empty_frame<InterFrame>( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
-                                                           height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
-                                                           true ) ),
+    key_frame_( width(), height(), true ),
+    subsampled_key_frame_( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
+                           height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
+                           true ),
+    inter_frame_( width(), height(), true ),
+    subsampled_inter_frame_( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
+                             height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
+                             true ),
     loop_filter_level_(), last_y_ac_qi_()
 {
   costs_.fill_mode_costs();
@@ -69,14 +69,14 @@ Encoder::Encoder( const Decoder & decoder, const bool two_pass,
     safe_references_( references_ ), has_state_( true ), costs_(),
     two_pass_encoder_( two_pass ),
     encode_quality_( quality ),
-    key_frame_( make_empty_frame<KeyFrame>( width(), height(), true ) ),
-    subsampled_key_frame_( make_empty_frame<KeyFrame>( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
-                                                       height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
-                                                       true ) ),
-    inter_frame_( make_empty_frame<InterFrame>( width(), height(), true ) ),
-    subsampled_inter_frame_( make_empty_frame<InterFrame>( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
-                                                           height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
-                                                           true ) ),
+    key_frame_( width(), height(), true ),
+    subsampled_key_frame_( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
+                           height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
+                           true ),
+    inter_frame_( width(), height(), true ),
+    subsampled_inter_frame_( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
+                             height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
+                             true ),
     loop_filter_level_(), last_y_ac_qi_()
 {
   costs_.fill_mode_costs();
@@ -89,14 +89,14 @@ Encoder::Encoder( const Encoder & encoder )
     has_state_( encoder.has_state_ ), costs_( encoder.costs_ ),
     two_pass_encoder_( encoder.two_pass_encoder_ ),
     encode_quality_( encoder.encode_quality_ ),
-    key_frame_( make_empty_frame<KeyFrame>( width(), height(), true ) ),
-    subsampled_key_frame_( make_empty_frame<KeyFrame>( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
-                                                       height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
-                                                       true ) ),
-    inter_frame_( make_empty_frame<InterFrame>( width(), height(), true ) ),
-    subsampled_inter_frame_( make_empty_frame<InterFrame>( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
-                                                           height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
-                                                           true ) ),
+    key_frame_( width(), height(), true ),
+    subsampled_key_frame_( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
+                           height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
+                           true ),
+    inter_frame_( width(), height(), true ),
+    subsampled_inter_frame_( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
+                             height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
+                             true ),
     loop_filter_level_( encoder.loop_filter_level_ ),
     last_y_ac_qi_( encoder.last_y_ac_qi_ )
 {}
@@ -139,15 +139,6 @@ uint32_t Encoder::minihash() const
 {
   return static_cast<uint32_t>( DecoderHash( decoder_state_.hash(), references_.last.hash(),
                                 references_.golden.hash(), references_.alternative.hash() ).hash() );
-}
-
-template<class FrameType>
-FrameType Encoder::make_empty_frame( const uint16_t width, const uint16_t height,
-                                     const bool show_frame )
-{
-  FrameType frame { show_frame, width, height, BoolDecoder::zero_decoder() };
-  frame.parse_macroblock_headers( BoolDecoder::zero_decoder(), ProbabilityTables {}, false );
-  return frame;
 }
 
 template<class FrameType>
