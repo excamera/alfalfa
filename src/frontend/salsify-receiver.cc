@@ -87,7 +87,7 @@ int main( int argc, char *argv[] )
   }
 
   /* choose a random connection_id */
-  const uint16_t connection_id = ezrand();
+  const uint16_t connection_id = 1337; // ezrand();
   cerr << "Connection ID: " << connection_id << endl;
 
   /* construct Socket for incoming  datagrams */
@@ -170,7 +170,7 @@ int main( int argc, char *argv[] )
 
       /* is the next frame ready to be decoded? */
       if ( fragmented_frames.count( next_frame_no ) > 0 and fragmented_frames.at( next_frame_no ).complete() ) {
-        cerr << "decoding frame " << next_frame_no << endl;
+        //        cerr << "decoding frame " << next_frame_no << endl;
 
         uint32_t expected_source_state = fragmented_frames.at( next_frame_no ).source_state();
 

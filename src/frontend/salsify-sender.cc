@@ -258,7 +258,7 @@ int main( int argc, char *argv[] )
       RasterHandle raster = last_raster.get();
       const auto encode_deadline = system_clock::now() + max_time_per_frame;
 
-      cerr << "Preparing encoding jobs for frame #" << frame_no << "." << endl;
+      //      cerr << "Preparing encoding jobs for frame #" << frame_no << "." << endl;
 
       uint32_t selected_source_hash = initial_state;
 
@@ -337,13 +337,13 @@ int main( int argc, char *argv[] )
           const auto encode_ending = system_clock::now();
           const auto ms_elapsed = duration_cast<milliseconds>( encode_ending - encode_beginning );
 
-          cerr << "Encoding done (time=" << ms_elapsed.count() << " ms)." << endl;
+          //          cerr << "Encoding done (time=" << ms_elapsed.count() << " ms)." << endl;
 
           encode_end_pipe.first.write( "1" );
         }
       ).detach();
 
-      cerr << "Running " << encode_jobs.size() << " encoding job(s)." << endl;
+      //      cerr << "Running " << encode_jobs.size() << " encoding job(s)." << endl;
 
       return ResultType::Continue;
     },
@@ -401,15 +401,17 @@ int main( int argc, char *argv[] )
 
       uint32_t target_minihash = output.encoder.minihash();
 
+      /*
       cerr << "Sending frame #" << frame_no << " (size=" << output.frame.size() << " bytes, "
            << "source_hash=" << output.source_minihash << ", target_hash="
            << target_minihash << ")...";
+      */
 
       FragmentedFrame ff { connection_id, output.source_minihash, frame_no,
                            avg_encoding_time.int_value(), output.frame };
       ff.send( socket );
 
-      cerr << "done." << endl;
+      //      cerr << "done." << endl;
 
       cumulative_fpf.push_back( ( frame_no > 0 )
                                 ? ( cumulative_fpf[ frame_no - 1 ] + ff.fragments_in_this_frame() )
