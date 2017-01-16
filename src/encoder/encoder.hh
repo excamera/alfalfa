@@ -17,6 +17,7 @@
 #include "enc_state_serializer.hh"
 #include "file_descriptor.hh"
 #include "block.hh"
+#include "frame_pool.hh"
 
 const uint8_t DEFAULT_QUANTIZER = 64;
 
@@ -58,6 +59,13 @@ public:
   static MutableSafeRasterHandle load( const VP8Raster & source );
 };
 
+template<class FrameType>
+static FramePool<FrameType> & subsampled_frame_pool()
+{
+  static FramePool<FrameType> pool;
+  return pool;
+}
+
 class Encoder
 {
 private:
@@ -98,12 +106,14 @@ private:
   bool two_pass_encoder_;
   EncoderQuality encode_quality_;
 
-  KeyFrame key_frame_ { width(), height() };
-  KeyFrame subsampled_key_frame_ { uint16_t( width() / WIDTH_SAMPLE_DIMENSION_FACTOR ),
-      uint16_t( height() / HEIGHT_SAMPLE_DIMENSION_FACTOR ) };
-  InterFrame inter_frame_ { width(), height() };
-  InterFrame subsampled_inter_frame_ { uint16_t( width() / WIDTH_SAMPLE_DIMENSION_FACTOR ),
-      uint16_t( height() / HEIGHT_SAMPLE_DIMENSION_FACTOR ) };
+  KeyFrameHandle key_frame_ { width(), height() };
+  KeyFrameHandle subsampled_key_frame_ { uint16_t( width() / WIDTH_SAMPLE_DIMENSION_FACTOR ),
+      uint16_t( height() / HEIGHT_SAMPLE_DIMENSION_FACTOR ),
+      subsampled_frame_pool<KeyFrame>() };
+  InterFrameHandle inter_frame_ { width(), height() };
+  InterFrameHandle subsampled_inter_frame_ { uint16_t( width() / WIDTH_SAMPLE_DIMENSION_FACTOR ),
+      uint16_t( height() / HEIGHT_SAMPLE_DIMENSION_FACTOR ),
+      subsampled_frame_pool<InterFrame>() };
 
   Optional<uint8_t> loop_filter_level_;
 

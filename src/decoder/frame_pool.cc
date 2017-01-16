@@ -1,8 +1,5 @@
 /* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 
-#include <queue>
-#include <memory>
-
 #include "exception.hh"
 #include "frame_pool.hh"
 
@@ -18,48 +15,37 @@ static T dequeue( queue<T> & q )
 }
 
 template<class FrameType>
-class FramePool
+typename FramePool<FrameType>::FrameHolder FramePool<FrameType>::make_frame( const uint16_t width,
+                                                                             const uint16_t height )
 {
-public:
-  typedef std::unique_ptr<FrameType, FrameDeleter<FrameType>> FrameHolder;
+  unique_lock<mutex> lock { mutex_ };
 
-private:
-  queue<FrameHolder> unused_frames_ {};
+  FrameHolder ret;
 
-  mutex mutex_ {};
-
-public:
-  FrameHolder make_frame( const uint16_t width,
-                          const uint16_t height )
-  {
-    unique_lock<mutex> lock { mutex_ };
-
-    FrameHolder ret;
-
-    if ( unused_frames_.empty() ) {
-      ret.reset( new FrameType( width, height ) );
+  if ( unused_frames_.empty() ) {
+    ret.reset( new FrameType( width, height ) );
+  } else {
+    if ( (unused_frames_.front()->display_width() != width )
+         or (unused_frames_.front()->display_height() != height ) ) {
+      throw Unsupported( "frame size has changed" );
     } else {
-      if ( (unused_frames_.front()->display_width() != width )
-           or (unused_frames_.front()->display_height() != height ) ) {
-        throw Unsupported( "raster size has changed" );
-      } else {
-        ret = dequeue( unused_frames_ );
-      }
+      ret = dequeue( unused_frames_ );
     }
-
-    ret.get_deleter().set_frame_pool( this );
-
-    return ret;
   }
 
-  void free_frame( FrameType * frame )
-  {
-    unique_lock<mutex> lock { mutex_ };
+  ret.get_deleter().set_frame_pool( this );
 
-    assert( frame );
-    unused_frames_.emplace( frame );
-  }
-};
+  return ret;
+}
+
+template<class FrameType>
+void FramePool<FrameType>::free_frame( FrameType * frame )
+{
+  unique_lock<mutex> lock { mutex_ };
+
+  assert( frame );
+  unused_frames_.emplace( frame );
+}
 
 template<class FrameType>
 void FrameDeleter<FrameType>::operator()( FrameType * frame ) const
