@@ -299,28 +299,33 @@ int main( int argc, char *argv[] )
 
       const Encoder & encoder = encoders.at( selected_source_hash );
 
-      /*
       const auto increment_quantizer = []( const uint8_t q, const int8_t inc ) -> uint8_t
         {
           int orig = q;
           orig += inc;
-          orig = max( 0, orig );
-          orig = min( 127, orig );
+          orig = max( 5, orig );
+          orig = min( 96, orig );
           return orig;
         };
-      */      
 
       /* try various quantizers */
-      //      encode_jobs.emplace_back( "same", raster, encoder, CONSTANT_QUANTIZER, last_quantizer, 0 );
+      encode_jobs.emplace_back( "same", raster, encoder, CONSTANT_QUANTIZER, last_quantizer, 0 );
 
-      /*      encode_jobs.emplace_back( "improve", raster, encoder, CONSTANT_QUANTIZER,
-              increment_quantizer( last_quantizer, -5 ), 0 );
+      /*      
+      encode_jobs.emplace_back( "improve", raster, encoder, CONSTANT_QUANTIZER,
+                                increment_quantizer( last_quantizer, -5 ), 0 );
       */
-      
+
+      encode_jobs.emplace_back( "improvemore", raster, encoder, CONSTANT_QUANTIZER,
+                                increment_quantizer( last_quantizer, -11 ), 0 );
+
       /*
       encode_jobs.emplace_back( "worsen", raster, encoder, CONSTANT_QUANTIZER,
                                 increment_quantizer( last_quantizer, +19 ), 0 );
       */
+
+      encode_jobs.emplace_back( "worsenmore", raster, encoder, CONSTANT_QUANTIZER,
+                                increment_quantizer( last_quantizer, +37 ), 0 );
 
       encode_jobs.emplace_back( "fail-small", raster, encoder, CONSTANT_QUANTIZER, 96, 0 );
 
@@ -432,7 +437,7 @@ int main( int argc, char *argv[] )
                            avg_encoding_time.int_value(), output.frame };
       ff.send( socket );
 
-      cerr << "Frame " << frame_no << " from encoder job " << output.job_name << " [" << to_string( output.y_ac_qi ) << "] = " << ff.fragments_in_this_frame() << " fragments\n";
+      cerr << "Frame " << frame_no << " from encoder job " << output.job_name << " [" << to_string( output.y_ac_qi ) << "] = " << ff.fragments_in_this_frame() << " fragments (" << avg_encoding_time.int_value()/1000 << " ms)\n";
       
       //      cerr << "done." << endl;
 
