@@ -57,7 +57,7 @@ public:
 
 struct EncodeJob
 {
-  uint32_t frame_no;
+  string name;
 
   RasterHandle raster;
 
@@ -67,9 +67,9 @@ struct EncodeJob
   uint8_t y_ac_qi;
   size_t target_size;
 
-  EncodeJob( const uint32_t frame_no, RasterHandle raster, const Encoder & encoder,
+  EncodeJob( const string & name, RasterHandle raster, const Encoder & encoder,
              const EncoderMode mode, const uint8_t y_ac_qi, const size_t target_size )
-    : frame_no( frame_no ), raster( raster ), encoder( encoder ),
+    : name( name ), raster( raster ), encoder( encoder ),
       mode( mode ), y_ac_qi( y_ac_qi ), target_size( target_size )
   {}
 };
@@ -80,11 +80,14 @@ struct EncodeOutput
   vector<uint8_t> frame;
   uint32_t source_minihash;
   milliseconds encode_time;
-
+  string job_name;
+  
   EncodeOutput( Encoder && encoder, vector<uint8_t> && frame,
-                const uint32_t source_minihash, const milliseconds encode_time )
+                const uint32_t source_minihash, const milliseconds encode_time,
+                const string & job_name )
     : encoder( move( encoder ) ), frame( move( frame ) ),
-      source_minihash( source_minihash ), encode_time( encode_time )
+      source_minihash( source_minihash ), encode_time( encode_time ),
+      job_name( job_name )
   {}
 };
 
@@ -114,7 +117,7 @@ EncodeOutput do_encode_job( EncodeJob && encode_job )
   const auto encode_ending = system_clock::now();
   const auto ms_elapsed = duration_cast<milliseconds>( encode_ending - encode_beginning );
 
-  return { move( encode_job.encoder ), move( output ), source_minihash, ms_elapsed };
+  return { move( encode_job.encoder ), move( output ), source_minihash, ms_elapsed, encode_job.name };
 }
 
 size_t target_size( uint32_t avg_delay, const uint64_t last_acked, const uint64_t last_sent )
@@ -132,7 +135,7 @@ size_t target_size( uint32_t avg_delay, const uint64_t last_acked, const uint64_
 
 void usage( const char *argv0 )
 {
-  cerr << "Usage: " << argv0 << " QUANTIZER HOST PORT CONNECTION_ID" << endl;
+  cerr << "Usage: " << argv0 << " HOST PORT CONNECTION_ID" << endl;
 }
 
 uint64_t ack_seq_no( const AckPacket & ack,
@@ -150,7 +153,7 @@ int main( int argc, char *argv[] )
     abort();
   }
 
-  if ( argc != 5 ) {
+  if ( argc != 4 ) {
     usage( argv[ 0 ] );
     return EXIT_FAILURE;
   }
@@ -158,15 +161,12 @@ int main( int argc, char *argv[] )
   /* open the YUV4MPEG input */
   YUV4MPEGReader input { FileDescriptor( STDIN_FILENO ) };
 
-  /* get quantizer argument */
-  const unsigned int y_ac_qi = paranoid::stoul( argv[ 1 ] );
-
   /* get connection_id */
-  const uint16_t connection_id = paranoid::stoul( argv[ 4 ] );
+  const uint16_t connection_id = paranoid::stoul( argv[ 3 ] );
 
   /* construct Socket for outgoing datagrams */
   UDPSocket socket;
-  socket.connect( Address( argv[ 2 ], argv[ 3 ] ) );
+  socket.connect( Address( argv[ 1 ], argv[ 2 ] ) );
   socket.set_timestamps();
 
   /* average inter-packet delay, reported by receiver */
@@ -297,25 +297,17 @@ int main( int argc, char *argv[] )
 
       Encoder & encoder = encoders.at( selected_source_hash );
 
-      if ( avg_delay == numeric_limits<uint32_t>::max() ) {
-        encode_jobs.emplace_back( frame_no, raster, encoder, CONSTANT_QUANTIZER, y_ac_qi, 0 );
-      }
-      else {
+      if ( avg_delay < numeric_limits<uint32_t>::max() ) {
         size_t frame_size = target_size( avg_delay, last_acked, cumulative_fpf.back() );
 
-        if ( frame_size <= 0 and skipped_count < MAX_SKIPPED ) {
-          skipped_count++;
-          cerr << "skipping frame." << endl;
-          return ResultType::Continue;
-        }
-        else if ( frame_size == 0 ) {
-          cerr << "too many skipped frames, let's send one with a low quality." << endl;
-          encode_jobs.emplace_back( frame_no, raster, encoder, TARGET_FRAME_SIZE, 0, 1400 );
-        }
-        else {
-          encode_jobs.emplace_back( frame_no, raster, encoder, TARGET_FRAME_SIZE, 0, frame_size );
+        if ( frame_size > 0 ) {
+          /* encode the intended frame size */
+          encode_jobs.emplace_back( "intended", raster, encoder, TARGET_FRAME_SIZE, 0, frame_size );
         }
       }
+
+      /* always include a really bad-quality option */
+      encode_jobs.emplace_back( "fail-small", raster, encoder, CONSTANT_QUANTIZER, 96, 0 );
 
       // this thread will spawn all the encoding jobs and will wait on the results
       thread(
@@ -358,8 +350,11 @@ int main( int argc, char *argv[] )
 
       encode_end_pipe.second.read();
 
+      avg_encoding_time.add( duration_cast<microseconds>( system_clock::now().time_since_epoch() ) );
+
       if ( not any_of( encode_outputs.cbegin(), encode_outputs.cend(),
                        [&]( const future<EncodeOutput> & o ) { return o.valid(); } ) ) {
+        cerr << "All encoding jobs got killed for frame " << frame_no << "\n";
         // no encoding job has ended in time
         return ResultType::Continue;
       }
@@ -394,7 +389,16 @@ int main( int argc, char *argv[] )
       }
 
       if ( best_output_index == numeric_limits<size_t>::max() ) {
-        best_output_index = good_outputs.size() - 1;
+        if ( skipped_count < MAX_SKIPPED or good_outputs.back().job_name != "fail-small" ) {
+          /* skip frame */
+          cerr << "Skipping frame " << frame_no << "\n";
+          skipped_count++;
+          return ResultType::Continue;
+        } else {
+          cerr << "Too many skipped frames; sending the bad-quality option on " << frame_no << "\n";
+          best_output_index = good_outputs.size() - 1;
+          assert( good_outputs[ best_output_index ].job_name == "fail-small" );
+        }
       }
 
       auto output = move( good_outputs[ best_output_index ] );
@@ -407,6 +411,8 @@ int main( int argc, char *argv[] )
            << target_minihash << ")...";
       */
 
+      cerr << "Frame " << frame_no << " from encoder job " << output.job_name << "\n";
+      
       FragmentedFrame ff { connection_id, output.source_minihash, frame_no,
                            avg_encoding_time.int_value(), output.frame };
       ff.send( socket );
@@ -425,8 +431,6 @@ int main( int argc, char *argv[] )
 
       skipped_count = 0;
       frame_no++;
-
-      avg_encoding_time.add( duration_cast<microseconds>( system_clock::now().time_since_epoch() ) );
 
       return ResultType::Continue;
     },
