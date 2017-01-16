@@ -97,7 +97,8 @@ Encoder::Encoder( const Encoder & encoder )
     subsampled_inter_frame_( make_empty_frame<InterFrame>( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
                                                            height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
                                                            true ) ),
-    loop_filter_level_(), last_y_ac_qi_()
+    loop_filter_level_( encoder.loop_filter_level_ ),
+    last_y_ac_qi_( encoder.last_y_ac_qi_ )
 {}
 
 Encoder::Encoder( Encoder && encoder )
