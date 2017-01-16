@@ -10,6 +10,7 @@
 #include <future>
 #include <algorithm>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "yuv4mpeg.hh"
 #include "encoder.hh"
@@ -81,13 +82,14 @@ struct EncodeOutput
   uint32_t source_minihash;
   milliseconds encode_time;
   string job_name;
+  uint8_t y_ac_qi;
   
   EncodeOutput( Encoder && encoder, vector<uint8_t> && frame,
                 const uint32_t source_minihash, const milliseconds encode_time,
-                const string & job_name )
+                const string & job_name, const uint8_t y_ac_qi )
     : encoder( move( encoder ) ), frame( move( frame ) ),
       source_minihash( source_minihash ), encode_time( encode_time ),
-      job_name( job_name )
+      job_name( job_name ), y_ac_qi( y_ac_qi )
   {}
 };
 
@@ -99,10 +101,13 @@ EncodeOutput do_encode_job( EncodeJob && encode_job )
 
   const auto encode_beginning = system_clock::now();
 
+  uint8_t quantizer_in_use = 0;
+  
   switch ( encode_job.mode ) {
   case CONSTANT_QUANTIZER:
     output = encode_job.encoder.encode_with_quantizer( encode_job.raster.get(),
                                                        encode_job.y_ac_qi );
+    quantizer_in_use = encode_job.y_ac_qi;
     break;
 
   case TARGET_FRAME_SIZE:
@@ -117,7 +122,7 @@ EncodeOutput do_encode_job( EncodeJob && encode_job )
   const auto encode_ending = system_clock::now();
   const auto ms_elapsed = duration_cast<milliseconds>( encode_ending - encode_beginning );
 
-  return { move( encode_job.encoder ), move( output ), source_minihash, ms_elapsed, encode_job.name };
+  return { move( encode_job.encoder ), move( output ), source_minihash, ms_elapsed, encode_job.name, quantizer_in_use };
 }
 
 size_t target_size( uint32_t avg_delay, const uint64_t last_acked, const uint64_t last_sent )
@@ -180,11 +185,6 @@ int main( int argc, char *argv[] )
   const size_t MAX_SKIPPED = 5;
   size_t skipped_count = 0;
 
-  /* frame rate */
-  static const int MS_PER_SECOND = 1000;
-  uint8_t min_fps = 6;
-  milliseconds max_time_per_frame { MS_PER_SECOND / min_fps };
-
   /* construct the encoder */
   Encoder base_encoder { input.display_width(), input.display_height(),
                          false /* two-pass */, REALTIME_QUALITY };
@@ -207,6 +207,9 @@ int main( int argc, char *argv[] )
   /* keep the moving average of encoding times */
   AverageEncodingTime avg_encoding_time;
 
+  /* track the last quantizer used */
+  uint8_t last_quantizer = 64;
+  
   /* decoder hash => encoder object */
   deque<uint32_t> encoder_states;
   unordered_map<uint32_t, Encoder> encoders { { initial_state, base_encoder } };
@@ -256,7 +259,6 @@ int main( int argc, char *argv[] )
       }
 
       RasterHandle raster = last_raster.get();
-      const auto encode_deadline = system_clock::now() + max_time_per_frame;
 
       //      cerr << "Preparing encoding jobs for frame #" << frame_no << "." << endl;
 
@@ -297,24 +299,34 @@ int main( int argc, char *argv[] )
 
       const Encoder & encoder = encoders.at( selected_source_hash );
 
-      if ( avg_delay < numeric_limits<uint32_t>::max() ) {
-        size_t frame_size = target_size( avg_delay, last_acked, cumulative_fpf.back() );
+      /*
+      const auto increment_quantizer = []( const uint8_t q, const int8_t inc ) -> uint8_t
+        {
+          int orig = q;
+          orig += inc;
+          orig = max( 0, orig );
+          orig = min( 127, orig );
+          return orig;
+        };
+      */      
 
-        if ( frame_size > 0 ) {
-          /* encode the intended frame size */
-          encode_jobs.emplace_back( "100%", raster, encoder, TARGET_FRAME_SIZE, 0, frame_size );
+      /* try various quantizers */
+      //      encode_jobs.emplace_back( "same", raster, encoder, CONSTANT_QUANTIZER, last_quantizer, 0 );
 
-          /* try some other options */
-          encode_jobs.emplace_back( "50%", raster, encoder, TARGET_FRAME_SIZE, 0, frame_size * .5 );
-        }
-      }
+      /*      encode_jobs.emplace_back( "improve", raster, encoder, CONSTANT_QUANTIZER,
+              increment_quantizer( last_quantizer, -5 ), 0 );
+      */
+      
+      /*
+      encode_jobs.emplace_back( "worsen", raster, encoder, CONSTANT_QUANTIZER,
+                                increment_quantizer( last_quantizer, +19 ), 0 );
+      */
 
-      /* always include a really bad-quality option */
       encode_jobs.emplace_back( "fail-small", raster, encoder, CONSTANT_QUANTIZER, 96, 0 );
 
       // this thread will spawn all the encoding jobs and will wait on the results
       thread(
-        [&encode_jobs, &encode_outputs, &encode_end_pipe, encode_deadline]()
+        [&encode_jobs, &encode_outputs, &encode_end_pipe]()
         {
           const auto encode_beginning = system_clock::now();
 
@@ -326,7 +338,7 @@ int main( int argc, char *argv[] )
           }
 
           for ( auto & future_res : encode_outputs ) {
-            future_res.wait_until( encode_deadline );
+            future_res.wait();
           }
 
           const auto encode_ending = system_clock::now();
@@ -414,12 +426,14 @@ int main( int argc, char *argv[] )
            << target_minihash << ")...";
       */
 
-      cerr << "Frame " << frame_no << " from encoder job " << output.job_name << "\n";
+      last_quantizer = output.y_ac_qi;
       
       FragmentedFrame ff { connection_id, output.source_minihash, frame_no,
                            avg_encoding_time.int_value(), output.frame };
       ff.send( socket );
 
+      cerr << "Frame " << frame_no << " from encoder job " << output.job_name << " [" << to_string( output.y_ac_qi ) << "] = " << ff.fragments_in_this_frame() << " fragments\n";
+      
       //      cerr << "done." << endl;
 
       cumulative_fpf.push_back( ( frame_no > 0 )

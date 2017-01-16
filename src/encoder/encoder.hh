@@ -18,6 +18,8 @@
 #include "file_descriptor.hh"
 #include "block.hh"
 
+const uint8_t DEFAULT_QUANTIZER = 64;
+
 enum EncoderPass
 {
   FIRST_PASS,

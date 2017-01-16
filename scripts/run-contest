@@ -1,0 +1,72 @@
+#!/usr/bin/perl -w
+
+use strict;
+use LWP::UserAgent;
+use HTTP::Request::Common;
+
+my $username = $ARGV[ 0 ];
+my $video = $ARGV[ 1 ];
+if ( (not defined $username) or (not defined $video) ) {
+  die "Usage: $0 USERNAME VIDEO_FILE\n";
+}
+
+my $receiver_pid = fork;
+
+if ( $receiver_pid < 0 ) {
+  die qq{$!};
+} elsif ( $receiver_pid == 0 ) {
+  # child
+  exec q{salsify-receiver 9090 1280 720} or die qq{$!};
+}
+
+chomp( my $prefix = qx{dirname `which mm-link`} );
+my $tracedir = $prefix . q{/../share/mahimahi/traces};
+
+# run the sender inside a linkshell and a delayshell
+my @command = qw{mm-delay 20 mm-link UPLINK DOWNLINK};
+
+# display livegraphs if we seem to be running under X
+if ( defined $ENV{ 'DISPLAY' } ) {
+  push @command, qw{--meter-uplink --meter-uplink-delay};
+}
+
+push @command, qw{--once --uplink-log=/tmp/contest_uplink_log -- sh -c};
+
+push @command, qq{fake-webcam $video 30 | salsify-sender \$MAHIMAHI_BASE 9090 1337};
+
+# for the contest, we will send data over Verizon's downlink
+# (datagrump sender's uplink)
+die unless $command[ 3 ] eq "UPLINK";
+$command[ 3 ] = qq{$tracedir/Verizon-LTE-short.down};
+
+die unless $command[ 4 ] eq "DOWNLINK";
+$command[ 4 ] = qq{$tracedir/Verizon-LTE-short.up};
+
+system @command;
+
+# kill the receiver
+kill 'INT', $receiver_pid;
+
+print "\n";
+
+# analyze performance locally
+system q{mm-throughput-graph 500 /tmp/contest_uplink_log > /dev/null}
+  and die q{mm-throughput-graph exited with error. NOT uploading};
+
+print "\n";
+
+# gzip logfile
+print q{Uploading data to server...};
+
+my $www = LWP::UserAgent->new();
+my $request = POST 'http://cs344g.keithw.org/cgi-bin/6829/upload-data',
+  Content_Type => 'multipart/form-data',
+  Content => [contents => ['/tmp/contest_uplink_log', $username]];
+
+my $response = $www->request( $request );
+
+print qq{ done.\n\n};
+
+print $response->decoded_content;
+
+print "\n";
