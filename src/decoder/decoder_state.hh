@@ -70,7 +70,8 @@ inline KeyFrame DecoderState::parse_and_apply<KeyFrame>( const UncompressedChunk
   }
 
   /* parse the frame (and update the persistent segmentation map) */
-  myframe.parse_macroblock_headers( first_partition, frame_probability_tables );
+  myframe.parse_macroblock_headers( first_partition, frame_probability_tables,
+                                    false /* no error conealment for keyframes yet. */ );
 
   if ( segmentation.initialized() ) {
     myframe.update_segmentation( segmentation.get().map );
@@ -124,7 +125,8 @@ inline InterFrame DecoderState::parse_and_apply<InterFrame>( const UncompressedC
   }
 
   /* parse the frame (and update the persistent segmentation map) */
-  myframe.parse_macroblock_headers( first_partition, frame_probability_tables );
+  myframe.parse_macroblock_headers( first_partition, frame_probability_tables,
+                                    ( uncompressed_chunk.corruption_level() > CORRUPTED_RESIDUES ) );
 
   if ( segmentation.initialized() ) {
     myframe.update_segmentation( segmentation.get().map );

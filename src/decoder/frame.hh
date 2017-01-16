@@ -60,7 +60,8 @@ class Frame
   TwoD<MacroblockType> & mutable_macroblocks() { return macroblock_headers_.get(); }
 
   void parse_macroblock_headers( BoolDecoder & rest_of_first_partition,
-                                 const ProbabilityTables & probability_tables );
+                                 const ProbabilityTables & probability_tables,
+                                 const bool error_concealment );
 
   void update_segmentation( SegmentationMap & mutable_segmentation_map );
 

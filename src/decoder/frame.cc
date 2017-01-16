@@ -68,7 +68,8 @@ ProbabilityArray< num_segments > Frame<FrameHeaderType, MacroblockType>::calcula
 
 template <class FrameHeaderType, class MacroblockType>
 void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers( BoolDecoder & rest_of_first_partition,
-                                                                       const ProbabilityTables & probability_tables )
+                                                                       const ProbabilityTables & probability_tables,
+                                                                       const bool error_concealment )
 {
   /* calculate segment tree probabilities if map is updated by this frame */
   const ProbabilityArray< num_segments > mb_segment_tree_probs = calculate_mb_segment_tree_probs();
@@ -78,7 +79,8 @@ void Frame<FrameHeaderType, MacroblockType>::parse_macroblock_headers( BoolDecod
                                   rest_of_first_partition, header_,
                                   mb_segment_tree_probs,
                                   probability_tables,
-                                  Y2_, Y_, U_, V_ );
+                                  Y2_, Y_, U_, V_,
+                                  error_concealment );
 
   /* repoint Y2 above/left pointers to skip missing subblocks */
   relink_y2_blocks();

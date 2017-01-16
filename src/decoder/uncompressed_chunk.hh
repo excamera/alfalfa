@@ -45,8 +45,9 @@ public:
 
   LoopFilterType loop_filter_type( void ) const { return loop_filter_; }
   bool show_frame( void ) const { return show_frame_; }
-
   bool experimental( void ) const { return experimental_; }
+
+  CorruptionLevel corruption_level() const { return corruption_level_; }
 };
 
 #endif /* UNCOMPRESSED_CHUNK_HH */

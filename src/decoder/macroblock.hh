@@ -58,7 +58,8 @@ public:
               TwoD< Y2Block > & frame_Y2,
               TwoD< YBlock > & frame_Y,
               TwoD< UVBlock > & frame_U,
-              TwoD< UVBlock > & frame_V );
+              TwoD< UVBlock > & frame_V,
+              const bool error_concealment );
 
   void update_segmentation( SegmentationMap & mutable_segmentation_map );
 

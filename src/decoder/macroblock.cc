@@ -23,15 +23,18 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
                                                                TwoD<Y2Block> & frame_Y2,
                                                                TwoD<YBlock> & frame_Y,
                                                                TwoD<UVBlock> & frame_U,
-                                                               TwoD<UVBlock> & frame_V )
+                                                               TwoD<UVBlock> & frame_V,
+                                                               const bool error_concealment )
   : context_( c ),
     segment_id_update_( frame_header.update_segmentation.initialized() and
                         frame_header.update_segmentation.get().update_mb_segmentation_map,
-                        data, mb_segment_tree_probs ),
+                        error_concealment ? BoolDecoder::zero_decoder() : data,
+                        mb_segment_tree_probs ),
     segment_id_( 0 ),
     mb_skip_coeff_( frame_header.prob_skip_false.initialized(),
-                    data, frame_header.prob_skip_false.get_or( 0 ) ),
-    header_( data, frame_header ),
+                    error_concealment ? BoolDecoder::zero_decoder() : data,
+                    frame_header.prob_skip_false.get_or( 0 ) ),
+    header_( error_concealment ? BoolDecoder::zero_decoder() : data, frame_header ),
     Y2_( frame_Y2.at( c.column, c.row ) ),
     Y_( frame_Y, c.column * 4, c.row * 4 ),
     U_( frame_U, c.column * 2, c.row * 2 ),

@@ -144,9 +144,8 @@ template<class FrameType>
 FrameType Encoder::make_empty_frame( const uint16_t width, const uint16_t height,
                                      const bool show_frame )
 {
-  BoolDecoder data { { nullptr, 0 } };
-  FrameType frame { show_frame, width, height, data };
-  frame.parse_macroblock_headers( data, ProbabilityTables {} );
+  FrameType frame { show_frame, width, height, BoolDecoder::zero_decoder() };
+  frame.parse_macroblock_headers( BoolDecoder::zero_decoder(), ProbabilityTables {}, false );
   return frame;
 }
 
