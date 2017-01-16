@@ -50,14 +50,6 @@ Encoder::Encoder( const uint16_t s_width,
     references_( width(), height() ),
     safe_references_( references_ ), has_state_( false ), costs_(),
     two_pass_encoder_( two_pass ), encode_quality_( quality ),
-    key_frame_( width(), height(), true ),
-    subsampled_key_frame_( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
-                           height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
-                           true ),
-    inter_frame_( width(), height(), true ),
-    subsampled_inter_frame_( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
-                             height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
-                             true ),
     loop_filter_level_(), last_y_ac_qi_()
 {
   costs_.fill_mode_costs();
@@ -69,14 +61,6 @@ Encoder::Encoder( const Decoder & decoder, const bool two_pass,
     safe_references_( references_ ), has_state_( true ), costs_(),
     two_pass_encoder_( two_pass ),
     encode_quality_( quality ),
-    key_frame_( width(), height(), true ),
-    subsampled_key_frame_( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
-                           height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
-                           true ),
-    inter_frame_( width(), height(), true ),
-    subsampled_inter_frame_( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
-                             height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
-                             true ),
     loop_filter_level_(), last_y_ac_qi_()
 {
   costs_.fill_mode_costs();
@@ -89,14 +73,6 @@ Encoder::Encoder( const Encoder & encoder )
     has_state_( encoder.has_state_ ), costs_( encoder.costs_ ),
     two_pass_encoder_( encoder.two_pass_encoder_ ),
     encode_quality_( encoder.encode_quality_ ),
-    key_frame_( width(), height(), true ),
-    subsampled_key_frame_( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
-                           height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
-                           true ),
-    inter_frame_( width(), height(), true ),
-    subsampled_inter_frame_( width() / WIDTH_SAMPLE_DIMENSION_FACTOR,
-                             height() / HEIGHT_SAMPLE_DIMENSION_FACTOR,
-                             true ),
     loop_filter_level_( encoder.loop_filter_level_ ),
     last_y_ac_qi_( encoder.last_y_ac_qi_ )
 {}

@@ -98,8 +98,12 @@ private:
   bool two_pass_encoder_;
   EncoderQuality encode_quality_;
 
-  KeyFrame key_frame_, subsampled_key_frame_;
-  InterFrame inter_frame_, subsampled_inter_frame_;
+  KeyFrame key_frame_ { width(), height() };
+  KeyFrame subsampled_key_frame_ { uint16_t( width() / WIDTH_SAMPLE_DIMENSION_FACTOR ),
+      uint16_t( height() / HEIGHT_SAMPLE_DIMENSION_FACTOR ) };
+  InterFrame inter_frame_ { width(), height() };
+  InterFrame subsampled_inter_frame_ { uint16_t( width() / WIDTH_SAMPLE_DIMENSION_FACTOR ),
+      uint16_t( height() / HEIGHT_SAMPLE_DIMENSION_FACTOR ) };
 
   Optional<uint8_t> loop_filter_level_;
 

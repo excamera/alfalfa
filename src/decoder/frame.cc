@@ -356,8 +356,8 @@ bool Frame<FrameHeaderType, MacroblockType>::operator==( const Frame & other ) c
 
 /* empty frame */
 template <class FrameHeaderType, class MacroblockType>
-Frame<FrameHeaderType, MacroblockType>::Frame( const uint16_t width, const uint16_t height, const bool show_frame )
-  : Frame( show_frame, width, height, BoolDecoder::zero_decoder() )
+Frame<FrameHeaderType, MacroblockType>::Frame( const uint16_t width, const uint16_t height )
+  : Frame( true, width, height, BoolDecoder::zero_decoder() )
 {
   parse_macroblock_headers( BoolDecoder::zero_decoder(), ProbabilityTables {}, false );
 }

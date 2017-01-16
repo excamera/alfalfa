@@ -94,7 +94,7 @@ class Frame
   Frame & operator=( Frame && other );
 
   /* empty frame */
-  Frame( const uint16_t width, const uint16_t height, const bool show_frame );
+  Frame( const uint16_t width, const uint16_t height );
 };
 
 using KeyFrame = Frame<KeyFrameHeader, KeyFrameMacroblock>;
