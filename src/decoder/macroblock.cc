@@ -28,13 +28,14 @@ Macroblock<FrameHeaderType, MacroblockHeaderType>::Macroblock( const typename Tw
   : context_( c ),
     segment_id_update_( frame_header.update_segmentation.initialized() and
                         frame_header.update_segmentation.get().update_mb_segmentation_map,
-                        error_concealment ? BoolDecoder::zero_decoder() : data,
+                        ( error_concealment and not data.valid() ) ? BoolDecoder::zero_decoder() : data,
                         mb_segment_tree_probs ),
     segment_id_( 0 ),
     mb_skip_coeff_( frame_header.prob_skip_false.initialized(),
-                    error_concealment ? BoolDecoder::zero_decoder() : data,
+                    ( error_concealment and not data.valid() ) ? BoolDecoder::zero_decoder() : data,
                     frame_header.prob_skip_false.get_or( 0 ) ),
-    header_( error_concealment ? BoolDecoder::zero_decoder() : data, frame_header ),
+    header_( ( error_concealment and not data.valid() ) ? MacroblockHeaderType()
+                                                        : MacroblockHeaderType( data, frame_header ) ),
     Y2_( frame_Y2.at( c.column, c.row ) ),
     Y_( frame_Y, c.column * 4, c.row * 4 ),
     U_( frame_U, c.column * 2, c.row * 2 ),
@@ -424,6 +425,14 @@ InterFrameMacroblockHeader::InterFrameMacroblockHeader( BoolDecoder & data,
     mb_ref_frame_sel2( mb_ref_frame_sel1.get_or( false ), data, frame_header.prob_references_golden ),
     motion_vectors_flipped_( ( (reference() == GOLDEN_FRAME) and (frame_header.sign_bias_golden) )
                              or ( (reference() == ALTREF_FRAME) and (frame_header.sign_bias_alternate) ) )
+{}
+
+/* when the error concealment is on, in the case of the missing header information
+   this constructor will create a macroblock that is inter-predicted based on
+   the LAST reference. */
+InterFrameMacroblockHeader::InterFrameMacroblockHeader()
+  : is_inter_mb( true ), mb_ref_frame_sel1( true, false ), mb_ref_frame_sel2(),
+    motion_vectors_flipped_( false )
 {}
 
 template <class FrameHeaderType, class MacroblockHeaderType>

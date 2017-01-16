@@ -143,6 +143,7 @@ struct KeyFrameMacroblockHeader
   /* no fields beyond what's in every macroblock */
 
   KeyFrameMacroblockHeader( BoolDecoder &, const KeyFrameHeader & ) {}
+  KeyFrameMacroblockHeader() {}
 
   reference_frame reference( void ) const { return CURRENT_FRAME; }
 };
@@ -158,6 +159,7 @@ struct InterFrameMacroblockHeader
   Optional< Tree< uint8_t, 4, split_mv_tree > > partition_id {};
 
   InterFrameMacroblockHeader( BoolDecoder & data, const InterFrameHeader & frame_header );
+  InterFrameMacroblockHeader();
 
   reference_frame reference( void ) const;
   void set_reference( const reference_frame ref );
