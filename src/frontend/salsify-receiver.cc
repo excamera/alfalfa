@@ -177,28 +177,31 @@ int main( int argc, char *argv[] )
           if ( decoders.count( expected_source_state ) ) {
             /* we have this state! let's load it */
             player.set_decoder( decoders.at( expected_source_state ) );
+            current_state = expected_source_state;
+
             corrupted_state = false;
-
-            /* sender won't refer to any decoder older than this, so let's get
-               rid of them */
-            auto it = complete_states.begin();
-
-            while ( it != complete_states.end() ) {
-              if ( *it != expected_source_state ) {
-                decoders.erase( *it );
-                it++;
-              }
-              else {
-                break;
-              }
-            }
-
-            assert( it != complete_states.end() );
-            complete_states.erase( complete_states.begin(), it );
           }
         }
-        else {
-          corrupted_state = true;
+
+        if ( current_state == expected_source_state ) {
+          /* sender won't refer to any decoder older than this, so let's get
+             rid of them */
+          auto it = complete_states.begin();
+
+          while ( it != complete_states.end() ) {
+            if ( *it != expected_source_state ) {
+              decoders.erase( *it );
+              it++;
+            }
+            else {
+              break;
+            }
+          }
+
+          assert( it != complete_states.end() );
+          complete_states.erase( complete_states.begin(), it );
+
+          corrupted_state = false;
         }
 
         // here we apply the frame
