@@ -83,7 +83,7 @@ struct EncodeOutput
   milliseconds encode_time;
   string job_name;
   uint8_t y_ac_qi;
-  
+
   EncodeOutput( Encoder && encoder, vector<uint8_t> && frame,
                 const uint32_t source_minihash, const milliseconds encode_time,
                 const string & job_name, const uint8_t y_ac_qi )
@@ -102,7 +102,7 @@ EncodeOutput do_encode_job( EncodeJob && encode_job )
   const auto encode_beginning = system_clock::now();
 
   uint8_t quantizer_in_use = 0;
-  
+
   switch ( encode_job.mode ) {
   case CONSTANT_QUANTIZER:
     output = encode_job.encoder.encode_with_quantizer( encode_job.raster.get(),
@@ -209,7 +209,7 @@ int main( int argc, char *argv[] )
 
   /* track the last quantizer used */
   uint8_t last_quantizer = 64;
-  
+
   /* decoder hash => encoder object */
   deque<uint32_t> encoder_states;
   unordered_map<uint32_t, Encoder> encoders { { initial_state, base_encoder } };
@@ -260,8 +260,6 @@ int main( int argc, char *argv[] )
 
       RasterHandle raster = last_raster.get();
 
-      //      cerr << "Preparing encoding jobs for frame #" << frame_no << "." << endl;
-
       uint32_t selected_source_hash = initial_state;
 
       /* reason about the state of the receiver based on ack messages
@@ -311,18 +309,16 @@ int main( int argc, char *argv[] )
       /* try various quantizers */
       encode_jobs.emplace_back( "same", raster, encoder, CONSTANT_QUANTIZER, last_quantizer, 0 );
 
-      /*      
+      encode_jobs.emplace_back( "hq", raster, encoder, CONSTANT_QUANTIZER, 4, 0 );
+
       encode_jobs.emplace_back( "improve", raster, encoder, CONSTANT_QUANTIZER,
                                 increment_quantizer( last_quantizer, -5 ), 0 );
-      */
 
       encode_jobs.emplace_back( "improvemore", raster, encoder, CONSTANT_QUANTIZER,
                                 increment_quantizer( last_quantizer, -11 ), 0 );
 
-      /*
       encode_jobs.emplace_back( "worsen", raster, encoder, CONSTANT_QUANTIZER,
                                 increment_quantizer( last_quantizer, +19 ), 0 );
-      */
 
       encode_jobs.emplace_back( "worsenmore", raster, encoder, CONSTANT_QUANTIZER,
                                 increment_quantizer( last_quantizer, +37 ), 0 );
@@ -349,13 +345,9 @@ int main( int argc, char *argv[] )
           const auto encode_ending = system_clock::now();
           const auto ms_elapsed = duration_cast<milliseconds>( encode_ending - encode_beginning );
 
-          //          cerr << "Encoding done (time=" << ms_elapsed.count() << " ms)." << endl;
-
           encode_end_pipe.first.write( "1" );
         }
       ).detach();
-
-      //      cerr << "Running " << encode_jobs.size() << " encoding job(s)." << endl;
 
       return ResultType::Continue;
     },
@@ -432,14 +424,15 @@ int main( int argc, char *argv[] )
       */
 
       last_quantizer = output.y_ac_qi;
-      
+
       FragmentedFrame ff { connection_id, output.source_minihash, frame_no,
                            avg_encoding_time.int_value(), output.frame };
       ff.send( socket );
 
-      cerr << "Frame " << frame_no << " from encoder job " << output.job_name << " [" << to_string( output.y_ac_qi ) << "] = " << ff.fragments_in_this_frame() << " fragments (" << avg_encoding_time.int_value()/1000 << " ms)\n";
-      
-      //      cerr << "done." << endl;
+      cerr << "Frame " << frame_no << " from encoder job " << output.job_name
+           << " [" << to_string( output.y_ac_qi ) << "] = "
+           << ff.fragments_in_this_frame() << " fragments ("
+           << avg_encoding_time.int_value()/1000 << " ms)\n";
 
       cumulative_fpf.push_back( ( frame_no > 0 )
                                 ? ( cumulative_fpf[ frame_no - 1 ] + ff.fragments_in_this_frame() )
