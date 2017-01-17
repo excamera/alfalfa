@@ -245,10 +245,11 @@ private:
 
   VP8Raster & temp_raster() { return temp_raster_handle_.get(); }
 
+  /* this function returns the ssim value as the output */
   template<class FrameType>
-  void apply_best_loopfilter_settings( const VP8Raster & original,
-                                       VP8Raster & reconstructed,
-                                       FrameType & frame );
+  double apply_best_loopfilter_settings( const VP8Raster & original,
+                                         VP8Raster & reconstructed,
+                                         FrameType & frame );
 
   template<class FrameType>
   void optimize_probability_tables( FrameType & frame, const TokenBranchCounts & token_branch_counts );

@@ -431,9 +431,9 @@ void Encoder::optimize_prob_skip( Frame<FrameHeaderType, MacroblockType> & frame
 }
 
 template<class FrameType>
-void Encoder::apply_best_loopfilter_settings( const VP8Raster & original,
-                                              VP8Raster & reconstructed,
-                                              FrameType & frame )
+double Encoder::apply_best_loopfilter_settings( const VP8Raster & original,
+                                                VP8Raster & reconstructed,
+                                                FrameType & frame )
 {
   frame.mutable_header().mode_lf_adjustments.reset();
   frame.mutable_header().mode_lf_adjustments.get().initialize();
@@ -485,6 +485,8 @@ void Encoder::apply_best_loopfilter_settings( const VP8Raster & original,
   decoder_state_.filter_adjustments.reset( frame.header() );
 
   frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed );
+
+  return best_ssim;
 }
 
 template<class FrameType>
