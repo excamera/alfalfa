@@ -59,6 +59,7 @@ salsify_sender_LDFLAGS = -pthread
 salsify_receiver_SOURCES = salsify-receiver.cc
 salsify_receiver_CPPFLAGS = $(AM_CPPFLAGS) $(GLU_CFLAGS) $(GLEW_CFLAGS) $(GLFW3_CFLAGS)
 salsify_receiver_LDADD = ../display/libalfalfadisplay.a ../net/libnet.a $(BASE_LDADD) $(GLU_LIBS) $(GLEW_LIBS) $(GLFW3_LIBS)
+salsify_receiver_LDFLAGS = -pthread
 
 fake_webcam_SOURCES = fake-webcam.cc
 fake_webcam_LDADD = ../encoder/libalfalfaencoder.a $(BASE_LDADD)

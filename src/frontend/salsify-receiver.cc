@@ -5,7 +5,11 @@
 #include <unordered_map>
 #include <utility>
 #include <tuple>
+#include <queue>
 #include <deque>
+#include <thread>
+#include <condition_variable>
+#include <future>
 
 #include "socket.hh"
 #include "packet.hh"
@@ -61,7 +65,26 @@ uint16_t ezrand()
   return ud( rd );
 }
 
-void display_frame( FramePlayer & player, VideoDisplay & display, const Chunk & frame )
+queue<RasterHandle> display_queue;
+mutex mtx;
+condition_variable cv;
+
+void display_task( const VP8Raster & example_raster )
+{
+  VideoDisplay display { example_raster };
+
+  while( true ) {
+    unique_lock<mutex> lock( mtx );
+    cv.wait( lock, []() { return not display_queue.empty(); } );
+
+    while( not display_queue.empty() ) {
+      display.draw( display_queue.front() );
+      display_queue.pop();
+    }
+  }
+}
+
+void enqueue_frame( FramePlayer & player, const Chunk & frame )
 {
   if ( frame.size() == 0 ) {
     return;
@@ -69,9 +92,16 @@ void display_frame( FramePlayer & player, VideoDisplay & display, const Chunk & 
 
   const Optional<RasterHandle> raster = player.decode( frame );
 
-  if ( raster.initialized() ) {
-    display.draw( raster.get() );
-  }
+  async( launch::async,
+    [&raster]()
+    {
+      if ( raster.initialized() ) {
+        lock_guard<mutex> lock( mtx );
+        display_queue.push( raster.get() );
+        cv.notify_all();
+      }
+    }
+  );
 }
 
 int main( int argc, char *argv[] )
@@ -99,8 +129,8 @@ int main( int argc, char *argv[] )
   FramePlayer player( paranoid::stoul( argv[ 2 ] ), paranoid::stoul( argv[ 3 ] ) );
   player.set_error_concealment( true );
 
-  /* construct VideoDisplay */
-  VideoDisplay display { player.example_raster() };
+  /* construct display thread */
+  thread( [&player]() { display_task( player.example_raster() ); } ).detach();
 
   /* frame no => FragmentedFrame; used when receiving packets out of order */
   unordered_map<size_t, FragmentedFrame> fragmented_frames;
@@ -144,7 +174,7 @@ int main( int argc, char *argv[] )
         for ( size_t i = next_frame_no; i < packet.frame_no(); i++ ) {
           if ( fragmented_frames.count( i ) == 0 ) continue;
 
-          display_frame( player, display, fragmented_frames.at( i ).partial_frame() );
+          enqueue_frame( player, fragmented_frames.at( i ).partial_frame() );
           fragmented_frames.erase( i );
         }
 
@@ -207,7 +237,7 @@ int main( int argc, char *argv[] )
         }
 
         // here we apply the frame
-        display_frame( player, display, fragmented_frames.at( next_frame_no ).frame() );
+        enqueue_frame( player, fragmented_frames.at( next_frame_no ).frame() );
 
         // state "after" applying the frame
         current_state = player.current_decoder().minihash();
