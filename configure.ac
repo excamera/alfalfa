@@ -133,6 +133,7 @@ AC_CONFIG_FILES([Makefile
                  src/util/Makefile
                  src/decoder/Makefile
                  src/display/Makefile
+                 src/input/Makefile
                  src/encoder/Makefile
                  src/net/Makefile
                  src/frontend/Makefile
