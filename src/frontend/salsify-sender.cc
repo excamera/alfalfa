@@ -173,22 +173,12 @@ int main( int argc, char *argv[] )
   while ( true ) {
     const int opt = getopt_long( argc, argv, "d:p:", command_line_options, nullptr );
 
-    if ( opt == -1 ) {
-      break;
-    }
+    if ( opt == -1 ) { break; }
 
     switch ( opt ) {
-    case 'd':
-      camera_device = optarg;
-      break;
-
-    case 'p':
-      pixel_format = optarg;
-      break;
-
-    default:
-      usage( argv[ 0 ] );
-      return EXIT_FAILURE;
+    case 'd': camera_device = optarg; break;
+    case 'p': pixel_format = optarg; break;
+    default: usage( argv[ 0 ] ); return EXIT_FAILURE;
     }
   }
 
@@ -338,15 +328,13 @@ int main( int argc, char *argv[] )
         {
           int orig = q;
           orig += inc;
-          orig = max( 0, orig );
+          orig = max( 5, orig );
           orig = min( 96, orig );
           return orig;
         };
 
       /* try various quantizers */
       encode_jobs.emplace_back( "same", raster, encoder, CONSTANT_QUANTIZER, last_quantizer, 0 );
-
-      encode_jobs.emplace_back( "hq", raster, encoder, CONSTANT_QUANTIZER, 0, 0 );
 
       encode_jobs.emplace_back( "improve", raster, encoder, CONSTANT_QUANTIZER,
                                 increment_quantizer( last_quantizer, -5 ), 0 );
