@@ -10,7 +10,6 @@
 #include <future>
 #include <algorithm>
 #include <unordered_map>
-#include <unordered_set>
 
 #include "yuv4mpeg.hh"
 #include "encoder.hh"
