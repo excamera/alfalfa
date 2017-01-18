@@ -32,6 +32,8 @@ public:
 
   uint16_t display_width() { return width_; }
   uint16_t display_height() { return height_; }
+
+  FileDescriptor & fd() { return camera_fd_; }
 };
 
 #endif

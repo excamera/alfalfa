@@ -11,15 +11,16 @@
 #include <algorithm>
 #include <unordered_map>
 
+#include "exception.hh"
+#include "finally.hh"
+#include "paranoid.hh"
 #include "yuv4mpeg.hh"
 #include "encoder.hh"
 #include "socket.hh"
 #include "packet.hh"
 #include "poller.hh"
 #include "socketpair.hh"
-#include "exception.hh"
-#include "finally.hh"
-#include "paranoid.hh"
+#include "camera.hh"
 
 using namespace std;
 using namespace std::chrono;
@@ -139,7 +140,7 @@ size_t target_size( uint32_t avg_delay, const uint64_t last_acked, const uint64_
 
 void usage( const char *argv0 )
 {
-  cerr << "Usage: " << argv0 << " HOST PORT CONNECTION_ID" << endl;
+  cerr << "Usage: " << argv0 << " HOST PORT CONNECTION_ID [CAMERA]" << endl;
 }
 
 uint64_t ack_seq_no( const AckPacket & ack,
@@ -157,13 +158,10 @@ int main( int argc, char *argv[] )
     abort();
   }
 
-  if ( argc != 4 ) {
+  if ( argc < 4 or argc > 5) {
     usage( argv[ 0 ] );
     return EXIT_FAILURE;
   }
-
-  /* open the YUV4MPEG input */
-  YUV4MPEGReader input { FileDescriptor( STDIN_FILENO ) };
 
   /* get connection_id */
   const uint16_t connection_id = paranoid::stoul( argv[ 3 ] );
@@ -184,17 +182,18 @@ int main( int argc, char *argv[] )
   const size_t MAX_SKIPPED = 5;
   size_t skipped_count = 0;
 
+  /* camera device */
+  string camera_device = "/dev/video0";
+  Camera camera { 1280, 720, camera_device };
+
   /* construct the encoder */
-  Encoder base_encoder { input.display_width(), input.display_height(),
+  Encoder base_encoder { camera.display_width(), camera.display_height(),
                          false /* two-pass */, REALTIME_QUALITY };
 
   const uint32_t initial_state = base_encoder.minihash();
 
   /* encoded frame index */
   unsigned int frame_no = 0;
-
-  /* last raster recieved on the input */
-  unsigned int input_raster_count = 0;
 
   /* latest raster that is received from the input */
   Optional<RasterHandle> last_raster;
@@ -218,15 +217,17 @@ int main( int argc, char *argv[] )
   Optional<uint32_t> receiver_assumed_state;
   deque<uint32_t> receiver_complete_states;
 
+  auto encode_start_pipe = UnixDomainSocket::make_pair();
   auto encode_end_pipe = UnixDomainSocket::make_pair();
 
   Poller poller;
 
   /* fetch frames from webcam */
-  poller.add_action( Poller::Action( input.fd(), Direction::In,
+  poller.add_action( Poller::Action( encode_start_pipe.second, Direction::In,
     [&]() -> Result {
-      last_raster = input.get_next_frame();
-      input_raster_count++;
+      encode_start_pipe.second.read();
+
+      last_raster = camera.get_next_frame();
 
       if ( not last_raster.initialized() ) {
         return { ResultType::Exit, EXIT_FAILURE };
@@ -349,8 +350,7 @@ int main( int argc, char *argv[] )
       ).detach();
 
       return ResultType::Continue;
-    },
-    [&]() { return not input.fd().eof(); } )
+    } )
   );
 
   poller.add_action( Poller::Action( encode_end_pipe.second, Direction::In,
@@ -446,9 +446,10 @@ int main( int argc, char *argv[] )
       skipped_count = 0;
       frame_no++;
 
+      encode_start_pipe.first.write( "1" );
+
       return ResultType::Continue;
-    },
-    [&]() { return not input.fd().eof(); } )
+    } )
   );
 
   poller.add_action( Poller::Action( socket, Direction::In,
@@ -476,9 +477,10 @@ int main( int argc, char *argv[] )
       receiver_complete_states = move( ack.complete_states() );
 
       return ResultType::Continue;
-    },
-    [&]() { return not input.fd().eof(); } )
+    } )
   );
+
+  encode_start_pipe.first.write( "1" );
 
   /* handle events */
   while ( true ) {
