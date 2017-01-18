@@ -9,14 +9,14 @@
 #include <sys/mman.h>
 #include <linux/videodev2.h>
 
+#include "optional.hh"
 #include "exception.hh"
 #include "file_descriptor.hh"
 #include "mmap_region.hh"
 #include "raster_handle.hh"
+#include "frame_input.hh"
 
-using namespace std;
-
-class Camera
+class Camera : public FrameInput
 {
 private:
   uint16_t width_;
@@ -29,9 +29,9 @@ private:
   int type_;
 
 public:
-  Camera( const uint16_t width, const uint16_t height )
+  Camera( const uint16_t width, const uint16_t height, const std::string device = "/dev/video0" )
     : width_( width ), height_( height ),
-      camera_fd_( SystemCall( "open camera", open( "/dev/video0", O_RDWR ) ) ),
+      camera_fd_( SystemCall( "open camera", open( device.c_str(), O_RDWR ) ) ),
       mmap_region_(), buffer_info_(), type_()
   {
     v4l2_capability cap;
@@ -41,16 +41,23 @@ public:
       throw std::runtime_error( "this device does not handle video capture" );
     }
 
+    /* this is the only pixel format that is supported by now */
+    const uint32_t pixel_format = V4L2_PIX_FMT_NV12;
+
     /* setting the output format and size */
     v4l2_format format;
     format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    format.fmt.pix.pixelformat = V4L2_PIX_FMT_NV12;
+    format.fmt.pix.pixelformat = pixel_format;
     format.fmt.pix.width = width;
     format.fmt.pix.height = height;
 
     SystemCall( "setting format", ioctl( camera_fd_.fd_num(), VIDIOC_S_FMT, &format ) );
 
-    assert( format.fmt.pix.pixelformat == V4L2_PIX_FMT_NV12 );
+    if ( format.fmt.pix.pixelformat != pixel_format or
+         format.fmt.pix.width != width_ or
+         format.fmt.pix.height != height_ ) {
+      throw std::runtime_error( "couldn't configure the camera with the given format" );
+    }
 
     /* tell the v4l2 about our buffers */
     v4l2_requestbuffers buf_request;
@@ -82,7 +89,7 @@ public:
     SystemCall( "stream off", ioctl( camera_fd_.fd_num(), VIDIOC_STREAMOFF, &type_ ) );
   }
 
-  RasterHandle get_frame()
+  Optional<RasterHandle> get_next_frame() override
   {
     MutableRasterHandle raster_handle { width_, height_ };
     auto & raster = raster_handle.get();
@@ -99,7 +106,9 @@ public:
     uint8_t * dst_cb_start = &raster.U().at( 0, 0 );
     uint8_t * dst_cr_start = &raster.V().at( 0, 0 );
 
-    for ( size_t i = 0; i < width_ * height_ / 4; i++ ) {
+    size_t chroma_length = width_ * height_ / 4;
+
+    for ( size_t i = 0; i < chroma_length; i++ ) {
       dst_cb_start[ i ] = src_chroma_start[ 2 * i ];
       dst_cr_start[ i ] = src_chroma_start[ 2 * i + 1 ];
     }
@@ -108,6 +117,9 @@ public:
 
     return RasterHandle{ std::move( raster_handle ) };
   }
+
+  uint16_t display_width() { return width_; }
+  uint16_t display_height() { return height_; }
 };
 
 #endif

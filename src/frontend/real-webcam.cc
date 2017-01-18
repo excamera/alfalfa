@@ -26,13 +26,17 @@ int main( int argc, char *argv[] )
     return EXIT_FAILURE;
   }
 
-  RasterHandle r { MutableRasterHandle{ 1280, 720 } };
-
-  VideoDisplay display { r };
   Camera camera { 1280, 720 };
 
+  RasterHandle r { MutableRasterHandle{ 1280, 720 } };
+  VideoDisplay display { r };
+
   while ( true ) {
-    display.draw( camera.get_frame() );
+    auto raster = camera.get_next_frame();
+
+    if ( raster.initialized() ) {
+      display.draw( raster.get() );
+    }
   }
 
   return EXIT_SUCCESS;
