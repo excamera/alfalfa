@@ -24,7 +24,7 @@ private:
     Window window_;
 
     CurrentContextWindow( const unsigned int width, const unsigned int height,
-      const std::string & title );
+      const std::string & title, const bool fullscreen );
   } current_context_window_;
 
   VertexShader scale_from_pixel_coordinates_ = { shader_source_scale_from_pixel_coordinates };
@@ -39,7 +39,8 @@ private:
   VertexBufferObject other_vertices_ = {};
 
 public:
-  VideoDisplay( const BaseRaster & raster );
+  VideoDisplay( const BaseRaster & raster, const bool fullscreen = false );
+
   VideoDisplay( const VideoDisplay & other ) = delete;
   VideoDisplay & operator=( const VideoDisplay & other ) = delete;
 

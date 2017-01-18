@@ -59,19 +59,18 @@ const string VideoDisplay::shader_source_ycbcr
     )";
 
 VideoDisplay::CurrentContextWindow::CurrentContextWindow( const unsigned int width,
-  const unsigned int height,
-  const string & title)
-  : window_( width, height, title )
+  const unsigned int height, const string & title, const bool fullscreen )
+  : window_( width, height, title, fullscreen )
 {
   window_.make_context_current( true );
 }
 
-VideoDisplay::VideoDisplay( const BaseRaster & raster )
+VideoDisplay::VideoDisplay( const BaseRaster & raster, const bool fullscreen )
   : display_width_( raster.display_width() ),
     display_height_( raster.display_height() ),
     width_( raster.width() ),
     height_( raster.height() ),
-    current_context_window_( display_width_, display_height_, "VP8 Player" ),
+    current_context_window_( display_width_, display_height_, "VP8 Player", fullscreen ),
     Y_ ( width_, height_),
     U_ ( width_ / 2, height_ / 2 ),
     V_ ( width_ / 2, height_ / 2 )

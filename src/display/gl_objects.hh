@@ -33,7 +33,8 @@ class Window
   std::unique_ptr<GLFWwindow, Deleter> window_;
 
 public:
-  Window( const unsigned int width, const unsigned int height, const std::string & title );
+  Window( const unsigned int width, const unsigned int height, const std::string & title,
+          const bool fullscreen = false );
   void make_context_current( const bool initialize_extensions = false );
   bool should_close( void ) const;
   void swap_buffers( void );
