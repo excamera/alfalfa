@@ -95,11 +95,13 @@ public:
 
     memcpy( &raster.Y().at( 0, 0 ), mmap_region_->addr(), width_ * height_ );
 
-    uint8_t * chroma_start = mmap_region_->addr() + width_ * height_;
+    uint8_t * src_chroma_start = mmap_region_->addr() + width_ * height_;
+    uint8_t * dst_cb_start = &raster.U().at( 0, 0 );
+    uint8_t * dst_cr_start = &raster.V().at( 0, 0 );
 
     for ( size_t i = 0; i < width_ * height_ / 4; i++ ) {
-      raster.U().at( i % ( width_ / 2 ), i / ( width_ / 2 ) ) = chroma_start[ 2 * i ];
-      raster.V().at( i % ( width_ / 2 ), i / ( width_ / 2 ) ) = chroma_start[ 2 * i + 1 ];
+      dst_cb_start[ i ] = src_chroma_start[ 2 * i ];
+      dst_cr_start[ i ] = src_chroma_start[ 2 * i + 1 ];
     }
 
     SystemCall( "dequeue buffer", ioctl( camera_fd_.fd_num(), VIDIOC_DQBUF, &buffer_info_ ) );
