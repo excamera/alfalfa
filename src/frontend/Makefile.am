@@ -5,7 +5,7 @@ BASE_LDADD = ../input/libalfalfainput.a ../decoder/libalfalfadecoder.a ../util/l
 
 VP8PLAY_BUILD :=
 if BUILDVP8PLAY
-VP8PLAY_BUILD += vp8play salsify-receiver
+VP8PLAY_BUILD += vp8play salsify-receiver real-webcam
 endif
 bin_PROGRAMS = vp8decode xc-enc xc-ssim xc-dissect xc-framesize xc-dump \
                xc-diff comp-states xc-decode-bundle xc-merge \
@@ -63,3 +63,7 @@ salsify_receiver_LDFLAGS = -pthread
 
 fake_webcam_SOURCES = fake-webcam.cc
 fake_webcam_LDADD = ../encoder/libalfalfaencoder.a $(BASE_LDADD)
+
+real_webcam_SOURCES = real-webcam.cc
+real_webcam_CPPFLAGS = $(AM_CPPFLAGS) $(GLU_CFLAGS) $(GLEW_CFLAGS) $(GLFW3_CFLAGS)
+real_webcam_LDADD = ../display/libalfalfadisplay.a ../net/libnet.a $(BASE_LDADD) $(GLU_LIBS) $(GLEW_LIBS) $(GLFW3_LIBS)
