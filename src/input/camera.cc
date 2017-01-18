@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <memory>
+#include <unordered_set>
 #include <cstdio>
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -12,7 +13,12 @@
 
 using namespace std;
 
-Camera::Camera( const uint16_t width, const uint16_t height, const string device )
+unordered_set<uint32_t> SUPPORTED_FORMATS {
+  { V4L2_PIX_FMT_NV12 }
+};
+
+Camera::Camera( const uint16_t width, const uint16_t height,
+                const uint32_t pixel_format, const string device )
   : width_( width ), height_( height ),
     camera_fd_( SystemCall( "open camera", open( device.c_str(), O_RDWR ) ) ),
     mmap_region_(), buffer_info_(), type_()
@@ -24,8 +30,9 @@ Camera::Camera( const uint16_t width, const uint16_t height, const string device
     throw runtime_error( "this device does not handle video capture" );
   }
 
-  /* this is the only pixel format that is supported by now */
-  const uint32_t pixel_format = V4L2_PIX_FMT_NV12;
+  if ( not SUPPORTED_FORMATS.count( pixel_format ) ) {
+    throw runtime_error( "this pixel format is not implemented" );
+  }
 
   /* setting the output format and size */
   v4l2_format format;

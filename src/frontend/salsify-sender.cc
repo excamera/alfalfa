@@ -1,5 +1,7 @@
 /* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 
+#include <getopt.h>
+
 #include <cstdlib>
 #include <iostream>
 #include <chrono>
@@ -25,6 +27,11 @@
 using namespace std;
 using namespace std::chrono;
 using namespace PollerShortNames;
+
+unordered_map<string, uint32_t> formats {
+  { "NV12", V4L2_PIX_FMT_NV12 },
+  { "YUYV", V4L2_PIX_FMT_YUYV }
+};
 
 class AverageEncodingTime
 {
@@ -140,7 +147,7 @@ size_t target_size( uint32_t avg_delay, const uint64_t last_acked, const uint64_
 
 void usage( const char *argv0 )
 {
-  cerr << "Usage: " << argv0 << " HOST PORT CONNECTION_ID [CAMERA]" << endl;
+  cerr << "Usage: " << argv0 << " [-d, --device CAMERA] [-p, --pixfmt PIXEL_FORMAT] HOST PORT CONNECTION_ID" << endl;
 }
 
 uint64_t ack_seq_no( const AckPacket & ack,
@@ -158,9 +165,41 @@ int main( int argc, char *argv[] )
     abort();
   }
 
-  if ( argc < 4 or argc > 5) {
+  if ( argc < 4 or argc > 6) {
     usage( argv[ 0 ] );
     return EXIT_FAILURE;
+  }
+
+  /* camera settings */
+  string camera_device = "/dev/video0";
+  string pixel_format = "NV12";
+
+  const option command_line_options[] = {
+    { "device", required_argument, nullptr, 'd' },
+    { "pixfmt", required_argument, nullptr, 'p' },
+    { 0, 0, 0, 0 }
+  };
+
+  while ( true ) {
+    const int opt = getopt_long( argc, argv, "d:p:", command_line_options, nullptr );
+
+    if ( opt == -1 ) {
+      break;
+    }
+
+    switch ( opt ) {
+    case 'd':
+      camera_device = optarg;
+      break;
+
+    case 'p':
+      pixel_format = optarg;
+      break;
+
+    default:
+      usage( argv[ 0 ] );
+      return EXIT_FAILURE;
+    }
   }
 
   /* get connection_id */
@@ -182,9 +221,12 @@ int main( int argc, char *argv[] )
   const size_t MAX_SKIPPED = 5;
   size_t skipped_count = 0;
 
+  if ( not formats.count( pixel_format ) ) {
+    throw runtime_error( "unsupported pixel format" );
+  }
+
   /* camera device */
-  string camera_device = "/dev/video0";
-  Camera camera { 1280, 720, camera_device };
+  Camera camera { 1280, 720, formats.at( pixel_format ), camera_device };
 
   /* construct the encoder */
   Encoder base_encoder { camera.display_width(), camera.display_height(),
@@ -301,7 +343,7 @@ int main( int argc, char *argv[] )
         {
           int orig = q;
           orig += inc;
-          orig = max( 5, orig );
+          orig = max( 0, orig );
           orig = min( 96, orig );
           return orig;
         };
@@ -309,7 +351,7 @@ int main( int argc, char *argv[] )
       /* try various quantizers */
       encode_jobs.emplace_back( "same", raster, encoder, CONSTANT_QUANTIZER, last_quantizer, 0 );
 
-      encode_jobs.emplace_back( "hq", raster, encoder, CONSTANT_QUANTIZER, 4, 0 );
+      encode_jobs.emplace_back( "hq", raster, encoder, CONSTANT_QUANTIZER, 0, 0 );
 
       encode_jobs.emplace_back( "improve", raster, encoder, CONSTANT_QUANTIZER,
                                 increment_quantizer( last_quantizer, -5 ), 0 );
