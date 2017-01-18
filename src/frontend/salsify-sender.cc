@@ -160,11 +160,6 @@ int main( int argc, char *argv[] )
     abort();
   }
 
-  if ( argc < 4 ) {
-    usage( argv[ 0 ] );
-    return EXIT_FAILURE;
-  }
-
   /* camera settings */
   string camera_device = "/dev/video0";
   string pixel_format = "NV12";
@@ -197,13 +192,18 @@ int main( int argc, char *argv[] )
     }
   }
 
-  /* get connection_id */
-  const uint16_t connection_id = paranoid::stoul( argv[ 3 ] );
+  if ( optind + 2 >= argc ) {
+    usage( argv[ 0 ] );
+    return EXIT_FAILURE;
+  }
 
   /* construct Socket for outgoing datagrams */
   UDPSocket socket;
-  socket.connect( Address( argv[ 1 ], argv[ 2 ] ) );
+  socket.connect( Address( argv[ optind ], argv[ optind + 1 ] ) );
   socket.set_timestamps();
+
+  /* get connection_id */
+  const uint16_t connection_id = paranoid::stoul( argv[ optind + 2 ] );
 
   /* average inter-packet delay, reported by receiver */
   uint32_t avg_delay = numeric_limits<uint32_t>::max();

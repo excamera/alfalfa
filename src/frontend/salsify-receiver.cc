@@ -113,11 +113,6 @@ int main( int argc, char *argv[] )
     abort();
   }
 
-  if ( argc != 4 ) {
-    usage( argv[ 0 ] );
-    return EXIT_FAILURE;
-  }
-
   /* fullscreen player */
   bool fullscreen = false;
 
@@ -144,17 +139,22 @@ int main( int argc, char *argv[] )
     }
   }
 
+  if ( optind + 2 >= argc ) {
+    usage( argv[ 0 ] );
+    return EXIT_FAILURE;
+  }
+
   /* choose a random connection_id */
   const uint16_t connection_id = 1337; // ezrand();
   cerr << "Connection ID: " << connection_id << endl;
 
   /* construct Socket for incoming  datagrams */
   UDPSocket socket;
-  socket.bind( Address( "0", argv[ 1 ] ) );
+  socket.bind( Address( "0", argv[ optind ] ) );
   socket.set_timestamps();
 
   /* construct FramePlayer */
-  FramePlayer player( paranoid::stoul( argv[ 2 ] ), paranoid::stoul( argv[ 3 ] ) );
+  FramePlayer player( paranoid::stoul( argv[ optind + 1 ] ), paranoid::stoul( argv[ optind + 2 ] ) );
   player.set_error_concealment( true );
 
   /* construct display thread */
