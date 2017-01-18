@@ -1,5 +1,7 @@
 /* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 
+#include <getopt.h>
+
 #include <cstdlib>
 #include <random>
 #include <unordered_map>
@@ -54,7 +56,7 @@ public:
 
 void usage( const char *argv0 )
 {
-  cerr << "Usage: " << argv0 << " PORT WIDTH HEIGHT" << endl;
+  cerr << "Usage: " << argv0 << " [-f, --fullscreen] PORT WIDTH HEIGHT" << endl;
 }
 
 uint16_t ezrand()
@@ -69,9 +71,9 @@ queue<RasterHandle> display_queue;
 mutex mtx;
 condition_variable cv;
 
-void display_task( const VP8Raster & example_raster )
+void display_task( const VP8Raster & example_raster, bool fullscreen )
 {
-  VideoDisplay display { example_raster };
+  VideoDisplay display { example_raster, fullscreen };
 
   while( true ) {
     unique_lock<mutex> lock( mtx );
@@ -116,6 +118,32 @@ int main( int argc, char *argv[] )
     return EXIT_FAILURE;
   }
 
+  /* fullscreen player */
+  bool fullscreen = false;
+
+  const option command_line_options[] = {
+    { "fullscreen", no_argument, nullptr, 'f' },
+    { 0, 0, 0, 0 }
+  };
+
+  while ( true ) {
+    const int opt = getopt_long( argc, argv, "f", command_line_options, nullptr );
+
+    if ( opt == -1 ) {
+      break;
+    }
+
+    switch ( opt ) {
+    case 'f':
+      fullscreen = true;
+      break;
+
+    default:
+      usage( argv[ 0 ] );
+      return EXIT_FAILURE;
+    }
+  }
+
   /* choose a random connection_id */
   const uint16_t connection_id = 1337; // ezrand();
   cerr << "Connection ID: " << connection_id << endl;
@@ -130,7 +158,7 @@ int main( int argc, char *argv[] )
   player.set_error_concealment( true );
 
   /* construct display thread */
-  thread( [&player]() { display_task( player.example_raster() ); } ).detach();
+  thread( [&player, fullscreen]() { display_task( player.example_raster(), fullscreen ); } ).detach();
 
   /* frame no => FragmentedFrame; used when receiving packets out of order */
   unordered_map<size_t, FragmentedFrame> fragmented_frames;
