@@ -28,11 +28,6 @@ using namespace std;
 using namespace std::chrono;
 using namespace PollerShortNames;
 
-unordered_map<string, uint32_t> formats {
-  { "NV12", V4L2_PIX_FMT_NV12 },
-  { "YUYV", V4L2_PIX_FMT_YUYV }
-};
-
 class AverageEncodingTime
 {
 private:
@@ -165,7 +160,7 @@ int main( int argc, char *argv[] )
     abort();
   }
 
-  if ( argc < 4 or argc > 6) {
+  if ( argc < 4 ) {
     usage( argv[ 0 ] );
     return EXIT_FAILURE;
   }
@@ -221,12 +216,12 @@ int main( int argc, char *argv[] )
   const size_t MAX_SKIPPED = 5;
   size_t skipped_count = 0;
 
-  if ( not formats.count( pixel_format ) ) {
+  if ( not PIXEL_FORMAT_STRS.count( pixel_format ) ) {
     throw runtime_error( "unsupported pixel format" );
   }
 
   /* camera device */
-  Camera camera { 1280, 720, formats.at( pixel_format ), camera_device };
+  Camera camera { 1280, 720, PIXEL_FORMAT_STRS.at( pixel_format ), camera_device };
 
   /* construct the encoder */
   Encoder base_encoder { camera.display_width(), camera.display_height(),

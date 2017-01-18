@@ -14,14 +14,14 @@
 using namespace std;
 
 unordered_set<uint32_t> SUPPORTED_FORMATS {
-  { V4L2_PIX_FMT_NV12 }
+  { V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_YUYV }
 };
 
 Camera::Camera( const uint16_t width, const uint16_t height,
                 const uint32_t pixel_format, const string device )
   : width_( width ), height_( height ),
     camera_fd_( SystemCall( "open camera", open( device.c_str(), O_RDWR ) ) ),
-    mmap_region_(), buffer_info_(), type_()
+    mmap_region_(), pixel_format_( pixel_format ), buffer_info_(), type_()
 {
   v4l2_capability cap;
   SystemCall( "ioctl", ioctl( camera_fd_.fd_num(), VIDIOC_QUERYCAP, &cap ) );
@@ -90,17 +90,52 @@ Optional<RasterHandle> Camera::get_next_frame()
 
   SystemCall( "queue", ioctl( camera_fd_.fd_num(), VIDIOC_QBUF, &buffer_info_ ) );
 
-  memcpy( &raster.Y().at( 0, 0 ), mmap_region_->addr(), width_ * height_ );
+  switch( pixel_format_ ) {
+  case V4L2_PIX_FMT_YUYV:
+    {
+    uint8_t * src = mmap_region_->addr();
+    uint8_t * dst_y_start  = &raster.Y().at( 0, 0 );
+    uint8_t * dst_cb_start = &raster.U().at( 0, 0 );
+    uint8_t * dst_cr_start = &raster.V().at( 0, 0 );
 
-  uint8_t * src_chroma_start = mmap_region_->addr() + width_ * height_;
-  uint8_t * dst_cb_start = &raster.U().at( 0, 0 );
-  uint8_t * dst_cr_start = &raster.V().at( 0, 0 );
+    const size_t y_plane_lenght = width_ * height_;
 
-  size_t chroma_length = width_ * height_ / 4;
+    for ( size_t i = 0; i < y_plane_lenght; i++ ) {
+      dst_y_start[ i ] = src[ i << 1 ];
+    }
 
-  for ( size_t i = 0; i < chroma_length; i++ ) {
-    dst_cb_start[ i ] = src_chroma_start[ 2 * i ];
-    dst_cr_start[ i ] = src_chroma_start[ 2 * i + 1 ];
+    size_t i = 0;
+
+    for ( size_t row = 0; row < height_; row++ ) {
+      if ( row % 2 == 1 ) { continue; }
+
+      for ( size_t column = 0; column < width_ / 2; column++ ) {
+        dst_cb_start[ i ] = src[ row * width_ * 2 + column * 4 + 1 ];
+        dst_cr_start[ i ] = src[ row * width_ * 2 + column * 4 + 3 ];
+        i++;
+      }
+    }
+  }
+
+  break;
+
+  case V4L2_PIX_FMT_NV12:
+    {
+      memcpy( &raster.Y().at( 0, 0 ), mmap_region_->addr(), width_ * height_ );
+
+      uint8_t * src_chroma_start = mmap_region_->addr() + width_ * height_;
+      uint8_t * dst_cb_start = &raster.U().at( 0, 0 );
+      uint8_t * dst_cr_start = &raster.V().at( 0, 0 );
+
+      size_t chroma_length = width_ * height_ / 4;
+
+      for ( size_t i = 0; i < chroma_length; i++ ) {
+        dst_cb_start[ i ] = src_chroma_start[ 2 * i ];
+        dst_cr_start[ i ] = src_chroma_start[ 2 * i + 1 ];
+      }
+    }
+
+    break;
   }
 
   SystemCall( "dequeue buffer", ioctl( camera_fd_.fd_num(), VIDIOC_DQBUF, &buffer_info_ ) );

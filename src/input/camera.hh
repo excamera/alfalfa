@@ -5,11 +5,18 @@
 
 #include <linux/videodev2.h>
 
+#include <unordered_map>
+
 #include "optional.hh"
 #include "file_descriptor.hh"
 #include "mmap_region.hh"
 #include "raster_handle.hh"
 #include "frame_input.hh"
+
+static const std::unordered_map<std::string, uint32_t> PIXEL_FORMAT_STRS {
+  { "NV12", V4L2_PIX_FMT_NV12 },
+  { "YUYV", V4L2_PIX_FMT_YUYV }
+};
 
 class Camera : public FrameInput
 {
@@ -20,6 +27,7 @@ private:
   FileDescriptor camera_fd_;
   std::unique_ptr<MMap_Region> mmap_region_;
 
+  uint32_t pixel_format_;
   v4l2_buffer buffer_info_;
   int type_;
 
