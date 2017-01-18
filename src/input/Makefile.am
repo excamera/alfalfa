@@ -6,4 +6,4 @@ noinst_LIBRARIES = libalfalfainput.a
 libalfalfainput_a_SOURCES = frame_input.hh \
 	ivf_reader.hh ivf_reader.cc \
 	yuv4mpeg.hh yuv4mpeg.cc \
-	camera.hh
+	camera.hh camera.cc
