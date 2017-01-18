@@ -382,7 +382,13 @@ int main( int argc, char *argv[] )
     [&]()
     {
       /* whatever happens, encode_jobs will be empty after this block is done. */
-      auto _ = finally( [&]() { encode_jobs.clear(); } );
+      auto _ = finally(
+        [&]()
+        {
+          encode_jobs.clear();
+          encode_start_pipe.first.write( "1" );
+        }
+      );
 
       encode_end_pipe.second.read();
 
@@ -470,8 +476,6 @@ int main( int argc, char *argv[] )
 
       skipped_count = 0;
       frame_no++;
-
-      encode_start_pipe.first.write( "1" );
 
       return ResultType::Continue;
     } )
