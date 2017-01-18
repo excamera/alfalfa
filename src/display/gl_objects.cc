@@ -37,7 +37,7 @@ Window::Window( const unsigned int width, const unsigned int height, const strin
 
   glfwWindowHint( GLFW_RESIZABLE, GL_TRUE );
 
-  window_.reset( glfwCreateWindow( width, height, title.c_str(), glfwGetPrimaryMonitor(), nullptr ) );
+  window_.reset( glfwCreateWindow( width, height, title.c_str(), nullptr, nullptr ) );
   if ( not window_.get() ) {
     throw runtime_error( "could not create window" );
   }
