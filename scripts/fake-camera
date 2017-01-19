@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# make sure you add v4l2loopback module by running 'modprobe v4l2loopback' before this
+
+if [ "$#" -ne 1 ]
+then 
+  echo "usage: fake-camera INPUT_VIDEO"
+  exit 1
+fi
+
+ffmpeg -re -i $1 -f v4l2 /dev/video0
