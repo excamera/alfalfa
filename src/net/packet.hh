@@ -18,6 +18,7 @@ private:
 
   uint16_t connection_id_;
   uint32_t source_state_;
+  uint32_t target_state_;
   uint32_t frame_no_;
   uint16_t fragment_no_;
   uint16_t fragments_in_this_frame_;
@@ -36,6 +37,7 @@ public:
   bool valid() const { return valid_; }
   uint16_t connection_id() const { return connection_id_; }
   uint32_t source_state() const { return source_state_; }
+  uint32_t target_state() const { return target_state_; }
   uint32_t frame_no() const { return frame_no_; }
   uint16_t fragment_no() const { return fragment_no_; }
   uint16_t fragments_in_this_frame() const { return fragments_in_this_frame_; }
@@ -46,6 +48,7 @@ public:
   Packet( const std::vector<uint8_t> & whole_frame,
           const uint16_t connection_id,
           const uint32_t source_state,
+          const uint32_t target_state,
           const uint32_t frame_no,
           const uint16_t fragment_no,
           const uint16_t time_to_next,
@@ -69,6 +72,7 @@ class FragmentedFrame
 private:
   uint16_t connection_id_;
   uint32_t source_state_;
+  uint32_t target_state_;
   uint32_t frame_no_;
   uint16_t fragments_in_this_frame_;
 
@@ -80,6 +84,7 @@ public:
   /* construct outgoing FragmentedFrame */
   FragmentedFrame( const uint16_t connection_id,
                    const uint32_t source_state,
+                   const uint32_t target_state,
                    const uint32_t frame_no,
                    const uint32_t time_to_next_frame,
                    const std::vector<uint8_t> & whole_frame );
@@ -101,6 +106,7 @@ public:
   /* getters */
   uint16_t connection_id() const { return connection_id_; }
   uint32_t source_state() const { return source_state_; }
+  uint32_t target_state() const { return target_state_; }
   uint32_t frame_no() const { return frame_no_; }
   uint16_t fragments_in_this_frame() const { return fragments_in_this_frame_; }
   std::string frame() const;
@@ -114,6 +120,7 @@ public:
   FragmentedFrame( FragmentedFrame && other ) noexcept
     : connection_id_( other.connection_id_ ),
       source_state_( other.source_state_ ),
+      target_state_( other.target_state_ ),
       frame_no_( other.frame_no_ ),
       fragments_in_this_frame_( other.fragments_in_this_frame_ ),
       fragments_( move( other.fragments_ ) ),

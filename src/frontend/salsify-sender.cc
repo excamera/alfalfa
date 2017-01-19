@@ -455,14 +455,16 @@ int main( int argc, char *argv[] )
 
       last_quantizer = output.y_ac_qi;
 
-      FragmentedFrame ff { connection_id, output.source_minihash, frame_no,
-                           avg_encoding_time.int_value(), output.frame };
+      FragmentedFrame ff { connection_id, output.source_minihash, target_minihash,
+                           frame_no, avg_encoding_time.int_value(),
+                           output.frame };
       ff.send( socket );
 
       cerr << "Frame " << frame_no << " from encoder job " << output.job_name
            << " [" << to_string( output.y_ac_qi ) << "] = "
            << ff.fragments_in_this_frame() << " fragments ("
-           << avg_encoding_time.int_value()/1000 << " ms)\n";
+           << avg_encoding_time.int_value()/1000 << " ms) {"
+           << output.source_minihash << " -> " << target_minihash << "}" << endl;
 
       cumulative_fpf.push_back( ( frame_no > 0 )
                                 ? ( cumulative_fpf[ frame_no - 1 ] + ff.fragments_in_this_frame() )

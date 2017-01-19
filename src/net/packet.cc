@@ -32,6 +32,7 @@ string Packet::put_header_field( const uint64_t n )
 Packet::Packet( const vector<uint8_t> & whole_frame,
                 const uint16_t connection_id,
                 const uint32_t source_state,
+                const uint32_t target_state,
                 const uint32_t frame_no,
                 const uint16_t fragment_no,
                 const uint16_t time_to_next,
@@ -39,6 +40,7 @@ Packet::Packet( const vector<uint8_t> & whole_frame,
   : valid_( true ),
     connection_id_( connection_id ),
     source_state_( source_state ),
+    target_state_( target_state ),
     frame_no_( frame_no ),
     fragment_no_( fragment_no ),
     fragments_in_this_frame_( 0 ), /* temp value */
@@ -63,11 +65,12 @@ Packet::Packet( const Chunk & str )
   : valid_( true ),
     connection_id_( str( 0, 2 ).le16() ),
     source_state_( str( 2, 4 ).le32() ),
-    frame_no_( str( 6, 4 ).le32() ),
-    fragment_no_( str( 10, 2 ).le16() ),
-    fragments_in_this_frame_( str( 12, 2 ).le16() ),
-    time_to_next_( str( 14, 4 ).le32() ),
-    payload_( str( 18 ).to_string() )
+    target_state_( str( 6, 4 ).le32() ),
+    frame_no_( str( 10, 4 ).le32() ),
+    fragment_no_( str( 14, 2 ).le16() ),
+    fragments_in_this_frame_( str( 16, 2 ).le16() ),
+    time_to_next_( str( 18, 4 ).le32() ),
+    payload_( str( 22 ).to_string() )
 {
   if ( fragment_no_ >= fragments_in_this_frame_ ) {
     throw runtime_error( "invalid packet: fragment_no_ >= fragments_in_this_frame" );
@@ -83,6 +86,7 @@ Packet::Packet()
   : valid_( false ),
     connection_id_(),
     source_state_(),
+    target_state_(),
     frame_no_(),
     fragment_no_(),
     fragments_in_this_frame_(),
@@ -97,6 +101,7 @@ string Packet::to_string() const
 
   return put_header_field( connection_id_ )
        + put_header_field( source_state_ )
+       + put_header_field( target_state_ )
        + put_header_field( frame_no_ )
        + put_header_field( fragment_no_ )
        + put_header_field( fragments_in_this_frame_ )
@@ -113,11 +118,13 @@ void Packet::set_fragments_in_this_frame( const uint16_t x )
 /* construct outgoing FragmentedFrame */
 FragmentedFrame::FragmentedFrame( const uint16_t connection_id,
                                   const uint32_t source_state,
+                                  const uint32_t target_state,
                                   const uint32_t frame_no,
                                   const uint32_t time_to_next_frame,
                                   const vector<uint8_t> & whole_frame )
   : connection_id_( connection_id ),
     source_state_( source_state ),
+    target_state_( target_state ),
     frame_no_( frame_no ),
     fragments_in_this_frame_(),
     fragments_(),
@@ -127,7 +134,7 @@ FragmentedFrame::FragmentedFrame( const uint16_t connection_id,
 
   for ( uint16_t fragment_no = 0; next_fragment_start < whole_frame.size();
         fragment_no++ ) {
-    fragments_.emplace_back( whole_frame, connection_id, source_state_,
+    fragments_.emplace_back( whole_frame, connection_id, source_state_, target_state_,
                              frame_no, fragment_no, 0, next_fragment_start );
   }
 
@@ -146,6 +153,7 @@ FragmentedFrame::FragmentedFrame( const uint16_t connection_id,
                                   const Packet & packet )
   : connection_id_( connection_id ),
     source_state_( packet.source_state() ),
+    target_state_( packet.target_state() ),
     frame_no_( packet.frame_no() ),
     fragments_in_this_frame_( packet.fragments_in_this_frame() ),
     fragments_( packet.fragments_in_this_frame() ),
@@ -163,6 +171,10 @@ void FragmentedFrame::sanity_check( const Packet & packet ) const {
   }
 
   if ( packet.source_state() != source_state_ ) {
+    throw runtime_error( "invalid packet, source_state mismatch" );
+  }
+
+  if ( packet.target_state() != target_state_ ) {
     throw runtime_error( "invalid packet, source_state mismatch" );
   }
 
