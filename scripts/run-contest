@@ -19,6 +19,15 @@ if ( $receiver_pid < 0 ) {
   exec q{salsify-receiver 9090 1280 720} or die qq{$!};
 }
 
+my $fakewebcam_pid = fork;
+
+if ( $fakewebcam_pid < 0 ) {
+  die qq{$!};
+} elsif ( $fakewebcam_pid == 0 ) {
+  #child
+  exec qq{./fake-camera $video} or die qq{$!};
+}
+
 chomp( my $prefix = qx{dirname `which mm-link`} );
 my $tracedir = $prefix . q{/../share/mahimahi/traces};
 
@@ -32,7 +41,7 @@ if ( defined $ENV{ 'DISPLAY' } ) {
 
 push @command, qw{--once --uplink-log=/tmp/contest_uplink_log -- sh -c};
 
-push @command, qq{fake-webcam $video 30 | salsify-sender \$MAHIMAHI_BASE 9090 1337};
+push @command, qq{salsify-sender -p YU12 \$MAHIMAHI_BASE 9090 1337};
 
 # for the contest, we will send data over Verizon's downlink
 # (datagrump sender's uplink)
@@ -46,6 +55,7 @@ system @command;
 
 # kill the receiver
 kill 'INT', $receiver_pid;
+kill 'INT', $fakewebcam_pid;
 
 print "\n";
 
