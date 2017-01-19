@@ -14,7 +14,7 @@
 using namespace std;
 
 unordered_set<uint32_t> SUPPORTED_FORMATS {
-  { V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_YUYV }
+  { V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_YUYV, V4L2_PIX_FMT_YUV420 }
 };
 
 Camera::Camera( const uint16_t width, const uint16_t height,
@@ -133,6 +133,15 @@ Optional<RasterHandle> Camera::get_next_frame()
         dst_cb_start[ i ] = src_chroma_start[ 2 * i ];
         dst_cr_start[ i ] = src_chroma_start[ 2 * i + 1 ];
       }
+    }
+
+    break;
+
+  case V4L2_PIX_FMT_YUV420:
+    {
+      memcpy( &raster.Y().at( 0, 0 ), mmap_region_->addr(), width_ * height_ );
+      memcpy( &raster.U().at( 0, 0 ), mmap_region_->addr() + width_ * height_, width_ * height_ / 4 );
+      memcpy( &raster.V().at( 0, 0 ), mmap_region_->addr() + width_ * height_ * 5 / 4, width_ * height_ / 4 );
     }
 
     break;
