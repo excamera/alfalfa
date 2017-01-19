@@ -174,8 +174,6 @@ int main( int argc, char *argv[] )
   deque<uint32_t> complete_states;
   unordered_map<uint32_t, Decoder> decoders { { current_state, player.current_decoder() } };
 
-  bool corrupted_state = false;
-
   Poller poller;
   poller.add_action( Poller::Action( socket, Direction::In,
     [&]()
@@ -196,8 +194,6 @@ int main( int argc, char *argv[] )
            display it and move on to the next frame */
         cerr << "got a packet for frame #" << packet.frame_no()
              << ", display previous frame(s)." << endl;
-
-        corrupted_state = true;
 
         for ( size_t i = next_frame_no; i < packet.frame_no(); i++ ) {
           if ( fragmented_frames.count( i ) == 0 ) continue;
@@ -228,17 +224,15 @@ int main( int argc, char *argv[] )
 
       /* is the next frame ready to be decoded? */
       if ( fragmented_frames.count( next_frame_no ) > 0 and fragmented_frames.at( next_frame_no ).complete() ) {
-        //        cerr << "decoding frame " << next_frame_no << endl;
+        auto & fragment = fragmented_frames.at( next_frame_no );
 
-        uint32_t expected_source_state = fragmented_frames.at( next_frame_no ).source_state();
+        uint32_t expected_source_state = fragment.source_state();
 
         if ( current_state != expected_source_state ) {
           if ( decoders.count( expected_source_state ) ) {
             /* we have this state! let's load it */
             player.set_decoder( decoders.at( expected_source_state ) );
             current_state = expected_source_state;
-
-            corrupted_state = false;
           }
         }
 
@@ -246,12 +240,12 @@ int main( int argc, char *argv[] )
              expected_source_state != initial_state ) {
           /* sender won't refer to any decoder older than this, so let's get
              rid of them */
+
           auto it = complete_states.begin();
 
-          while ( it != complete_states.end() ) {
+          for ( ; it != complete_states.end(); it++ ) {
             if ( *it != expected_source_state ) {
               decoders.erase( *it );
-              it++;
             }
             else {
               break;
@@ -260,17 +254,15 @@ int main( int argc, char *argv[] )
 
           assert( it != complete_states.end() );
           complete_states.erase( complete_states.begin(), it );
-
-          corrupted_state = false;
         }
 
         // here we apply the frame
-        enqueue_frame( player, fragmented_frames.at( next_frame_no ).frame() );
+        enqueue_frame( player, fragment.frame() );
 
         // state "after" applying the frame
         current_state = player.current_decoder().minihash();
 
-        if ( not corrupted_state ) {
+        if ( current_state == fragment.target_state() ) {
           /* this is a full state. let's save it */
           decoders.insert( make_pair( current_state, player.current_decoder() ) );
           complete_states.push_back( current_state );
