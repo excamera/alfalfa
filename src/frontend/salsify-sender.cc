@@ -328,7 +328,7 @@ int main( int argc, char *argv[] )
         {
           int orig = q;
           orig += inc;
-          orig = max( 5, orig );
+          orig = max( 2, orig );
           orig = min( 96, orig );
           return orig;
         };
@@ -366,9 +366,6 @@ int main( int argc, char *argv[] )
           for ( auto & future_res : encode_outputs ) {
             future_res.wait();
           }
-
-          const auto encode_ending = system_clock::now();
-          const auto ms_elapsed = duration_cast<milliseconds>( encode_ending - encode_beginning );
 
           encode_end_pipe.first.write( "1" );
         }
