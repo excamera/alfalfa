@@ -8,4 +8,4 @@ then
   exit 1
 fi
 
-ffmpeg -re -i $1 -f v4l2 /dev/video0
+ffmpeg -re -i $1 -loglevel quiet -f v4l2 /dev/video0

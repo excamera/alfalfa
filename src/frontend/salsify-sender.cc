@@ -463,8 +463,10 @@ int main( int argc, char *argv[] )
       cerr << "Frame " << frame_no << " from encoder job " << output.job_name
            << " [" << to_string( output.y_ac_qi ) << "] = "
            << ff.fragments_in_this_frame() << " fragments ("
-           << avg_encoding_time.int_value()/1000 << " ms) {"
-           << output.source_minihash << " -> " << target_minihash << "}" << endl;
+           << avg_encoding_time.int_value()/1000 << " ms, ssim="
+           << output.encoder.stats().ssim.get_or( -1.0 )
+           << ") {" << output.source_minihash << " -> " << target_minihash << "}"
+           << endl;
 
       cumulative_fpf.push_back( ( frame_no > 0 )
                                 ? ( cumulative_fpf[ frame_no - 1 ] + ff.fragments_in_this_frame() )

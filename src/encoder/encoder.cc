@@ -49,8 +49,7 @@ Encoder::Encoder( const uint16_t s_width,
   : decoder_state_( s_width, s_height ),
     references_( width(), height() ),
     safe_references_( references_ ), has_state_( false ), costs_(),
-    two_pass_encoder_( two_pass ), encode_quality_( quality ),
-    loop_filter_level_(), last_y_ac_qi_()
+    two_pass_encoder_( two_pass ), encode_quality_( quality )
 {
   costs_.fill_mode_costs();
 }
@@ -59,9 +58,7 @@ Encoder::Encoder( const Decoder & decoder, const bool two_pass,
                   const EncoderQuality quality )
   : decoder_state_( decoder.get_state() ), references_( decoder.get_references() ),
     safe_references_( references_ ), has_state_( true ), costs_(),
-    two_pass_encoder_( two_pass ),
-    encode_quality_( quality ),
-    loop_filter_level_(), last_y_ac_qi_()
+    two_pass_encoder_( two_pass ), encode_quality_( quality )
 {
   costs_.fill_mode_costs();
 }
@@ -74,7 +71,8 @@ Encoder::Encoder( const Encoder & encoder )
     two_pass_encoder_( encoder.two_pass_encoder_ ),
     encode_quality_( encoder.encode_quality_ ),
     loop_filter_level_( encoder.loop_filter_level_ ),
-    last_y_ac_qi_( encoder.last_y_ac_qi_ )
+    last_y_ac_qi_( encoder.last_y_ac_qi_ ),
+    encode_stats_( encoder.encode_stats_ )
 {}
 
 Encoder::Encoder( Encoder && encoder )
@@ -89,7 +87,8 @@ Encoder::Encoder( Encoder && encoder )
     inter_frame_( move( encoder.inter_frame_ ) ),
     subsampled_inter_frame_( move( encoder.subsampled_inter_frame_ ) ),
     loop_filter_level_( move( encoder.loop_filter_level_ ) ),
-    last_y_ac_qi_( move( encoder.last_y_ac_qi_ ) )
+    last_y_ac_qi_( move( encoder.last_y_ac_qi_ ) ),
+    encode_stats_( move( encoder.encode_stats_ ) )
 {}
 
 Encoder & Encoder::operator=( Encoder && encoder )
@@ -107,6 +106,7 @@ Encoder & Encoder::operator=( Encoder && encoder )
   subsampled_inter_frame_ = move( encoder.subsampled_inter_frame_ );
   loop_filter_level_ = move( encoder.loop_filter_level_ );
   last_y_ac_qi_ = move( encoder.last_y_ac_qi_ );
+  encode_stats_ = move( encoder.encode_stats_ );
 
   return *this;
 }
@@ -431,9 +431,9 @@ void Encoder::optimize_prob_skip( Frame<FrameHeaderType, MacroblockType> & frame
 }
 
 template<class FrameType>
-double Encoder::apply_best_loopfilter_settings( const VP8Raster & original,
-                                                VP8Raster & reconstructed,
-                                                FrameType & frame )
+void Encoder::apply_best_loopfilter_settings( const VP8Raster & original,
+                                              VP8Raster & reconstructed,
+                                              FrameType & frame )
 {
   frame.mutable_header().mode_lf_adjustments.reset();
   frame.mutable_header().mode_lf_adjustments.get().initialize();
@@ -486,7 +486,7 @@ double Encoder::apply_best_loopfilter_settings( const VP8Raster & original,
 
   frame.loopfilter( decoder_state_.segmentation, decoder_state_.filter_adjustments, reconstructed );
 
-  return best_ssim;
+  encode_stats_.ssim.reset( best_ssim );
 }
 
 template<class FrameType>

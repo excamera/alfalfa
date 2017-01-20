@@ -115,16 +115,22 @@ private:
       uint16_t( height() / HEIGHT_SAMPLE_DIMENSION_FACTOR ),
       subsampled_frame_pool<InterFrame>() };
 
-  Optional<uint8_t> loop_filter_level_;
+  Optional<uint8_t> loop_filter_level_ {};
 
   /* if set, while encoding with max target size, the search scope for the
      proper quantizer will be:
      last_y_ac_qi_ - a <= y_ac_qi <= last_y_ac_qi_ + a */
-  Optional<uint8_t> last_y_ac_qi_;
+  Optional<uint8_t> last_y_ac_qi_ {};
 
   // TODO: Where did these come from?
   uint32_t RATE_MULTIPLIER { 300 };
   uint32_t DISTORTION_MULTIPLIER { 1 };
+
+  /* this struct will hold stats about the latest encoded frame */
+  struct EncodeStats
+  {
+    Optional<double> ssim;
+  } encode_stats_ {};
 
   static uint32_t rdcost( uint32_t rate, uint32_t distortion,
                           uint32_t rate_multiplier,
@@ -247,9 +253,9 @@ private:
 
   /* this function returns the ssim value as the output */
   template<class FrameType>
-  double apply_best_loopfilter_settings( const VP8Raster & original,
-                                         VP8Raster & reconstructed,
-                                         FrameType & frame );
+  void apply_best_loopfilter_settings( const VP8Raster & original,
+                                       VP8Raster & reconstructed,
+                                       FrameType & frame );
 
   template<class FrameType>
   void optimize_probability_tables( FrameType & frame, const TokenBranchCounts & token_branch_counts );
@@ -348,6 +354,8 @@ public:
   size_t estimate_frame_size( const VP8Raster & raster, const size_t y_ac_qi );
 
   Decoder export_decoder() const { return { decoder_state_, references_ }; }
+
+  EncodeStats stats() { return encode_stats_; }
 
   uint32_t minihash() const;
 };
