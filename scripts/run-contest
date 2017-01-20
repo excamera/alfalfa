@@ -25,7 +25,7 @@ if ( $fakewebcam_pid < 0 ) {
   die qq{$!};
 } elsif ( $fakewebcam_pid == 0 ) {
   #child
-  exec qq{./fake-camera $video} or die qq{$!};
+  exec qq{./fake-camera $video >/dev/null 2>/dev/null} or die qq{$!};
 }
 
 chomp( my $prefix = qx{dirname `which mm-link`} );
@@ -55,7 +55,7 @@ system @command;
 
 # kill the receiver
 kill 'INT', $receiver_pid;
-kill 'INT', $fakewebcam_pid;
+kill 'KILL', $fakewebcam_pid;
 
 print "\n";
 
