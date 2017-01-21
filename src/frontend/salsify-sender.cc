@@ -129,7 +129,7 @@ EncodeOutput do_encode_job( EncodeJob && encode_job )
 
 size_t target_size( uint32_t avg_delay, const uint64_t last_acked, const uint64_t last_sent )
 {
-  uint32_t max_delay = 100 * 1000; // 100 ms = 100,000 us
+  static constexpr uint32_t max_delay = 100 * 1000; // 100 ms = 100,000 us
 
   if ( avg_delay == 0 ) { avg_delay = 1; }
 
@@ -413,6 +413,7 @@ int main( int argc, char *argv[] )
     } )
   );
 
+  /* all encode jobs have finished */
   poller.add_action( Poller::Action( encode_end_pipe.second, Direction::In,
     [&]()
     {
@@ -520,6 +521,7 @@ int main( int argc, char *argv[] )
     } )
   );
 
+  /* new ack from receiver */
   poller.add_action( Poller::Action( socket, Direction::In,
     [&]()
     {
