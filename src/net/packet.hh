@@ -10,6 +10,7 @@
 #include "chunk.hh"
 #include "socket.hh"
 #include "exception.hh"
+#include "pacer.hh"
 
 class Packet
 {
@@ -111,6 +112,7 @@ public:
   uint16_t fragments_in_this_frame() const { return fragments_in_this_frame_; }
   std::string frame() const;
   std::string partial_frame() const;
+  const std::vector<Packet> & packets() const;
 
   /* delete copy-constructor and copy-assign operator */
   FragmentedFrame( const FragmentedFrame & other ) = delete;

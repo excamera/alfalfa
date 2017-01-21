@@ -209,6 +209,8 @@ void FragmentedFrame::send( UDPSocket & socket )
     throw runtime_error( "attempt to send unfinished FragmentedFrame" );
   }
 
+  assert( complete() );
+
   for ( const Packet & packet : fragments_ ) {
     socket.send( packet.to_string() );
   }
@@ -217,6 +219,15 @@ void FragmentedFrame::send( UDPSocket & socket )
 bool FragmentedFrame::complete() const
 {
   return remaining_fragments_ == 0;
+}
+
+const vector<Packet> & FragmentedFrame::packets() const
+{
+  if ( (not complete()) or (fragments_.size() != fragments_in_this_frame_) ) {
+    throw runtime_error( "attempt to access unfinished FragmentedFrame" );
+  }
+
+  return fragments_;
 }
 
 string FragmentedFrame::frame() const

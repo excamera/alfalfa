@@ -23,6 +23,7 @@
 #include "poller.hh"
 #include "socketpair.hh"
 #include "camera.hh"
+#include "pacer.hh"
 
 using namespace std;
 using namespace std::chrono;

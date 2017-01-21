@@ -7,4 +7,5 @@ libnet_a_SOURCES = address.hh address.cc \
 	socket.hh socket.cc \
 	socketpair.hh socketpair.cc \
 	packet.hh packet.cc \
-	poller.hh poller.cc
+	poller.hh poller.cc \
+	pacer.hh
