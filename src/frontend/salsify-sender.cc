@@ -333,6 +333,9 @@ int main( int argc, char *argv[] )
 
           conservative_until = system_clock::now() + conservative_for;
 
+          cerr << "Going into 'conservative' mode for next "
+               << conservative_for.count() << "seconds." << endl;
+
           if( receiver_complete_states.size() == 0 ) {
             /* and the receiver doesn't have any other states, other than the
                default state */
