@@ -244,6 +244,12 @@ int main( int argc, char *argv[] )
   Optional<uint32_t> receiver_assumed_state;
   deque<uint32_t> receiver_complete_states;
 
+  /* if the receiver goes into an invalid state, for this amount of seconds,
+     we will go into a conservative mode: we only encode based on a known state */
+  seconds conservative_for { 5 };
+  system_clock::time_point conservative_until = system_clock::now();
+
+  /* comment */
   auto encode_start_pipe = UnixDomainSocket::make_pair();
   auto encode_end_pipe = UnixDomainSocket::make_pair();
 
@@ -293,7 +299,22 @@ int main( int argc, char *argv[] )
        * this is the logic that decides which encoder to use. for example,
        * if the packet loss is huge, we can always select an encoder with a sure
        * state. */
-      if ( not receiver_last_acked_state.initialized() ) {
+
+      /* if we're in 'conservative' mode, let's just encode based on something
+         we're sure that is available in the receiver */
+      if ( system_clock::now() < conservative_until ) {
+        if( receiver_complete_states.size() == 0 ) {
+          /* and the receiver doesn't have any other states, other than the
+             default state */
+          selected_source_hash = initial_state;
+        }
+        else {
+          /* the receiver has at least one stored state, let's use it */
+          selected_source_hash = receiver_complete_states.back();
+        }
+      }
+      else if ( not receiver_last_acked_state.initialized() ) {
+        /* okay, we're not in 'conservative' mode */
         if ( not receiver_assumed_state.initialized() ) {
           /* okay, let's just encode as a keyframe */
           selected_source_hash = initial_state;
@@ -306,8 +327,15 @@ int main( int argc, char *argv[] )
       else {
         if ( encoders.count( receiver_last_acked_state.get() ) == 0 ) {
           /* it seems that the receiver is in an invalid state */
+
+          /* step 1: let's go into 'conservative' mode; just encode based on a
+             known for a while */
+
+          conservative_until = system_clock::now() + conservative_for;
+
           if( receiver_complete_states.size() == 0 ) {
-            /* and the receiver doesn't have any other states, other than the default state */
+            /* and the receiver doesn't have any other states, other than the
+               default state */
             selected_source_hash = initial_state;
           }
           else {
