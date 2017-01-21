@@ -342,20 +342,27 @@ int main( int argc, char *argv[] )
       encode_jobs.emplace_back( "improvemore", raster, encoder, CONSTANT_QUANTIZER,
                                 increment_quantizer( last_quantizer, -11 ), 0 );
 
+      encode_jobs.emplace_back( "improvemuchmore", raster, encoder, CONSTANT_QUANTIZER,
+                                increment_quantizer( last_quantizer, -29 ), 0 );
+
       encode_jobs.emplace_back( "worsen", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, +19 ), 0 );
+                                increment_quantizer( last_quantizer, +11 ), 0 );
 
       encode_jobs.emplace_back( "worsenmore", raster, encoder, CONSTANT_QUANTIZER,
+                                increment_quantizer( last_quantizer, +19 ), 0 );
+
+      encode_jobs.emplace_back( "worsenmuchmore", raster, encoder, CONSTANT_QUANTIZER,
                                 increment_quantizer( last_quantizer, +37 ), 0 );
 
-      encode_jobs.emplace_back( "fail-small", raster, encoder, CONSTANT_QUANTIZER, 96, 0 );
+      encode_jobs.emplace_back( "worsenalotmore", raster, encoder, CONSTANT_QUANTIZER,
+                                increment_quantizer( last_quantizer, +51 ), 0 );
+
+      encode_jobs.emplace_back( "fail-small", raster, encoder, CONSTANT_QUANTIZER, 127, 0 );
 
       // this thread will spawn all the encoding jobs and will wait on the results
       thread(
         [&encode_jobs, &encode_outputs, &encode_end_pipe]()
         {
-          const auto encode_beginning = system_clock::now();
-
           encode_outputs.clear();
           encode_outputs.reserve( encode_jobs.size() );
 
