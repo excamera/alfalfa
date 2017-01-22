@@ -363,7 +363,7 @@ int main( int argc, char *argv[] )
         {
           int orig = q;
           orig += inc;
-          orig = max( 2, orig );
+          orig = max( 3, orig );
           orig = min( 96, orig );
           return orig;
         };
@@ -389,8 +389,8 @@ int main( int argc, char *argv[] )
       encode_jobs.emplace_back( "worsenmuchmore", raster, encoder, CONSTANT_QUANTIZER,
                                 increment_quantizer( last_quantizer, +37 ), 0 );
 
-      encode_jobs.emplace_back( "worsenalotmore", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, +51 ), 0 );
+      /*encode_jobs.emplace_back( "worsenalotmore", raster, encoder, CONSTANT_QUANTIZER,
+                                increment_quantizer( last_quantizer, +51 ), 0 ); */
 
       encode_jobs.emplace_back( "fail-small", raster, encoder, CONSTANT_QUANTIZER, 127, 0 );
 
