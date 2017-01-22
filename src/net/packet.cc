@@ -35,7 +35,7 @@ Packet::Packet( const vector<uint8_t> & whole_frame,
                 const uint32_t target_state,
                 const uint32_t frame_no,
                 const uint16_t fragment_no,
-                const uint16_t time_to_next,
+                const uint16_t time_since_last,
                 size_t & next_fragment_start )
   : valid_( true ),
     connection_id_( connection_id ),
@@ -44,7 +44,7 @@ Packet::Packet( const vector<uint8_t> & whole_frame,
     frame_no_( frame_no ),
     fragment_no_( fragment_no ),
     fragments_in_this_frame_( 0 ), /* temp value */
-    time_to_next_( time_to_next ),
+    time_since_last_( time_since_last ),
     payload_()
 {
   assert( not whole_frame.empty() );
@@ -69,7 +69,7 @@ Packet::Packet( const Chunk & str )
     frame_no_( str( 10, 4 ).le32() ),
     fragment_no_( str( 14, 2 ).le16() ),
     fragments_in_this_frame_( str( 16, 2 ).le16() ),
-    time_to_next_( str( 18, 4 ).le32() ),
+    time_since_last_( str( 18, 4 ).le32() ),
     payload_( str( 22 ).to_string() )
 {
   if ( fragment_no_ >= fragments_in_this_frame_ ) {
@@ -90,7 +90,7 @@ Packet::Packet()
     frame_no_(),
     fragment_no_(),
     fragments_in_this_frame_(),
-    time_to_next_(),
+    time_since_last_(),
     payload_()
 {}
 
@@ -105,7 +105,7 @@ string Packet::to_string() const
        + put_header_field( frame_no_ )
        + put_header_field( fragment_no_ )
        + put_header_field( fragments_in_this_frame_ )
-       + put_header_field( time_to_next_ )
+       + put_header_field( time_since_last_ )
        + payload_;
 }
 
@@ -120,7 +120,7 @@ FragmentedFrame::FragmentedFrame( const uint16_t connection_id,
                                   const uint32_t source_state,
                                   const uint32_t target_state,
                                   const uint32_t frame_no,
-                                  const uint32_t time_to_next_frame,
+                                  const uint32_t time_since_last,
                                   const vector<uint8_t> & whole_frame )
   : connection_id_( connection_id ),
     source_state_( source_state ),
@@ -138,7 +138,7 @@ FragmentedFrame::FragmentedFrame( const uint16_t connection_id,
                              frame_no, fragment_no, 0, next_fragment_start );
   }
 
-  fragments_.back().set_time_to_next( time_to_next_frame );
+  fragments_.front().set_time_to_next( time_since_last );
 
   fragments_in_this_frame_ = fragments_.size();
   remaining_fragments_ = 0;

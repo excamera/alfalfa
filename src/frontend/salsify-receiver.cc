@@ -40,9 +40,9 @@ public:
     if ( value_ < 0 ) {
       value_ = 0;
     }
-    else if ( timestamp_us - last_update_ > 0.2 * 1000 * 1000 /* 1 seconds */ ) {
-      value_ = 0;
-    }
+    // else if ( timestamp_us - last_update_ > 0.2 * 1000 * 1000 /* 0.2 seconds */ ) {
+    //   value_ /= 4;
+    // }
     else {
       double new_value = max( 0l, static_cast<int64_t>( timestamp_us - last_update_ - grace ) );
       value_ = ALPHA * new_value + ( 1 - ALPHA ) * value_;
@@ -166,7 +166,6 @@ int main( int argc, char *argv[] )
 
   /* EWMA */
   AverageInterPacketDelay avg_delay;
-  size_t next_packet_grace = 0;
 
   /* decoder states */
   uint32_t current_state = player.current_decoder().get_hash().hash();
@@ -272,8 +271,9 @@ int main( int argc, char *argv[] )
         next_frame_no++;
       }
 
-      avg_delay.add( new_fragment.timestamp_us, next_packet_grace );
-      next_packet_grace = packet.time_to_next();
+      avg_delay.add( new_fragment.timestamp_us, packet.time_since_last() );
+
+      cerr << "avg delay: " << avg_delay.int_value() << " us.\n";
 
       AckPacket( connection_id, packet.frame_no(), packet.fragment_no(),
                  avg_delay.int_value(), current_state,
