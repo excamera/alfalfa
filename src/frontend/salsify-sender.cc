@@ -207,7 +207,7 @@ int main( int argc, char *argv[] )
   uint64_t last_acked = numeric_limits<uint64_t>::max();
 
   /* maximum number of frames to be skipped in a row */
-  const size_t MAX_SKIPPED = 5;
+  const size_t MAX_SKIPPED = 3;
   size_t skipped_count = 0;
 
   if ( not PIXEL_FORMAT_STRS.count( pixel_format ) ) {
@@ -367,7 +367,7 @@ int main( int argc, char *argv[] )
           int orig = q;
           orig += inc;
           orig = max( 3, orig );
-          orig = min( 96, orig );
+          orig = min( 127, orig );
           return orig;
         };
 
@@ -398,7 +398,7 @@ int main( int argc, char *argv[] )
       /*encode_jobs.emplace_back( "worsenalotmore", raster, encoder, CONSTANT_QUANTIZER,
                                 increment_quantizer( last_quantizer, +51 ), 0 ); */
 
-      encode_jobs.emplace_back( "fail-small", raster, encoder, CONSTANT_QUANTIZER, 96, 0 );
+      encode_jobs.emplace_back( "fail-small", raster, encoder, CONSTANT_QUANTIZER, 127, 0 );
 
       // this thread will spawn all the encoding jobs and will wait on the results
       thread(
@@ -507,7 +507,7 @@ int main( int argc, char *argv[] )
                            output.frame };
       /* enqueue the packets to be sent */
       /* send 5x faster than packets are being received */
-      const unsigned int inter_send_delay = min( 10000u, max( 500u, avg_delay / 5 ) );
+      const unsigned int inter_send_delay = min( 2000u, max( 500u, avg_delay / 5 ) );
       for ( const auto & packet : ff.packets() ) {
         pacer.push( packet.to_string(), inter_send_delay );
       }
