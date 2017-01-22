@@ -499,10 +499,11 @@ int main( int argc, char *argv[] )
                            frame_no, avg_encoding_time.int_value(),
                            output.frame };
       /* enqueue the packets to be sent */
+      /* send 5x faster than packets are being received */
       const unsigned int inter_send_delay = min( 10000u,
                                                  max( 500u, avg_delay / 5 ) );
       for ( const auto & packet : ff.packets() ) {
-        pacer.push( packet.to_string(), inter_send_delay ); /* send 4x faster than packets being received */
+        pacer.push( packet.to_string(), inter_send_delay );
       }
 
       cerr << "Frame " << frame_no << " from encoder job " << output.job_name
