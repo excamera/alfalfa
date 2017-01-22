@@ -563,20 +563,17 @@ int main( int argc, char *argv[] )
   /* outgoing packet ready to leave the pacer */
   poller.add_action( Poller::Action( socket, Direction::Out, [&]() {
         assert( pacer.ms_until_due() == 0 );
-        unsigned int packets_sent = 0;
-        unsigned int packets_in_queue = pacer.size();
+
         while ( pacer.ms_until_due() == 0 ) {
           assert( not pacer.empty() );
 
           socket.send( pacer.front() );
-          packets_sent++;
           pacer.pop();
         }
-        cerr << "Sent " << packets_sent << "/" << packets_in_queue << " of queued datagrams (" << pacer.size() << " left)\n";
 
         return ResultType::Continue;
       }, [&]() { return pacer.ms_until_due() == 0; } ) );
-        
+
   /* kick off the first encode */
   encode_start_pipe.first.write( "1" );
 
