@@ -253,6 +253,9 @@ int main( int argc, char *argv[] )
   seconds conservative_for { 5 };
   system_clock::time_point conservative_until = system_clock::now();
 
+  /* :D */
+  system_clock::time_point last_sent = system_clock::now();
+
   /* comment */
   auto encode_start_pipe = UnixDomainSocket::make_pair();
   auto encode_end_pipe = UnixDomainSocket::make_pair();
@@ -496,7 +499,8 @@ int main( int argc, char *argv[] )
       last_quantizer = output.y_ac_qi;
 
       FragmentedFrame ff { connection_id, output.source_minihash, target_minihash,
-                           frame_no, avg_encoding_time.int_value(),
+                           frame_no,
+                           static_cast<uint32_t>( duration_cast<microseconds>( system_clock::now() - last_sent ).count() ),
                            output.frame };
       /* enqueue the packets to be sent */
       /* send 5x faster than packets are being received */
@@ -504,6 +508,8 @@ int main( int argc, char *argv[] )
       for ( const auto & packet : ff.packets() ) {
         pacer.push( packet.to_string(), inter_send_delay );
       }
+
+      last_sent = system_clock::now();
 
       cerr << "Frame " << frame_no << " from encoder job " << output.job_name
            << " [" << to_string( output.y_ac_qi ) << "] = "

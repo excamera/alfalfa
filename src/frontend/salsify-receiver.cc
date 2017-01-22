@@ -273,8 +273,6 @@ int main( int argc, char *argv[] )
 
       avg_delay.add( new_fragment.timestamp_us, packet.time_since_last() );
 
-      cerr << "avg delay: " << avg_delay.int_value() << " us.\n";
-
       AckPacket( connection_id, packet.frame_no(), packet.fragment_no(),
                  avg_delay.int_value(), current_state,
                  complete_states ).sendto( socket, new_fragment.source_address );
