@@ -25,10 +25,11 @@ public:
       return 1000; /* could be infinite, but if there's a bug I'd rather we find it in the first second */
     }
 
-    int millis = std::chrono::duration_cast<std::chrono::milliseconds>( std::chrono::system_clock::now() - queue_.front().when ).count();
+    int millis = std::chrono::duration_cast<std::chrono::milliseconds>( queue_.front().when - std::chrono::system_clock::now() ).count();
     if ( millis < 0 ) {
       millis = 0;
     }
+
     return millis;
   }
 
@@ -45,6 +46,7 @@ public:
 
   const std::string & front() const { return queue_.front().what; }
   void pop() { queue_.pop_front(); }
+  size_t size() const { return queue_.size(); }
 };
 
 #endif /* PACER_HH */

@@ -193,6 +193,9 @@ int main( int argc, char *argv[] )
   socket.connect( Address( argv[ optind ], argv[ optind + 1 ] ) );
   socket.set_timestamps();
 
+  /* make pacer to smooth out outgoing packets */
+  Pacer pacer;
+
   /* get connection_id */
   const uint16_t connection_id = paranoid::stoul( argv[ optind + 2 ] );
 
@@ -495,7 +498,12 @@ int main( int argc, char *argv[] )
       FragmentedFrame ff { connection_id, output.source_minihash, target_minihash,
                            frame_no, avg_encoding_time.int_value(),
                            output.frame };
-      ff.send( socket );
+      /* enqueue the packets to be sent */
+      const unsigned int inter_send_delay = min( 10000u,
+                                                 max( 500u, avg_delay / 5 ) );
+      for ( const auto & packet : ff.packets() ) {
+        pacer.push( packet.to_string(), inter_send_delay ); /* send 4x faster than packets being received */
+      }
 
       cerr << "Frame " << frame_no << " from encoder job " << output.job_name
            << " [" << to_string( output.y_ac_qi ) << "] = "
@@ -503,7 +511,7 @@ int main( int argc, char *argv[] )
            << avg_encoding_time.int_value()/1000 << " ms, ssim="
            << output.encoder.stats().ssim.get_or( -1.0 )
            << ") {" << output.source_minihash << " -> " << target_minihash << "}"
-           << endl;
+           << " intersend_delay = " << inter_send_delay << " us\n";
 
       cumulative_fpf.push_back( ( frame_no > 0 )
                                 ? ( cumulative_fpf[ frame_no - 1 ] + ff.fragments_in_this_frame() )
@@ -551,11 +559,29 @@ int main( int argc, char *argv[] )
     } )
   );
 
+  /* outgoing packet ready to leave the pacer */
+  poller.add_action( Poller::Action( socket, Direction::Out, [&]() {
+        assert( pacer.ms_until_due() == 0 );
+        unsigned int packets_sent = 0;
+        unsigned int packets_in_queue = pacer.size();
+        while ( pacer.ms_until_due() == 0 ) {
+          assert( not pacer.empty() );
+
+          socket.send( pacer.front() );
+          packets_sent++;
+          pacer.pop();
+        }
+        cerr << "Sent " << packets_sent << "/" << packets_in_queue << " of queued datagrams (" << pacer.size() << " left)\n";
+
+        return ResultType::Continue;
+      }, [&]() { return pacer.ms_until_due() == 0; } ) );
+        
+  /* kick off the first encode */
   encode_start_pipe.first.write( "1" );
 
   /* handle events */
   while ( true ) {
-    const auto poll_result = poller.poll( -1 );
+    const auto poll_result = poller.poll( pacer.ms_until_due() );
     if ( poll_result.result == Poller::Result::Type::Exit ) {
       return poll_result.exit_status;
     }
