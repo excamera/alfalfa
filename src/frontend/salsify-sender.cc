@@ -260,6 +260,9 @@ int main( int argc, char *argv[] )
   auto encode_start_pipe = UnixDomainSocket::make_pair();
   auto encode_end_pipe = UnixDomainSocket::make_pair();
 
+  /* target frame size, no late binding */
+  size_t frame_size = numeric_limits<size_t>::max();
+
   Poller poller;
 
   /* fetch frames from webcam */
@@ -362,6 +365,14 @@ int main( int argc, char *argv[] )
 
       const Encoder & encoder = encoders.at( selected_source_hash );
 
+      /* what is the current capacity of the network,
+         before we begin the encoding? */
+      frame_size = numeric_limits<size_t>::max();
+
+      if ( avg_delay != numeric_limits<uint32_t>::max() ) {
+        frame_size = target_size( avg_delay, last_acked, cumulative_fpf.back() );
+      }
+
       const auto increment_quantizer = []( const uint8_t q, const int8_t inc ) -> uint8_t
         {
           int orig = q;
@@ -445,14 +456,6 @@ int main( int argc, char *argv[] )
         cerr << "All encoding jobs got killed for frame " << frame_no << "\n";
         // no encoding job has ended in time
         return ResultType::Continue;
-      }
-
-      /* what is the current capacity of the network,
-         now that the encoding is done? */
-      size_t frame_size = numeric_limits<size_t>::max();
-
-      if ( avg_delay != numeric_limits<uint32_t>::max() ) {
-        frame_size = target_size( avg_delay, last_acked, cumulative_fpf.back() );
       }
 
       size_t best_output_index = numeric_limits<size_t>::max();
