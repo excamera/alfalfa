@@ -260,6 +260,9 @@ int main( int argc, char *argv[] )
   auto encode_start_pipe = UnixDomainSocket::make_pair();
   auto encode_end_pipe = UnixDomainSocket::make_pair();
 
+  /* no late binding; target size is decided before the encoding is started */
+  size_t frame_size = numeric_limits<size_t>::max();
+
   Poller poller;
 
   /* fetch frames from webcam */
@@ -360,64 +363,37 @@ int main( int argc, char *argv[] )
       }
       /* end of encoder selection logic */
 
+      /* what is the current capacity of the network? */
+      frame_size = numeric_limits<size_t>::max();
+
+      if ( avg_delay != numeric_limits<uint32_t>::max() ) {
+        frame_size = target_size( avg_delay, last_acked, cumulative_fpf.back() );
+      }
+
       const Encoder & encoder = encoders.at( selected_source_hash );
 
-      const auto increment_quantizer = []( const uint8_t q, const int8_t inc ) -> uint8_t
-        {
-          int orig = q;
-          orig += inc;
-          orig = max( 3, orig );
-          orig = min( 127, orig );
-          return orig;
-        };
+      if ( frame_size == numeric_limits<size_t>::max() ) {
+        encode_jobs.emplace_back( "start", raster, encoder, CONSTANT_QUANTIZER, 32, 0 );
+      }
+      else if ( frame_size > 0 ) {
+        encode_jobs.emplace_back( "target_size=" + to_string( frame_size ),
+                                  raster, encoder, TARGET_FRAME_SIZE, 0, frame_size );
+      }
+      else {
+        /* okay, network capacity is zero. let's just encode a fail-small */
+        encode_jobs.emplace_back( "fail-small", raster, encoder, CONSTANT_QUANTIZER, 127, 0 );
+      }
 
-      /* try various quantizers */
-      encode_jobs.emplace_back( "same", raster, encoder, CONSTANT_QUANTIZER, last_quantizer, 0 );
+      /* we will only have 'one' encode job here */
 
-      encode_jobs.emplace_back( "improvealittle", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, -2 ), 0 );
+      encode_outputs.clear();
+      encode_outputs.reserve( encode_jobs.size() );
 
-      encode_jobs.emplace_back( "improve", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, -5 ), 0 );
+      promise<EncodeOutput> output_promise;
+      output_promise.set_value( move( do_encode_job( move (encode_jobs.back() ) ) ) );
+      encode_outputs.emplace_back( output_promise.get_future() );
 
-      encode_jobs.emplace_back( "improvemore", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, -11 ), 0 );
-
-      // encode_jobs.emplace_back( "improvemuchmore", raster, encoder, CONSTANT_QUANTIZER,
-      //                           increment_quantizer( last_quantizer, -29 ), 0 );
-
-      encode_jobs.emplace_back( "worsen", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, +11 ), 0 );
-
-      encode_jobs.emplace_back( "worsenmore", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, +19 ), 0 );
-
-      encode_jobs.emplace_back( "worsenmuchmore", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, +37 ), 0 );
-
-      /*encode_jobs.emplace_back( "worsenalotmore", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, +51 ), 0 ); */
-
-      encode_jobs.emplace_back( "fail-small", raster, encoder, CONSTANT_QUANTIZER, 127, 0 );
-
-      // this thread will spawn all the encoding jobs and will wait on the results
-      thread(
-        [&encode_jobs, &encode_outputs, &encode_end_pipe]()
-        {
-          encode_outputs.clear();
-          encode_outputs.reserve( encode_jobs.size() );
-
-          for ( auto & job : encode_jobs ) {
-            encode_outputs.push_back( async( launch::async, do_encode_job, move( job ) ) );
-          }
-
-          for ( auto & future_res : encode_outputs ) {
-            future_res.wait();
-          }
-
-          encode_end_pipe.first.write( "1" );
-        }
-      ).detach();
+      encode_end_pipe.first.write( "1" );
 
       return ResultType::Continue;
     } )
@@ -445,14 +421,6 @@ int main( int argc, char *argv[] )
         cerr << "All encoding jobs got killed for frame " << frame_no << "\n";
         // no encoding job has ended in time
         return ResultType::Continue;
-      }
-
-      /* what is the current capacity of the network,
-         now that the encoding is done? */
-      size_t frame_size = numeric_limits<size_t>::max();
-
-      if ( avg_delay != numeric_limits<uint32_t>::max() ) {
-        frame_size = target_size( avg_delay, last_acked, cumulative_fpf.back() );
       }
 
       size_t best_output_index = numeric_limits<size_t>::max();
