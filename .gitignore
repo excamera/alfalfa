@@ -46,6 +46,7 @@ Makefile.in
 /src/frontend/salsify-receiver
 /src/frontend/fake-webcam
 /src/frontend/real-webcam
+/src/frontend/xc-zero-out-residues
 
 /src/tests/decode-to-stdout
 /src/tests/encode-loopback

@@ -137,6 +137,8 @@ public:
 
   bool has_nonzero() const { return has_nonzero_; }
   void calculate_has_nonzero();
+
+  void zero_out();
 };
 
 struct KeyFrameMacroblockHeader

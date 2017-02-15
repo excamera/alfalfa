@@ -630,3 +630,30 @@ void Macroblock<FrameHeaderType, MacroblockHeaderType>::calculate_has_nonzero()
 
   mb_skip_coeff_.reset( not has_nonzero_ );
 }
+
+template <class FrameHeaderType, class MacroblockHeaderType>
+void Macroblock<FrameHeaderType, MacroblockHeaderType>::zero_out()
+{
+  if ( Y2_.coded() ) {
+    Y2_.zero_out();
+  }
+
+  Y_.forall( [&]( YBlock & block ) {
+      block.zero_out();
+    } );
+
+  /* parse U and V blocks */
+  U_.forall( [&]( UVBlock & block ) {
+      block.zero_out();
+    } );
+
+  V_.forall( [&]( UVBlock & block ) {
+      block.zero_out();
+    } );
+
+  mb_skip_coeff_.reset( true );
+}
+
+
+template void InterFrameMacroblock::zero_out();
+template void KeyFrameMacroblock::zero_out();

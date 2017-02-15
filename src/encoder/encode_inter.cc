@@ -213,8 +213,8 @@ void Encoder::luma_mb_inter_predict( const VP8Raster::Macroblock & original_mb,
 {
   MBPredictionData best_pred;
 
-  best_pred = luma_mb_best_prediction_mode( original_mb, reconstructed_mb, temp_mb,
-                                            frame_mb, quantizer, encoder_pass, true );
+  /*best_pred = luma_mb_best_prediction_mode( original_mb, reconstructed_mb, temp_mb,
+                                            frame_mb, quantizer, encoder_pass, true );*/
 
   reference_frame frame_ref = LAST_FRAME;
 
