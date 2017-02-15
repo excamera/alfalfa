@@ -67,6 +67,7 @@ fake_webcam_LDADD = ../encoder/libalfalfaencoder.a $(BASE_LDADD)
 real_webcam_SOURCES = real-webcam.cc
 real_webcam_CPPFLAGS = $(AM_CPPFLAGS) $(GLU_CFLAGS) $(GLEW_CFLAGS) $(GLFW3_CFLAGS)
 real_webcam_LDADD = ../display/libalfalfadisplay.a ../net/libnet.a $(BASE_LDADD) $(GLU_LIBS) $(GLEW_LIBS) $(GLFW3_LIBS)
+real_webcam_LDFLAGS =
 
 xc_zero_out_residues_SOURCES = xc-zero-out-residues.cc
 xc_zero_out_residues_LDADD = ../encoder/libalfalfaencoder.a $(BASE_LDADD)
