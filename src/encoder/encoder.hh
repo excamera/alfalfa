@@ -273,10 +273,6 @@ private:
   static unsigned calc_prob( unsigned false_count, unsigned total );
 
   template<class FrameType>
-  static FrameType make_empty_frame( const uint16_t width, const uint16_t height,
-                                     const bool show_frame );
-
-  template<class FrameType>
   std::vector<uint8_t> write_frame( const FrameType & frame );
 
   template<class FrameType>
@@ -289,11 +285,11 @@ private:
 
   /* Convergence-related stuff */
   template<class FrameType>
-  InterFrame & reencode_as_interframe( const VP8Raster & unfiltered_output,
+  InterFrame reencode_as_interframe( const VP8Raster & unfiltered_output,
                                        const FrameType & original_frame,
                                        const QuantIndices & quant_indices );
 
-  InterFrame & update_residues( const VP8Raster & unfiltered_output,
+  InterFrame update_residues( const VP8Raster & unfiltered_output,
                                 const InterFrame & original_frame,
                                 const QuantIndices & quant_indices,
                                 const bool last_frame );
