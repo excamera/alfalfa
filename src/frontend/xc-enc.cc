@@ -194,7 +194,8 @@ int main( int argc, char *argv[] )
       }
 
       /* pre-read all the original rasters */
-      vector<RasterHandle> original_rasters;
+      /* 24-FRAME CHUNKS: Don't pre-read anything */
+      /* vector<RasterHandle> original_rasters;
       for ( size_t i = 0; ; i++ ) {
         auto next_raster = input_reader->get_next_frame();
 
@@ -203,10 +204,11 @@ int main( int argc, char *argv[] )
         } else {
           break;
         }
-      }
+      } */
 
       /* pre-read all the prediction frames */
-      vector<pair<Optional<KeyFrame>, Optional<InterFrame> > > prediction_frames;
+      /* 24-FRAME CHUNKS: Don't pre-read anything */
+      /* vector<pair<Optional<KeyFrame>, Optional<InterFrame> > > prediction_frames;
 
       IVF pred_ivf { pred_file };
 
@@ -228,7 +230,7 @@ int main( int argc, char *argv[] )
 
           prediction_frames.emplace_back( Optional<KeyFrame>(), move( frame ) );
         }
-      }
+      } */
 
       /* wait for EOF on stdin */
       FileDescriptor stdin( STDIN_FILENO );
@@ -236,12 +238,14 @@ int main( int argc, char *argv[] )
         stdin.read( 1 );
       }
 
+      IVF pred_ivf { pred_file };
+
       Encoder encoder( EncoderStateDeserializer::build<Decoder>( input_state ),
                        move( output ), two_pass );
 
       encoder.set_expected_decoder_entry_hash( encoder.export_decoder().get_hash().hash() );
 
-      encoder.reencode( original_rasters, prediction_frames, kf_q_weight,
+      encoder.reencode( *input_reader, pred_decoder, pred_ivf, kf_q_weight,
                         extra_frame_chunk );
 
       if (output_state != "") {

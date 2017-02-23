@@ -255,6 +255,12 @@ public:
                  const double kf_q_weight,
                  const bool extra_frame_chunk );
 
+ void reencode( FrameInput & original_reader,
+                Decoder & pred_decoder,
+                const IVF & prediction_ivf,
+                const double kf_q_weight,
+                const bool extra_frame_chunk );
+
   Decoder export_decoder() const { return { decoder_state_, references_ }; }
 
   void set_expected_decoder_entry_hash( const uint32_t minihash )

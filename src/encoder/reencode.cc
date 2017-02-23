@@ -352,3 +352,96 @@ void Encoder::reencode( const vector<RasterHandle> & original_rasters,
     }
   }
 }
+
+void Encoder::reencode( FrameInput & original_reader,
+                        Decoder & pred_decoder,
+                        const IVF & prediction_ivf,
+                        const double kf_q_weight,
+                        const bool extra_frame_chunk )
+{
+  if ( extra_frame_chunk ) {
+    throw runtime_error( "extra-frame chunks are not supported." );
+  }
+
+  unsigned int start_frame_index = ( extra_frame_chunk ? 1 : 0 );
+  uint32_t frame_count = prediction_ivf.frame_count();
+
+  if ( extra_frame_chunk ) {
+    frame_count--;
+  }
+
+  auto populate_frame_pair =
+    [&prediction_ivf, &pred_decoder]( const unsigned int frame_index,
+                       pair<Optional<KeyFrame>, Optional<InterFrame>> & frame_pair )
+    {
+      UncompressedChunk unch { prediction_ivf.frame( frame_index ), prediction_ivf.width(), prediction_ivf.height() };
+
+      if ( unch.key_frame() ) {
+        KeyFrame frame = pred_decoder.parse_frame<KeyFrame>( unch );
+        pred_decoder.decode_frame( frame );
+
+        frame_pair = make_pair( move( frame ), Optional<InterFrame>() );
+      } else {
+        InterFrame frame = pred_decoder.parse_frame<InterFrame>( unch );
+        pred_decoder.decode_frame( frame );
+
+        frame_pair = make_pair( Optional<KeyFrame>(), move( frame ) );
+      }
+    };
+
+  Optional<RasterHandle> original_raster = original_reader.get_next_frame();
+  pair<Optional<KeyFrame>, Optional<InterFrame>> prediction_frame_ref;
+  pair<Optional<KeyFrame>, Optional<InterFrame>> next_frame_ref;
+
+  populate_frame_pair( 0, next_frame_ref );
+
+  for ( unsigned int frame_index = start_frame_index;
+        original_raster.initialized();
+        frame_index++, original_raster = original_reader.get_next_frame() ) {
+
+    const VP8Raster & target_output = original_raster.get().get();
+
+    bool last_frame = ( frame_index == prediction_ivf.frame_count() - 1 );
+
+    if ( target_output.display_width() != width()
+         or target_output.display_height() != height() ) {
+      throw runtime_error( "raster size mismatch" );
+    }
+
+    prediction_frame_ref = move( next_frame_ref );
+
+    if ( not last_frame ) {
+      populate_frame_pair( frame_index + 1, next_frame_ref );
+    }
+
+    /* Option 1: Is this an initial KeyFrame that should be re-encoded as an InterFrame? */
+    if ( (frame_index == start_frame_index) and prediction_frame_ref.first.initialized() ) {
+      QuantIndices new_quantizer = prediction_frame_ref.first.get().header().quant_indices;
+
+      /* try to steal the quantizer from the next frame (if it's an interframe */
+      if ( frame_index + 1 < frame_count ) {
+        if ( next_frame_ref.second.initialized() ) {
+          /* it's an InterFrame */
+
+          new_quantizer.y_ac_qi = lrint( kf_q_weight * prediction_frame_ref.first.get().header().quant_indices.y_ac_qi
+                                         + ( 1 - kf_q_weight ) * next_frame_ref.second.get().header().quant_indices.y_ac_qi );
+        }
+      }
+
+      write_frame( reencode_as_interframe( target_output, prediction_frame_ref.first.get(), new_quantizer ) );
+
+      continue;
+    } else if ( prediction_frame_ref.first.initialized() ) {
+      /* Option 3: Is this another KeyFrame? Then preserve it. */
+      write_frame( prediction_frame_ref.first.get() );
+    } else if ( prediction_frame_ref.second.initialized() ) {
+      /* Option 4: Is this an InterFrame? Then update residues. */
+      write_frame( update_residues( target_output,
+                                    prediction_frame_ref.second.get(),
+                                    prediction_frame_ref.second.get().header().quant_indices,
+                                    last_frame ) );
+    } else {
+      throw runtime_error( "prediction_frames contained two undefined values" );
+    }
+  }
+}
