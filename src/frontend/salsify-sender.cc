@@ -374,8 +374,9 @@ int main( int argc, char *argv[] )
       /* try various quantizers */
       encode_jobs.emplace_back( "same", raster, encoder, CONSTANT_QUANTIZER, last_quantizer, 0 );
 
-      encode_jobs.emplace_back( "improvealittle", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, -2 ), 0 );
+      // COMMENTED OUT FOR SALSIFY-FOUR
+      /* encode_jobs.emplace_back( "improvealittle", raster, encoder, CONSTANT_QUANTIZER,
+                                increment_quantizer( last_quantizer, -2 ), 0 ); */
 
       encode_jobs.emplace_back( "improve", raster, encoder, CONSTANT_QUANTIZER,
                                 increment_quantizer( last_quantizer, -5 ), 0 );
@@ -383,21 +384,24 @@ int main( int argc, char *argv[] )
       encode_jobs.emplace_back( "improvemore", raster, encoder, CONSTANT_QUANTIZER,
                                 increment_quantizer( last_quantizer, -11 ), 0 );
 
-      // encode_jobs.emplace_back( "improvemuchmore", raster, encoder, CONSTANT_QUANTIZER,
-      //                           increment_quantizer( last_quantizer, -29 ), 0 );
+      /* encode_jobs.emplace_back( "improvemuchmore", raster, encoder, CONSTANT_QUANTIZER,
+                                increment_quantizer( last_quantizer, -29 ), 0 ); */
 
       encode_jobs.emplace_back( "worsen", raster, encoder, CONSTANT_QUANTIZER,
                                 increment_quantizer( last_quantizer, +11 ), 0 );
 
-      encode_jobs.emplace_back( "worsenmore", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, +19 ), 0 );
+      // COMMENTED OUT FOR SALSIFY-FOUR
+      /* encode_jobs.emplace_back( "worsenmore", raster, encoder, CONSTANT_QUANTIZER,
+                                increment_quantizer( last_quantizer, +19 ), 0 ); */
 
-      encode_jobs.emplace_back( "worsenmuchmore", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, +37 ), 0 );
+      // COMMENTED OUT FOR SALSIFY-FOUR
+      /* encode_jobs.emplace_back( "worsenmuchmore", raster, encoder, CONSTANT_QUANTIZER,
+                                increment_quantizer( last_quantizer, +37 ), 0 ); */
 
       /*encode_jobs.emplace_back( "worsenalotmore", raster, encoder, CONSTANT_QUANTIZER,
                                 increment_quantizer( last_quantizer, +51 ), 0 ); */
 
+      // COMMENTED OUT FOR SALSIFY-FOUR
       encode_jobs.emplace_back( "fail-small", raster, encoder, CONSTANT_QUANTIZER, 127, 0 );
 
       // this thread will spawn all the encoding jobs and will wait on the results
