@@ -286,7 +286,7 @@ int main( int argc, char *argv[] )
         auto it = encoder_states.begin();
 
         while ( it != encoder_states.end() ) {
-          if ( *it != receiver_last_acked_state.get() ) {
+          if ( *it != receiver_last_acked_state.get() and *it != receiver_assumed_state.get() ) {
             encoders.erase( *it );
             it++;
           }
@@ -378,7 +378,7 @@ int main( int argc, char *argv[] )
       /* encode_jobs.emplace_back( "improvealittle", raster, encoder, CONSTANT_QUANTIZER,
                                 increment_quantizer( last_quantizer, -2 ), 0 ); */
 
-      size_t alpha = max( 5, last_quantizer / 2 );
+      size_t alpha = max( 10, last_quantizer / 3 );
 
       encode_jobs.emplace_back( "improve", raster, encoder, CONSTANT_QUANTIZER,
                                 increment_quantizer( last_quantizer, -alpha ), 0 );
