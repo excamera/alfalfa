@@ -390,7 +390,7 @@ int main( int argc, char *argv[] )
                                 increment_quantizer( last_quantizer, -29 ), 0 ); */
 
       encode_jobs.emplace_back( "fail-small", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, alpha ), 0 );
+                                increment_quantizer( last_quantizer, +10 ), 0 );
 
       // COMMENTED OUT FOR SALSIFY-FOUR
       /* encode_jobs.emplace_back( "worsenmore", raster, encoder, CONSTANT_QUANTIZER,
