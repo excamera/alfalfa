@@ -378,10 +378,8 @@ int main( int argc, char *argv[] )
       /* encode_jobs.emplace_back( "improvealittle", raster, encoder, CONSTANT_QUANTIZER,
                                 increment_quantizer( last_quantizer, -2 ), 0 ); */
 
-      size_t alpha = max( 10, last_quantizer / 3 );
-
       encode_jobs.emplace_back( "improve", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, -alpha ), 0 );
+                                increment_quantizer( last_quantizer, -17 ), 0 );
 
       /* encode_jobs.emplace_back( "improvemore", raster, encoder, CONSTANT_QUANTIZER,
                                 increment_quantizer( last_quantizer, -11 ), 0 ); */
@@ -390,7 +388,7 @@ int main( int argc, char *argv[] )
                                 increment_quantizer( last_quantizer, -29 ), 0 ); */
 
       encode_jobs.emplace_back( "fail-small", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, +10 ), 0 );
+                                increment_quantizer( last_quantizer, +23 ), 0 );
 
       // COMMENTED OUT FOR SALSIFY-FOUR
       /* encode_jobs.emplace_back( "worsenmore", raster, encoder, CONSTANT_QUANTIZER,
