@@ -411,7 +411,7 @@ int main( int argc, char *argv[] )
           encode_outputs.reserve( encode_jobs.size() );
 
           for ( auto & job : encode_jobs ) {
-            encode_outputs.push_back( async( launch::async, do_encode_job, move( job ) ) );
+            encode_outputs.push_back( async( launch::deferred, do_encode_job, move( job ) ) );
           }
 
           for ( auto & future_res : encode_outputs ) {
