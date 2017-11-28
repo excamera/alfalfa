@@ -171,7 +171,7 @@ static void encode( BoolEncoder & encoder,
                     const int16_t num,
                     const SafeArray< Probability, MV_PROB_CNT > & component_probs )
 {
-  enum { IS_SHORT, SIGN, SHORT, BITS = SHORT + 8 - 1, LONG_WIDTH_ = 10 };
+  enum { IS_SHORT, SIGN, SHORT, BITS = SHORT + 8 - 1, LONG_MV_WIDTH = 10 };
 
   int16_t num_to_encode = num >> 1;
   uint16_t x = abs( num_to_encode );
@@ -196,7 +196,7 @@ static void encode( BoolEncoder & encoder,
       encode( encoder, (x >> i) & 1, component_probs.at( BITS + i ) );
     }
 
-    for ( uint8_t i = LONG_WIDTH_ - 1; i > 3; i-- ) {
+    for ( uint8_t i = LONG_MV_WIDTH - 1; i > 3; i-- ) {
       encode( encoder, (x >> i) & 1, component_probs.at( BITS + i ) );
     }
 

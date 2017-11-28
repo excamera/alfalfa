@@ -172,9 +172,7 @@ MotionVector Scorer::clamp( const MotionVector & mv, const typename TwoD< InterF
 int16_t MotionVector::read_component( BoolDecoder & data,
                                       const SafeArray< Probability, MV_PROB_CNT > & component_probs )
 {
-  /* It seems that LONG_WIDTH is a predefined macro somewhere [gcc 7.2.0] */
-  enum { IS_SHORT, SIGN, SHORT, BITS = SHORT + 8 - 1, LONG_WIDTH_ = 10 };
-
+  enum { IS_SHORT, SIGN, SHORT, BITS = SHORT + 8 - 1, LONG_MV_WIDTH = 10 };
   int16_t x = 0;
 
   if ( data.get( component_probs.at( IS_SHORT ) ) ) { /* Large */
@@ -183,7 +181,7 @@ int16_t MotionVector::read_component( BoolDecoder & data,
     }
 
     /* Skip bit 3, which is sometimes implicit */
-    for ( uint8_t i = LONG_WIDTH_ - 1; i > 3; i-- ) {
+    for ( uint8_t i = LONG_MV_WIDTH - 1; i > 3; i-- ) {
       x += data.get( component_probs.at( BITS + i ) ) << i;
     }
 
