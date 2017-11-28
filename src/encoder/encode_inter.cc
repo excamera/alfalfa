@@ -24,7 +24,7 @@ void Encoder::update_mv_component_counts( const int16_t & component,
                                           const bool is_x,
                                           Encoder::MVComponentCounts & counts ) const
 {
-  enum { IS_SHORT, SIGN, SHORT, BITS = SHORT + 8 - 1, LONG_WIDTH = 10 };
+  enum { IS_SHORT, SIGN, SHORT, BITS = SHORT + 8 - 1, LONG_MV_WIDTH = 10 };
 
   uint16_t x = abs( component );
   uint8_t comp_idx = is_x ? 1 : 0;
@@ -84,7 +84,7 @@ void Encoder::update_mv_component_counts( const int16_t & component,
   else { /* x >= 8 */
     counts.at( comp_idx ).at( IS_SHORT ).second++;
 
-    for ( uint8_t i = 0; i < LONG_WIDTH; i++ ) {
+    for ( uint8_t i = 0; i < LONG_MV_WIDTH; i++ ) {
       if ( i == 3 and x & 0xfff0 ) {
         if ( ( x >> 3 ) & 1 ) {
           counts.at( comp_idx ).at( BITS + i ).second++;
