@@ -76,7 +76,7 @@ static uint16_t inline tree_cost( int token, int num_of_bits,
 uint32_t Costs::mv_component_cost( const int16_t num,
                                    const SafeArray<Probability, MV_PROB_CNT> & probs )
 {
-  enum { IS_SHORT, SIGN, SHORT, BITS = SHORT + 8 - 1, LONG_WIDTH = 10 };
+  enum { IS_SHORT, SIGN, SHORT, BITS = SHORT + 8 - 1, LONG_WIDTH_ = 10 };
 
   uint32_t cost = 0;
 
@@ -98,7 +98,7 @@ uint32_t Costs::mv_component_cost( const int16_t num,
       cost += cost_bit( probs.at( BITS + i ), ( x >> i ) & 1 );
     }
 
-    for ( uint8_t i = LONG_WIDTH - 1; i > 3; i-- ) {
+    for ( uint8_t i = LONG_WIDTH_ - 1; i > 3; i-- ) {
       cost += cost_bit( probs.at( BITS + i ), ( x >> i ) & 1 );
     }
 
@@ -112,7 +112,7 @@ uint32_t Costs::mv_component_cost( const int16_t num,
 
 void Costs::fill_mv_component_costs( const SafeArray<SafeArray<Probability, MV_PROB_CNT>, 2> & motion_vector_probs )
 {
-  enum { IS_SHORT, SIGN, SHORT, BITS = SHORT + 8 - 1, LONG_WIDTH = 10 };
+  enum { IS_SHORT, SIGN, SHORT, BITS = SHORT + 8 - 1, LONG_WIDTH_ = 10 };
 
   mv_component_costs.at( 0 ).at( 0 ).at( 0 ) = mv_component_costs.at( 0 ).at( 1 ).at( 0 )
                                              = mv_component_cost( 0, motion_vector_probs.at( 0 ) );

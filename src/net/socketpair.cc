@@ -71,5 +71,5 @@ FileDescriptor UnixDomainSocket::recv_fd( void )
 
     register_read();
 
-    return *reinterpret_cast<int *>( CMSG_DATA( control_message ) );
+    return *reinterpret_cast<const int *>( CMSG_DATA( control_message ) );
 }
