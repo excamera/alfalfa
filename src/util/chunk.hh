@@ -7,6 +7,7 @@
 #include <vector>
 #include <stdexcept>
 #include <cstring>
+#include <endian.h>
 
 class Chunk
 {
