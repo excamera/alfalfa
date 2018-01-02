@@ -52,6 +52,7 @@ void usage_error( const string & program_name )
        << " -S, --pred-state <arg>                Prediction modes IVF initial state"        << endl
        << " -w, --kf-q-weight <arg>               Keyframe quantizer weight"                 << endl
        << " -e, --extra-frame-chunk               Prediction IVF starts with an extra frame" << endl
+       << " -W, --no-no_wait                      Don't wait for STDIN to start reencoding"  << endl
        << endl;
 }
 
@@ -90,6 +91,7 @@ int main( int argc, char *argv[] )
     bool re_encode_only = false;
     double kf_q_weight = 1.0;
     bool extra_frame_chunk = false;
+    bool no_wait = false;
     Optional<uint8_t> y_ac_qi;
     EncoderQuality quality = BEST_QUALITY;
 
@@ -111,11 +113,12 @@ int main( int argc, char *argv[] )
       { "extra-frame-chunk",    no_argument,       nullptr, 'e' },
       { "quality",              required_argument, nullptr, 'q' },
       { "frame-sizes",          required_argument, nullptr, 'F' },
+      { "no-wait",              no_argument,       nullptr, 'W' },
       { 0, 0, 0, 0 }
     };
 
     while ( true ) {
-      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:p:S:rw:eq:F:", command_line_options, nullptr );
+      const int opt = getopt_long( argc, argv, "o:s:i:O:I:2y:p:S:rw:eq:F:W", command_line_options, nullptr );
 
       if ( opt == -1 ) {
         break;
@@ -167,6 +170,10 @@ int main( int argc, char *argv[] )
 
       case 'w':
         kf_q_weight = stod( optarg );
+        break;
+
+      case 'W':
+        no_wait = true;
         break;
 
       case 'e':
@@ -271,7 +278,7 @@ int main( int argc, char *argv[] )
 
       /* wait for EOF on stdin */
       FileDescriptor stdin( STDIN_FILENO );
-      while ( not stdin.eof() ) {
+      while ( not no_wait and not stdin.eof() ) {
         stdin.read( 1 );
       }
 
