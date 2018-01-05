@@ -277,9 +277,11 @@ int main( int argc, char *argv[] )
       }
 
       /* wait for EOF on stdin */
-      FileDescriptor stdin( STDIN_FILENO );
-      while ( not no_wait and not stdin.eof() ) {
-        stdin.read( 1 );
+      if ( not no_wait ) {
+        FileDescriptor stdin( STDIN_FILENO );
+        while ( not stdin.eof() ) {
+          stdin.read( 1 );
+        }
       }
 
       Encoder encoder( EncoderStateDeserializer::build<Decoder>( input_state ),
