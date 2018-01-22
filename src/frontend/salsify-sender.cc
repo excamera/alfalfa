@@ -143,7 +143,11 @@ size_t target_size( uint32_t avg_delay, const uint64_t last_acked, const uint64_
 
 void usage( const char *argv0 )
 {
-  cerr << "Usage: " << argv0 << " [-c,--cores CORES] [-d, --device CAMERA] [-p, --pixfmt PIXEL_FORMAT] HOST PORT CONNECTION_ID" << endl;
+  cerr << "Usage: " << argv0
+       << " [-m,--mode MODE] [-d, --device CAMERA] [-p, --pixfmt PIXEL_FORMAT]"
+       << " [-u,--update-rate RATE] HOST PORT CONNECTION_ID" << endl
+       << endl
+       << "Accepted MODEs are s1, s2 (default), conventional." << endl;
 }
 
 uint64_t ack_seq_no( const AckPacket & ack,
@@ -153,6 +157,11 @@ uint64_t ack_seq_no( const AckPacket & ack,
        ? ( cumulative_fpf[ ack.frame_no() - 1 ] + ack.fragment_no() )
        : ack.fragment_no();
 }
+
+enum class OperationMode
+{
+  S1, S2, Conventional
+};
 
 int main( int argc, char *argv[] )
 {
@@ -164,35 +173,51 @@ int main( int argc, char *argv[] )
   /* camera settings */
   string camera_device = "/dev/video0";
   string pixel_format = "NV12";
-  size_t cores = 2;
+  size_t update_rate __attribute__((unused)) = 1;
+  OperationMode operation_mode = OperationMode::S2;
 
   const option command_line_options[] = {
-    { "cores",  required_argument, nullptr, 'c' },
-    { "device", required_argument, nullptr, 'd' },
-    { "pixfmt", required_argument, nullptr, 'p' },
+    { "mode",        required_argument, nullptr, 'm' },
+    { "device",      required_argument, nullptr, 'd' },
+    { "pixfmt",      required_argument, nullptr, 'p' },
+    { "update-rate", required_argument, nullptr, 'u' },
     { 0, 0, 0, 0 }
   };
 
   while ( true ) {
-    const int opt = getopt_long( argc, argv, "d:p:", command_line_options, nullptr );
+    const int opt = getopt_long( argc, argv, "d:p:m:u:", command_line_options, nullptr );
 
     if ( opt == -1 ) { break; }
 
     switch ( opt ) {
-    case 'd': camera_device = optarg; break;
-    case 'p': pixel_format = optarg; break;
-    case 'c': cores = paranoid::stoul( optarg ); break;
-    default: usage( argv[ 0 ] ); return EXIT_FAILURE;
+    case 'd':
+      camera_device = optarg;
+      break;
+
+    case 'p':
+      pixel_format = optarg;
+      break;
+
+    case 'm':
+      if ( strcmp( optarg, "s1" ) == 0 ) { operation_mode = OperationMode::S1; }
+      else if ( strcmp( optarg, "s2" ) == 0 ) { operation_mode = OperationMode::S2; }
+      else if ( strcmp( optarg, "conventional" ) == 0 ) { operation_mode = OperationMode::Conventional; }
+      else { throw runtime_error( "unknown operation mode" ); }
+      break;
+
+    case 'u':
+      update_rate = paranoid::stoul( optarg );
+      break;
+
+    default:
+      usage( argv[ 0 ] );
+      return EXIT_FAILURE;
     }
   }
 
   if ( optind + 2 >= argc ) {
     usage( argv[ 0 ] );
     return EXIT_FAILURE;
-  }
-
-  if ( cores < 1 or cores > 2 ) {
-    throw runtime_error( "'cores' value can only be 1 or 2" );
   }
 
   /* construct Socket for outgoing datagrams */
@@ -387,15 +412,15 @@ int main( int argc, char *argv[] )
 
       // this thread will spawn all the encoding jobs and will wait on the results
       thread(
-        [&encode_jobs, &encode_outputs, &encode_end_pipe, cores]()
+        [&encode_jobs, &encode_outputs, &encode_end_pipe, operation_mode]()
         {
           encode_outputs.clear();
           encode_outputs.reserve( encode_jobs.size() );
 
           for ( auto & job : encode_jobs ) {
-            encode_outputs.push_back( async( ( ( cores == 2 ) ? launch::async
-                                                              : launch::deferred ),
-                                              do_encode_job, move( job ) ) );
+            encode_outputs.push_back(
+              async( ( ( operation_mode == OperationMode::S2 ) ? launch::async : launch::deferred ),
+                     do_encode_job, move( job ) ) );
           }
 
           for ( auto & future_res : encode_outputs ) {
