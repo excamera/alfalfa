@@ -143,7 +143,7 @@ size_t target_size( uint32_t avg_delay, const uint64_t last_acked, const uint64_
 
 void usage( const char *argv0 )
 {
-  cerr << "Usage: " << argv0 << " [-d, --device CAMERA] [-p, --pixfmt PIXEL_FORMAT] HOST PORT CONNECTION_ID" << endl;
+  cerr << "Usage: " << argv0 << " [-c,--cores CORES] [-d, --device CAMERA] [-p, --pixfmt PIXEL_FORMAT] HOST PORT CONNECTION_ID" << endl;
 }
 
 uint64_t ack_seq_no( const AckPacket & ack,
@@ -164,8 +164,10 @@ int main( int argc, char *argv[] )
   /* camera settings */
   string camera_device = "/dev/video0";
   string pixel_format = "NV12";
+  size_t cores = 2;
 
   const option command_line_options[] = {
+    { "cores",  required_argument, nullptr, 'c' },
     { "device", required_argument, nullptr, 'd' },
     { "pixfmt", required_argument, nullptr, 'p' },
     { 0, 0, 0, 0 }
@@ -179,6 +181,7 @@ int main( int argc, char *argv[] )
     switch ( opt ) {
     case 'd': camera_device = optarg; break;
     case 'p': pixel_format = optarg; break;
+    case 'c': cores = paranoid::stoul( optarg ); break;
     default: usage( argv[ 0 ] ); return EXIT_FAILURE;
     }
   }
@@ -186,6 +189,10 @@ int main( int argc, char *argv[] )
   if ( optind + 2 >= argc ) {
     usage( argv[ 0 ] );
     return EXIT_FAILURE;
+  }
+
+  if ( cores < 1 or cores > 2 ) {
+    throw runtime_error( "'cores' value can only be 1 or 2" );
   }
 
   /* construct Socket for outgoing datagrams */
@@ -372,46 +379,23 @@ int main( int argc, char *argv[] )
         };
 
       /* try various quantizers */
-      //encode_jobs.emplace_back( "same", raster, encoder, CONSTANT_QUANTIZER, last_quantizer, 0 );
-
-      // COMMENTED OUT FOR SALSIFY-FOUR
-      /* encode_jobs.emplace_back( "improvealittle", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, -2 ), 0 ); */
-
       encode_jobs.emplace_back( "improve", raster, encoder, CONSTANT_QUANTIZER,
                                 increment_quantizer( last_quantizer, -17 ), 0 );
-
-      /* encode_jobs.emplace_back( "improvemore", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, -11 ), 0 ); */
-
-      /* encode_jobs.emplace_back( "improvemuchmore", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, -29 ), 0 ); */
 
       encode_jobs.emplace_back( "fail-small", raster, encoder, CONSTANT_QUANTIZER,
                                 increment_quantizer( last_quantizer, +23 ), 0 );
 
-      // COMMENTED OUT FOR SALSIFY-FOUR
-      /* encode_jobs.emplace_back( "worsenmore", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, +19 ), 0 ); */
-
-      // COMMENTED OUT FOR SALSIFY-FOUR
-      /* encode_jobs.emplace_back( "worsenmuchmore", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, +37 ), 0 ); */
-
-      /*encode_jobs.emplace_back( "worsenalotmore", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, +51 ), 0 ); */
-
-      //encode_jobs.emplace_back( "fail-small", raster, encoder, CONSTANT_QUANTIZER, 127, 0 );
-
       // this thread will spawn all the encoding jobs and will wait on the results
       thread(
-        [&encode_jobs, &encode_outputs, &encode_end_pipe]()
+        [&encode_jobs, &encode_outputs, &encode_end_pipe, cores]()
         {
           encode_outputs.clear();
           encode_outputs.reserve( encode_jobs.size() );
 
           for ( auto & job : encode_jobs ) {
-            encode_outputs.push_back( async( launch::deferred, do_encode_job, move( job ) ) );
+            encode_outputs.push_back( async( ( ( cores == 2 ) ? launch::async
+                                                              : launch::deferred ),
+                                              do_encode_job, move( job ) ) );
           }
 
           for ( auto & future_res : encode_outputs ) {
