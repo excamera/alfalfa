@@ -163,6 +163,14 @@ enum class OperationMode
   S1, S2, Conventional
 };
 
+struct ConventionalModeInfo
+{
+  size_t current_period_frames { 0 };
+  system_clock::time_point period_start { system_clock::now() };
+
+  size_t framesize { 0 };
+};
+
 int main( int argc, char *argv[] )
 {
   /* check the command-line arguments */
@@ -285,6 +293,11 @@ int main( int argc, char *argv[] )
   seconds conservative_for { 5 };
   system_clock::time_point conservative_until = system_clock::now();
 
+  /* for 'conventional codec' mode */
+  system_clock::time_point next_cc_update = system_clock::now();
+  duration<long int, std::nano> cc_update_interval { ( update_rate == 0 ) ? 0 : std::nano::den / update_rate };
+  ConventionalModeInfo cc_info;
+
   /* :D */
   system_clock::time_point last_sent = system_clock::now();
 
@@ -394,7 +407,7 @@ int main( int argc, char *argv[] )
 
       const Encoder & encoder = encoders.at( selected_source_hash );
 
-      const auto increment_quantizer = []( const uint8_t q, const int8_t inc ) -> uint8_t
+      const static auto increment_quantizer = []( const uint8_t q, const int8_t inc ) -> uint8_t
         {
           int orig = q;
           orig += inc;
@@ -403,12 +416,53 @@ int main( int argc, char *argv[] )
           return orig;
         };
 
-      /* try various quantizers */
-      encode_jobs.emplace_back( "improve", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, -17 ), 0 );
+      if ( operation_mode == OperationMode::Conventional ) {
+        /* is it time to update the rate? */
+        if ( next_cc_update <= system_clock::now() ) {
+          size_t period_length = duration_cast<milliseconds>( system_clock::now() - cc_info.period_start ).count();
+          size_t framerate;
 
-      encode_jobs.emplace_back( "fail-small", raster, encoder, CONSTANT_QUANTIZER,
-                                increment_quantizer( last_quantizer, +23 ), 0 );
+          if ( cc_info.current_period_frames == 0 or period_length == 0 ) {
+            /* set the initial framerate to 5 */
+            framerate = 5;
+          }
+          else {
+            framerate = 1000 * cc_info.current_period_frames / period_length;
+          }
+
+          if ( framerate == 0 ) { framerate = 1; }
+
+          cc_info.period_start = system_clock::now();
+          cc_info.current_period_frames = 0;
+
+          if ( avg_delay != numeric_limits<uint32_t>::max() ) {
+            cc_info.framesize = ( 1000 * 1000 * 1400 / ( avg_delay ) ) / ( framerate );
+          }
+          else {
+            cc_info.framesize = 500 * 1000 / framerate; /* 500 KB/s as the initial value */
+          }
+
+          cerr << "* framerate=" << framerate << " "
+               << "period-length=" << period_length << "ms "
+               << "target-framesize=" << cc_info.framesize << "B "
+               << "avg-delay=" << avg_delay << "us "
+               << "rate=" << 1000 * 1400 / ( avg_delay ) << "KB/s"
+               << endl;
+
+          next_cc_update = system_clock::now() + cc_update_interval;
+        }
+
+        cc_info.current_period_frames++;
+        encode_jobs.emplace_back( "frame", raster, encoder, TARGET_FRAME_SIZE, 0, cc_info.framesize  );
+      }
+      else {
+        /* try various quantizers */
+        encode_jobs.emplace_back( "improve", raster, encoder, CONSTANT_QUANTIZER,
+                                  increment_quantizer( last_quantizer, -17 ), 0 );
+
+        encode_jobs.emplace_back( "fail-small", raster, encoder, CONSTANT_QUANTIZER,
+                                  increment_quantizer( last_quantizer, +23 ), 0 );
+      }
 
       // this thread will spawn all the encoding jobs and will wait on the results
       thread(
@@ -478,26 +532,31 @@ int main( int argc, char *argv[] )
         }
       }
 
-      /* choose the best based on the current capacity */
-      for ( size_t i = 0; i < good_outputs.size(); i++ ) {
-        if ( good_outputs[ i ].frame.size() <= frame_size ) {
-          if ( frame_size - good_outputs[ i ].frame.size() < best_size_diff ) {
-            best_size_diff = frame_size - good_outputs[ i ].frame.size();
-            best_output_index = i;
+      if ( operation_mode == OperationMode::Conventional ) {
+        best_output_index = 0; /* always send the frame */
+      }
+      else {
+        /* choose the best based on the current capacity */
+        for ( size_t i = 0; i < good_outputs.size(); i++ ) {
+          if ( good_outputs[ i ].frame.size() <= frame_size ) {
+            if ( frame_size - good_outputs[ i ].frame.size() < best_size_diff ) {
+              best_size_diff = frame_size - good_outputs[ i ].frame.size();
+              best_output_index = i;
+            }
           }
         }
-      }
 
-      if ( best_output_index == numeric_limits<size_t>::max() ) {
-        if ( skipped_count < MAX_SKIPPED or good_outputs.back().job_name != "fail-small" ) {
-          /* skip frame */
-          cerr << "Skipping frame " << frame_no << "\n";
-          skipped_count++;
-          return ResultType::Continue;
-        } else {
-          cerr << "Too many skipped frames; sending the bad-quality option on " << frame_no << "\n";
-          best_output_index = good_outputs.size() - 1;
-          assert( good_outputs[ best_output_index ].job_name == "fail-small" );
+        if ( best_output_index == numeric_limits<size_t>::max() ) {
+          if ( skipped_count < MAX_SKIPPED or good_outputs.back().job_name != "fail-small" ) {
+            /* skip frame */
+            cerr << "Skipping frame " << frame_no << "\n";
+            skipped_count++;
+            return ResultType::Continue;
+          } else {
+            cerr << "Too many skipped frames; sending the bad-quality option on " << frame_no << "\n";
+            best_output_index = good_outputs.size() - 1;
+            assert( good_outputs[ best_output_index ].job_name == "fail-small" );
+          }
         }
       }
 
