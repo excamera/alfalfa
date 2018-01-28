@@ -331,8 +331,12 @@ int main( int argc, char *argv[] )
         auto it = encoder_states.begin();
 
         while ( it != encoder_states.end() ) {
-          if ( *it != receiver_last_acked_state.get() and *it != receiver_assumed_state.get() ) {
-            encoders.erase( *it );
+          if ( *it != receiver_last_acked_state.get() and
+               *it != receiver_assumed_state.get() ) {
+            if ( find( next( it ), encoder_states.end(), *it ) == encoder_states.end() ) {
+              encoders.erase( *it );
+            }
+
             it++;
           }
           else {
@@ -386,7 +390,7 @@ int main( int argc, char *argv[] )
           conservative_until = system_clock::now() + conservative_for;
 
           cerr << "Going into 'conservative' mode for next "
-               << conservative_for.count() << "seconds." << endl;
+               << conservative_for.count() << " seconds." << endl;
 
           if( receiver_complete_states.size() == 0 ) {
             /* and the receiver doesn't have any other states, other than the
@@ -404,7 +408,6 @@ int main( int argc, char *argv[] )
         }
       }
       /* end of encoder selection logic */
-
       const Encoder & encoder = encoders.at( selected_source_hash );
 
       const static auto increment_quantizer = []( const uint8_t q, const int8_t inc ) -> uint8_t

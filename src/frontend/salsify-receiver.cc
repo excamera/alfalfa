@@ -261,7 +261,8 @@ int main( int argc, char *argv[] )
         // state "after" applying the frame
         current_state = player.current_decoder().minihash();
 
-        if ( current_state == fragment.target_state() ) {
+        if ( current_state == fragment.target_state() and
+             current_state != initial_state ) {
           /* this is a full state. let's save it */
           decoders.insert( make_pair( current_state, player.current_decoder() ) );
           complete_states.push_back( current_state );
