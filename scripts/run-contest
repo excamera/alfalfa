@@ -6,8 +6,9 @@ use HTTP::Request::Common;
 
 my $username = $ARGV[ 0 ];
 my $video = $ARGV[ 1 ];
-if ( (not defined $username) or (not defined $video) ) {
-  die "Usage: $0 USERNAME VIDEO_FILE\n";
+my $camera_device = $ARGV[ 2 ];
+if ( (not defined $username) or (not defined $video) or (not defined $camera_device) ) {
+  die "Usage: $0 USERNAME VIDEO_FILE CAMERA_DEVICE\n";
 }
 
 my $receiver_pid = fork;
@@ -25,8 +26,10 @@ if ( $fakewebcam_pid < 0 ) {
   die qq{$!};
 } elsif ( $fakewebcam_pid == 0 ) {
   #child
-  exec qq{./fake-camera $video >/dev/null 2>/dev/null} or die qq{$!};
+  exec qq{ffmpeg -hide_banner -loglevel panic -re -i $video -f v4l2 $camera_device} or die qq{$!};
 }
+
+sleep 4;
 
 chomp( my $prefix = qx{dirname `which mm-link`} );
 my $tracedir = $prefix . q{/../share/mahimahi/traces};
@@ -41,7 +44,7 @@ if ( defined $ENV{ 'DISPLAY' } ) {
 
 push @command, qw{--once --uplink-log=/tmp/contest_uplink_log -- sh -c};
 
-push @command, qq{salsify-sender -p YU12 \$MAHIMAHI_BASE 9090 1337};
+push @command, qq{salsify-sender --mode conventional --update-rate 4 -d $camera_device -p YU12 \$MAHIMAHI_BASE 9090 1337};
 
 # for the contest, we will send data over Verizon's downlink
 # (datagrump sender's uplink)
@@ -54,17 +57,20 @@ $command[ 4 ] = qq{$tracedir/Verizon-LTE-short.up};
 system @command;
 
 # kill the receiver
+print "Killing the receiver and the fakewebcam...";
 kill 'INT', $receiver_pid;
-kill 'KILL', $fakewebcam_pid;
+kill 'INT', $fakewebcam_pid;
+print " done.\n";
 
 print "\n";
 
 # analyze performance locally
 system q{mm-throughput-graph 500 /tmp/contest_uplink_log > /dev/null}
-  and die q{mm-throughput-graph exited with error. NOT uploading};
+  and die q{mm-throughput-graph exited with error.};
 
 print "\n";
 
+=pod
 # gzip logfile
 print q{Uploading data to server...};
 
@@ -80,3 +86,4 @@ print qq{ done.\n\n};
 print $response->decoded_content;
 
 print "\n";
+=cut

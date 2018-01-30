@@ -8,4 +8,7 @@ then
   exit 1
 fi
 
+trap "exit" INT TERM
+trap "kill 0" EXIT
+
 ffmpeg -re -i $1 -f v4l2 $2

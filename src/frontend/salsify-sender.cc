@@ -447,7 +447,7 @@ int main( int argc, char *argv[] )
 
           cerr << "* framerate=" << framerate << " "
                << "period-length=" << period_length << "ms "
-               << "target-framesize=" << cc_info.framesize << "B "
+               << "target-framesize=" << cc_info.framesize / 1000 << "KB "
                << "avg-delay=" << avg_delay << "us "
                << "rate=" << 1000 * 1400 / ( avg_delay ) << "KB/s"
                << endl;
