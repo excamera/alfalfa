@@ -11,5 +11,5 @@ size_t procinfo::memory_usage()
   ifstream fin( "/proc/self/statm" );
   size_t v;
   fin >> v;
-  return v;
+  return v * 4096 /* page size */;
 }

@@ -24,6 +24,7 @@
 #include "socketpair.hh"
 #include "camera.hh"
 #include "pacer.hh"
+#include "procinfo.hh"
 
 using namespace std;
 using namespace std::chrono;
@@ -145,7 +146,7 @@ void usage( const char *argv0 )
 {
   cerr << "Usage: " << argv0
        << " [-m,--mode MODE] [-d, --device CAMERA] [-p, --pixfmt PIXEL_FORMAT]"
-       << " [-u,--update-rate RATE] HOST PORT CONNECTION_ID" << endl
+       << " [-u,--update-rate RATE] [--log-mem-usage] HOST PORT CONNECTION_ID" << endl
        << endl
        << "Accepted MODEs are s1, s2 (default), conventional." << endl;
 }
@@ -183,12 +184,14 @@ int main( int argc, char *argv[] )
   string pixel_format = "NV12";
   size_t update_rate __attribute__((unused)) = 1;
   OperationMode operation_mode = OperationMode::S2;
+  bool log_mem_usage = false;
 
   const option command_line_options[] = {
-    { "mode",        required_argument, nullptr, 'm' },
-    { "device",      required_argument, nullptr, 'd' },
-    { "pixfmt",      required_argument, nullptr, 'p' },
-    { "update-rate", required_argument, nullptr, 'u' },
+    { "mode",          required_argument, nullptr, 'm' },
+    { "device",        required_argument, nullptr, 'd' },
+    { "pixfmt",        required_argument, nullptr, 'p' },
+    { "update-rate",   required_argument, nullptr, 'u' },
+    { "log-mem-usage", no_argument,       nullptr, 'M' },
     { 0, 0, 0, 0 }
   };
 
@@ -215,6 +218,10 @@ int main( int argc, char *argv[] )
 
     case 'u':
       update_rate = paranoid::stoul( optarg );
+      break;
+
+    case 'M':
+      log_mem_usage = true;
       break;
 
     default:
@@ -304,6 +311,9 @@ int main( int argc, char *argv[] )
   /* comment */
   auto encode_start_pipe = UnixDomainSocket::make_pair();
   auto encode_end_pipe = UnixDomainSocket::make_pair();
+
+  /* mem usage timer */
+  system_clock::time_point next_mem_usage_report = system_clock::now();
 
   Poller poller;
 
@@ -552,7 +562,10 @@ int main( int argc, char *argv[] )
         if ( best_output_index == numeric_limits<size_t>::max() ) {
           if ( skipped_count < MAX_SKIPPED or good_outputs.back().job_name != "fail-small" ) {
             /* skip frame */
-            cerr << "Skipping frame " << frame_no << "\n";
+            cerr << "["
+                 << duration_cast<milliseconds>( system_clock::now().time_since_epoch() ).count()
+                 << "] "
+                 << "Skipping frame " << frame_no << "\n";
             skipped_count++;
             return ResultType::Continue;
           } else {
@@ -589,15 +602,22 @@ int main( int argc, char *argv[] )
       last_sent = system_clock::now();
 
       cerr << "["
-           << duration_cast<milliseconds>( system_clock::now().time_since_epoch() ).count()
+           << duration_cast<milliseconds>( last_sent.time_since_epoch() ).count()
            << "] "
-           << "Frame " << frame_no << " from encoder job " << output.job_name
+           << "Frame " << frame_no << ": " << output.job_name
            << " (" << to_string( output.y_ac_qi ) << ") = "
            << ff.fragments_in_this_frame() << " fragments ("
            << avg_encoding_time.int_value()/1000 << " ms, ssim="
            << output.encoder.stats().ssim.get_or( -1.0 )
            << ") {" << output.source_minihash << " -> " << target_minihash << "}"
-           << " intersend_delay = " << inter_send_delay << " us\n";
+           << " intersend_delay = " << inter_send_delay << " us";
+
+      if ( log_mem_usage and next_mem_usage_report < last_sent ) {
+        cerr << " <mem = " << procinfo::memory_usage() << ">";
+        next_mem_usage_report = last_sent + 5s;
+      }
+
+      cerr << "\n";
 
       cumulative_fpf.push_back( ( frame_no > 0 )
                                 ? ( cumulative_fpf[ frame_no - 1 ] + ff.fragments_in_this_frame() )
