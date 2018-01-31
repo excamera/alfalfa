@@ -20,8 +20,10 @@
 #include "player.hh"
 #include "display.hh"
 #include "paranoid.hh"
+#include "procinfo.hh"
 
 using namespace std;
+using namespace std::chrono;
 using namespace PollerShortNames;
 
 class AverageInterPacketDelay
@@ -56,7 +58,7 @@ public:
 
 void usage( const char *argv0 )
 {
-  cerr << "Usage: " << argv0 << " [-f, --fullscreen] PORT WIDTH HEIGHT" << endl;
+  cerr << "Usage: " << argv0 << " [-f, --fullscreen] [--verbose] PORT WIDTH HEIGHT" << endl;
 }
 
 uint16_t ezrand()
@@ -115,9 +117,11 @@ int main( int argc, char *argv[] )
 
   /* fullscreen player */
   bool fullscreen = false;
+  bool verbose = false;
 
   const option command_line_options[] = {
     { "fullscreen", no_argument, nullptr, 'f' },
+    { "verbose",    no_argument, nullptr, 'v' },
     { 0, 0, 0, 0 }
   };
 
@@ -131,6 +135,10 @@ int main( int argc, char *argv[] )
     switch ( opt ) {
     case 'f':
       fullscreen = true;
+      break;
+
+    case 'v':
+      verbose = true;
       break;
 
     default:
@@ -172,6 +180,9 @@ int main( int argc, char *argv[] )
   const uint32_t initial_state = current_state;
   deque<uint32_t> complete_states;
   unordered_map<uint32_t, Decoder> decoders { { current_state, player.current_decoder() } };
+
+  /* memory usage logs */
+  system_clock::time_point next_mem_usage_report = system_clock::now();
 
   Poller poller;
   poller.add_action( Poller::Action( socket, Direction::In,
@@ -277,6 +288,16 @@ int main( int argc, char *argv[] )
       AckPacket( connection_id, packet.frame_no(), packet.fragment_no(),
                  avg_delay.int_value(), current_state,
                  complete_states ).sendto( socket, new_fragment.source_address );
+
+      auto now = system_clock::now();
+
+      if ( verbose and next_mem_usage_report < now ) {
+        cerr << "["
+             << duration_cast<milliseconds>( now.time_since_epoch() ).count()
+             << "] "
+             << " <mem = " << procinfo::memory_usage() << ">\n";
+        next_mem_usage_report = now + 5s;
+      }
 
       return ResultType::Continue;
     },
