@@ -588,8 +588,11 @@ int main( int argc, char *argv[] )
 
       last_sent = system_clock::now();
 
-      cerr << "Frame " << frame_no << " from encoder job " << output.job_name
-           << " [" << to_string( output.y_ac_qi ) << "] = "
+      cerr << "["
+           << duration_cast<milliseconds>( system_clock::now().time_since_epoch() ).count()
+           << "] "
+           << "Frame " << frame_no << " from encoder job " << output.job_name
+           << " (" << to_string( output.y_ac_qi ) << ") = "
            << ff.fragments_in_this_frame() << " fragments ("
            << avg_encoding_time.int_value()/1000 << " ms, ssim="
            << output.encoder.stats().ssim.get_or( -1.0 )
