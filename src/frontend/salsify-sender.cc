@@ -12,6 +12,8 @@
 #include <future>
 #include <algorithm>
 #include <unordered_map>
+#include <iomanip>
+#include <cmath>
 
 #include "exception.hh"
 #include "finally.hh"
@@ -129,10 +131,9 @@ EncodeOutput do_encode_job( EncodeJob && encode_job )
   return { move( encode_job.encoder ), move( output ), source_minihash, ms_elapsed, encode_job.name, quantizer_in_use };
 }
 
-size_t target_size( uint32_t avg_delay, const uint64_t last_acked, const uint64_t last_sent )
+size_t target_size( uint32_t avg_delay, const uint64_t last_acked, const uint64_t last_sent,
+                    const uint32_t max_delay = 100 * 1000 /* 100 ms = 100,000 us */ )
 {
-  static constexpr uint32_t max_delay = 100 * 1000; // 100 ms = 100,000 us
-
   if ( avg_delay == 0 ) { avg_delay = 1; }
 
   /* cerr << "Packets in flight: " << last_sent - last_acked << "\n";
@@ -162,14 +163,6 @@ uint64_t ack_seq_no( const AckPacket & ack,
 enum class OperationMode
 {
   S1, S2, Conventional
-};
-
-struct ConventionalModeInfo
-{
-  size_t current_period_frames { 0 };
-  system_clock::time_point period_start { system_clock::now() };
-
-  size_t framesize { 0 };
 };
 
 int main( int argc, char *argv[] )
@@ -301,9 +294,11 @@ int main( int argc, char *argv[] )
   system_clock::time_point conservative_until = system_clock::now();
 
   /* for 'conventional codec' mode */
-  system_clock::time_point next_cc_update = system_clock::now();
   duration<long int, std::nano> cc_update_interval { ( update_rate == 0 ) ? 0 : std::nano::den / update_rate };
-  ConventionalModeInfo cc_info;
+  system_clock::time_point next_cc_update = system_clock::now() + cc_update_interval;
+  size_t cc_quantizer = 32;
+  size_t cc_rate = 0;
+  size_t cc_rate_ewma = 0;
 
   /* :D */
   system_clock::time_point last_sent = system_clock::now();
@@ -420,7 +415,7 @@ int main( int argc, char *argv[] )
       /* end of encoder selection logic */
       const Encoder & encoder = encoders.at( selected_source_hash );
 
-      const static auto increment_quantizer = []( const uint8_t q, const int8_t inc ) -> uint8_t
+      const static auto increment_quantizer = []( const uint16_t q, const int8_t inc ) -> uint8_t
         {
           int orig = q;
           orig += inc;
@@ -430,43 +425,41 @@ int main( int argc, char *argv[] )
         };
 
       if ( operation_mode == OperationMode::Conventional ) {
-        /* is it time to update the rate? */
+        /* is it time to update the quality setting? */
         if ( next_cc_update <= system_clock::now() ) {
-          size_t period_length = duration_cast<milliseconds>( system_clock::now() - cc_info.period_start ).count();
-          size_t framerate;
+          const size_t old_quantizer = cc_quantizer;
+          cc_rate = 1000 * 1000 * 1400 / avg_delay;
 
-          if ( cc_info.current_period_frames == 0 or period_length == 0 ) {
-            /* set the initial framerate to 5 */
-            framerate = 5;
+          double change_percentage = ( 1.0 * cc_rate - 1.0 * cc_rate_ewma ) /
+                                     ( 1.0 * cc_rate_ewma );
+
+          change_percentage = max( -1.0, min( 1.5, change_percentage ) );
+
+          if ( change_percentage < -0.99 ) {
+            cc_quantizer = 127;
           }
           else {
-            framerate = 1000 * cc_info.current_period_frames / period_length;
+            double qalpha = 0.75;
+            cc_quantizer = increment_quantizer( cc_quantizer /
+                                                pow( change_percentage + 1, 1 / qalpha ), 0 );
           }
 
-          if ( framerate == 0 ) { framerate = 1; }
+          cc_rate_ewma = 0.8 * cc_rate + 0.2 * cc_rate_ewma;
 
-          cc_info.period_start = system_clock::now();
-          cc_info.current_period_frames = 0;
-
-          if ( avg_delay != numeric_limits<uint32_t>::max() ) {
-            cc_info.framesize = ( 1000 * 1000 * 1400 / ( avg_delay ) ) / ( framerate );
-          }
-          else {
-            cc_info.framesize = 500 * 1000 / framerate; /* 500 KB/s as the initial value */
-          }
-
-          cerr << "* framerate=" << framerate << " "
-               << "period-length=" << period_length << "ms "
-               << "target-framesize=" << cc_info.framesize / 1000 << "KB "
-               << "avg-delay=" << avg_delay << "us "
-               << "rate=" << 1000 * 1400 / ( avg_delay ) << "KB/s"
+          cerr << "avg-delay=" << avg_delay << "us "
+               << "old-quantizer=" << old_quantizer << " "
+               << "new-quantizer=" << cc_quantizer << " "
+               << "emwa-rate=" << cc_rate_ewma / 1000 << "KB "
+               << "new-rate=" << cc_rate / 1000 << "KB "
+               << "change-percentage="
+               << fixed << setprecision( 2 ) << change_percentage
                << endl;
 
           next_cc_update = system_clock::now() + cc_update_interval;
         }
 
-        cc_info.current_period_frames++;
-        encode_jobs.emplace_back( "frame", raster, encoder, TARGET_FRAME_SIZE, 0, cc_info.framesize  );
+        encode_jobs.emplace_back( "frame", raster, encoder, CONSTANT_QUANTIZER,
+                                  cc_quantizer, 0  );
       }
       else {
         /* try various quantizers */
@@ -601,7 +594,7 @@ int main( int argc, char *argv[] )
 
       last_sent = system_clock::now();
 
-      cerr << "["
+      /* cerr << "["
            << duration_cast<milliseconds>( last_sent.time_since_epoch() ).count()
            << "] "
            << "Frame " << frame_no << ": " << output.job_name
@@ -610,14 +603,14 @@ int main( int argc, char *argv[] )
            << avg_encoding_time.int_value()/1000 << " ms, ssim="
            << output.encoder.stats().ssim.get_or( -1.0 )
            << ") {" << output.source_minihash << " -> " << target_minihash << "}"
-           << " intersend_delay = " << inter_send_delay << " us";
+           << " intersend_delay = " << inter_send_delay << " us"; */
 
       if ( log_mem_usage and next_mem_usage_report < last_sent ) {
         cerr << " <mem = " << procinfo::memory_usage() << ">";
         next_mem_usage_report = last_sent + 5s;
       }
 
-      cerr << "\n";
+      // cerr << "\n";
 
       cumulative_fpf.push_back( ( frame_no > 0 )
                                 ? ( cumulative_fpf[ frame_no - 1 ] + ff.fragments_in_this_frame() )

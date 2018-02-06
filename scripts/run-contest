@@ -44,7 +44,7 @@ if ( defined $ENV{ 'DISPLAY' } ) {
 
 push @command, qw{--once --uplink-log=/tmp/contest_uplink_log -- sh -c};
 
-push @command, qq{salsify-sender --mode conventional --update-rate 4 -d $camera_device -p YU12 \$MAHIMAHI_BASE 9090 1337};
+push @command, qq{salsify-sender --mode conventional --update-rate 1 -d $camera_device -p YU12 \$MAHIMAHI_BASE 9090 1337};
 
 # for the contest, we will send data over Verizon's downlink
 # (datagrump sender's uplink)
