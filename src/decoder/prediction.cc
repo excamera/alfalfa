@@ -943,3 +943,7 @@ void VP8Raster::Block<size>::safe_inter_predict( const MotionVector & mv, const 
     }
   }
 }
+
+template class VP8Raster::Block<4>;
+template class VP8Raster::Block<8>;
+template class VP8Raster::Block<16>;
