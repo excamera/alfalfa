@@ -5,12 +5,13 @@ BASE_LDADD = ../input/libalfalfainput.a ../decoder/libalfalfadecoder.a ../util/l
 
 VP8PLAY_BUILD :=
 if BUILDVP8PLAY
-VP8PLAY_BUILD += vp8play salsify-receiver real-webcam
+VP8PLAY_BUILD += vp8play
 endif
+
 bin_PROGRAMS = vp8decode xc-enc xc-ssim xc-dissect xc-framesize xc-dump \
                xc-diff comp-states xc-decode-bundle xc-merge \
                xc-terminate-chunk $(VP8PLAY_BUILD) \
-               salsify-sender fake-webcam xc-zero-out-residues
+               xc-zero-out-residues
 
 vp8decode_SOURCES = vp8decode.cc
 vp8decode_LDADD = ../encoder/libalfalfaencoder.a $(BASE_LDADD)
@@ -51,23 +52,6 @@ xc_terminate_chunk_LDADD = $(BASE_LDADD)
 
 comp_states_SOURCES = comp-states.cc
 comp_states_LDADD = $(BASE_LDADD)
-
-salsify_sender_SOURCES = salsify-sender.cc
-salsify_sender_LDADD = ../net/libnet.a ../encoder/libalfalfaencoder.a $(BASE_LDADD)
-salsify_sender_LDFLAGS = -pthread
-
-salsify_receiver_SOURCES = salsify-receiver.cc
-salsify_receiver_CPPFLAGS = $(AM_CPPFLAGS) $(GLU_CFLAGS) $(GLEW_CFLAGS) $(GLFW3_CFLAGS)
-salsify_receiver_LDADD = ../display/libalfalfadisplay.a ../net/libnet.a $(BASE_LDADD) $(GLU_LIBS) $(GLEW_LIBS) $(GLFW3_LIBS)
-salsify_receiver_LDFLAGS = -pthread
-
-fake_webcam_SOURCES = fake-webcam.cc
-fake_webcam_LDADD = ../encoder/libalfalfaencoder.a $(BASE_LDADD)
-
-real_webcam_SOURCES = real-webcam.cc
-real_webcam_CPPFLAGS = $(AM_CPPFLAGS) $(GLU_CFLAGS) $(GLEW_CFLAGS) $(GLFW3_CFLAGS)
-real_webcam_LDADD = ../display/libalfalfadisplay.a ../net/libnet.a $(BASE_LDADD) $(GLU_LIBS) $(GLEW_LIBS) $(GLFW3_LIBS)
-real_webcam_LDFLAGS =
 
 xc_zero_out_residues_SOURCES = xc-zero-out-residues.cc
 xc_zero_out_residues_LDADD = ../encoder/libalfalfaencoder.a $(BASE_LDADD)

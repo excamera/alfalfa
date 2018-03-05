@@ -139,6 +139,7 @@ AC_CONFIG_FILES([Makefile
                  src/encoder/Makefile
                  src/net/Makefile
                  src/frontend/Makefile
+                 src/salsify/Makefile
                  src/tests/Makefile
                  man/Makefile])
 

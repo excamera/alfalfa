@@ -42,11 +42,12 @@ Makefile.in
 /src/frontend/xc-merge
 /src/frontend/xc-decode-bundle
 /src/frontend/xc-terminate-chunk
-/src/frontend/salsify-sender
-/src/frontend/salsify-receiver
-/src/frontend/fake-webcam
-/src/frontend/real-webcam
 /src/frontend/xc-zero-out-residues
+
+/src/salsify/salsify-sender
+/src/salsify/salsify-receiver
+/src/salsify/fake-webcam
+/src/salsify/real-webcam
 
 /src/tests/decode-to-stdout
 /src/tests/encode-loopback

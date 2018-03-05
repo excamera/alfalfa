@@ -1,1 +1,1 @@
-SUBDIRS = util decoder display input encoder net frontend tests
+SUBDIRS = util decoder display input encoder net frontend salsify tests
