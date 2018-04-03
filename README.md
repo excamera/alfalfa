@@ -29,3 +29,24 @@ $ ./configure
 $ make -j$(nproc)
 $ sudo make install
 ```
+
+
+## Salsify
+
+Source code for Salsify sender and reciever programs can be found at [`src/salsify`](https://github.com/excamera/alfalfa/tree/master/src/salsify).
+
+First, run the receiver program:
+
+```
+salsify-receiver [PORT] 1280 720
+```
+
+Then, run the sender program:
+
+```
+salsify-sender --device [CAMERA, usually /dev/video0] [HOST] [PORT] 1337
+```
+
+The default pixel format is YUV420. Most webcams support raw YUV420, however the frame rate might be low.
+
+
