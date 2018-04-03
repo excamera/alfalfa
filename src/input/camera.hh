@@ -34,7 +34,7 @@ private:
 
 public:
   Camera( const uint16_t width, const uint16_t height,
-          const uint32_t pixel_format = V4L2_PIX_FMT_NV12,
+          const uint32_t pixel_format = V4L2_PIX_FMT_YUV420,
           const std::string device = "/dev/video0" );
 
   ~Camera();
