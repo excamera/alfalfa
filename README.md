@@ -15,7 +15,6 @@ To build the source, you'll need the following packages:
 * `libxcursor-dev`
 * `libglu1-mesa-dev`
 * `libboost-all-dev`
-* `libx264-dev`
 * `libxrandr-dev`
 * `libxi-dev`
 * `libglew-dev`

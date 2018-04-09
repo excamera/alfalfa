@@ -96,7 +96,6 @@ AC_SUBST([AS])
 AC_SUBST([ASFLAGS])
 
 # Checks for libraries.
-PKG_CHECK_MODULES([X264], [x264])
 PKG_CHECK_MODULES([ZLIB], [zlib])
 
 if test "$buildvp8" = true; then

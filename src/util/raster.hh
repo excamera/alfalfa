@@ -51,7 +51,7 @@ public:
   uint16_t chroma_display_width() const { return (1 + display_width_) / 2; }
   uint16_t chroma_display_height() const { return (1 + display_height_) / 2; }
 
-  // SSIM as determined by libx264
+  // SSIM as determined by some implementation (was libx264, removed for BSD release)
   double quality( const BaseRaster & other ) const;
 
   bool operator==( const BaseRaster & other ) const;

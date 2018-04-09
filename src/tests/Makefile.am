@@ -24,6 +24,7 @@ TESTS = fetch-vectors.test decoding.test \
         ivfcopy.test fetch-encoder-vectors.test xc-enc-ssim.test \
         serdes.test fetch-playability-test.test playability.test
 
+XFAIL_TESTS = xc-enc-ssim.test # removed libx264 dependency for BSD release
 
 # some tests depend on the test vectors having been fetched
 # represent the dependency in case of a parallel compile
