@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.61])
-AC_INIT([alfalfa], [0.1], [alfalfa@mit.edu])
+AC_INIT([alfalfa], [0.1], [excamera@cs.stanford.edu])
 AM_INIT_AUTOMAKE([foreign tar-ustar])
 AC_CONFIG_SRCDIR([src/decoder/prediction.cc])
 AC_CONFIG_HEADERS([config.h])
