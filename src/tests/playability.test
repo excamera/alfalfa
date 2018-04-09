@@ -16,4 +16,4 @@ ret_val = os.system(TEST_COMMAND)
 
 os.system("rm {}".format(os.path.join(TEST_OUTPUTS_DIR, '*')))
 
-sys.exit(ret_val)
+sys.exit(os.WEXITSTATUS(ret_val))
