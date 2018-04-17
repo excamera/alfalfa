@@ -84,7 +84,7 @@ AM_CONDITIONAL([BUILDVP8PLAY], [test "$buildvp8" = true])
 # TODO only check this when arch is x86
 AC_CHECK_PROGS([AS], [yasm nasm], [none])
 AS_IF([test x$AS == xnone], [
-  AC_MSG_ERROR(yasm or nasm required for assembly; ASM functions are disabled. Install one of those to use SSE2 in the decoder.)
+  AC_MSG_ERROR([yasm or nasm required for assembly; ASM functions are disabled. Install one of those to use SSE2 in the decoder.])
 ], [
   ASFLAGS="-f elf64"
 
@@ -110,7 +110,7 @@ fi
 AC_PATH_X
 AC_CHECK_HEADERS([fcntl.h unistd.h], [], [AC_MSG_ERROR([Missing required header file])])
 
-AC_CHECK_HEADERS([boost/functional/hash.hpp], [], [AC_MSG_ERROR[Missing boost hash]])
+AC_CHECK_HEADERS([boost/functional/hash.hpp], [], [AC_MSG_ERROR([Missing boost hash])])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_INLINE
