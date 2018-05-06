@@ -117,4 +117,6 @@ FrameHandle<FrameType>::FrameHandle( const uint16_t width,
 {}
 
 template class FrameHandle<KeyFrame>;
+template class FrameDeleter<KeyFrame>;
 template class FrameHandle<InterFrame>;
+template class FrameDeleter<InterFrame>;

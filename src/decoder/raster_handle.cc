@@ -217,5 +217,7 @@ bool HashCachedRaster::has_cache() const
 
 template class VP8MutableRasterHandle<HashCachedRaster>;
 template class VP8RasterHandle<HashCachedRaster>;
+template class RasterDeleter<HashCachedRaster>;
 template class VP8MutableRasterHandle<SafeRaster>;
 template class VP8RasterHandle<SafeRaster>;
+template class RasterDeleter<SafeRaster>;
