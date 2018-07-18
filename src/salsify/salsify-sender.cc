@@ -705,6 +705,10 @@ int main( int argc, char *argv[] )
   while ( true ) {
     const auto poll_result = poller.poll( pacer.ms_until_due() );
     if ( poll_result.result == Poller::Result::Type::Exit ) {
+      if ( poll_result.exit_status ) {
+        cerr << "Connection error." << endl;
+      }
+
       return poll_result.exit_status;
     }
   }

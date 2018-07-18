@@ -74,8 +74,7 @@ Poller::Result Poller::poll( const int & timeout_ms )
 
     for ( unsigned int i = 0; i < pollfds_.size(); i++ ) {
         if ( pollfds_[ i ].revents & (POLLERR | POLLHUP | POLLNVAL) ) {
-            //            throw Exception( "poll fd error" );
-            return Result::Type::Exit;
+            return { Result::Type::Exit, EXIT_FAILURE };
         }
 
         if ( pollfds_[ i ].revents & pollfds_[ i ].events ) {
