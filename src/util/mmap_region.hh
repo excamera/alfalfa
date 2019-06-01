@@ -38,7 +38,7 @@ private:
   size_t length_;
 
 public:
-  MMap_Region( const size_t length, const int prot, const int flags, const int fd );
+  MMap_Region( const size_t length, const int prot, const int flags, const int fd, const off_t offset = 0 );
 
   ~MMap_Region();
 

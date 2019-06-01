@@ -43,11 +43,13 @@ unordered_set<uint32_t> SUPPORTED_FORMATS {
   { V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_YUYV, V4L2_PIX_FMT_YUV420 }
 };
 
+const int capture_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
 Camera::Camera( const uint16_t width, const uint16_t height,
                 const uint32_t pixel_format, const string device )
   : width_( width ), height_( height ),
     camera_fd_( SystemCall( "open camera", open( device.c_str(), O_RDWR ) ) ),
-    mmap_region_(), pixel_format_( pixel_format ), buffer_info_(), type_()
+    kernel_v4l2_buffers_(), pixel_format_( pixel_format )
 {
   v4l2_capability cap;
   SystemCall( "ioctl", ioctl( camera_fd_.fd_num(), VIDIOC_QUERYCAP, &cap ) );
@@ -62,7 +64,7 @@ Camera::Camera( const uint16_t width, const uint16_t height,
 
   /* setting the output format and size */
   v4l2_format format;
-  format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  format.type = capture_type;
   format.fmt.pix.pixelformat = pixel_format;
   format.fmt.pix.width = width;
   format.fmt.pix.height = height;
@@ -77,32 +79,37 @@ Camera::Camera( const uint16_t width, const uint16_t height,
 
   /* tell the v4l2 about our buffers */
   v4l2_requestbuffers buf_request;
-  buf_request.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  buf_request.type = capture_type;
   buf_request.memory = V4L2_MEMORY_MMAP;
-  buf_request.count = 1;
+  buf_request.count = NUM_BUFFERS;
 
   SystemCall( "buffer request", ioctl( camera_fd_.fd_num(), VIDIOC_REQBUFS, &buf_request ) );
 
+  if ( buf_request.count != NUM_BUFFERS ) {
+    throw runtime_error( "couldn't get enough video4linux2 buffers" );
+  }
+
   /* allocate buffers */
-  memset( &buffer_info_, 0, sizeof( buffer_info_ ) );
+  for ( unsigned int i = 0; i < NUM_BUFFERS; i++ ) {
+    v4l2_buffer buffer_info;
+    buffer_info.type = capture_type;
+    buffer_info.memory = V4L2_MEMORY_MMAP;
+    buffer_info.index = i;
 
-  buffer_info_.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-  buffer_info_.memory = V4L2_MEMORY_MMAP;
-  buffer_info_.index = 0;
+    SystemCall( "allocate buffer", ioctl( camera_fd_.fd_num(), VIDIOC_QUERYBUF, &buffer_info ) );
 
-  type_ = buffer_info_.type;
-  SystemCall( "allocate buffer", ioctl( camera_fd_.fd_num(), VIDIOC_QUERYBUF, &buffer_info_ ) );
+    kernel_v4l2_buffers_.emplace_back( buffer_info.length, PROT_READ | PROT_WRITE,
+                                       MAP_SHARED, camera_fd_.fd_num(), buffer_info.m.offset );
 
-  /* mmap the thing */
-  mmap_region_ = make_unique<MMap_Region>( buffer_info_.length, PROT_READ | PROT_WRITE,
-                                                MAP_SHARED, camera_fd_.fd_num() );
+    SystemCall( "enqueue buffer", ioctl( camera_fd_.fd_num(), VIDIOC_QBUF, &buffer_info ) );
+  }
 
-  SystemCall( "stream on", ioctl( camera_fd_.fd_num(), VIDIOC_STREAMON, &type_ ) );
+  SystemCall( "stream on", ioctl( camera_fd_.fd_num(), VIDIOC_STREAMON, &capture_type ) );
 }
 
 Camera::~Camera()
 {
-  SystemCall( "stream off", ioctl( camera_fd_.fd_num(), VIDIOC_STREAMOFF, &type_ ) );
+  SystemCall( "stream off", ioctl( camera_fd_.fd_num(), VIDIOC_STREAMOFF, &capture_type ) );
 }
 
 Optional<RasterHandle> Camera::get_next_frame()
@@ -110,11 +117,14 @@ Optional<RasterHandle> Camera::get_next_frame()
   MutableRasterHandle raster_handle { width_, height_ };
   auto & raster = raster_handle.get();
 
-  buffer_info_.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-  buffer_info_.memory = V4L2_MEMORY_MMAP;
-  buffer_info_.index = 0;
+  v4l2_buffer buffer_info;
+  buffer_info.type = capture_type;
+  buffer_info.memory = V4L2_MEMORY_MMAP;
+  buffer_info.index = next_buffer_index;
 
-  SystemCall( "queue", ioctl( camera_fd_.fd_num(), VIDIOC_QBUF, &buffer_info_ ) );
+  SystemCall( "dequeue buffer", ioctl( camera_fd_.fd_num(), VIDIOC_DQBUF, &buffer_info ) );
+
+  const MMap_Region * const mmap_region_ = &kernel_v4l2_buffers_.at( next_buffer_index );
 
   switch( pixel_format_ ) {
   case V4L2_PIX_FMT_YUYV:
@@ -173,7 +183,9 @@ Optional<RasterHandle> Camera::get_next_frame()
     break;
   }
 
-  SystemCall( "dequeue buffer", ioctl( camera_fd_.fd_num(), VIDIOC_DQBUF, &buffer_info_ ) );
+  SystemCall( "enqueue buffer", ioctl( camera_fd_.fd_num(), VIDIOC_QBUF, &buffer_info ) );
+
+  next_buffer_index = (next_buffer_index + 1) % NUM_BUFFERS;
 
   return RasterHandle{ move( raster_handle ) };
 }

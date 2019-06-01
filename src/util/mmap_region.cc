@@ -33,8 +33,8 @@
 
 using namespace std;
 
-MMap_Region::MMap_Region( const size_t length, const int prot, const int flags, const int fd ) 
-  : addr_( static_cast<uint8_t *>( mmap( nullptr, length, prot, flags, fd, 0 ) ) ), 
+MMap_Region::MMap_Region( const size_t length, const int prot, const int flags, const int fd, const off_t offset )
+  : addr_( static_cast<uint8_t *>( mmap( nullptr, length, prot, flags, fd, offset ) ) ),
     length_( length )
 {
   if ( addr_ == MAP_FAILED ) {

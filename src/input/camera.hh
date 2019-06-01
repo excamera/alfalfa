@@ -48,15 +48,16 @@ static const std::unordered_map<std::string, uint32_t> PIXEL_FORMAT_STRS {
 class Camera : public FrameInput
 {
 private:
+  const unsigned int NUM_BUFFERS = 4;
+
   uint16_t width_;
   uint16_t height_;
 
   FileDescriptor camera_fd_;
-  std::unique_ptr<MMap_Region> mmap_region_;
+  std::vector<MMap_Region> kernel_v4l2_buffers_;
+  unsigned int next_buffer_index = 0;
 
   uint32_t pixel_format_;
-  v4l2_buffer buffer_info_;
-  int type_;
 
 public:
   Camera( const uint16_t width, const uint16_t height,
