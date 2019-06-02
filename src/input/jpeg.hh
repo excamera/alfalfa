@@ -35,6 +35,8 @@
 
 #include "chunk.hh"
 #include "raster.hh"
+#include "2d.hh"
+#include "optional.hh"
 
 class JPEGDecompresser
 {
@@ -42,6 +44,9 @@ class JPEGDecompresser
   jpeg_error_mgr error_manager_ {};
 
   static void error( const j_common_ptr cinfo );
+
+  Optional<TwoD<uint8_t>> Y_ {}, U_ {}, V_ {};
+  std::vector<uint8_t *> Y_rows {}, U_rows {}, V_rows {};
 
 public:
   JPEGDecompresser();

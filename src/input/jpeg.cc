@@ -50,6 +50,7 @@ void JPEGDecompresser::error( const j_common_ptr cinfo )
 {
   array<char, JMSG_LENGTH_MAX> error_message;
   (*cinfo->err->format_message)( cinfo, error_message.data() );
+
   throw runtime_error( error_message.data() );
 }
 
@@ -72,15 +73,34 @@ void JPEGDecompresser::begin_decoding( const Chunk & chunk )
   }
 
   if (    decompresser_.comp_info[ 0 ].h_samp_factor != 2
-       or decompresser_.comp_info[ 0 ].v_samp_factor != 2
+       or decompresser_.comp_info[ 0 ].v_samp_factor != 1
        or decompresser_.comp_info[ 1 ].h_samp_factor != 1
        or decompresser_.comp_info[ 1 ].v_samp_factor != 1
        or decompresser_.comp_info[ 2 ].h_samp_factor != 1
        or decompresser_.comp_info[ 2 ].v_samp_factor != 1 ) {
-    throw runtime_error( "not 4:2:0" );
+    throw runtime_error( "not 4:2:2" );
   }
 
-  jpeg_start_decompress( &decompresser_ );
+  if ( Y_.initialized() ) {
+    if ( Y_.get().height() != height()
+         or U_.get().height() != height()
+         or V_.get().height() != height()
+         or Y_.get().width() != width()
+         or U_.get().width() != width() / 2
+         or V_.get().width() != width() / 2 ) {
+      throw runtime_error( "JPEG size changed" );
+    }
+  } else {
+    Y_.initialize( width(), height() );
+    U_.initialize( width() / 2, height() );
+    V_.initialize( width() / 2, height() );
+
+    for ( unsigned int i = 0; i < height(); i++ ) {
+      Y_rows.emplace_back( &Y_.get().at( 0, i ) );
+      U_rows.emplace_back( &U_.get().at( 0, i ) );
+      V_rows.emplace_back( &V_.get().at( 0, i ) );
+    }
+  }
 }
 
 unsigned int JPEGDecompresser::width() const
@@ -99,27 +119,28 @@ void JPEGDecompresser::decode( BaseRaster & r )
     throw runtime_error( "size mismatch" );
   }
 
-  vector<uint8_t *> Y_rows, U_rows, V_rows;
-  for ( unsigned int i = 0; i < r.height(); i++ ) {
-    Y_rows.emplace_back( &r.Y().at( 0, i ) );
-  }
-
-  for ( unsigned int i = 0; i < r.height() / 2; i++ ) {
-    U_rows.emplace_back( &r.U().at( 0, i ) );
-    V_rows.emplace_back( &r.V().at( 0, i ) );
-  }
+  jpeg_start_decompress( &decompresser_ );
 
   while ( decompresser_.output_scanline < decompresser_.output_height ) {
     array<uint8_t **, 3> image { &Y_rows.at( decompresser_.output_scanline ),
-        &U_rows.at( decompresser_.output_scanline / 2 ),
-        &V_rows.at( decompresser_.output_scanline / 2 ) };
+        &U_rows.at( decompresser_.output_scanline ),
+        &V_rows.at( decompresser_.output_scanline ) };
 
     const auto decoded = jpeg_read_raw_data( &decompresser_, image.data(), height() );
 
-    if ( decoded != 2 * DCTSIZE ) {
+    if ( decoded != DCTSIZE ) {
       throw runtime_error( "jpeg_read_raw_data returned short read" );
     }
   }
 
   jpeg_finish_decompress( &decompresser_ );
+
+  memcpy( &r.Y().at( 0, 0 ), &Y_.get().at( 0, 0 ), width() * height() );
+
+  for ( size_t row = 0; row < height() / 2; row++ ) {
+    for ( size_t column = 0; column < width() / 2; column++ ) {
+      r.U().at( column, row ) = U_.get().at( column, row * 2 );
+      r.V().at( column, row ) = V_.get().at( column, row * 2 );
+    }
+  }
 }

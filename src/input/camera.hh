@@ -61,7 +61,7 @@ private:
 
   uint32_t pixel_format_;
 
-  JPEGDecompresser jpegdec_ {};
+  Optional<JPEGDecompresser> jpegdec_ {};
 
 public:
   Camera( const uint16_t width, const uint16_t height,
