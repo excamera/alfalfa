@@ -1,6 +1,6 @@
 /* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 
-/* Copyright 2013-2018 the Alfalfa authors
+/* Copyright 2013-2019 the Alfalfa authors
                        and the Massachusetts Institute of Technology
 
    Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,56 @@
    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-#ifndef MMAP_REGION_HH
-#define MMAP_REGION_HH
+#include <getopt.h>
 
-#include <cstdint>
+#include <iostream>
 
-class MMap_Region
+#include "raster_handle.hh"
+#include "display.hh"
+#include "file.hh"
+#include "jpeg.hh"
+
+using namespace std;
+
+void usage( const char *argv0 )
 {
-private:
-  uint8_t *addr_;
-  size_t length_;
+  cerr << "Usage: " << argv0
+       << " filename"
+       << endl;
+}
 
-public:
-  MMap_Region( const size_t length, const int prot, const int flags, const int fd, const off_t offset = 0 );
+int main( int argc, char *argv[] )
+{
+  try {
+    /* check the command-line arguments */
+    if ( argc < 1 ) { /* for sticklers */
+      abort();
+    }
 
-  ~MMap_Region();
+    if ( argc != 2 ) {
+      usage( argv[ 0 ] );
+      return EXIT_FAILURE;
+    }
 
-  /* Disallow copying */
-  MMap_Region( const MMap_Region & other ) = delete;
-  MMap_Region & operator=( const MMap_Region & other ) = delete;
+    /* open file */
+    File file { argv[ 1 ] };
+    JPEGDecompresser decompresser;
 
-  /* Allow moving */
-  MMap_Region( MMap_Region && other );
+    decompresser.begin_decoding( file.chunk() );
 
-  /* Getter */
-  uint8_t *addr() const { return addr_; }
-  size_t length() const { return length_; }
-};
+    MutableRasterHandle r { decompresser.width(), decompresser.height() };
 
-#endif /* MMAP_REGION_HH */
+    decompresser.decode( r.get() );
+
+    VideoDisplay display { r };
+
+    display.draw( r );
+
+    pause();
+
+    return EXIT_SUCCESS;
+  } catch ( const exception & e ) {
+    print_exception( argv[ 0 ], e );
+    return EXIT_FAILURE;
+  }
+}

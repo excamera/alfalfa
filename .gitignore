@@ -48,6 +48,7 @@ Makefile.in
 /src/salsify/salsify-receiver
 /src/salsify/fake-webcam
 /src/salsify/real-webcam
+/src/salsify/display-jpeg
 
 /src/tests/decode-to-stdout
 /src/tests/encode-loopback

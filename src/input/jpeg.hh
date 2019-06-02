@@ -1,6 +1,6 @@
 /* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 
-/* Copyright 2013-2018 the Alfalfa authors
+/* Copyright 2013-2019 the Alfalfa authors
                        and the Massachusetts Institute of Technology
 
    Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,33 @@
    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-#ifndef MMAP_REGION_HH
-#define MMAP_REGION_HH
+#ifndef JPEG_HH
+#define JPEG_HH
 
-#include <cstdint>
+#include <cstdlib>
+#include <cstdio>
+#include <jpeglib.h>
 
-class MMap_Region
+#include "chunk.hh"
+#include "raster.hh"
+
+class JPEGDecompresser
 {
-private:
-  uint8_t *addr_;
-  size_t length_;
+  jpeg_decompress_struct decompresser_ {};
+  jpeg_error_mgr error_manager_ {};
+
+  static void error( const j_common_ptr cinfo );
 
 public:
-  MMap_Region( const size_t length, const int prot, const int flags, const int fd, const off_t offset = 0 );
+  JPEGDecompresser();
+  ~JPEGDecompresser();
 
-  ~MMap_Region();
+  void begin_decoding( const Chunk & chunk );
 
-  /* Disallow copying */
-  MMap_Region( const MMap_Region & other ) = delete;
-  MMap_Region & operator=( const MMap_Region & other ) = delete;
+  void decode( BaseRaster & r );
 
-  /* Allow moving */
-  MMap_Region( MMap_Region && other );
-
-  /* Getter */
-  uint8_t *addr() const { return addr_; }
-  size_t length() const { return length_; }
+  unsigned int width() const;
+  unsigned int height() const;
 };
 
-#endif /* MMAP_REGION_HH */
+#endif /* JPEG_HH */

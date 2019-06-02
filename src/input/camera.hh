@@ -38,11 +38,13 @@
 #include "mmap_region.hh"
 #include "raster_handle.hh"
 #include "frame_input.hh"
+#include "jpeg.hh"
 
 static const std::unordered_map<std::string, uint32_t> PIXEL_FORMAT_STRS {
   { "NV12", V4L2_PIX_FMT_NV12 },
   { "YUYV", V4L2_PIX_FMT_YUYV },
-  { "YU12", V4L2_PIX_FMT_YUV420 }
+  { "YU12", V4L2_PIX_FMT_YUV420 },
+  { "MJPG", V4L2_PIX_FMT_MJPEG }
 };
 
 class Camera : public FrameInput
@@ -58,6 +60,8 @@ private:
   unsigned int next_buffer_index = 0;
 
   uint32_t pixel_format_;
+
+  JPEGDecompresser jpegdec_ {};
 
 public:
   Camera( const uint16_t width, const uint16_t height,

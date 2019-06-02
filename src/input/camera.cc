@@ -36,11 +36,12 @@
 
 #include "camera.hh"
 #include "exception.hh"
+#include "jpeg.hh"
 
 using namespace std;
 
 unordered_set<uint32_t> SUPPORTED_FORMATS {
-  { V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_YUYV, V4L2_PIX_FMT_YUV420 }
+  { V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_YUYV, V4L2_PIX_FMT_YUV420, V4L2_PIX_FMT_MJPEG }
 };
 
 const int capture_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -180,6 +181,16 @@ Optional<RasterHandle> Camera::get_next_frame()
       memcpy( &raster.V().at( 0, 0 ), mmap_region_->addr() + width_ * height_ * 5 / 4, width_ * height_ / 4 );
     }
 
+    break;
+
+  case V4L2_PIX_FMT_MJPEG:
+    {
+      jpegdec_.begin_decoding( { mmap_region_->addr(), mmap_region_->length() } );
+      if ( jpegdec_.width() != width_ or jpegdec_.height() != height_ ) {
+        throw runtime_error( "size mismatch" );
+      }
+      jpegdec_.decode( raster );
+    }
     break;
   }
 

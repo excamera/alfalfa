@@ -19,6 +19,7 @@ addons:
     - libglew-dev
     - vpx-tools
     - binutils
+    - libjpeg-turbo8-dev
 
 before_script:
   - sudo add-apt-repository -y ppa:keithw/glfw3
