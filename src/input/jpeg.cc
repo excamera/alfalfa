@@ -56,7 +56,11 @@ void JPEGDecompresser::error( const j_common_ptr cinfo )
 
 void JPEGDecompresser::begin_decoding( const Chunk & chunk )
 {
-  jpeg_mem_src( &decompresser_, chunk.buffer(), chunk.size() );
+  /* older versions of libjpeg did not use a const pointer
+     in jpeg_mem_src's buffer argument */
+  jpeg_mem_src( &decompresser_,
+                const_cast<uint8_t *>( chunk.buffer() ),
+                chunk.size() );
 
   if ( JPEG_HEADER_OK != jpeg_read_header( &decompresser_, true ) ) {
     throw runtime_error( "invalid JPEG" );
