@@ -186,7 +186,7 @@ Optional<RasterHandle> Camera::get_next_frame()
   case V4L2_PIX_FMT_MJPEG:
     {
       if ( jpegdec_.initialized() ) {
-        jpegdec_.get().begin_decoding( { mmap_region_->addr(), mmap_region_->length() } );
+        jpegdec_.get().begin_decoding( { mmap_region_->addr(), buffer_info.bytesused } );
         if ( jpegdec_.get().width() != width_ or jpegdec_.get().height() != height_ ) {
           throw runtime_error( "size mismatch" );
         }
