@@ -64,6 +64,8 @@ public:
         above_right( self.maybe_at( column + 1, row - 1 ) )
     {}
 
+    Context( const Context & ) = default;
+
     // Seems like when copying a TwoD, copying the potentially
     // incorrect pointers is never the right thing to do
     const Context & operator=( const Context & ) { return *this; }
