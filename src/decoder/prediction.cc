@@ -834,7 +834,7 @@ void VP8Raster::Block<size>::unsafe_inter_predict( const MotionVector & mv, cons
   }
 
 #ifdef HAVE_SSE2
-  alignas(16) SafeArray< SafeArray< uint8_t, size + 8 >, size + 8 > intermediate;
+  alignas(16) SafeArray< SafeArray< uint8_t, size + 8 >, size + 8 > intermediate{};
   const uint8_t *intermediate_ptr = &intermediate.at( 0 ).at( 0 );
   const uint8_t *src_ptr = &reference.at( source_column, source_row );
   const uint8_t *dst_ptr = &output.at( 0, 0 );
@@ -936,7 +936,7 @@ void VP8Raster::Block<size>::safe_inter_predict( const MotionVector & mv, const 
   /* filter horizontally */
   const auto & horizontal_filter = sixtap_filters.at( mv.x() & 7 );
 
-  SafeArray<SafeArray<uint8_t, size>, size + 5> intermediate;
+  SafeArray<SafeArray<uint8_t, size>, size + 5> intermediate{};
 
   for ( uint8_t row = 0; row < size + 5; row++ ) {
     for ( uint8_t column = 0; column < size; column++ ) {
