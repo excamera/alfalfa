@@ -32,6 +32,7 @@
 #include <config.h>
 
 #include <cstdint>
+#include <array>
 
 #include "optional.hh"
 #include "modemv_data.hh"

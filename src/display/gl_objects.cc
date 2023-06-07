@@ -217,7 +217,7 @@ void compile_shader( const GLuint num, const string & source )
   glGetShaderiv( num, GL_INFO_LOG_LENGTH, &log_length );
 
   if ( log_length > 1 ) {
-    unique_ptr<GLchar> buffer( new GLchar[ log_length ] );
+    unique_ptr<GLchar[]> buffer( new GLchar[ log_length ] );
     GLsizei written_length;
     glGetShaderInfoLog( num, log_length, &written_length, buffer.get() );
 
